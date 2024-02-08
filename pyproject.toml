@@ -4,7 +4,6 @@ dynamic = ["version"]
 description = "A simple navigation with reinforcement learning"
 keywords = ["RL", "navigation", "deep learning"]
 
-
 authors = [{name = "Nicolas Alan", email = "grottimeireles@gmail.com"}]
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -12,24 +11,23 @@ maintainers = [
   {name = "Nicolas Alan", email = "grottimeireles@gmail.com"}
 ]
 
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "Environment :: Console",
-    "Intended Audience :: Developers",
-    "Intended Audience :: System Administrators",
-    "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
-    "Operating System :: OS Independent",
-    "Programming Language :: Python",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Internet :: WWW/HTTP",
-    "Topic :: Internet :: File Transfer Protocol (FTP)",
-    "Topic :: System :: Networking"
-]
-requires-python = ">= 3.10"
+requires-python = ">= 3.8"
 
 dependencies = [
   "tdqm",
 ]
+
+[tool.poetry]
+name = "microvault"
+version = "0.1.0"
+description = "MicroVault - RL for Navigation"
+authors = ["Nicolasalan <nicolasalangrotti03@gmail.com>"]
+license = "LiCENSE"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
