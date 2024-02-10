@@ -2,7 +2,7 @@
 name = "microvault"
 version = "0.2.0"
 description = "MicroVault - RL for Navigation"
-authors = ["Nicolas Alan <grottimeireles@gmail.com>"]
+authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LiCENSE"
 readme = "README.md"
 packages = [{ include = "microvault"}]
@@ -28,6 +28,9 @@ lightning = "^2.2.0"
 scipy = "^1.12.0"
 openai = "^1.12.0"
 rich = "^13.7.0"
+
+[tool.poetry.scripts]
+notas-musicais = "microvault.micro:app"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
