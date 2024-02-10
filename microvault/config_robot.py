@@ -1,7 +1,5 @@
 from typing import Optional
 
-import sentry_sdk
-
 
 class ConfigRobot:
     def __init__(
