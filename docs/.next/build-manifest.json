@@ -1,61 +1,70 @@
 {
   "polyfillFiles": [
-    "static/chunks/polyfills.js"
+    "static/chunks/polyfills-c67a75d1b6f99dc8.js"
   ],
-  "devFiles": [
-    "static/chunks/react-refresh.js"
-  ],
+  "devFiles": [],
   "ampDevFiles": [],
   "lowPriorityFiles": [
-    "static/development/_buildManifest.js",
-    "static/development/_ssgManifest.js"
+    "static/saxO64w_qooaKDzjlKumq/_buildManifest.js",
+    "static/saxO64w_qooaKDzjlKumq/_ssgManifest.js"
   ],
   "rootMainFiles": [],
   "pages": {
     "/": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/index.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/index-f148b14415d94b67.js"
     ],
     "/_app": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/_app.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/css/a1da0e13d755dfb2.css",
+      "static/chunks/pages/_app-a3bc5cc6e9390631.js"
     ],
     "/_error": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/_error.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/_error-61758bb4a04609f0.js"
+    ],
+    "/apis/algorithms": [
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/apis/algorithms-4da9fdf2cfe2e2da.js"
     ],
     "/concepts/components": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/concepts/components.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/concepts/components-33bb3ef59744e8b0.js"
     ],
     "/examples/notebooks": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/examples/notebooks.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/examples/notebooks-199920e9132c7f0c.js"
     ],
     "/examples/ros2": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/examples/ros2.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/examples/ros2-2170c501c953be3e.js"
     ],
     "/quick/install": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/quick/install.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/quick/install-eecccc66b1408841.js"
     ],
     "/quick/log": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/quick/log.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/quick/log-34bf998d21acfdb4.js"
     ],
     "/quick/setup": [
-      "static/chunks/webpack.js",
-      "static/chunks/main.js",
-      "static/chunks/pages/quick/setup.js"
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/quick/setup-e76264335f19acb8.js"
+    ],
+    "/quick/training": [
+      "static/chunks/webpack-efdab446b2c4fcf1.js",
+      "static/chunks/main-3939ef0ba2093f68.js",
+      "static/chunks/pages/quick/training-dae2270b52fdee0b.js"
     ]
   },
   "ampFirstPages": []
