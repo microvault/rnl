@@ -1,0 +1,12 @@
+{
+  "/_app": "pages/_app.js",
+  "/_error": "pages/_error.js",
+  "/_document": "pages/_document.js",
+  "/": "pages/index.js",
+  "/quick/install": "pages/quick/install.js",
+  "/quick/setup": "pages/quick/setup.js",
+  "/quick/log": "pages/quick/log.js",
+  "/concepts/components": "pages/concepts/components.js",
+  "/examples/notebooks": "pages/examples/notebooks.js",
+  "/examples/ros2": "pages/examples/ros2.js"
+}
