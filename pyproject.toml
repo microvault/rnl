@@ -49,7 +49,7 @@ lint = "black --check --diff . && ruff check --diff . && isort --check --diff ."
 pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"
-publish = "poetry publish -u __token__ -p $NOTAS_MUSICAIS_TOKEN"
+publish = "poetry publish -u __token__ -p $MICROVAULT_TOKEN"
 
 [build-system]
 requires = ["poetry-core"]
