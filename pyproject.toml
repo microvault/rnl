@@ -3,9 +3,13 @@ name = "microvault"
 version = "0.2.0"
 description = "MicroVault - RL for Navigation"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
-license = "LiCENSE"
+license = "LICENSE"
 readme = "README.md"
 packages = [{ include = "microvault"}]
+
+[tool.poetry.urls]
+documentation = "https://microvault.vercel.app"
+bugs = "https://github.com/microvault/microvault/issues"
 
 [tool.poetry.dependencies]
 python = "^3.10"
