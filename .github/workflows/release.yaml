@@ -24,4 +24,4 @@ jobs:
         run: poetry install
 
       - name: Build and publish to PyPI
-        run: poetry publish -u __token__ -p $MICROVAULT_TOKEN
+        run: poetry publish -u __token__ -p ${{ secrets.MICROVAULT_TOKEN }}
