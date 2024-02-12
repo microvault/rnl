@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microvault"
-version = "0.2.3"
+version = "0.2.31"
 description = "MicroVault - RL for Navigation"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LICENSE"
@@ -55,7 +55,7 @@ lint = "black --check --diff . && ruff check --diff . && isort --check --diff . 
 pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"
-publish = "poetry publish -u __token__ -p $NOTAS_MUSICAIS_TOKEN"
+publish = "poetry publish --build -u __token__ -p $MICROVAULT_PYPI_TOKEN"
 
 [build-system]
 requires = ["poetry-core"]

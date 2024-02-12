@@ -1,7 +1,7 @@
 # Microvault
 
 <p align="center">
-  <a href="https://badge.fury.io/py/microvault"><img src="https://badge.fury.io/py/microvault.svg" alt="PyPI version"></a>
+  <a href="https://pypi.org/project/microvault/"><img alt="PyPI" src="https://img.shields.io/pypi/v/microvault"></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
   <a href="https://codecov.io/gh/microvault/microvault"><img alt="codecov" src="https://codecov.io/gh/microvault/microvault/graph/badge.svg?token=WRTOBP06AW"></a>
   <a href="https://github.com/microvault/microvault/actions/workflows/main.yaml"><img alt="CI" src="https://github.com/microvault/microvault/actions/workflows/main.yaml/badge.svg"></a>
