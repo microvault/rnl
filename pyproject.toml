@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "microvault"
-version = "0.2.0"
+version = "0.2.3"
 description = "MicroVault - RL for Navigation"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LICENSE"
