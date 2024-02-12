@@ -23,8 +23,12 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Build 
+      - name: Build
         run: poetry build
 
       - name: Publish to PyPI
-        run: poetry publish -u __token__ -p ${{ secrets.MICROVAULT_TOKEN }}
+        env:
+          PYPI_TOKEN: ${{ secrets.MICROVAULT_TOKEN }}
+        run: |
+          poetry config pypi-token.pypi $PYPI_TOKEN
+          poetry publish 
