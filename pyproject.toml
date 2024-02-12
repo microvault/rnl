@@ -55,14 +55,6 @@ lint = "black --check --diff . && ruff check --diff . && isort --check --diff . 
 pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"
-publish = "poetry publish -u __token__ -p $MICROVAULT_TOKEN"
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-tag_format = "$version"
-version_scheme = "pep440"
-version_provider = "poetry"
-update_changelog_on_bump = true
 
 [build-system]
 requires = ["poetry-core"]
