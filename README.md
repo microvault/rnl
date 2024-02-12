@@ -7,3 +7,9 @@
   <a href="https://github.com/microvault/microvault/actions/workflows/main.yaml"><img alt="CI" src="https://github.com/microvault/microvault/actions/workflows/main.yaml/badge.svg"></a>
   <a href="https://github.com/psf/black"><img alt="Code style: black" src="https://img.shields.io/badge/code%20style-black-000000.svg"></a>
 </p>
+
+<div align="center">
+
+**This is a Deep Reinforcement Learning library focused on mobile robot navigation.**
+
+</div>
