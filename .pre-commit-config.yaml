@@ -39,10 +39,10 @@ repos:
 
   - repo: local
     hooks:
-      - id: pytest-check
+    -   id: pytest-check
         name: pytest-check
         entry: pytest
-        args: ['tests']
+        args: ['-s', '-x', 'tests']
         language: system
         pass_filenames: false
         always_run: true
