@@ -41,6 +41,7 @@ isort = "^5.13.2"
 taskipy = "^1.12.2"
 ruff = "^0.2.1"
 codespell = "^2.2.6"
+commitizen = "^3.14.1"
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -55,6 +56,13 @@ pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"
 publish = "poetry publish -u __token__ -p $MICROVAULT_TOKEN"
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "$version"
+version_scheme = "pep440"
+version_provider = "poetry"
+update_changelog_on_bump = true
 
 [build-system]
 requires = ["poetry-core"]
