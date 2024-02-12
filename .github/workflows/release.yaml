@@ -23,12 +23,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Build
-        run: poetry build
-
-      - name: Publish to PyPI
-        env:
-          PYPI_TOKEN: ${{ secrets.MICROVAULT_TOKEN }}
+      - name: Build and Publish to PyPI
         run: |
-          poetry config pypi-token.pypi $PYPI_TOKEN
-          poetry publish 
+          poetry config repositories.microvault https://test.pypi.org/legacy/
+          poetry config pypi-token.pypi "${{ secrets.MICROVAULT_TOKEN }}"
+          poetry publish --build
