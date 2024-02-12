@@ -10,7 +10,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: login to ghcr.io
-        run: docker login -username microvault --password-stdin ${{ secrets.GHCR }} ghcr.io
+        run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u microvault --password-stdin
 
       - name: Build image
         run: docker build -t ghcr.io/microvault/microvault:latest docker/.
