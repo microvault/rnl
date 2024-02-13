@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 import clsx from 'clsx'
 import { AnimatePresence, motion, useIsPresent } from 'framer-motion'
 
-import { Button } from '@/components/Button'
 import { useIsInsideMobileNavigation } from '@/components/MobileNavigation'
 import { useSectionStore } from '@/components/SectionProvider'
 import { Tag } from '@/components/Tag'
@@ -210,6 +209,13 @@ export const navigation = [
     links: [
       { title: 'Notebook', href: '/examples/notebooks' },
       { title: 'ROS 2', href: '/examples/ros2' },
+    ],
+  },
+  {
+    title: 'Dev',
+    links: [
+      { title: 'Run web documentation', href: '/dev/web' },
+      { title: 'Env dev', href: '/dev/env' },
     ],
   },
   {

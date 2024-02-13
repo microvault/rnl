@@ -108,7 +108,7 @@ function SmallPrint() {
         <SocialLink href="#" icon={TwitterIcon}>
           Follow us on Twitter
         </SocialLink>
-        <SocialLink href="#" icon={GitHubIcon}>
+        <SocialLink href="https://github.com/microvault/microvault" icon={GitHubIcon}>
           Follow us on GitHub
         </SocialLink>
         <SocialLink href="#" icon={DiscordIcon}>
