@@ -42,6 +42,7 @@ taskipy = "^1.12.2"
 ruff = "^0.2.1"
 codespell = "^2.2.6"
 commitizen = "^3.14.1"
+pre-commit = "^3.6.1"
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -51,7 +52,7 @@ profile = "black"
 line_length = 79
 
 [tool.taskipy.tasks]
-lint = "black --check --diff . && ruff check --diff . && isort --check --diff . && codespell --skip=*.css,*.js,*.map,*.scss,*.svg, *.html,*.json,*.yml,*.yaml,*.md,*.jsx,*.mdx"
+lint = "black --check --diff --exclude docs . && ruff check --diff --exclude docs . && isort --check --diff --skip docs . && codespell --skip=*.css,*.js,*.map,*.scss,*.svg,*.html,*.json,*.yml,*.yaml,*.md,*.jsx,*.mdx,./docs/*"
 pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"

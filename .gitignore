@@ -716,3 +716,49 @@ FodyWeavers.xsd
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,visualstudio,visualstudiocode
 
 **/.DS_Store
+
+# Webpack-related files and folders
+docs/.next/
+./docs/node_modules/
+./docs/dist/
+
+# Created by https://www.toptal.com/developers/gitignore/api/nextjs
+# Edit at https://www.toptal.com/developers/gitignore?templates=nextjs
+
+### NextJS ###
+# dependencies
+/docs/node_modules
+/docs/.pnp
+.pnp.js
+
+# testing
+/docs/coverage
+
+# next.js
+/docs/.next/
+/docs/out/
+
+# production
+/docs/build
+
+# misc
+/docs.DS_Store
+*.pem
+
+# debug
+/docsnpm-debug.log*
+/docsyarn-debug.log*
+/docsyarn-error.log*
+/docs.pnpm-debug.log*
+
+# local env files
+/docs.env*.local
+
+# vercel
+/docs.vercel
+
+# typescript
+/docs*.tsbuildinfo
+/docsnext-env.d.ts
+
+# End of https://www.toptal.com/developers/gitignore/api/nextjs
