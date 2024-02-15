@@ -4,9 +4,10 @@ from mpl_toolkits.mplot3d import art3d
 
 
 class Continuous:
-    def __init__(self):
-        self.fig_width = 6
-        self.fig_height = 6
+    def __init__(self, plot=True, fig_width=6, fig_height=6):
+        self.fig_width = fig_width
+        self.fig_height = fig_height
+        self.plot = plot
 
     def plot_initial_environment(self):
 
@@ -50,4 +51,7 @@ class Continuous:
         # Try to reduce whitespace
         fig.subplots_adjust(left=0, right=1, bottom=-0.2, top=1)
 
-        plt.show()
+        if self.plot:
+            plt.show()
+        else:
+            return fig
