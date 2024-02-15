@@ -742,21 +742,25 @@ docs/.next/
 /docs/build
 
 # misc
-/docs.DS_Store
+/docs/.DS_Store
 *.pem
 
 # debug
-/docsnpm-debug.log*
-/docsyarn-debug.log*
-/docsyarn-error.log*
-/docs.pnpm-debug.log*
+/docs/npm-debug.log*
+/docs/yarn-debug.log*
+/docs/yarn-error.log*
+/docs/.pnpm-debug.log*
 
 # local env files
-/docs.env*.local
+/docs/.env*.local
 
 # vercel
-/docs.vercel
+/docs./vercel
 
 # typescript
-/docs*.tsbuildinfo
-/docsnext-env.d.ts
+/docs/*.tsbuildinfo
+/docs/next-env.d.ts
+
+/microvault/utils/*.cpp
+
+/microvault/utils/map.py
