@@ -11,6 +11,5 @@ def continuous_instance():
 
 def test_plot_initial_environment(continuous_instance):
     continuous_instance.plot_initial_environment()
-    plt.pause(2)
     plt.close()
     assert plt.gcf()

@@ -71,7 +71,12 @@ cdef class CMap2D:
 
         print("Thresh occupied: {}. Thresh free: {}".format(self._thresh_occupied, self.thresh_free))
         print("Map loaded. Origin: {}. Resolution: {}. Occupancy shape: {}".format(np.array(self.origin), self.resolution_, self._occupancy.shape))
+
         self.HUGE_ = 100 * self.occupancy_shape0 * self.occupancy_shape1
         
         if self.resolution_ == 0:
             raise ValueError("resolution can not be 0")
+
+    def occupancy(self):
+        occ = np.array(self._occupancy)
+        return occ

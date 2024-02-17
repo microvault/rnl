@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d import art3d
 
@@ -15,10 +16,19 @@ class Continuous:
         ax.remove()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
+        # mapa = CMap2D(folder="/Users/nicolasalan/microvault/map", name="map")
+        # surface_matrix = mapa.occupancy() # return np.array
+
+        # x, y = np.meshgrid(np.linspace(0, 1, surface_matrix.shape[1]), np.linspace(0, 1, surface_matrix.shape[0]))
+
         # Bounds
         ax.set_xlim(0, 1)
         ax.set_ylim(0, 1)
         ax.set_zlim(-0.01, 0.01)
+
+        # ax.plot_surface(x, y, surface_matrix, cmap='viridis', alpha=0.8)
+        # print("x", x)
+        # print("y", y)
 
         # Surface
         corner_points = [(0, 0), (0, 1), (1, 1), (1, 0)]
@@ -48,6 +58,18 @@ class Continuous:
         ax.azim = -55
         ax.dist = 10
 
+        # Normalizar os valores de x e y para o intervalo [0, 1]
+        # x_normalized = np.linspace(0, 1, surface_matrix.shape[1])
+        # y_normalized = np.linspace(0, 1, surface_matrix.shape[0])
+
+        # ax.plot_surface(x_normalized, y_normalized, surface_matrix, cmap='viridis', alpha=0.8)
+
+        # Adicionar ponto (x, y)
+        x, y = 0.5, 0.5
+        z = 0  # altura do ponto no eixo z
+
+        ax.scatter(x, y, z, color="red", marker="o", s=50)
+
         # Try to reduce whitespace
         fig.subplots_adjust(left=0, right=1, bottom=-0.2, top=1)
 
@@ -55,3 +77,7 @@ class Continuous:
             plt.show()
         else:
             return fig
+
+
+# maps = Continuous()
+# maps.plot_initial_environment()
