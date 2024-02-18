@@ -20,8 +20,17 @@ from libc.math cimport sqrt as csqrt
 
 import os
 
+import matplotlib.pyplot as plt
+
+# Importar as bibliotecas necessárias do Cython
+import numpy as np
+from matplotlib import art3d
+from matplotlib.patches import Polygon
 from matplotlib.pyplot import imread
+from mpl_toolkits.mplot3d import Axes3D
 from yaml import SafeLoader, load
+
+from libc.math cimport abs
 
 
 cdef class CMap2D:
@@ -68,10 +77,6 @@ cdef class CMap2D:
 
         self._thresh_occupied = mapparams["occupied_thresh"]
         self.thresh_free = mapparams["free_thresh"]
-
-        print("Thresh occupied: {}. Thresh free: {}".format(self._thresh_occupied, self.thresh_free))
-        print("Map loaded. Origin: {}. Resolution: {}. Occupancy shape: {}".format(np.array(self.origin), self.resolution_, self._occupancy.shape))
-
         self.HUGE_ = 100 * self.occupancy_shape0 * self.occupancy_shape1
         
         if self.resolution_ == 0:
