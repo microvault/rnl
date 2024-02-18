@@ -1,43 +1,151 @@
+import functools
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
+from matplotlib.pyplot import imread
 from mpl_toolkits.mplot3d import art3d
+from tqdm import tqdm
+from yaml import SafeLoader, load
 
 
 class Continuous:
-    def __init__(self, plot=True, fig_width=6, fig_height=6):
+    def __init__(
+        self,
+        folder=None,
+        name=None,
+        silent=False,
+        fig_width=8,
+        fig_height=8,
+    ):
         self.fig_width = fig_width
         self.fig_height = fig_height
-        self.plot = plot
+        self.path = folder
 
-    def plot_initial_environment(self):
+        if folder is None or name is None:
+            return
 
-        fig, ax = plt.subplots(1, 1, figsize=(self.fig_width, self.fig_height))
+        folder = os.path.expanduser(folder)
+        yaml_file = os.path.join(folder, name + ".yaml")
+
+        if not silent:
+            print(f"Loading map definition from {yaml_file}")
+
+        with open(yaml_file) as stream:
+            mapparams = load(stream, Loader=SafeLoader)
+        map_file = os.path.join(folder, mapparams["image"])
+
+        if not silent:
+            print(f"Map definition found. Loading map from {map_file}")
+
+        mapimage = imread(map_file)
+        temp = (1.0 - mapimage.T[:, ::-1] / 254.0).astype(np.float32)
+        mapimage = np.ascontiguousarray(temp)
+        self._occupancy = mapimage
+        self.occupancy_shape0 = mapimage.shape[0]
+        self.occupancy_shape1 = mapimage.shape[1]
+        self.resolution_ = mapparams["resolution"]
+        self.origin = np.array(mapparams["origin"][:2]).astype(np.float32)
+
+        if mapparams["origin"][2] != 0:
+            raise ValueError("Map origin z coordinate must be 0")
+
+        self._thresh_occupied = mapparams["occupied_thresh"]
+        self.thresh_free = mapparams["free_thresh"]
+        self.HUGE_ = 100 * self.occupancy_shape0 * self.occupancy_shape1
+
+        if self.resolution_ == 0:
+            raise ValueError("resolution can not be 0")
+
+    def occupancy(self):
+        occ = np.array(self._occupancy)
+        return occ
+
+    @functools.lru_cache(maxsize=None)
+    def _grid_map(self) -> np.ndarray:
+        """This function receives the grid map and filters only the region of the map
+
+        Returns:
+            np.ndarray: grid map
+        """
+        data = self.occupancy()
+
+        data = np.where(data < 0, 0, data)
+        data = np.where(data != 0, 1, data)
+
+        idx = np.where(data == 0)
+
+        min_x = np.min(idx[1])
+        max_x = np.max(idx[1])
+        min_y = np.min(idx[0])
+        max_y = np.max(idx[0])
+
+        dist_x = (max_x - min_x) + 1
+        dist_y = (max_y - min_y) + 1
+
+        dist_max = max(dist_x, dist_y)
+        dist_min = min(dist_x, dist_y)
+
+        dist = (dist_max - dist_min) / 2
+
+        if dist % 2 != 0:
+            dist = int(dist) + 1
+
+        new_min_y = min_y - dist
+        new_max_y = max_y + dist
+
+        if (new_max_y - new_min_y) != (max_x - min_x):
+            diff_y = abs(new_max_y - new_min_y)
+            diff_x = abs(max_x - min_x)
+
+            diff = diff_y - diff_x
+
+            # TODO: if x is less than y
+            if diff_y < diff_x:
+                new_max_y = new_max_y + diff
+
+            if diff_y > diff_x:
+                max_x = max_x + diff
+
+        map_record = data[new_min_y : new_max_y + 1, min_x : max_x + 1]
+
+        new_map_grid = np.zeros_like(map_record)
+        new_map_grid[map_record == 0] = 1
+
+        return new_map_grid
+
+    def plot_initial_environment(self, plot=True) -> None:
+        """generate environment from map"""
+
+        new_map_grid = self._grid_map()
+
+        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+
+        min_idx = np.min(idx)
+        max_idx = np.max(idx)
+
+        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
         ax.remove()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-        # mapa = CMap2D(folder="/Users/nicolasalan/microvault/map", name="map")
-        # surface_matrix = mapa.occupancy() # return np.array
-
-        # x, y = np.meshgrid(np.linspace(0, 1, surface_matrix.shape[1]), np.linspace(0, 1, surface_matrix.shape[0]))
-
-        # Bounds
-        ax.set_xlim(0, 1)
-        ax.set_ylim(0, 1)
+        ax.set_xlim(min_idx, max_idx * 0.6)
+        ax.set_ylim(min_idx, max_idx * 0.6)
         ax.set_zlim(-0.01, 0.01)
 
-        # ax.plot_surface(x, y, surface_matrix, cmap='viridis', alpha=0.8)
-        # print("x", x)
-        # print("y", y)
+        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
 
-        # Surface
-        corner_points = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        min_idx = np.min(idx)
+        max_idx = np.max(idx)
 
-        poly = Polygon(corner_points, color=(0.1, 0.2, 0.5, 0.15))
-        ax.add_patch(poly)
-        art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
+        for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
+            for j in range(min_idx, max_idx):
+                if new_map_grid[i, j] == 1:
+                    polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
+                    poly = Polygon(polygon, color=(0, 0, 0, 1))
+                    ax.add_patch(poly)
+                    art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
 
-        # "Hide" side panes
         ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -54,30 +162,24 @@ class Continuous:
         ax.set_axis_off()
 
         # Set camera
-        ax.elev = 40
-        ax.azim = -55
-        ax.dist = 10
+        ax.elev = 20
+        ax.azim = -155
+        ax.dist = 1
 
-        # Normalizar os valores de x e y para o intervalo [0, 1]
-        # x_normalized = np.linspace(0, 1, surface_matrix.shape[1])
-        # y_normalized = np.linspace(0, 1, surface_matrix.shape[0])
+        fig.subplots_adjust(left=0, right=1.1, bottom=-0.2, top=1)
 
-        # ax.plot_surface(x_normalized, y_normalized, surface_matrix, cmap='viridis', alpha=0.8)
+        label = ax.text(
+            0,
+            0,
+            0.02,
+            "Continuous Tag\n".lower(),
+        )
 
-        # Adicionar ponto (x, y)
-        x, y = 0.5, 0.5
-        z = 0  # altura do ponto no eixo z
+        label.set_fontsize(14)
+        label.set_fontweight("normal")
+        label.set_color("#666666")
 
-        ax.scatter(x, y, z, color="red", marker="o", s=50)
-
-        # Try to reduce whitespace
-        fig.subplots_adjust(left=0, right=1, bottom=-0.2, top=1)
-
-        if self.plot:
+        if plot == True:
             plt.show()
         else:
             return fig
-
-
-# maps = Continuous()
-# maps.plot_initial_environment()
