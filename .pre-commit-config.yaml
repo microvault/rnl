@@ -9,12 +9,13 @@ repos:
     rev: v4.5.0
     hooks:
     -   id: end-of-file-fixer # ensure newline at end of file
-        files: ^(?!docs/|\.gitignore).*\.(?!pyx$).*$
+        files: ^(?!docs/|\.gitignore|data/).*\.(?!pyx$).*$
     -   id: check-yaml # verify yaml files
         files: ^(?!docs/).*$
     -   id: check-toml # verify toml files
         files: ^(?!docs/).*$
     -   id: check-added-large-files # prevent large files from being committed
+        files: ^(?!data/).*$
     -   id: check-merge-conflict # check for files that contain merge conflict strings
     -   id: detect-private-key # check for private keys
     -   id: debug-statements # check for debugger statements
