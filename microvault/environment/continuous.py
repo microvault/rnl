@@ -22,6 +22,7 @@ class Continuous:
         self.fig_width = fig_width
         self.fig_height = fig_height
         self.path = folder
+        self.num_agents = 1
 
         if folder is None or name is None:
             return
@@ -58,9 +59,19 @@ class Continuous:
         if self.resolution_ == 0:
             raise ValueError("resolution can not be 0")
 
-    def occupancy(self):
+    def occupancy(self) -> np.ndarray:
+        """return the gridmap without filter
+
+        Returns:
+            np.ndarray: occupancy grid
+        """
         occ = np.array(self._occupancy)
         return occ
+
+    def _plot_grid(self):
+        """plot the grid map"""
+        plt.imshow(self.occupancy())
+        plt.show()
 
     @functools.lru_cache(maxsize=None)
     def _grid_map(self) -> np.ndarray:
@@ -84,37 +95,73 @@ class Continuous:
         dist_x = (max_x - min_x) + 1
         dist_y = (max_y - min_y) + 1
 
-        dist_max = max(dist_x, dist_y)
-        dist_min = min(dist_x, dist_y)
+        if (max_y - min_y) != (max_x - min_x):
+            dist_y = max_y - min_y
+            dist_x = max_x - min_x
 
-        dist = (dist_max - dist_min) / 2
+            diff = round(abs(dist_y - dist_x) / 2)
 
-        if dist % 2 != 0:
-            dist = int(dist) + 1
+            # distance y > distance x
+            if dist_y > dist_x:
+                min_x = int(min_x - diff)
+                max_x = int(max_x + diff)
 
-        new_min_y = min_y - dist
-        new_max_y = max_y + dist
+            # distance y < distance x
+            if dist_y < dist_x:
+                min_y = int(min_y - diff)
+                max_y = int(max_y + diff)
 
-        if (new_max_y - new_min_y) != (max_x - min_x):
-            diff_y = abs(new_max_y - new_min_y)
-            diff_x = abs(max_x - min_x)
+        diff_x = max_x - min_x
+        diff_y = max_y - min_y
 
-            diff = diff_y - diff_x
+        # TODO: remove this
+        if abs((diff_y) - (diff_x)) == 1:
 
-            # TODO: if x is less than y
             if diff_y < diff_x:
-                new_max_y = new_max_y + diff
+                max_y = max_y + 1
 
             if diff_y > diff_x:
-                max_x = max_x + diff
+                max_x = max_x + 1
 
-        map_record = data[new_min_y : new_max_y + 1, min_x : max_x + 1]
+        if min(min_x, max_x, min_y, max_y) < 0:
+            min_x_adjusted = min_x + abs(min_x)
+            max_x_adjusted = max_x + abs(min_x)
+            min_y_adjusted = min_y + abs(min_y)
+            max_y_adjusted = max_y + abs(min_y)
+
+            map_record = data[
+                min_y_adjusted : max_y_adjusted + 1, min_x_adjusted : max_x_adjusted + 1
+            ]
+
+        else:
+            map_record = data[min_y : max_y + 1, min_x : max_x + 1]
 
         new_map_grid = np.zeros_like(map_record)
         new_map_grid[map_record == 0] = 1
 
         return new_map_grid
 
+    def _ray_casting(self, edges, xp, yp) -> bool:
+        """_summary_"""
+        cnt = 0
+        for edge in edges:
+            (x1, y1), (x2, y2) = edge
+            if (yp < y1) != (yp < y2) and xp < x1 + ((yp - y1) / (y2 - y1)) * (x2 - x1):
+                cnt += 1
+
+        return cnt % 2 == 1
+
+    def onclick(self, event, all_edges):
+        xp, yp = event.xdata, event.ydata
+        if self._ray_casting(all_edges, xp, yp):
+            print("inside")
+            plt.plot(xp, yp, "go", markersize=5)
+        else:
+            print("outside")
+            plt.plot(xp, yp, "ro", markersize=5)
+        plt.gcf().canvas.draw()
+
+    @functools.lru_cache(maxsize=None)
     def plot_initial_environment(self, plot=True) -> None:
         """generate environment from map"""
 
@@ -129,8 +176,8 @@ class Continuous:
         ax.remove()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-        ax.set_xlim(min_idx, max_idx * 0.6)
-        ax.set_ylim(min_idx, max_idx * 0.6)
+        ax.set_xlim(min_idx, max_idx)  # * 0.6)
+        ax.set_ylim(min_idx, max_idx)  # * 0.6)
         ax.set_zlim(-0.01, 0.01)
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
@@ -138,11 +185,21 @@ class Continuous:
         min_idx = np.min(idx)
         max_idx = np.max(idx)
 
+        all_edges = []
+
         for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
             for j in range(min_idx, max_idx):
                 if new_map_grid[i, j] == 1:
                     polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
                     poly = Polygon(polygon, color=(0, 0, 0, 1))
+
+                    vert = poly.get_xy()
+                    edges = [
+                        (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
+                    ]
+
+                    all_edges.extend(edges)
+
                     ax.add_patch(poly)
                     art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
 
@@ -150,7 +207,7 @@ class Continuous:
         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
-        # Hide grid lines
+        # # Hide grid lines
         ax.grid(False)
 
         # Hide axes ticks
@@ -183,3 +240,7 @@ class Continuous:
             plt.show()
         else:
             return fig
+
+
+# gen = Continuous(folder="data/map/", name="map")
+# gen.plot_initial_environment(plot=True)
