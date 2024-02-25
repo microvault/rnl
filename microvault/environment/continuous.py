@@ -162,7 +162,6 @@ class Continuous:
             plt.plot(xp, yp, "ro", markersize=5)
         plt.gcf().canvas.draw()
 
-    @functools.lru_cache(maxsize=None)
     def plot_initial_environment2d(self, plot=True) -> None:
         new_map_grid = self._grid_map()
 
@@ -176,10 +175,6 @@ class Continuous:
         plt.imshow(subgrid, cmap="gray", interpolation="nearest")
         plt.axis("off")
         plt.show()
-
-    def _animate(self, frame):
-
-        return lines
 
     @functools.lru_cache(maxsize=None)
     def plot_initial_environment3d(self, plot=True, fake=True) -> None:
@@ -214,7 +209,7 @@ class Continuous:
         else:
             ax.set_xlim(min_idx, max_idx)
             ax.set_ylim(min_idx, max_idx)
-            fig.subplots_adjust(left=0, right=1, bottom=-0.2, top=1)
+            fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
         all_edges = []
 

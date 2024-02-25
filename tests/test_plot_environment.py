@@ -11,6 +11,7 @@ def continuous_instance():
 
 def test_grid_map(continuous_instance):
     grid_map = continuous_instance._grid_map()
+    print(grid_map.any())
     assert grid_map.any()
 
 
