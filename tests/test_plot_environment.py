@@ -14,7 +14,7 @@ def test_grid_map(continuous_instance):
     assert grid_map.any()
 
 
-def test_plot_initial_environment(continuous_instance):
-    continuous_instance.plot_initial_environment(plot=False)
+def test_plot_initial_environment3d(continuous_instance):
+    continuous_instance.plot_initial_environment3d(plot=False, fake=True)
     plt.close()
     assert plt.gcf()

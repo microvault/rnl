@@ -3,6 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import animation
 from matplotlib.patches import Polygon
 from matplotlib.pyplot import imread
 from mpl_toolkits.mplot3d import art3d
@@ -151,7 +152,7 @@ class Continuous:
 
         return cnt % 2 == 1
 
-    def onclick(self, event, all_edges):
+    def _onclick(self, event, all_edges):
         xp, yp = event.xdata, event.ydata
         if self._ray_casting(all_edges, xp, yp):
             print("inside")
@@ -162,9 +163,7 @@ class Continuous:
         plt.gcf().canvas.draw()
 
     @functools.lru_cache(maxsize=None)
-    def plot_initial_environment(self, plot=True) -> None:
-        """generate environment from map"""
-
+    def plot_initial_environment2d(self, plot=True) -> None:
         new_map_grid = self._grid_map()
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
@@ -172,18 +171,50 @@ class Continuous:
         min_idx = np.min(idx)
         max_idx = np.max(idx)
 
-        fig, ax = plt.subplots(1, 1, figsize=(8, 8))
+        subgrid = new_map_grid[:, min_idx : max_idx + 1]
+
+        plt.imshow(subgrid, cmap="gray", interpolation="nearest")
+        plt.axis("off")
+        plt.show()
+
+    def _animate(self, frame):
+
+        return lines
+
+    @functools.lru_cache(maxsize=None)
+    def plot_initial_environment3d(self, plot=True, fake=True) -> None:
+        """generate environment from map"""
+
+        if fake:
+            new_map_grid = np.random.choice([0, 1], size=(50, 50), p=[0.05, 0.95])
+
+            min_idx, max_idx = 0, len(new_map_grid)
+
+            x = np.arange(min_idx, max_idx, 1)
+            y = np.arange(min_idx, max_idx, 1)
+            x, y = np.meshgrid(x, y)
+
+        else:
+            new_map_grid = self._grid_map()
+
+            idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+
+            min_idx = float(np.min(idx))
+            max_idx = float(np.max(idx))
+
+        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.remove()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-        ax.set_xlim(min_idx, max_idx)  # * 0.6)
-        ax.set_ylim(min_idx, max_idx)  # * 0.6)
-        ax.set_zlim(-0.01, 0.01)
+        if len(new_map_grid) > 300:
+            ax.set_xlim(min_idx, max_idx / 2)
+            ax.set_ylim(min_idx, max_idx / 2)
+            fig.subplots_adjust(left=0, right=1.1, bottom=-0.2, top=1)
 
-        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
-
-        min_idx = np.min(idx)
-        max_idx = np.max(idx)
+        else:
+            ax.set_xlim(min_idx, max_idx)
+            ax.set_ylim(min_idx, max_idx)
+            fig.subplots_adjust(left=0, right=1, bottom=-0.2, top=1)
 
         all_edges = []
 
@@ -191,7 +222,7 @@ class Continuous:
             for j in range(min_idx, max_idx):
                 if new_map_grid[i, j] == 1:
                     polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
-                    poly = Polygon(polygon, color=(0, 0, 0, 1))
+                    poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
 
                     vert = poly.get_xy()
                     edges = [
@@ -223,8 +254,6 @@ class Continuous:
         ax.azim = -155
         ax.dist = 1
 
-        fig.subplots_adjust(left=0, right=1.1, bottom=-0.2, top=1)
-
         label = ax.text(
             0,
             0,
@@ -236,11 +265,38 @@ class Continuous:
         label.set_fontweight("normal")
         label.set_color("#666666")
 
+        lines = []
+
+        random_x = np.random.uniform(min_idx, max_idx)
+        random_y = np.random.uniform(min_idx, max_idx)
+        (line,) = ax.plot3D(
+            [random_x],
+            [random_y],
+            [0],
+            marker="o",
+            markersize=5,
+        )
+        lines.append(line)
+
+        def animate(i):
+            for idx, line in enumerate(lines):
+                # Gerando novas coordenadas aleatórias
+                new_x = np.random.uniform(min_idx, max_idx)
+                new_y = np.random.uniform(min_idx, max_idx)
+
+                # Atualizando os dados da linha
+                line.set_data_3d([new_x], [new_y], [0])
+
         if plot == True:
+            ani = animation.FuncAnimation(
+                fig, animate, np.arange(0, 10 + 1), interval=1000.0 / 50
+            )
             plt.show()
         else:
             return fig
 
 
+# gen = Continuous(folder="/Users/nicolasalan/microvault/microvault/data/map02/", name="map")
 # gen = Continuous(folder="data/map/", name="map")
-# gen.plot_initial_environment(plot=True)
+# gen.plot_initial_environment3d(plot=True, fake=True)
+# gen._plot_grid()
