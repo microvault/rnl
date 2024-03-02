@@ -1,233 +1,96 @@
 import functools
-import os
 
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import animation
 from matplotlib.patches import Polygon
-from matplotlib.pyplot import imread
 from mpl_toolkits.mplot3d import art3d
 from tqdm import tqdm
-from yaml import SafeLoader, load
 
 
 class Continuous:
     def __init__(
         self,
-        folder=None,
-        name=None,
-        silent=False,
-        fig_width=8,
-        fig_height=8,
+        n=100,
+        time=100,
+        size=5,
+        speed=100,
+        grid_lenght=50,
     ):
-        self.fig_width = fig_width
-        self.fig_height = fig_height
-        self.path = folder
-        self.num_agents = 1
+        self.num_agents = n
+        self.time = time
+        self.size = size
+        self.speed = speed
 
-        if folder is None or name is None:
-            return
+        self.grid_lenght = grid_lenght
 
-        folder = os.path.expanduser(folder)
-        yaml_file = os.path.join(folder, name + ".yaml")
+        self.xmax = grid_lenght
+        self.ymax = grid_lenght
 
-        if not silent:
-            print(f"Loading map definition from {yaml_file}")
+        self.x = np.zeros((self.num_agents, self.time))
+        self.y = np.zeros((self.num_agents, self.time))
+        self.sp = np.zeros((self.num_agents, self.time))
+        self.theta = np.zeros((self.num_agents, self.time))
+        self.vx = np.zeros((self.num_agents, self.time))
+        self.vy = np.zeros((self.num_agents, self.time))
 
-        with open(yaml_file) as stream:
-            mapparams = load(stream, Loader=SafeLoader)
-        map_file = os.path.join(folder, mapparams["image"])
+    def _x_direction(self, a, i, num_agents, xmax, x, vx) -> None:
+        for a in range(0, num_agents):
+            try:
+                if x[a, i] + vx[a, i] >= xmax or x[a, i] + vx[a, i] <= 0:
+                    x[a, i + 1] = x[a, i] - vx[a, i]
+                    vx[a, i + 1] = -vx[a, i]
+                else:
+                    x[a, i + 1] = x[a, i] + vx[a, i]
+                    vx[a, i + 1] = vx[a, i]
+            except IndexError:
+                pass
 
-        if not silent:
-            print(f"Map definition found. Loading map from {map_file}")
+    def _y_direction(self, a, i, num_agents, ymax, y, vy) -> None:
+        for a in range(0, num_agents):
+            try:
+                if y[a, i] + vy[a, i] >= ymax or y[a, i] + vy[a, i] <= 0:
+                    y[a, i + 1] = y[a, i] - vy[a, i]
+                    vy[a, i + 1] = -vy[a, i]
+                else:
+                    y[a, i + 1] = y[a, i] + vy[a, i]
+                    vy[a, i + 1] = vy[a, i]
+            except IndexError:
+                pass
 
-        mapimage = imread(map_file)
-        temp = (1.0 - mapimage.T[:, ::-1] / 254.0).astype(np.float32)
-        mapimage = np.ascontiguousarray(temp)
-        self._occupancy = mapimage
-        self.occupancy_shape0 = mapimage.shape[0]
-        self.occupancy_shape1 = mapimage.shape[1]
-        self.resolution_ = mapparams["resolution"]
-        self.origin = np.array(mapparams["origin"][:2]).astype(np.float32)
-
-        if mapparams["origin"][2] != 0:
-            raise ValueError("Map origin z coordinate must be 0")
-
-        self._thresh_occupied = mapparams["occupied_thresh"]
-        self.thresh_free = mapparams["free_thresh"]
-        self.HUGE_ = 100 * self.occupancy_shape0 * self.occupancy_shape1
-
-        if self.resolution_ == 0:
-            raise ValueError("resolution can not be 0")
-
-    def occupancy(self) -> np.ndarray:
-        """return the gridmap without filter
-
-        Returns:
-            np.ndarray: occupancy grid
-        """
-        occ = np.array(self._occupancy)
-        return occ
-
-    def _plot_grid(self):
-        """plot the grid map"""
-        plt.imshow(self.occupancy())
-        plt.show()
+    def _get_label(self, timestep):
+        line1 = "Environment\n"
+        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
+        return line1 + line2
 
     @functools.lru_cache(maxsize=None)
-    def _grid_map(self) -> np.ndarray:
-        """This function receives the grid map and filters only the region of the map
+    def environment(self, plot=False):
 
-        Returns:
-            np.ndarray: grid map
-        """
-        data = self.occupancy()
+        # TODO:
+        # new_map_grid = np.ones((50, 50), dtype=int)
 
-        data = np.where(data < 0, 0, data)
-        data = np.where(data != 0, 1, data)
+        # min_idx, max_idx = 0, len(new_map_grid)
 
-        idx = np.where(data == 0)
-
-        min_x = np.min(idx[1])
-        max_x = np.max(idx[1])
-        min_y = np.min(idx[0])
-        max_y = np.max(idx[0])
-
-        dist_x = (max_x - min_x) + 1
-        dist_y = (max_y - min_y) + 1
-
-        if (max_y - min_y) != (max_x - min_x):
-            dist_y = max_y - min_y
-            dist_x = max_x - min_x
-
-            diff = round(abs(dist_y - dist_x) / 2)
-
-            # distance y > distance x
-            if dist_y > dist_x:
-                min_x = int(min_x - diff)
-                max_x = int(max_x + diff)
-
-            # distance y < distance x
-            if dist_y < dist_x:
-                min_y = int(min_y - diff)
-                max_y = int(max_y + diff)
-
-        diff_x = max_x - min_x
-        diff_y = max_y - min_y
-
-        # TODO: remove this
-        if abs((diff_y) - (diff_x)) == 1:
-
-            if diff_y < diff_x:
-                max_y = max_y + 1
-
-            if diff_y > diff_x:
-                max_x = max_x + 1
-
-        if min(min_x, max_x, min_y, max_y) < 0:
-            min_x_adjusted = min_x + abs(min_x)
-            max_x_adjusted = max_x + abs(min_x)
-            min_y_adjusted = min_y + abs(min_y)
-            max_y_adjusted = max_y + abs(min_y)
-
-            map_record = data[
-                min_y_adjusted : max_y_adjusted + 1, min_x_adjusted : max_x_adjusted + 1
-            ]
-
-        else:
-            map_record = data[min_y : max_y + 1, min_x : max_x + 1]
-
-        new_map_grid = np.zeros_like(map_record)
-        new_map_grid[map_record == 0] = 1
-
-        return new_map_grid
-
-    def _ray_casting(self, edges, xp, yp) -> bool:
-        """_summary_"""
-        cnt = 0
-        for edge in edges:
-            (x1, y1), (x2, y2) = edge
-            if (yp < y1) != (yp < y2) and xp < x1 + ((yp - y1) / (y2 - y1)) * (x2 - x1):
-                cnt += 1
-
-        return cnt % 2 == 1
-
-    def _onclick(self, event, all_edges):
-        xp, yp = event.xdata, event.ydata
-        if self._ray_casting(all_edges, xp, yp):
-            print("inside")
-            plt.plot(xp, yp, "go", markersize=5)
-        else:
-            print("outside")
-            plt.plot(xp, yp, "ro", markersize=5)
-        plt.gcf().canvas.draw()
-
-    def plot_initial_environment2d(self, plot=True) -> None:
-        new_map_grid = self._grid_map()
-
-        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
-
-        min_idx = np.min(idx)
-        max_idx = np.max(idx)
-
-        subgrid = new_map_grid[:, min_idx : max_idx + 1]
-
-        plt.imshow(subgrid, cmap="gray", interpolation="nearest")
-        plt.axis("off")
-        plt.show()
-
-    @functools.lru_cache(maxsize=None)
-    def plot_initial_environment3d(self, plot=True, fake=True) -> None:
-        """generate environment from map"""
-
-        if fake:
-            new_map_grid = np.random.choice([0, 1], size=(50, 50), p=[0.05, 0.95])
-
-            min_idx, max_idx = 0, len(new_map_grid)
-
-            x = np.arange(min_idx, max_idx, 1)
-            y = np.arange(min_idx, max_idx, 1)
-            x, y = np.meshgrid(x, y)
-
-        else:
-            new_map_grid = self._grid_map()
-
-            idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
-
-            min_idx = float(np.min(idx))
-            max_idx = float(np.max(idx))
+        # x = np.arange(min_idx, max_idx, 1)
+        # y = np.arange(min_idx, max_idx, 1)
+        # x, y = np.meshgrid(x, y)
 
         fig, ax = plt.subplots(1, 1, figsize=(6, 6))
         ax.remove()
         ax = fig.add_subplot(1, 1, 1, projection="3d")
 
-        if len(new_map_grid) > 300:
-            ax.set_xlim(min_idx, max_idx / 2)
-            ax.set_ylim(min_idx, max_idx / 2)
-            fig.subplots_adjust(left=0, right=1.1, bottom=-0.2, top=1)
+        ax.set_xlim(0, 50)
+        ax.set_ylim(0, 50)
 
-        else:
-            ax.set_xlim(min_idx, max_idx)
-            ax.set_ylim(min_idx, max_idx)
-            fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
-
-        all_edges = []
-
-        for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
-            for j in range(min_idx, max_idx):
-                if new_map_grid[i, j] == 1:
-                    polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
-                    poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
-
-                    vert = poly.get_xy()
-                    edges = [
-                        (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
-                    ]
-
-                    all_edges.extend(edges)
-
-                    ax.add_patch(poly)
-                    art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
+        corner_points = [
+            (0, 0),
+            (0, self.grid_lenght),
+            (self.grid_lenght, self.grid_lenght),
+            (self.grid_lenght, 0),
+        ]
+        poly = Polygon(corner_points, color=(0.1, 0.2, 0.5, 0.15))
+        ax.add_patch(poly)
+        art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
 
         ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
@@ -252,46 +115,44 @@ class Continuous:
         label = ax.text(
             0,
             0,
-            0.02,
-            "Continuous Tag\n".lower(),
+            0.6,
+            self._get_label(0),
         )
 
         label.set_fontsize(14)
         label.set_fontweight("normal")
         label.set_color("#666666")
 
-        lines = []
+        fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
-        random_x = np.random.uniform(min_idx, max_idx)
-        random_y = np.random.uniform(min_idx, max_idx)
-        (line,) = ax.plot3D(
-            [random_x],
-            [random_y],
-            [0],
-            marker="o",
-            markersize=5,
-        )
-        lines.append(line)
+        lines = [None for _ in range(self.num_agents)]
+
+        for a in tqdm(range(0, self.num_agents), desc="Plot environment"):
+            lines[a] = ax.plot3D(
+                np.random.uniform(0, self.xmax),
+                np.random.uniform(0, self.ymax),
+                0,
+                marker="o",
+                markersize=self.size,
+            )[0]
+            self.sp[a, 0] = np.random.uniform(0, self.speed)
+            self.theta[a, :] = np.random.uniform(0, 2 * np.pi)
+            self.vx[a, 0] = self.sp[a, 0] * np.cos(self.theta[a, 0])
+            self.vy[a, 0] = self.sp[a, 0] * np.sin(self.theta[a, 0])
 
         def animate(i):
-            for idx, line in enumerate(lines):
-                # Gerando novas coordenadas aleatórias
-                new_x = np.random.uniform(min_idx, max_idx)
-                new_y = np.random.uniform(min_idx, max_idx)
-
-                # Atualizando os dados da linha
-                line.set_data_3d([new_x], [new_y], [0])
+            for a, line in enumerate(lines):
+                self._x_direction(a, i, self.num_agents, self.xmax, self.x, self.vx)
+                self._y_direction(a, i, self.num_agents, self.ymax, self.y, self.vy)
+                line.set_data_3d(
+                    [self.x[a, i]],
+                    [self.y[a, i]],
+                    [0],
+                )
+            label.set_text(self._get_label(i))
 
         if plot == True:
             ani = animation.FuncAnimation(
-                fig, animate, np.arange(0, 10 + 1), interval=1000.0 / 50
+                fig, animate, blit=False, frames=self.time, interval=100
             )
             plt.show()
-        else:
-            return fig
-
-
-# gen = Continuous(folder="/Users/nicolasalan/microvault/microvault/data/map02/", name="map")
-# gen = Continuous(folder="data/map/", name="map")
-# gen.plot_initial_environment3d(plot=True, fake=True)
-# gen._plot_grid()

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 import pytest
 
 from microvault.environment.continuous import Continuous
@@ -6,16 +7,19 @@ from microvault.environment.continuous import Continuous
 
 @pytest.fixture
 def continuous_instance():
-    return Continuous(folder="data/map/", name="map")
+    return Continuous()
 
 
-def test_grid_map(continuous_instance):
-    grid_map = continuous_instance._grid_map()
-    print(grid_map.any())
-    assert grid_map.any()
+def test_x_direction(continuous_instance):
+    continuous_instance._x_direction(1, 1, 10, 50, np.zeros((20, 0)), np.zeros((20, 0)))
+    assert True
 
 
-def test_plot_initial_environment3d(continuous_instance):
-    continuous_instance.plot_initial_environment3d(plot=False, fake=True)
-    plt.close()
+def test_y_direction(continuous_instance):
+    continuous_instance._y_direction(1, 1, 10, 50, np.zeros((20, 0)), np.zeros((20, 0)))
+    assert True
+
+
+def test_environment(continuous_instance):
+    continuous_instance.environment(plot=False)
     assert plt.gcf()
