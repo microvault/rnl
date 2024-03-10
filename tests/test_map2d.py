@@ -6,7 +6,7 @@ from microvault.environment.utils.map2d import Map2D
 
 @pytest.fixture
 def continuous_instance():
-    return Map2D(folder="/Users/nicolasalan/microvault/microvault/data/map", name="map")
+    return Map2D(folder="data/map/", name="map")
 
 
 def test_grid_map(continuous_instance):
