@@ -5,7 +5,7 @@ description = "MicroVault - RL for Navigation"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LICENSE"
 readme = "README.md"
-packages = [{ include = "microvault"}]
+packages = [{ include = "microvault" }]
 
 [tool.poetry.urls]
 documentation = "https://microvault.vercel.app"
@@ -33,6 +33,7 @@ scipy = "^1.12.0"
 openai = "^1.12.0"
 rich = "^13.7.0"
 cython = "^3.0.8"
+scikit-image = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

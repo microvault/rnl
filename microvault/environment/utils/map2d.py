@@ -3,11 +3,7 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import animation
-from matplotlib.patches import Polygon
 from matplotlib.pyplot import imread
-from mpl_toolkits.mplot3d import art3d
-from tqdm import tqdm
 from yaml import SafeLoader, load
 
 
@@ -60,7 +56,7 @@ class Map2D:
         if self.resolution_ == 0:
             raise ValueError("resolution can not be 0")
 
-    def occupancy(self) -> np.ndarray:
+    def occupancy_grid(self) -> np.ndarray:
         """return the gridmap without filter
 
         Returns:
@@ -76,7 +72,7 @@ class Map2D:
         Returns:
             np.ndarray: grid map
         """
-        data = self.occupancy()
+        data = self.occupancy_grid()
 
         data = np.where(data < 0, 0, data)
         data = np.where(data != 0, 1, data)
@@ -163,86 +159,17 @@ class Map2D:
         min_idx = int(np.min(idx))
         max_idx = int(np.max(idx))
 
-        fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-        ax.remove()
-        ax = fig.add_subplot(1, 1, 1, projection="3d")
-
-        ax.set_xlim(min_idx, max_idx)
-        ax.set_ylim(min_idx, max_idx)
-        fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
-
         all_edges = []
 
-        for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
-            for j in range(min_idx, max_idx):
-                if new_map_grid[i, j] == 1:
-                    polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
-                    poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
+        # for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
+        #     for j in range(min_idx, max_idx):
+        #         if new_map_grid[i, j] == 1:
+        #             polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
+        #             poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
 
-                    vert = poly.get_xy()
-                    edges = [
-                        (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
-                    ]
+        #             vert = poly.get_xy()
+        #             edges = [
+        #                 (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
+        #             ]
 
-                    all_edges.extend(edges)
-
-                    ax.add_patch(poly)
-                    art3d.pathpatch_2d_to_3d(poly, z=0, zdir="z")
-
-        ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-        # # Hide grid lines
-        ax.grid(False)
-
-        # Hide axes ticks
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_zticks([])
-
-        # Hide axes
-        ax.set_axis_off()
-
-        # Set camera
-        ax.elev = 20
-        ax.azim = -155
-        ax.dist = 1
-
-        label = ax.text(
-            0,
-            0,
-            0.02,
-            "Environment\n".lower(),
-        )
-
-        label.set_fontsize(14)
-        label.set_fontweight("normal")
-        label.set_color("#666666")
-
-        lines = []
-
-        random_x = np.random.uniform(min_idx, max_idx)
-        random_y = np.random.uniform(min_idx, max_idx)
-        (line,) = ax.plot3D(
-            random_x,
-            random_y,
-            0,
-            marker="o",
-            markersize=5,
-        )
-        lines.append(line)
-
-        def animate(i):
-            for line in enumerate(lines):
-                new_x = np.random.uniform(min_idx, max_idx)
-                new_y = np.random.uniform(min_idx, max_idx)
-                line.set_data_3d(new_x, new_y, 0)
-
-        if plot == True:
-            ani = animation.FuncAnimation(
-                fig, animate, np.arange(0, 10 + 1), interval=1000.0 / 50
-            )
-            plt.show()
-        else:
-            return fig
+        #             all_edges.extend(edges)
