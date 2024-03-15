@@ -1,30 +1,30 @@
-import itertools
+import sys
+import time
 
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-import numpy.random as npr
-from generate import Generator
-from matplotlib.patches import PathPatch
-from matplotlib.path import Path
 from mpl_toolkits.mplot3d import art3d
-from robot import Robot
-from skimage import measure
+
+from .generate import Generator
+from .robot import Robot
 
 
 class Continuous:
     def __init__(
         self,
-        n=1,
-        time=100,
+        n=2,
+        time=10,
         size=3,
-        speed=1.8,
+        max_speed=1.8,
+        min_speed=0.4,
         grid_lenght=10,
     ):
         self.num_agents = n
         self.time = time
         self.size = size
-        self.speed = speed
+        self.max_speed = max_speed
+        self.min_speed = min_speed
         self.frame = 100
 
         self.grid_lenght = grid_lenght
@@ -32,15 +32,8 @@ class Continuous:
         self.xmax = grid_lenght
         self.ymax = grid_lenght
 
-        self.x = np.zeros((self.num_agents, self.time))  # position
-        self.y = np.zeros((self.num_agents, self.time))  # position
-        self.sp = np.zeros((self.num_agents, self.time))  # speed
-        self.theta = np.zeros((self.num_agents, self.time))  # angle
-        self.vx = np.zeros((self.num_agents, self.time))  # velocity
-        self.vy = np.zeros((self.num_agents, self.time))  # velocity
-
-        self.target_x = np.zeros((self.num_agents, self.time))  # position
-        self.target_y = np.zeros((self.num_agents, self.time))  # position
+        self.target_x = np.zeros((self.num_agents, self.time))
+        self.target_y = np.zeros((self.num_agents, self.time))
 
         self.agents = [None for _ in range(self.num_agents)]
         self.targets = [None for _ in range(self.num_agents)]
@@ -54,18 +47,17 @@ class Continuous:
         self.generator = Generator(grid_lenght=grid_lenght, random=self.random)
         self.robot = Robot()
 
-    def _get_label(self, timestep):
-        line1 = "Environment\n"
-        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
-        return line1 + line2
-
-    def environment(self, plot=False):
+        self.x, self.y, self.sp, self.theta, self.vx, self.vy = self.robot.init_agent(
+            self.num_agents, self.time
+        )
 
         self.ax.remove()
         self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
         self.ax.set_xlim(0, self.grid_lenght)
         self.ax.set_ylim(0, self.grid_lenght)
+
+        # ------ Create wordld ------ #
 
         path = self.generator.world()
 
@@ -93,16 +85,16 @@ class Continuous:
         self.ax.azim = -155
         self.ax.dist = 1
 
-        label = self.ax.text(
+        self.label = self.ax.text(
             0,
             0,
             0.6,
             self._get_label(0),
         )
 
-        label.set_fontsize(14)
-        label.set_fontweight("normal")
-        label.set_color("#666666")
+        self.label.set_fontsize(14)
+        self.label.set_fontweight("normal")
+        self.label.set_color("#666666")
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
@@ -123,54 +115,73 @@ class Continuous:
                 markersize=self.size,
             )[0]
 
-        def init():
-            for a in range(self.num_agents):
+    def loading(self):
+        while True:
+            sys.stdout.write("\rGenerating animation... |")
+            time.sleep(0.1)
+            sys.stdout.write("\rGenerating animation... /")
+            time.sleep(0.1)
+            sys.stdout.write("\rGenerating animation... -")
+            time.sleep(0.1)
+            sys.stdout.write("\rGenerating animation... \\")
+            time.sleep(0.1)
 
-                self.target_x[a, 0] = np.random.uniform(0, self.xmax)
-                self.target_y[a, 0] = np.random.uniform(0, self.ymax)
+    def reset(self):
+        for a in range(self.num_agents):
 
-                self.x[a, 0] = np.random.uniform(0, self.xmax)
-                self.y[a, 0] = np.random.uniform(0, self.ymax)
-                self.sp[a, 0] = np.random.uniform(0, self.speed)
-                self.theta[a, :] = np.random.uniform(0, 2 * np.pi)
-                self.vx[a, 0] = self.sp[a, 0] * np.cos(self.theta[a, 0])
-                self.vy[a, 0] = self.sp[a, 0] * np.sin(self.theta[a, 0])
+            self.target_x[a, 0] = np.random.uniform(0, self.xmax)
+            self.target_y[a, 0] = np.random.uniform(0, self.ymax)
 
-            for patch in self.ax.patches:
-                patch.remove()
+            self.x[a, 0] = np.random.uniform(0, self.xmax)
+            self.y[a, 0] = np.random.uniform(0, self.ymax)
+            self.sp[a, 0] = np.random.uniform(self.min_speed, self.max_speed)
+            self.theta[a, :] = np.random.uniform(0, 2 * np.pi)
+            self.vx[a, 0] = self.sp[a, 0] * np.cos(self.theta[a, 0])
+            self.vy[a, 0] = self.sp[a, 0] * np.sin(self.theta[a, 0])
 
-            new_map_path = self.generator.world()
-            self.ax.add_patch(new_map_path)
-            art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
+        for patch in self.ax.patches:
+            patch.remove()
 
-        def animate(i):
-            for a, (agent, target) in enumerate(zip(self.agents, self.targets)):
-                self.robot.x_direction(
-                    a, i, self.num_agents, self.xmax, self.x, self.vx, self.time
-                )
-                self.robot.y_direction(
-                    a, i, self.num_agents, self.ymax, self.y, self.vy, self.time
-                )
+        new_map_path = self.generator.world()
+        self.ax.add_patch(new_map_path)
+        art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
-                agent.set_data_3d(
-                    [self.x[a, i]],
-                    [self.y[a, i]],
-                    [0],
-                )
+    def step(self, i):
+        for a, (agent, target) in enumerate(zip(self.agents, self.targets)):
+            self.robot.x_direction(
+                a, i, self.num_agents, self.xmax, self.x, self.vx, self.time
+            )
+            self.robot.y_direction(
+                a, i, self.num_agents, self.ymax, self.y, self.vy, self.time
+            )
 
-                target.set_data_3d(
-                    [self.target_x[a, 0]],
-                    [self.target_y[a, 0]],
-                    [0],
-                )
+            agent.set_data_3d(
+                [self.x[a, i]],
+                [self.y[a, i]],
+                [0],
+            )
 
-            label.set_text(self._get_label(i))
+            target.set_data_3d(
+                [self.target_x[a, 0]],
+                [self.target_y[a, 0]],
+                [0],
+            )
+
+        self.label.set_text(self._get_label(i))
+
+    def _get_label(self, timestep):
+        line1 = "Environment\n"
+        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
+        return line1 + line2
+
+    def show(self, plot=False):
 
         if plot == True:
+
             ani = animation.FuncAnimation(
                 self.fig,
-                animate,
-                init_func=init,
+                self.step,
+                init_func=self.reset,
                 blit=False,
                 frames=self.time,
                 interval=self.frame,
@@ -178,4 +189,4 @@ class Continuous:
             plt.show()
 
 
-engine = Continuous().environment(plot=True)
+# engine = Continuous().show(plot=True)

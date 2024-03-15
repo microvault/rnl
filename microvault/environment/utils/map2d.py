@@ -13,13 +13,8 @@ class Map2D:
         folder=None,
         name=None,
         silent=False,
-        fig_width=8,
-        fig_height=8,
     ):
-        self.fig_width = fig_width
-        self.fig_height = fig_height
         self.path = folder
-        self.num_agents = 1
 
         if folder is None or name is None:
             return
@@ -136,6 +131,8 @@ class Map2D:
     def plot_initial_environment2d(self, plot=True) -> None:
         new_map_grid = self._grid_map()
 
+        print(new_map_grid.shape)
+
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
 
         min_idx = np.min(idx)
@@ -173,3 +170,7 @@ class Map2D:
         #             ]
 
         #             all_edges.extend(edges)
+
+
+# maps = Map2D(folder="data/map2/", name="map2")
+# maps.plot_initial_environment2d(plot=True)

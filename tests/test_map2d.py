@@ -4,9 +4,19 @@ import pytest
 from microvault.environment.utils.map2d import Map2D
 
 
+def test_folder_is_none():
+    map = Map2D(folder=None, name="nome_do_mapa")
+    assert map.path == None
+
+
+def test_name_is_none():
+    map = Map2D(folder="./data/map", name=None)
+    assert map.path == "./data/map"
+
+
 @pytest.fixture
 def continuous_instance():
-    return Map2D(folder="data/map/", name="map")
+    return Map2D(folder="./data/map", name="map")
 
 
 def test_grid_map(continuous_instance):

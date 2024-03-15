@@ -1,9 +1,13 @@
+import numpy as np
+
+
 class Robot:
     def __init__(
         self,
         type="robot",
         size=10,
-        speed=1,
+        max_speed=1.8,
+        min_speed=0.1,
         position_x=0,
         position_y=0,
         theta=0,
@@ -18,7 +22,8 @@ class Robot:
     ):
         self.type = type
         self.size = size
-        self.speed = speed
+        self.max_speed = max_speed
+        self.min_speed = min_speed
         self.position_x = position_x
         self.position_y = position_y
         self.theta = theta
@@ -30,6 +35,16 @@ class Robot:
         self.laser_max = laser_max
         self.laser_min = laser_min
         self.torque = torque
+
+    def init_agent(self, num_agents, time):
+        self.x = np.zeros((num_agents, time))  # position
+        self.y = np.zeros((num_agents, time))  # position
+        self.sp = np.zeros((num_agents, time))  # speed
+        self.theta = np.zeros((num_agents, time))  # angle
+        self.vx = np.zeros((num_agents, time))  # velocity
+        self.vy = np.zeros((num_agents, time))  # velocity
+
+        return self.x, self.y, self.sp, self.theta, self.vx, self.vy
 
     def x_direction(self, agents, i, num_agents, xmax, x, vx, time) -> None:
         for a in range(0, num_agents):
@@ -64,6 +79,3 @@ class Robot:
                 else:
                     y[a, i] = y[a, i] + vy[a, i]
                     vy[a, i] = vy[a, i]
-
-    def random_robot() -> None:
-        pass
