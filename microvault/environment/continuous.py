@@ -14,9 +14,9 @@ class Continuous:
     def __init__(
         self,
         n=2,
-        time=10,
+        time=100,
         size=3,
-        max_speed=1.8,
+        max_speed=0.5,
         min_speed=0.4,
         grid_lenght=10,
     ):
