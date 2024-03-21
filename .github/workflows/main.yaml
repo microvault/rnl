@@ -16,7 +16,7 @@ jobs:
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
-            python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update pip and install poetry
         run: python -m pip install --upgrade pip && pip install poetry
@@ -43,7 +43,7 @@ jobs:
         run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u microvault --password-stdin
 
       - name: Build image
-        run: docker build -t ghcr.io/microvault/microvault:latest docker/.
+        run: docker build -t ghcr.io/microvault/microvault:latest .
 
       - name: Push image
         run: docker push ghcr.io/microvault/microvault:latest
