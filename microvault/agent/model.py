@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 from copy import *
 
 import torch
@@ -26,7 +24,7 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    def __init__(self, state_dim, action_dim, l1=800, l2=600):
+    def __init__(self, state_dim, action_dim, l1=400, l2=300):
         super().__init__()
 
         self.layer_1 = nn.Linear(state_dim + action_dim, l1)
