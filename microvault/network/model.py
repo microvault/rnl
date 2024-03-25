@@ -23,7 +23,7 @@ class Actor(nn.Module):
         self.fc3 = nn.Linear(fc2_units, action_size)
         self.max_action = max_action
 
-    def forward(self, state):
+    def forward(self, state) -> torch.Tensor:
         """Build an actor (policy) network that maps states -> actions."""
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
@@ -44,7 +44,7 @@ class Critic(nn.Module):
         self.layer_5_a = nn.Linear(action_dim, l2)
         self.layer_6 = nn.Linear(l2, 1)
 
-    def forward(self, s, a):
+    def forward(self, s, a) -> torch.Tensor:
         s1 = F.relu(self.layer_1(torch.cat([s, a], dim=1)))
         s1 = F.relu(self.layer_2_s(s1))
         a1 = F.relu(self.layer_2_a(a))
