@@ -17,16 +17,21 @@ class Continuous:
         n=50,
         time=10,
         size=3,
+        frame=100,
+        random=300,
         max_speed=0.5,
         min_speed=0.4,
         grid_lenght=10,
+        
     ):
         self.num_agents = n
         self.time = time
         self.size = size
+        self.frame = frame
         self.max_speed = max_speed
         self.min_speed = min_speed
-        self.frame = 100
+        
+        self.random = random
 
         self.grid_lenght = grid_lenght
 
@@ -41,10 +46,6 @@ class Continuous:
         self.targets = [None for _ in range(self.num_agents)]
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
-
-        self.path_patch = None
-
-        self.random = 300
 
         self.generator = Generator(grid_lenght=grid_lenght, random=self.random)
         self.robot = Robot()
