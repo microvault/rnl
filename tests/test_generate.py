@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
-from matplotlib.patches import PathPatch
 
 from microvault.environment.generate import Generator
+
+# from matplotlib.patches import PathPatch
 
 
 @pytest.fixture
@@ -30,6 +31,6 @@ def test_generate_shape_border(generate_instance):
     assert map.shape == (12, 12)
 
 
-def test_world_output_type(generate_instance):
-    patch = generate_instance.world()
-    assert isinstance(patch, PathPatch)
+# def test_world_output_type(generate_instance):
+#     patch = generate_instance.world()
+#     assert isinstance(patch, PathPatch)

@@ -5,6 +5,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import art3d
+from shapely.geometry import Point
 
 from .generate import Generator
 from .robot import Robot
@@ -13,8 +14,8 @@ from .robot import Robot
 class Continuous:
     def __init__(
         self,
-        n=2,
-        time=100,
+        n=50,
+        time=10,
         size=3,
         max_speed=0.5,
         min_speed=0.4,
@@ -32,6 +33,7 @@ class Continuous:
         self.xmax = grid_lenght
         self.ymax = grid_lenght
 
+        # TODO: remove the team and remove in array format
         self.target_x = np.zeros((self.num_agents, self.time))
         self.target_y = np.zeros((self.num_agents, self.time))
 
@@ -42,7 +44,7 @@ class Continuous:
 
         self.path_patch = None
 
-        self.random = 1300
+        self.random = 300
 
         self.generator = Generator(grid_lenght=grid_lenght, random=self.random)
         self.robot = Robot()
@@ -59,7 +61,7 @@ class Continuous:
 
         # ------ Create wordld ------ #
 
-        path = self.generator.world()
+        path, poly = self.generator.world()
 
         self.ax.add_patch(path)
 
@@ -115,6 +117,14 @@ class Continuous:
                 markersize=self.size,
             )[0]
 
+    def _ray_casting(self, poly, x, y) -> bool:
+        ponto = Point(x, y)
+
+        if poly.contains(ponto):
+            return True
+        else:
+            return False
+
     def loading(self):
         while True:
             sys.stdout.write("\rGenerating animation... |")
@@ -127,6 +137,14 @@ class Continuous:
             time.sleep(0.1)
 
     def reset(self):
+
+        for patch in self.ax.patches:
+            patch.remove()
+
+        new_map_path, poly = self.generator.world()
+        self.ax.add_patch(new_map_path)
+        art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
+
         for a in range(self.num_agents):
 
             self.target_x[a, 0] = np.random.uniform(0, self.xmax)
@@ -134,17 +152,20 @@ class Continuous:
 
             self.x[a, 0] = np.random.uniform(0, self.xmax)
             self.y[a, 0] = np.random.uniform(0, self.ymax)
+
+            target_inside = False
+
+            while not target_inside:
+                self.target_x[a, 0] = np.random.uniform(0, self.xmax)
+                self.target_y[a, 0] = np.random.uniform(0, self.ymax)
+
+                if self._ray_casting(poly, self.target_x[a, 0], self.target_y[a, 0]):
+                    target_inside = True
+
             self.sp[a, 0] = np.random.uniform(self.min_speed, self.max_speed)
             self.theta[a, :] = np.random.uniform(0, 2 * np.pi)
             self.vx[a, 0] = self.sp[a, 0] * np.cos(self.theta[a, 0])
             self.vy[a, 0] = self.sp[a, 0] * np.sin(self.theta[a, 0])
-
-        for patch in self.ax.patches:
-            patch.remove()
-
-        new_map_path = self.generator.world()
-        self.ax.add_patch(new_map_path)
-        art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
     def step(self, i):
         for a, (agent, target) in enumerate(zip(self.agents, self.targets)):
@@ -187,6 +208,3 @@ class Continuous:
                 interval=self.frame,
             )
             plt.show()
-
-
-# engine = Continuous().show(plot=True)

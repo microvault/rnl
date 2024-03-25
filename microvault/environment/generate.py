@@ -4,6 +4,7 @@ import numpy as np
 import numpy.random as npr
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+from shapely.geometry import Polygon
 from skimage import measure
 
 
@@ -105,6 +106,15 @@ class Generator:
 
         return new
 
+    def polygon_area(self, vertices):
+        n = len(vertices)
+        area = 0
+        for i in range(n):
+            j = (i + 1) % n
+            area += vertices[i][0] * vertices[j][1]
+            area -= vertices[j][0] * vertices[i][1]
+        return abs(area) / 2
+
     def world(self):
 
         m = self._generate_map(self.grid_lenght, self.random, save_boundary=False)
@@ -117,6 +127,14 @@ class Generator:
         codes = []
         path_data = []
 
+        exterior = [
+            (map_grid.shape[1] - 1, map_grid.shape[0] - 1),
+            (0, map_grid.shape[0] - 1),
+            (0, 0),
+            (map_grid.shape[1] - 1, 0),
+        ]
+        interiors = []
+
         grid = [
             (map_grid.shape[1] - 1, map_grid.shape[0] - 1),
             (0, map_grid.shape[0] - 1),
@@ -124,31 +142,27 @@ class Generator:
             (map_grid.shape[1] - 1, 0),
             (0, 0),
         ]
-        code_grid = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY]
-
-        for i in range(len(grid)):
-            codes.append(code_grid[i])
-            path_data.append(grid[i])
 
         for n, contour in enumerate(contornos):
+            poly = []
             for idx, vertex in enumerate(contour):
-                if idx == 0:
-                    codes.append(Path.MOVETO)
-                    path_data.append((vertex[1], vertex[0]))
-                elif idx > 0:
-                    if idx == len(contour) - 1:
-                        codes.append(Path.LINETO)
-                        path_data.append((vertex[1], vertex[0]))
-                        codes.append(Path.CLOSEPOLY)
-                        path_data.append((0, 0))
-                    else:
-                        codes.append(Path.LINETO)
-                        path_data.append((vertex[1], vertex[0]))
+                poly.append((vertex[1], vertex[0]))
 
-        path = Path(path_data, codes)
+            interiors.append(poly)
+
+        poly = Polygon(exterior, holes=interiors)
+
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+            print("invalid")
+
+        path = Path.make_compound_path(
+            Path(np.asarray(poly.exterior.coords)[:, :2]),
+            *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+        )
 
         path_patch = PathPatch(
             path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
         )
 
-        return path_patch
+        return path_patch, poly
