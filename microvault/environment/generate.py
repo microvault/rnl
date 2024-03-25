@@ -120,9 +120,6 @@ class Generator:
 
         contornos = measure.find_contours(map_grid, 0.5)
 
-        codes = []
-        path_data = []
-
         exterior = [
             (map_grid.shape[1] - 1, map_grid.shape[0] - 1),
             (0, map_grid.shape[0] - 1),
@@ -130,14 +127,6 @@ class Generator:
             (map_grid.shape[1] - 1, 0),
         ]
         interiors = []
-
-        grid = [
-            (map_grid.shape[1] - 1, map_grid.shape[0] - 1),
-            (0, map_grid.shape[0] - 1),
-            (0, 0),
-            (map_grid.shape[1] - 1, 0),
-            (0, 0),
-        ]
 
         for n, contour in enumerate(contornos):
             poly = []
