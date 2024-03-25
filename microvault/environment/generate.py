@@ -14,8 +14,6 @@ class Generator:
         grid_lenght=10,
         random=1300,
     ):
-        self.type = type
-        self.size = size
         self.grid_lenght = grid_lenght
         self.random = random
 
