@@ -9,7 +9,7 @@ from utils import Extension
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class Agent:
+class TD3Agent:
     """Interacts with and learns from the environment."""
 
     def __init__(self, state_size, action_size, random_seed, CONFIG_PATH):
