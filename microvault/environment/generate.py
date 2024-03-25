@@ -11,8 +11,6 @@ from skimage import measure
 class Generator:
     def __init__(
         self,
-        type="robot",
-        size=10,
         grid_lenght=10,
         random=1300,
     ):
