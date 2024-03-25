@@ -118,9 +118,8 @@ class Continuous:
             )[0]
 
     def _ray_casting(self, poly, x, y) -> bool:
-        ponto = Point(x, y)
 
-        if poly.contains(ponto):
+        if poly.contains(Point(x, y)):
             return True
         else:
             return False
