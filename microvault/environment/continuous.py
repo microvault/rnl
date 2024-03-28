@@ -22,7 +22,6 @@ class Continuous:
         max_speed=0.5,
         min_speed=0.4,
         grid_lenght=10,
-        
     ):
         self.num_agents = n
         self.time = time
@@ -30,7 +29,7 @@ class Continuous:
         self.frame = frame
         self.max_speed = max_speed
         self.min_speed = min_speed
-        
+
         self.random = random
 
         self.grid_lenght = grid_lenght
