@@ -1,12 +1,23 @@
 import copy
+from typing import Tuple
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torch.optim as optim
+from components import ReplayBuffer
 from model import Actor, Critic
-from replaybuffer import ReplayBuffer
+from numpy import inf
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+BUFFER_SIZE = int(1e5)  # replay buffer size
+BATCH_SIZE = 100  # minibatch size
+GAMMA = 0.99  # discount factor
+TAU = 1e-3  # for soft update of target parameters
+LR_ACTOR = 1e-3  # learning rate of the actor
+LR_CRITIC = 1e-3  # learning rate of the critic
+UPDATE_EVERY_STEP = 2  # how often to update the target and actor networks
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class TD3Agent:
@@ -56,14 +67,36 @@ class TD3Agent:
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE)
+        self.memory = ReplayBuffer(BUFFER_SIZE, BATCH_SIZE)
 
-    def step(self, state, action, reward, next_state, done):
+    def step(self, state, action, reward, next_state, done) -> None:
         """Save experience in replay memory"""
         self.memory.add(state, action, reward, next_state, done)
 
-    def predict(self, states):
+    def predict(self, states) -> np.ndarray:
         """Returns actions for given state as per current policy."""
+
+        assert isinstance(
+            states, np.ndarray
+        ), "States is not of data structure (np.ndarray) in PREDICT -> states: {}.".format(
+            type(states)
+        )
+        assert isinstance(
+            states[0], np.float32
+        ), "States is not of type (np.float32) in PREDICT -> states type: {}.".format(
+            type(states)
+        )
+        assert (
+            states.shape[0] == 24
+        ), "The size of the states is not (24) in PREDICT -> states size: {}.".format(
+            states.shape[0]
+        )
+        assert (
+            states.ndim == 1
+        ), "The ndim of the states is not (1) in PREDICT -> states ndim: {}.".format(
+            states.ndim
+        )
+
         state = torch.from_numpy(states).float().to(device)
 
         self.actor.eval()
@@ -72,9 +105,22 @@ class TD3Agent:
 
         self.actor.train()
 
-        return action.clip(self.min_action[0], self.max_action[0])
+        action = action.clip(self.min_action[0], self.max_action[0])
 
-    def learn(self, n_iteraion, gamma=GAMMA):
+        assert (
+            len(action) == self.action_size
+        ), "The action size is different from the defined size in PREDICT."
+        assert isinstance(
+            action[0], np.float32
+        ), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(
+            type(action)
+        )
+
+        return action
+
+    def learn(
+        self, n_iteraion, gamma=GAMMA
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Update policy and value parameters using given batch of experience tuples.
 
         Params
@@ -156,9 +202,9 @@ class TD3Agent:
             average_policy = average_Q / n_iteraion
             max_policy = max_Q
 
-            return loss_critic, loss_actor, average_policy, max_policy
+            return (loss_critic, loss_actor, average_policy, max_policy)
 
-    def soft_update(self, local_model, target_model, tau):
+    def soft_update(self, local_model, target_model, tau) -> None:
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
         Params
@@ -174,7 +220,7 @@ class TD3Agent:
                 tau * local_param.data + (1.0 - tau) * target_param.data
             )
 
-    def save(self, filename):
+    def save(self, filename) -> None:
         """Save the model"""
         torch.save(self.critic.state_dict(), filename + "_critic.pth")
         torch.save(
@@ -184,7 +230,7 @@ class TD3Agent:
         torch.save(self.actor.state_dict(), filename + "_actor.pth")
         torch.save(self.actor_optimizer.state_dict(), filename + "_actor_optimizer.pth")
 
-    def load(self, filename):
+    def load(self, filename) -> None:
         """Load the model"""
         self.critic.load_state_dict(torch.load(filename + "_critic.pth"))
         self.critic_optimizer.load_state_dict(

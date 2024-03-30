@@ -1,4 +1,4 @@
-from copy import *
+import typing as Tuple
 
 import numpy as np
 import torch
@@ -10,6 +10,9 @@ def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
     lim = 1.0 / np.sqrt(fan_in)
     return (-lim, lim)
+
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class Actor(nn.Module):
@@ -30,6 +33,19 @@ class Actor(nn.Module):
         self.l3.weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state) -> torch.Tensor:
+
+        assert isinstance(
+            state, torch.Tensor
+        ), "State is not of type torch.Tensor in ACTOR."
+        assert (
+            state.dtype == torch.float32
+        ), "Tensor elements are not of type torch.float32 in ACTOR."
+        assert (
+            state.shape[0] <= 24 or state.shape[0] >= 100
+        ), "The tensor shape is not torch.Size([24]) in ACTOR."
+        # TODO
+        # assert state.device.type == DEVICE, "The state must be on the same device in ACTOR."
+
         x = F.relu(self.l1(state))
         x = F.relu(self.l2(x))
         action = self.max_action * torch.tanh(self.l3(x))
@@ -64,7 +80,31 @@ class Critic(nn.Module):
         self.l7.weight.data.uniform_(*hidden_init(self.l7))
         self.l8.weight.data.uniform_(-3e-3, 3e-3)
 
-    def forward(self, state, action) -> torch.Tensor:
+    def forward(self, state, action) -> Tuple[torch.Tensor, torch.Tensor]:
+        assert isinstance(
+            state, torch.Tensor
+        ), "State is not of type torch.Tensor in CRITIC."
+        assert (
+            state.dtype == torch.float32
+        ), "Tensor elements are not of type torch.float32 in CRITIC."
+        assert (
+            state.shape[0] == 100
+        ), "The tensor shape is not torch.Size([100]) in CRITIC."
+        # TODO
+        # assert state.device.type == DEVICE, "The state must be on the same device  in CRITIC."
+
+        assert isinstance(
+            action, torch.Tensor
+        ), "Action is not of type torch.Tensor in CRITIC."
+        assert (
+            action.dtype == torch.float32
+        ), "Tensor elements are not of type torch.float32 in CRITIC."
+        assert (
+            action.shape[0] == 100
+        ), "The action shape is not torch.Size([100]) in CRITIC."
+        # TODO
+        # assert action.device.type == DEVICE, "The action must be on the same device  in CRITIC."
+
         s = torch.cat([state, action], dim=1)
 
         s1 = F.relu(self.l1(s))
@@ -78,9 +118,33 @@ class Critic(nn.Module):
         a2 = F.relu(self.l7(action))
         s2 = s2 + a2
         q2 = self.l8(s2)
-        return q1, q2
+        return (q1, q2)
 
     def Q1(self, state, action) -> torch.Tensor:
+        assert isinstance(
+            state, torch.Tensor
+        ), "State is not of type torch.Tensor in CRITIC."
+        assert (
+            state.dtype == torch.float32
+        ), "Tensor elements are not of type torch.float32 in CRITIC."
+        assert (
+            state.shape[0] == 100
+        ), "The tensor shape is not torch.Size([100]) in CRITIC."
+        # TODO
+        # assert state.device.type == DEVICE, "The state must be on the same device in CRITIC."
+
+        assert isinstance(
+            action, torch.Tensor
+        ), "Action is not of type torch.Tensor in CRITIC."
+        assert (
+            action.dtype == torch.float32
+        ), "Tensor elements are not of type torch.float32 in CRITIC."
+        assert (
+            action.shape[0] == 100
+        ), "The action shape is not torch.Size([100]) in CRITIC."
+        # TODO
+        # assert action.device.type == DEVICE, "The action must be on the same device in CRITIC."
+
         s = torch.cat([state, action], dim=1)
 
         s1 = F.relu(self.l1(s))
