@@ -1,81 +1,97 @@
+from collections import namedtuple
+from typing import Tuple
+
 import numpy as np
+from matplotlib.patches import Circle
 
 
 class Robot:
     def __init__(
         self,
-        type="robot",
-        size=10,
-        max_speed=1.8,
-        min_speed=0.1,
-        position_x=0,
-        position_y=0,
-        theta=0,
-        vx=0,
-        vy=0,
-        acceleration=0,
-        fov=90,
-        control_hz=10,
-        laser_max=10,
-        laser_min=0,
-        torque=0,
+        num_agents,
+        time,
+        min_radius=1,
+        max_radius=3,
+        xmax=10,
+        ymax=10,
     ):
-        self.type = type
-        self.size = size
-        self.max_speed = max_speed
-        self.min_speed = min_speed
-        self.position_x = position_x
-        self.position_y = position_y
-        self.theta = theta
-        self.vx = vx
-        self.vy = vy
-        self.acceleration = acceleration
-        self.fov = fov
-        self.control_hz = control_hz
-        self.laser_max = laser_max
-        self.laser_min = laser_min
-        self.torque = torque
 
-    def init_agent(self, num_agents, time):
-        self.x = np.zeros((num_agents, time))  # position
-        self.y = np.zeros((num_agents, time))  # position
-        self.sp = np.zeros((num_agents, time))  # speed
-        self.theta = np.zeros((num_agents, time))  # angle
-        self.vx = np.zeros((num_agents, time))  # velocity
-        self.vy = np.zeros((num_agents, time))  # velocity
+        self.agent = namedtuple(
+            "Agent",
+            field_names=["x", "y", "theta", "radius", "vx", "vy"],
+        )
 
-        return self.x, self.y, self.sp, self.theta, self.vx, self.vy
+        self.num_agents = num_agents
+        self.time = time
+        self.min_radius = min_radius
+        self.max_radius = max_radius
+        self.xmax = xmax
+        self.ymax = ymax
 
-    def x_direction(self, agents, i, num_agents, xmax, x, vx, time) -> None:
-        for a in range(0, num_agents):
-            if (time - 1) != i:
-                if x[a, i] + vx[a, i] >= xmax or x[a, i] + vx[a, i] <= 0:
+    def init_agent(
+        self, ax
+    ) -> Tuple[
+        np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, list
+    ]:
+
+        # dynamic variables
+        x = np.zeros((self.num_agents, self.time))  # position x
+        y = np.zeros((self.num_agents, self.time))  # position y
+        sp = np.zeros((self.num_agents, self.time))  # speed magnitude
+        theta = np.zeros((self.num_agents, self.time))  # angle of velocity
+        vx = np.zeros((self.num_agents, self.time))  # velocity x
+        vy = np.zeros((self.num_agents, self.time))  # velocity y
+        radius = np.random.uniform(
+            self.min_radius, self.max_radius, self.num_agents
+        )  # radius of the robot
+
+        agents = []
+
+        for a in range(self.num_agents):
+            position_x = np.random.uniform(0, self.xmax)
+            position_y = np.random.uniform(0, self.ymax)
+            agent = ax.plot3D(
+                position_x, position_y, 0, marker="o", markersize=radius[a]
+            )[0]
+            agents.append(agent)
+
+        return (x, y, sp, theta, vx, vy, agents)
+
+    def x_advance(self, agents, i, x, vx) -> None:
+        for a in range(0, self.num_agents):
+            if (self.time - 1) != i:
+                if x[a, i] + vx[a, i] >= self.xmax or x[a, i] + vx[a, i] <= 0:
                     x[a, i + 1] = x[a, i] - vx[a, i]
                     vx[a, i + 1] = -vx[a, i]
                 else:
                     x[a, i + 1] = x[a, i] + vx[a, i]
                     vx[a, i + 1] = vx[a, i]
             else:
-                if x[a, i] + vx[a, i] >= xmax or x[a, i] + vx[a, i] <= 0:
+                if x[a, i] + vx[a, i] >= self.xmax or x[a, i] + vx[a, i] <= 0:
                     x[a, i] = x[a, i] - vx[a, i]
                     vx[a, i] = -vx[a, i]
                 else:
                     x[a, i] = x[a, i] + vx[a, i]
                     vx[a, i] = vx[a, i]
 
-    def y_direction(self, agents, i, num_agents, ymax, y, vy, time) -> None:
-        for a in range(0, num_agents):
-            if (time - 1) != i:
-                if y[a, i] + vy[a, i] >= ymax or y[a, i] + vy[a, i] <= 0:
+    def y_advance(self, agents, i, y, vy) -> None:
+        for a in range(0, self.num_agents):
+            if (self.time - 1) != i:
+                if y[a, i] + vy[a, i] >= self.ymax or y[a, i] + vy[a, i] <= 0:
                     y[a, i + 1] = y[a, i] - vy[a, i]
                     vy[a, i + 1] = -vy[a, i]
                 else:
                     y[a, i + 1] = y[a, i] + vy[a, i]
                     vy[a, i + 1] = vy[a, i]
             else:
-                if y[a, i] + vy[a, i] >= ymax or y[a, i] + vy[a, i] <= 0:
+                if y[a, i] + vy[a, i] >= self.ymax or y[a, i] + vy[a, i] <= 0:
                     y[a, i] = y[a, i] - vy[a, i]
                     vy[a, i] = -vy[a, i]
                 else:
                     y[a, i] = y[a, i] + vy[a, i]
                     vy[a, i] = vy[a, i]
+
+    def overlaps(self, x, y, other_x, other_y, other_radius, radius):
+        """Does the circle of this Robot overlap that of other?"""
+
+        return np.hypot(other_x - x, other_y - y) < radius + other_radius
