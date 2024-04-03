@@ -12,14 +12,14 @@ from .robot import Robot
 class Continuous:
     def __init__(
         self,
-        n=1,
-        time=50,
+        n=5,
+        time=10,
         size=3,
         frame=100,
         random=300,
         max_speed=0.5,
         min_speed=0.4,
-        grid_lenght=5,
+        grid_lenght=5,  # TODO: error < 5
     ):
         self.num_agents = n
         self.time = time
@@ -35,7 +35,7 @@ class Continuous:
         self.xmax = grid_lenght
         self.ymax = grid_lenght
 
-        self.poly = None
+        self.segments = None
 
         # TODO: remove the team and remove in array format
         self.target_x = np.zeros((self.num_agents, self.time))
@@ -54,43 +54,50 @@ class Continuous:
         self.ax.remove()
         self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
-        self.x, self.y, self.sp, self.theta, self.vx, self.vy, self.agents = (
-            self.robots.init_agent(self.ax)
-        )
+        (
+            self.x,
+            self.y,
+            self.sp,
+            self.theta,
+            self.vx,
+            self.vy,
+            self.agents,
+            self.radius,
+        ) = self.robots.init_agent(self.ax)
 
-        self.init_animation()
+        self.init_animation(self.ax)
 
-    def init_animation(self):
-        self.ax.set_xlim(0, self.grid_lenght)
-        self.ax.set_ylim(0, self.grid_lenght)
+    def init_animation(self, ax):
+        ax.set_xlim(0, self.grid_lenght)
+        ax.set_ylim(0, self.grid_lenght)
 
         # ------ Create wordld ------ #
 
-        path, poly = self.generator.world()
+        path, poly, seg = self.generator.world()
 
-        self.ax.add_patch(path)
+        ax.add_patch(path)
 
         art3d.pathpatch_2d_to_3d(path, z=0, zdir="z")
 
-        self.ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        self.ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        self.ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
 
         # # Hide grid lines
-        self.ax.grid(False)
+        ax.grid(False)
 
         # Hide axes ticks
-        self.ax.set_xticks([])
-        self.ax.set_yticks([])
-        self.ax.set_zticks([])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_zticks([])
 
         # Hide axes
-        self.ax.set_axis_off()
+        ax.set_axis_off()
 
         # Set camera
-        self.ax.elev = 20
-        self.ax.azim = -155
-        self.ax.dist = 1
+        ax.elev = 20
+        ax.azim = -155
+        ax.dist = 1
 
         self.label = self.ax.text(
             0,
@@ -129,8 +136,9 @@ class Continuous:
         for patch in self.ax.patches:
             patch.remove()
 
-        new_map_path, poly = self.generator.world()
-        self.poly = poly
+        new_map_path, poly, seg = self.generator.world()
+        self.segments = seg
+
         self.ax.add_patch(new_map_path)
         art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
@@ -166,10 +174,6 @@ class Continuous:
             self.robots.x_advance(a, i, self.x, self.vx)
             self.robots.x_advance(a, i, self.y, self.vy)
 
-            if not self._ray_casting(self.poly, self.x[a, i], self.y[a, i]):
-                print("Collision")
-                self.vx[a], self.vy[a] = self.change_advance()
-
             agent.set_data_3d(
                 [self.x[a, i]],
                 [self.y[a, i]],
@@ -202,3 +206,7 @@ class Continuous:
                 interval=self.frame,
             )
             plt.show()
+
+
+# env = Continuous()
+# env.show(plot=True)

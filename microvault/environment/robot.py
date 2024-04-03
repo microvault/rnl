@@ -16,11 +16,6 @@ class Robot:
         ymax=10,
     ):
 
-        self.agent = namedtuple(
-            "Agent",
-            field_names=["x", "y", "theta", "radius", "vx", "vy"],
-        )
-
         self.num_agents = num_agents
         self.time = time
         self.min_radius = min_radius
@@ -28,10 +23,15 @@ class Robot:
         self.xmax = xmax
         self.ymax = ymax
 
-    def init_agent(
-        self, ax
-    ) -> Tuple[
-        np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, list
+    def init_agent(self, ax) -> Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        list,
+        np.ndarray,
     ]:
 
         # dynamic variables
@@ -55,7 +55,7 @@ class Robot:
             )[0]
             agents.append(agent)
 
-        return (x, y, sp, theta, vx, vy, agents)
+        return (x, y, sp, theta, vx, vy, agents, radius)
 
     def x_advance(self, agents, i, x, vx) -> None:
         for a in range(0, self.num_agents):

@@ -4,7 +4,7 @@ import numpy as np
 import numpy.random as npr
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from shapely.geometry import Polygon
+from shapely.geometry import LineString, Polygon
 from skimage import measure
 
 
@@ -102,14 +102,18 @@ class Generator:
 
         return new
 
-    def polygon_area(self, vertices):
-        n = len(vertices)
-        area = 0
-        for i in range(n):
-            j = (i + 1) % n
-            area += vertices[i][0] * vertices[j][1]
-            area -= vertices[j][0] * vertices[i][1]
-        return abs(area) / 2
+    def line_to_np_stack(self, line):
+        """
+        Convert LineString to a numpy stack of points.
+
+        :param line: LineString object
+        :return: numpy stack of points as (X, Y)
+        """
+        # Extrair as coordenadas de cada ponto na LineString
+        coords = np.array(line.coords)
+
+        # Stack das coordenadas X e Y
+        return np.vstack((coords[:, 0], coords[:, 1])).T
 
     def world(self):
 
@@ -127,6 +131,7 @@ class Generator:
             (map_grid.shape[1] - 1, 0),
         ]
         interiors = []
+        segments = []
 
         for n, contour in enumerate(contornos):
             poly = []
@@ -134,6 +139,16 @@ class Generator:
                 poly.append((vertex[1], vertex[0]))
 
             interiors.append(poly)
+
+            interior_segment = LineString(poly)
+            segments.append(interior_segment)
+
+        exterior_segment = LineString(exterior + [exterior[0]])
+        segments.insert(0, exterior_segment)
+
+        stacks = [self.line_to_np_stack(line) for line in segments]
+
+        print("stacks", stacks)
 
         poly = Polygon(exterior, holes=interiors)
 
@@ -150,4 +165,8 @@ class Generator:
             path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
         )
 
-        return path_patch, poly
+        return path_patch, poly, segments
+
+
+# gen = Generator(grid_lenght=5, random=1300)
+# new_map_path, poly, seg = gen.world()
