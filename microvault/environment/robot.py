@@ -1,22 +1,19 @@
-from collections import namedtuple
 from typing import Tuple
 
 import numpy as np
-from matplotlib.patches import Circle
+
+from .utils.collision import range_seg_poly
 
 
 class Robot:
     def __init__(
         self,
-        num_agents,
         time,
         min_radius=1,
         max_radius=3,
         xmax=10,
         ymax=10,
     ):
-
-        self.num_agents = num_agents
         self.time = time
         self.min_radius = min_radius
         self.max_radius = max_radius
@@ -30,68 +27,79 @@ class Robot:
         np.ndarray,
         np.ndarray,
         np.ndarray,
-        list,
-        np.ndarray,
+        float,
     ]:
 
         # dynamic variables
-        x = np.zeros((self.num_agents, self.time))  # position x
-        y = np.zeros((self.num_agents, self.time))  # position y
-        sp = np.zeros((self.num_agents, self.time))  # speed magnitude
-        theta = np.zeros((self.num_agents, self.time))  # angle of velocity
-        vx = np.zeros((self.num_agents, self.time))  # velocity x
-        vy = np.zeros((self.num_agents, self.time))  # velocity y
+        x = np.zeros(self.time)  # position x
+        y = np.zeros(self.time)  # position y
+        sp = np.zeros(self.time)  # speed magnitude
+        theta = np.zeros(self.time)  # angle of velocity
+        vx = np.zeros(self.time)  # velocity x
+        vy = np.zeros(self.time)  # velocity y
         radius = np.random.uniform(
-            self.min_radius, self.max_radius, self.num_agents
+            self.min_radius, self.max_radius
         )  # radius of the robot
 
-        agents = []
+        return (x, y, sp, theta, vx, vy, radius)
 
-        for a in range(self.num_agents):
-            position_x = np.random.uniform(0, self.xmax)
-            position_y = np.random.uniform(0, self.ymax)
-            agent = ax.plot3D(
-                position_x, position_y, 0, marker="o", markersize=radius[a]
-            )[0]
-            agents.append(agent)
-
-        return (x, y, sp, theta, vx, vy, agents, radius)
-
-    def x_advance(self, agents, i, x, vx) -> None:
-        for a in range(0, self.num_agents):
-            if (self.time - 1) != i:
-                if x[a, i] + vx[a, i] >= self.xmax or x[a, i] + vx[a, i] <= 0:
-                    x[a, i + 1] = x[a, i] - vx[a, i]
-                    vx[a, i + 1] = -vx[a, i]
-                else:
-                    x[a, i + 1] = x[a, i] + vx[a, i]
-                    vx[a, i + 1] = vx[a, i]
+    def x_advance(self, dt, x, vx) -> None:
+        if (self.time - 1) != dt:
+            if x[dt] + vx[dt] >= self.xmax or x[dt] + vx[dt] <= 0:
+                x[dt + 1] = x[dt] - vx[dt]
+                vx[dt + 1] = -vx[dt]
             else:
-                if x[a, i] + vx[a, i] >= self.xmax or x[a, i] + vx[a, i] <= 0:
-                    x[a, i] = x[a, i] - vx[a, i]
-                    vx[a, i] = -vx[a, i]
-                else:
-                    x[a, i] = x[a, i] + vx[a, i]
-                    vx[a, i] = vx[a, i]
-
-    def y_advance(self, agents, i, y, vy) -> None:
-        for a in range(0, self.num_agents):
-            if (self.time - 1) != i:
-                if y[a, i] + vy[a, i] >= self.ymax or y[a, i] + vy[a, i] <= 0:
-                    y[a, i + 1] = y[a, i] - vy[a, i]
-                    vy[a, i + 1] = -vy[a, i]
-                else:
-                    y[a, i + 1] = y[a, i] + vy[a, i]
-                    vy[a, i + 1] = vy[a, i]
+                x[dt + 1] = x[dt] + vx[dt]
+                vx[dt + 1] = vx[dt]
+        else:
+            if x[dt] + vx[dt] >= self.xmax or x[dt] + vx[dt] <= 0:
+                x[dt] = x[dt] - vx[dt]
+                vx[dt] = -vx[dt]
             else:
-                if y[a, i] + vy[a, i] >= self.ymax or y[a, i] + vy[a, i] <= 0:
-                    y[a, i] = y[a, i] - vy[a, i]
-                    vy[a, i] = -vy[a, i]
-                else:
-                    y[a, i] = y[a, i] + vy[a, i]
-                    vy[a, i] = vy[a, i]
+                x[dt] = x[dt] + vx[dt]
+                vx[dt] = vx[dt]
 
-    def overlaps(self, x, y, other_x, other_y, other_radius, radius):
-        """Does the circle of this Robot overlap that of other?"""
+    def y_advance(self, dt, y, vy) -> None:
+        if (self.time - 1) != dt:
+            if y[dt] + vy[dt] >= self.ymax or y[dt] + vy[dt] <= 0:
+                y[dt + 1] = y[dt] - vy[dt]
+                vy[dt + 1] = -vy[dt]
+            else:
+                y[dt + 1] = y[dt] + vy[dt]
+                vy[dt + 1] = vy[dt]
+        else:
+            if y[dt] + vy[dt] >= self.ymax or y[dt] + vy[dt] <= 0:
+                y[dt] = y[dt] - vy[dt]
+                vy[dt] = -vy[dt]
+            else:
+                y[dt] = y[dt] + vy[dt]
+                vy[dt] = vy[dt]
 
-        return np.hypot(other_x - x, other_y - y) < radius + other_radius
+    def lidar_intersections(
+        self, robot_x, robot_y, lidar_range, lidar_angles, segments
+    ):
+        intersections = []
+        for i, angle in enumerate(lidar_angles):
+            lidar_segment = [
+                (robot_x, robot_y),
+                (
+                    robot_x + lidar_range * np.cos(angle),
+                    robot_y + lidar_range * np.sin(angle),
+                ),
+            ]
+
+            lidar_segment_transformed = [
+                np.array(segmento) for segmento in lidar_segment
+            ]
+
+            intersected, int_point, lrange = range_seg_poly(
+                lidar_segment_transformed, segments
+            )
+
+            if intersected:
+                intersections.append(int_point)
+
+            else:
+                intersections.append(None)
+
+        return intersections

@@ -149,14 +149,14 @@ class Map2D:
     def plot_initial_environment3d(self, plot=True) -> None:
         """generate environment from map"""
 
-        new_map_grid = self._grid_map()
+        # new_map_grid = self._grid_map()
 
-        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+        # idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
 
-        min_idx = int(np.min(idx))
-        max_idx = int(np.max(idx))
+        # min_idx = int(np.min(idx))
+        # max_idx = int(np.max(idx))
 
-        all_edges = []
+        # all_edges = []
 
         # for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
         #     for j in range(min_idx, max_idx):

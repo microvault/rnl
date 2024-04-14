@@ -7,7 +7,6 @@ from microvault.environment.continuous import Continuous
 @pytest.fixture
 def continuous_instance():
     return Continuous(
-        n=10,
         time=10,
         size=2,
         frame=100,

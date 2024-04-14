@@ -1,9 +1,10 @@
+import timeit
+
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import art3d
 from shapely.geometry import Point
-from typing_extensions import ParamSpecArgs
 
 from .generate import Generator
 from .robot import Robot
@@ -12,16 +13,14 @@ from .robot import Robot
 class Continuous:
     def __init__(
         self,
-        n=5,
-        time=10,
+        time=1000,
         size=3,
-        frame=100,
-        random=300,
+        frame=1,
+        random=4000,
         max_speed=0.5,
         min_speed=0.4,
-        grid_lenght=5,  # TODO: error < 5
+        grid_lenght: int = 15,  # TODO: error < 5
     ):
-        self.num_agents = n
         self.time = time
         self.size = size
         self.frame = frame
@@ -37,19 +36,16 @@ class Continuous:
 
         self.segments = None
 
-        # TODO: remove the team and remove in array format
-        self.target_x = np.zeros((self.num_agents, self.time))
-        self.target_y = np.zeros((self.num_agents, self.time))
+        self.fov = -90 * np.pi / 180
 
-        # self.agents = [None for _ in range(self.num_agents)]
-        self.targets = [None for _ in range(self.num_agents)]
+        # TODO: remove the team and remove in array format
+        self.target_x = 0
+        self.target_y = 0
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
 
         self.generator = Generator(grid_lenght=grid_lenght, random=self.random)
-        self.robots = Robot(
-            self.num_agents, self.time, 1, 3, self.grid_lenght, self.grid_lenght
-        )
+        self.robot = Robot(self.time, 1, 3, self.grid_lenght, self.grid_lenght)
 
         self.ax.remove()
         self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
@@ -61,9 +57,20 @@ class Continuous:
             self.theta,
             self.vx,
             self.vy,
-            self.agents,
             self.radius,
-        ) = self.robots.init_agent(self.ax)
+        ) = self.robot.init_agent(self.ax)
+
+        self.target = self.ax.plot3D(
+            np.random.uniform(0, self.xmax),
+            np.random.uniform(0, self.ymax),
+            0,
+            marker="x",
+            markersize=self.size,
+        )[0]
+
+        self.agent = self.ax.plot3D(
+            self.x, self.y, 0, marker="o", markersize=self.radius
+        )[0]
 
         self.init_animation(self.ax)
 
@@ -102,7 +109,7 @@ class Continuous:
         self.label = self.ax.text(
             0,
             0,
-            0.6,
+            0.05,
             self._get_label(0),
         )
 
@@ -112,21 +119,10 @@ class Continuous:
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
-        for a in range(0, self.num_agents):
-            self.targets[a] = self.ax.plot3D(
-                np.random.uniform(0, self.xmax),
-                np.random.uniform(0, self.ymax),
-                0,
-                marker="x",
-                markersize=self.size,
-            )[0]
-
     def _ray_casting(self, poly, x, y) -> bool:
         return poly.contains(Point(x, y))
 
     def change_advance(self):
-        # Aqui você pode implementar a lógica para mudar a direção do robô após a colisão
-        # Por exemplo, você pode inverter a direção ou aplicar outra lógica adequada ao seu problema
         new_vx = -self.vx
         new_vy = -self.vy
         return new_vx, new_vy
@@ -142,51 +138,78 @@ class Continuous:
         self.ax.add_patch(new_map_path)
         art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
-        for a in range(self.num_agents):
+        self.target_x = np.random.uniform(0, self.xmax)
+        self.target_y = np.random.uniform(0, self.ymax)
 
-            self.target_x[a, 0] = np.random.uniform(0, self.xmax)
-            self.target_y[a, 0] = np.random.uniform(0, self.ymax)
+        self.x[0] = np.random.uniform(0, self.xmax)
+        self.y[0] = np.random.uniform(0, self.ymax)
 
-            self.x[a, 0] = np.random.uniform(0, self.xmax)
-            self.y[a, 0] = np.random.uniform(0, self.ymax)
+        target_inside = False
 
-            target_inside = False
+        while not target_inside:
+            self.target_x = np.random.uniform(0, self.xmax)
+            self.target_y = np.random.uniform(0, self.ymax)
 
-            while not target_inside:
-                self.target_x[a, 0] = np.random.uniform(0, self.xmax)
-                self.target_y[a, 0] = np.random.uniform(0, self.ymax)
+            self.x[0] = np.random.uniform(0, self.xmax)
+            self.y[0] = np.random.uniform(0, self.ymax)
 
-                self.x[a, 0] = np.random.uniform(0, self.xmax)
-                self.y[a, 0] = np.random.uniform(0, self.ymax)
+            if self._ray_casting(
+                poly, self.target_x, self.target_y
+            ) and self._ray_casting(poly, self.x[0], self.y[0]):
+                target_inside = True
 
-                if self._ray_casting(
-                    poly, self.target_x[a, 0], self.target_y[a, 0]
-                ) and self._ray_casting(poly, self.x[a, 0], self.y[a, 0]):
-                    target_inside = True
-
-            self.sp[a, 0] = np.random.uniform(self.min_speed, self.max_speed)
-            self.theta[a, :] = np.random.uniform(0, 2 * np.pi)
-            self.vx[a, 0] = self.sp[a, 0] * np.cos(self.theta[a, 0])
-            self.vy[a, 0] = self.sp[a, 0] * np.sin(self.theta[a, 0])
+        self.sp[0] = np.random.uniform(self.min_speed, self.max_speed)
+        self.theta[:] = np.random.uniform(0, 2 * np.pi)
+        self.vx[0] = self.sp[0] * np.cos(self.theta[0])
+        self.vy[0] = self.sp[0] * np.sin(self.theta[0])
 
     def step(self, i):
-        for a, (agent, target) in enumerate(zip(self.agents, self.targets)):
-            self.robots.x_advance(a, i, self.x, self.vx)
-            self.robots.x_advance(a, i, self.y, self.vy)
+        if hasattr(self, "laser_scatters"):
+            for scatter in self.laser_scatters:
+                scatter.remove()
+            del self.laser_scatters
 
-            agent.set_data_3d(
-                [self.x[a, i]],
-                [self.y[a, i]],
-                [0],
-            )
+        self.robot.x_advance(i, self.x, self.vx)
+        self.robot.y_advance(i, self.y, self.vy)
 
-            target.set_data_3d(
-                [self.target_x[a, 0]],
-                [self.target_y[a, 0]],
-                [0],
-            )
+        segments_trans = [
+            [np.array(segment[:2]), np.array(segment[2:])] for segment in self.segments
+        ]
+
+        lidar_range = 6
+        num_rays = 20
+        lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
+
+        intersections = self.robot.lidar_intersections(
+            self.x[i], self.y[i], lidar_range, lidar_angles, segments_trans
+        )
+
+        # Plotar as novas leituras do laser
+        self.laser_scatters = []
+        for angle, intersection in zip(lidar_angles, intersections):
+            if intersection is not None:
+                scatter = plt.scatter(
+                    intersection[0], intersection[1], color="g", s=0.5
+                )  # Usando scatter para os raios do LiDAR
+                self.laser_scatters.append(scatter)
+
+        self.agent.set_data_3d(
+            [self.x[i]],
+            [self.y[i]],
+            [0],
+        )
+
+        self.target.set_data_3d(
+            [self.target_x],
+            [self.target_y],
+            [0],
+        )
 
         self.label.set_text(self._get_label(i))
+
+    def timer(self):
+        tempo_decorrido = timeit.timeit(self.reset, number=1)
+        print("Tempo decorrido:", tempo_decorrido, "segundos")
 
     def _get_label(self, timestep):
         line1 = "Environment\n"
@@ -195,7 +218,7 @@ class Continuous:
 
     def show(self, plot=False):
 
-        if plot == True:
+        if plot:
 
             ani = animation.FuncAnimation(
                 self.fig,

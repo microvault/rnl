@@ -1,4 +1,5 @@
 import itertools
+import timeit
 
 import numpy as np
 import numpy.random as npr
@@ -109,11 +110,29 @@ class Generator:
         :param line: LineString object
         :return: numpy stack of points as (X, Y)
         """
-        # Extrair as coordenadas de cada ponto na LineString
         coords = np.array(line.coords)
 
-        # Stack das coordenadas X e Y
         return np.vstack((coords[:, 0], coords[:, 1])).T
+
+    def extract_segment(self, stack):
+        total_segments = []
+        for polygon in stack:
+            segments = []
+            num_points = len(polygon)
+            for i in range(num_points):
+                current_point = polygon[i]
+                next_point = polygon[
+                    (i + 1) % num_points
+                ]  # To handle the last point connected to the first
+                segment = (current_point, next_point)
+                segments.append(segment)
+            total_segments.extend(segments)
+
+        all_obs = []
+        for segment in total_segments:
+            all_obs.append((segment[0][0], segment[0][1], segment[1][0], segment[1][1]))
+
+        return all_obs
 
     def world(self):
 
@@ -148,7 +167,7 @@ class Generator:
 
         stacks = [self.line_to_np_stack(line) for line in segments]
 
-        print("stacks", stacks)
+        obs = self.extract_segment(stacks)
 
         poly = Polygon(exterior, holes=interiors)
 
@@ -165,8 +184,12 @@ class Generator:
             path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
         )
 
-        return path_patch, poly, segments
+        return path_patch, poly, obs
+
+    def timer(self):
+        tempo_decorrido = timeit.timeit(self.world, number=1)
+        print("Tempo decorrido:", tempo_decorrido, "segundos")
 
 
-# gen = Generator(grid_lenght=5, random=1300)
+# gen = Generator(grid_lenght=5, random=1000000)
 # new_map_path, poly, seg = gen.world()

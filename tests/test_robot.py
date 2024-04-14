@@ -28,7 +28,6 @@ def robot_instance():
 #     assert np.all(vx == 0)
 #     assert np.all(vy == 0)
 
-
 # def test_x_direction(robot_instance):
 #     robot_instance.x_direction(1, 1, 2, 10, np.zeros((2, 10)), np.zeros((2, 10)), 10)
 #     assert True
