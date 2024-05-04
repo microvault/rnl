@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from microvault.environment.generate import Generator
+from microvault.environment.utils.world_generate import generate_maze
 
 # from matplotlib.patches import PathPatch
 
@@ -13,7 +14,7 @@ def generate_instance():
 
 def test_generate_maze(generate_instance):
     size = 10
-    maze = generate_instance._generate_maze(size)
+    maze = generate_maze(size)
     assert maze.shape == (size, size)
 
 
@@ -21,7 +22,7 @@ def test_generate_map(generate_instance):
     size = 10
     random = 1300
 
-    map = generate_instance._generate_map(size, random)
+    map = generate_maze(size, random)
     assert map.shape == (size, size)
 
 
