@@ -149,12 +149,14 @@ class Map2D:
     def plot_initial_environment3d(self, plot=True) -> None:
         """generate environment from map"""
 
-        # new_map_grid = self._grid_map()
+        new_map_grid = self._grid_map()
 
-        # idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
 
-        # min_idx = int(np.min(idx))
-        # max_idx = int(np.max(idx))
+        min_idx = int(np.min(idx))
+        max_idx = int(np.max(idx))
+
+        # print(new_map_grid)
 
         # all_edges = []
 
@@ -170,7 +172,3 @@ class Map2D:
         #             ]
 
         #             all_edges.extend(edges)
-
-
-# maps = Map2D(folder="data/map2/", name="map2")
-# maps.plot_initial_environment2d(plot=True)

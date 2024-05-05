@@ -23,12 +23,12 @@ def range_seg_poly(segment: list, poly: list) -> Tuple[bool, float, float]:
             if max(t0, t1) >= 0 and min(t0, t1) < 0:
                 int_point = p
                 lrange = 0
-                inter.append([True, int_point, lrange])
+                inter.append([1.0, int_point, lrange])
 
             elif min(t0, t1) >= 0 and min(t0, t1) <= 1:
                 int_point = p + min(t0, t1) * r
                 lrange = np.linalg.norm(int_point - p)
-                inter.append([True, int_point, lrange])
+                inter.append([1.0, int_point, lrange])
 
         elif temp1 != 0:
             t = np.cross(q - p, s) / (np.cross(r, s) if np.cross(r, s) != 0 else 1)

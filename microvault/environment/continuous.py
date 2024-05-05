@@ -1,5 +1,3 @@
-import timeit
-
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,17 +7,23 @@ from shapely.geometry import Point
 from .generate import Generator
 from .robot import Robot
 
+# car racing
+# 8 m/s
+# 0 m/s
+# radius = 56 cm
+# peso = 2.64 kg
+
 
 class Continuous:
     def __init__(
         self,
-        time=1000,
+        time=100,
         size=3,
-        frame=1,
-        random=4000,
-        max_speed=0.5,
-        min_speed=0.4,
-        grid_lenght: int = 15,  # TODO: error < 5
+        frame=10,  # 20 frames per second
+        random=1500,  # 100 random points
+        max_speed=0.6,  # 0.2 m/s
+        min_speed=0.5,  # 0.1 m/s
+        grid_lenght: int = 100,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.size = size
@@ -127,6 +131,11 @@ class Continuous:
         new_vy = -self.vy
         return new_vx, new_vy
 
+    def _get_label(self, timestep):
+        line1 = "Environment\n"
+        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
+        return line1 + line2
+
     def reset(self):
 
         for patch in self.ax.patches:
@@ -163,35 +172,52 @@ class Continuous:
         self.vx[0] = self.sp[0] * np.cos(self.theta[0])
         self.vy[0] = self.sp[0] * np.sin(self.theta[0])
 
-    def step(self, i):
-        if hasattr(self, "laser_scatters"):
-            for scatter in self.laser_scatters:
-                scatter.remove()
-            del self.laser_scatters
+    def is_segment_inside_region(self, segment, center_x, center_y, region_radius=6):
+        x1, y1 = segment[0]
+        x2, y2 = segment[1]
 
+        # Criar arrays NumPy para os pontos finais do segmento e para o centro da região
+        segment_endpoints = np.array([[x1, y1], [x2, y2]])
+        region_center = np.array([center_x, center_y])
+        distances = np.linalg.norm(segment_endpoints - region_center, axis=1)
+
+        return np.all(distances <= region_radius)
+
+    def step(self, i):
         self.robot.x_advance(i, self.x, self.vx)
         self.robot.y_advance(i, self.y, self.vy)
 
-        segments_trans = [
-            [np.array(segment[:2]), np.array(segment[2:])] for segment in self.segments
-        ]
+        # if hasattr(self, "laser_scatters"):
+        #     for scatter in self.laser_scatters:
+        #         scatter.remove()
+        #     del self.laser_scatters
 
-        lidar_range = 6
-        num_rays = 20
-        lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
+        # segments_trans = [
+        #     [np.array(segment[:2]), np.array(segment[2:])] for segment in self.segments
+        # ]
 
-        intersections = self.robot.lidar_intersections(
-            self.x[i], self.y[i], lidar_range, lidar_angles, segments_trans
-        )
+        # segments_inside = []
 
-        # Plotar as novas leituras do laser
-        self.laser_scatters = []
-        for angle, intersection in zip(lidar_angles, intersections):
-            if intersection is not None:
-                scatter = plt.scatter(
-                    intersection[0], intersection[1], color="g", s=0.5
-                )  # Usando scatter para os raios do LiDAR
-                self.laser_scatters.append(scatter)
+        # for segment in segments_trans:
+        #     if self.is_segment_inside_region(segment, self.x[i], self.y[i], 6):
+        #         segments_inside.append(segment)
+
+        # lidar_range = 6
+        # num_rays = 10
+        # lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
+
+        # intersections, measurements = self.robot.lidar_intersections(
+        #     self.x[i], self.y[i], lidar_range, lidar_angles, segments_inside
+        # )
+
+        # # Plotar as novas leituras do laser
+        # self.laser_scatters = []
+        # for angle, intersection in zip(lidar_angles, intersections):
+        #     if intersection is not None:
+        #         scatter = plt.scatter(
+        #             intersection[0], intersection[1], color="g", s=0.5
+        #         )  # Usando scatter para os raios do LiDAR
+        #         self.laser_scatters.append(scatter)
 
         self.agent.set_data_3d(
             [self.x[i]],
@@ -207,18 +233,18 @@ class Continuous:
 
         self.label.set_text(self._get_label(i))
 
-    def timer(self):
-        tempo_decorrido = timeit.timeit(self.reset, number=1)
-        print("Tempo decorrido:", tempo_decorrido, "segundos")
-
-    def _get_label(self, timestep):
-        line1 = "Environment\n"
-        line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
-        return line1 + line2
+        # visualize_map()
 
     def show(self, plot=False):
 
         if plot:
+
+            # Criar uma nova figura para o gráfico adicional
+            # fig2 = plt.figure()
+
+            # # Plotar algo na nova figura
+            # ax2 = fig2.add_subplot(111)  # Adicionar um subplot à nova figura
+            # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])  # Plotar na nova figura
 
             ani = animation.FuncAnimation(
                 self.fig,
@@ -229,7 +255,3 @@ class Continuous:
                 interval=self.frame,
             )
             plt.show()
-
-
-# env = Continuous()
-# env.show(plot=True)

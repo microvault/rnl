@@ -79,6 +79,7 @@ class Robot:
         self, robot_x, robot_y, lidar_range, lidar_angles, segments
     ):
         intersections = []
+        measurements = []
         for i, angle in enumerate(lidar_angles):
             lidar_segment = [
                 (robot_x, robot_y),
@@ -98,8 +99,10 @@ class Robot:
 
             if intersected:
                 intersections.append(int_point)
+                measurements.append(lrange)
 
             else:
                 intersections.append(None)
+                measurements.append(6.0)
 
-        return intersections
+        return intersections, measurements
