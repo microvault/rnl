@@ -1,8 +1,8 @@
 # Microvault
 
-<p align="center">
-  <img src="docs/_static/img.png" alt="MicroVault">
-</p>
+<div align="center">
+     <img src="https://raw.githubusercontent.com/microvault/microvault/main/docs/_static/img.png" alt="MicroVault">
+</div>
 
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
