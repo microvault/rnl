@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "microvault"
+project = "Microvault"
 copyright = "2024, Nicolas Alan"
 author = "Nicolas Alan"
 release = "0.2.3"
@@ -17,7 +17,7 @@ release = "0.2.3"
 extensions = []
 
 templates_path = ["_templates"]
-exclude_patterns = []
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 
 # -- Options for HTML output -------------------------------------------------

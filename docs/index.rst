@@ -1,9 +1,9 @@
-.. microvault documentation master file, created by
-   sphinx-quickstart on Sun May  5 11:05:38 2024.
+.. Microvault documentation master file, created by
+   sphinx-quickstart on Sun May  5 11:36:52 2024.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to microvault's documentation!
+Welcome to Microvault's documentation!
 ======================================
 
 .. toctree::
