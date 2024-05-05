@@ -53,6 +53,7 @@ line_length = 79
 
 [tool.taskipy.tasks]
 lint = "black --check --diff --exclude docs . --exclude data && ruff check --diff --exclude docs . && isort --check --diff --skip docs . && codespell --skip=*.css,*.js,*.map,*.scss,*.svg,*.html,*.json,*.yml,*.yaml,*.md,*.jsx,*.mdx,*.pyx,*.cpp,./data/map/*,./docs/*"
+docs = "mkdocs serve"
 pre_test = "task lint"
 test = "pytest -s -x --cov=microvault -vv"
 post_test = "coverage html"
