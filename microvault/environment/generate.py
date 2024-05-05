@@ -68,10 +68,10 @@ class Generator:
         contours = measure.find_contours(map_grid, 0.5)
 
         exterior = [
-            (map_grid.shape[1] - 1, map_grid.shape[0] - 1),
-            (0, map_grid.shape[0] - 1),
+            (border.shape[1] - 1, border.shape[0] - 1),
+            (0, border.shape[0] - 1),
             (0, 0),
-            (map_grid.shape[1] - 1, 0),
+            (border.shape[1] - 1, 0),
         ]
         interiors = []
         segments = []

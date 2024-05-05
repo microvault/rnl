@@ -19,11 +19,11 @@ class Continuous:
         self,
         time=100,
         size=3,
-        frame=10,  # 20 frames per second
+        frame=1,  # 10 frames per second
         random=1500,  # 100 random points
         max_speed=0.6,  # 0.2 m/s
         min_speed=0.5,  # 0.1 m/s
-        grid_lenght: int = 100,  # TODO: error < 5 -> [5 - 15]
+        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.size = size
@@ -255,3 +255,7 @@ class Continuous:
                 interval=self.frame,
             )
             plt.show()
+
+
+# env = Continuous()
+# env.show(plot=True)
