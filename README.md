@@ -1,7 +1,7 @@
 # Microvault
 
 <p align="center">
-  <img src="docs/img.png" alt="MicroVault">
+  <img src="data/img.png" alt="MicroVault">
 </p>
 
 <p align="center">
