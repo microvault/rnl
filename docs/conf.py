@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "Microvault"
 copyright = "2024, Nicolas Alan"
 author = "Nicolas Alan"
-release = "0.2.3"
+release = "0.2.32"
 
 extensions = [
     "sphinx.ext.duration",
