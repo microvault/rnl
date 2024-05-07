@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List, Tuple
 
 import numpy as np
 
@@ -43,7 +43,7 @@ class Robot:
 
         return (x, y, sp, theta, vx, vy, radius)
 
-    def x_advance(self, dt, x, vx) -> None:
+    def x_advance(self, dt: int, x: np.ndarray, vx: np.ndarray) -> None:
         if (self.time - 1) != dt:
             if x[dt] + vx[dt] >= self.xmax or x[dt] + vx[dt] <= 0:
                 x[dt + 1] = x[dt] - vx[dt]
@@ -59,7 +59,7 @@ class Robot:
                 x[dt] = x[dt] + vx[dt]
                 vx[dt] = vx[dt]
 
-    def y_advance(self, dt, y, vy) -> None:
+    def y_advance(self, dt: int, y: np.ndarray, vy: np.ndarray) -> None:
         if (self.time - 1) != dt:
             if y[dt] + vy[dt] >= self.ymax or y[dt] + vy[dt] <= 0:
                 y[dt + 1] = y[dt] - vy[dt]
@@ -76,8 +76,13 @@ class Robot:
                 vy[dt] = vy[dt]
 
     def lidar_intersections(
-        self, robot_x, robot_y, lidar_range, lidar_angles, segments
-    ):
+        self,
+        robot_x: float,
+        robot_y: float,
+        lidar_range: int,
+        lidar_angles: np.ndarray,
+        segments: List,
+    ) -> Tuple[List, List]:
         intersections = []
         measurements = []
         for i, angle in enumerate(lidar_angles):

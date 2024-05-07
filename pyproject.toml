@@ -8,7 +8,7 @@ readme = "README.md"
 packages = [{ include = "microvault" }]
 
 [tool.poetry.urls]
-documentation = "https://microvault.vercel.app"
+documentation = "https://microvault.readthedocs.io"
 bugs = "https://github.com/microvault/microvault/issues"
 
 [tool.poetry.dependencies]

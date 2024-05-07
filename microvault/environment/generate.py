@@ -1,9 +1,12 @@
+from typing import List, Tuple
+
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 
+from .engine.collision import extract_segment
 from .engine.world_generate import generate_maze
 
 
@@ -16,7 +19,7 @@ class Generator:
         self.grid_lenght = grid_lenght
         self.random = random
 
-    def _map_border(self, m) -> np.ndarray:
+    def _map_border(self, m: np.ndarray) -> np.ndarray:
         rows, columns = m.shape
 
         new = np.zeros((rows + 2, columns + 2))
@@ -25,7 +28,7 @@ class Generator:
 
         return new
 
-    def line_to_np_stack(self, line):
+    def line_to_np_stack(self, line: LineString) -> np.ndarray:
         """
         Convert LineString to a numpy stack of points.
 
@@ -36,25 +39,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def extract_segment(self, stack):
-        total_segments = []
-        for polygon in stack:
-            segments = []
-            num_points = len(polygon)
-            for i in range(num_points):
-                current_point = polygon[i]
-                next_point = polygon[(i + 1) % num_points]
-                segment = (current_point, next_point)
-                segments.append(segment)
-            total_segments.extend(segments)
-
-        all_obs = []
-        for segment in total_segments:
-            all_obs.append((segment[0][0], segment[0][1], segment[1][0], segment[1][1]))
-
-        return all_obs
-
-    def world(self):
+    def world(self) -> Tuple[PathPatch, Polygon, List]:
         m = generate_maze(
             map_size=self.grid_lenght,
             decimation=0.0,
@@ -91,7 +76,7 @@ class Generator:
 
         stacks = [self.line_to_np_stack(line) for line in segments]
 
-        segment = self.extract_segment(stacks)
+        segment = extract_segment(stacks)
 
         poly = Polygon(exterior, holes=interiors)
 

@@ -2,7 +2,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.mplot3d import art3d
-from shapely.geometry import Point
+from shapely.geometry import Point, Polygon
 
 from .engine.collision import filter_segment
 from .generate import Generator
@@ -18,8 +18,8 @@ from .robot import Robot
 class Continuous:
     def __init__(
         self,
-        time=100,
-        size=3,
+        time=100,  # max step
+        size=3,  # size robot
         fps=1,  # 10 frames per second
         random=1300,  # 100 random points
         max_speed=0.6,  # 0.2 m/s
@@ -79,7 +79,7 @@ class Continuous:
 
         self.init_animation(self.ax)
 
-    def init_animation(self, ax):
+    def init_animation(self, ax) -> None:
         ax.set_xlim(0, self.grid_lenght)
         ax.set_ylim(0, self.grid_lenght)
 
@@ -124,21 +124,15 @@ class Continuous:
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
-    def _ray_casting(self, poly, x, y) -> bool:
+    def _ray_casting(self, poly: Polygon, x: float, y: float) -> bool:
         return poly.contains(Point(x, y))
 
-    def change_advance(self):
-        new_vx = -self.vx
-        new_vy = -self.vy
-        return new_vx, new_vy
-
-    def _get_label(self, timestep):
+    def _get_label(self, timestep: int) -> str:
         line1 = "Environment\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
         return line1 + line2
 
-    def reset(self):
-
+    def reset(self) -> None:
         for patch in self.ax.patches:
             patch.remove()
 
@@ -173,17 +167,7 @@ class Continuous:
         self.vx[0] = self.sp[0] * np.cos(self.theta[0])
         self.vy[0] = self.sp[0] * np.sin(self.theta[0])
 
-    def is_segment_inside_region(self, segment, center_x, center_y, region_radius=6):
-        x1, y1 = segment[0]
-        x2, y2 = segment[1]
-
-        segment_endpoints = np.array([[x1, y1], [x2, y2]])
-        region_center = np.array([center_x, center_y])
-        distances = np.linalg.norm(segment_endpoints - region_center, axis=1)
-
-        return np.all(distances <= region_radius)
-
-    def step(self, i):
+    def step(self, i: int) -> None:
         self.robot.x_advance(i, self.x, self.vx)
         self.robot.y_advance(i, self.y, self.vy)
 
@@ -195,7 +179,7 @@ class Continuous:
             del self.laser_scatters
 
         lidar_range = 6
-        num_rays = 20
+        num_rays = 40
         lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
 
         intersections, measurements = self.robot.lidar_intersections(
@@ -224,7 +208,7 @@ class Continuous:
 
         self.label.set_text(self._get_label(i))
 
-    def show(self, plot=False):
+    def show(self, plot: bool = False) -> None:
 
         if plot:
 
