@@ -4,6 +4,7 @@ import numpy as np
 from mpl_toolkits.mplot3d import art3d
 from shapely.geometry import Point
 
+from .engine.collision import filter_segment
 from .generate import Generator
 from .robot import Robot
 
@@ -19,15 +20,15 @@ class Continuous:
         self,
         time=100,
         size=3,
-        frame=1,  # 10 frames per second
-        random=1500,  # 100 random points
+        fps=1,  # 10 frames per second
+        random=1300,  # 100 random points
         max_speed=0.6,  # 0.2 m/s
         min_speed=0.5,  # 0.1 m/s
-        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
+        grid_lenght: int = 30,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.size = size
-        self.frame = frame
+        self.fps = fps
         self.max_speed = max_speed
         self.min_speed = min_speed
 
@@ -176,7 +177,6 @@ class Continuous:
         x1, y1 = segment[0]
         x2, y2 = segment[1]
 
-        # Criar arrays NumPy para os pontos finais do segmento e para o centro da região
         segment_endpoints = np.array([[x1, y1], [x2, y2]])
         region_center = np.array([center_x, center_y])
         distances = np.linalg.norm(segment_endpoints - region_center, axis=1)
@@ -187,37 +187,28 @@ class Continuous:
         self.robot.x_advance(i, self.x, self.vx)
         self.robot.y_advance(i, self.y, self.vy)
 
-        # if hasattr(self, "laser_scatters"):
-        #     for scatter in self.laser_scatters:
-        #         scatter.remove()
-        #     del self.laser_scatters
+        seg = filter_segment(self.segments, self.x[i], self.y[i], 6)
 
-        # segments_trans = [
-        #     [np.array(segment[:2]), np.array(segment[2:])] for segment in self.segments
-        # ]
+        if hasattr(self, "laser_scatters"):
+            for scatter in self.laser_scatters:
+                scatter.remove()
+            del self.laser_scatters
 
-        # segments_inside = []
+        lidar_range = 6
+        num_rays = 20
+        lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
 
-        # for segment in segments_trans:
-        #     if self.is_segment_inside_region(segment, self.x[i], self.y[i], 6):
-        #         segments_inside.append(segment)
+        intersections, measurements = self.robot.lidar_intersections(
+            self.x[i], self.y[i], lidar_range, lidar_angles, seg
+        )
 
-        # lidar_range = 6
-        # num_rays = 10
-        # lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
-
-        # intersections, measurements = self.robot.lidar_intersections(
-        #     self.x[i], self.y[i], lidar_range, lidar_angles, segments_inside
-        # )
-
-        # # Plotar as novas leituras do laser
-        # self.laser_scatters = []
-        # for angle, intersection in zip(lidar_angles, intersections):
-        #     if intersection is not None:
-        #         scatter = plt.scatter(
-        #             intersection[0], intersection[1], color="g", s=0.5
-        #         )  # Usando scatter para os raios do LiDAR
-        #         self.laser_scatters.append(scatter)
+        self.laser_scatters = []
+        for angle, intersection in zip(lidar_angles, intersections):
+            if intersection is not None:
+                scatter = plt.scatter(
+                    intersection[0], intersection[1], color="g", s=0.5
+                )
+                self.laser_scatters.append(scatter)
 
         self.agent.set_data_3d(
             [self.x[i]],
@@ -233,18 +224,14 @@ class Continuous:
 
         self.label.set_text(self._get_label(i))
 
-        # visualize_map()
-
     def show(self, plot=False):
 
         if plot:
 
-            # Criar uma nova figura para o gráfico adicional
+            # TODO
             # fig2 = plt.figure()
-
-            # # Plotar algo na nova figura
-            # ax2 = fig2.add_subplot(111)  # Adicionar um subplot à nova figura
-            # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])  # Plotar na nova figura
+            # ax2 = fig2.add_subplot(111)
+            # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])
 
             ani = animation.FuncAnimation(
                 self.fig,
@@ -252,7 +239,7 @@ class Continuous:
                 init_func=self.reset,
                 blit=False,
                 frames=self.time,
-                interval=self.frame,
+                interval=self.fps,
             )
             plt.show()
 

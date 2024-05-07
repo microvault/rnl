@@ -4,7 +4,7 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 
-from .utils.world_generate import generate_maze
+from .engine.world_generate import generate_maze
 
 
 class Generator:

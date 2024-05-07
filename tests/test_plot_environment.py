@@ -9,7 +9,7 @@ def continuous_instance():
     return Continuous(
         time=10,
         size=2,
-        frame=100,
+        fps=100,
         random=300,
         max_speed=1.8,
         min_speed=0.4,

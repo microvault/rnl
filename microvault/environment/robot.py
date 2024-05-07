@@ -2,7 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
-from .utils.collision import range_seg_poly
+from .engine.collision import range_seg_poly
 
 
 class Robot:

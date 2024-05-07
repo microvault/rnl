@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
+from microvault.environment.engine.world_generate import generate_maze
 from microvault.environment.generate import Generator
-from microvault.environment.utils.world_generate import generate_maze
 
 # from matplotlib.patches import PathPatch
 
