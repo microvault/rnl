@@ -4,31 +4,35 @@ import numpy as np
 from mpl_toolkits.mplot3d import art3d
 from shapely.geometry import Point, Polygon
 
-from .engine.collision import filter_segment
+from .engine.collision import filter_segment, lidar_intersections
 from .generate import Generator
 from .robot import Robot
 
 # car racing
-# 8 m/s
-# 0 m/s
-# radius = 56 cm
-# peso = 2.64 kg
+# - 8 m/s
+# - 0 m/s
+# - radius = 56 cm
+# - peso = 2.64 kg
 
 
 class Continuous:
     def __init__(
         self,
-        time=100,  # max step
-        size=3,  # size robot
-        fps=1,  # 10 frames per second
-        random=1300,  # 100 random points
-        max_speed=0.6,  # 0.2 m/s
-        min_speed=0.5,  # 0.1 m/s
-        grid_lenght: int = 30,  # TODO: error < 5 -> [5 - 15]
+        time: int = 100,  # max step
+        size: float = 3.0,  # size robot
+        fps: int = 10,  # 10 frames per second
+        random: float = 1e20,  # 100 random points
+        max_speed: float = 0.6,  # 0.2 m/s
+        min_speed: float = 0.5,  # 0.1 m/s
+        num_rays: int = 10,  # num range lidar
+        max_range: int = 6,  # max range
+        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.size = size
         self.fps = fps
+        self.num_rays = num_rays
+        self.max_range = max_range
         self.max_speed = max_speed
         self.min_speed = min_speed
 
@@ -178,12 +182,9 @@ class Continuous:
                 scatter.remove()
             del self.laser_scatters
 
-        lidar_range = 6
-        num_rays = 40
-        lidar_angles = np.linspace(0, 2 * np.pi, num_rays)
-
-        intersections, measurements = self.robot.lidar_intersections(
-            self.x[i], self.y[i], lidar_range, lidar_angles, seg
+        lidar_angles = np.linspace(0, 2 * np.pi, self.num_rays)
+        intersections, measurements = lidar_intersections(
+            self.x[i], self.y[i], self.max_range, lidar_angles, seg
         )
 
         self.laser_scatters = []

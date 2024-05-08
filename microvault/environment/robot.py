@@ -1,18 +1,16 @@
-from typing import List, Tuple
+from typing import Tuple
 
 import numpy as np
-
-from .engine.collision import range_seg_poly
 
 
 class Robot:
     def __init__(
         self,
-        time,
-        min_radius=1,
-        max_radius=3,
-        xmax=10,
-        ymax=10,
+        time: int = 10,
+        min_radius: int = 1,
+        max_radius: int = 3,
+        xmax: int = 10,
+        ymax: int = 10,
     ):
         self.time = time
         self.min_radius = min_radius
@@ -74,40 +72,3 @@ class Robot:
             else:
                 y[dt] = y[dt] + vy[dt]
                 vy[dt] = vy[dt]
-
-    def lidar_intersections(
-        self,
-        robot_x: float,
-        robot_y: float,
-        lidar_range: int,
-        lidar_angles: np.ndarray,
-        segments: List,
-    ) -> Tuple[List, List]:
-        intersections = []
-        measurements = []
-        for i, angle in enumerate(lidar_angles):
-            lidar_segment = [
-                (robot_x, robot_y),
-                (
-                    robot_x + lidar_range * np.cos(angle),
-                    robot_y + lidar_range * np.sin(angle),
-                ),
-            ]
-
-            lidar_segment_transformed = [
-                np.array(segmento) for segmento in lidar_segment
-            ]
-
-            intersected, int_point, lrange = range_seg_poly(
-                lidar_segment_transformed, segments
-            )
-
-            if intersected:
-                intersections.append(int_point)
-                measurements.append(lrange)
-
-            else:
-                intersections.append(None)
-                measurements.append(6.0)
-
-        return intersections, measurements

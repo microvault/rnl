@@ -4,7 +4,7 @@ from typing import List, Tuple
 import numpy as np
 from numba import njit
 
-lru_cache(maxsize=None)
+lru_cache(maxsize=5)
 
 
 def range_seg_poly(segment: list, poly: list) -> Tuple[bool, float, float]:
@@ -99,3 +99,42 @@ def cross_product(a, b) -> float:
     :return: Cross product of the two vectors
     """
     return a[0] * b[1] - a[1] * b[0]
+
+
+lru_cache(maxsize=5)
+
+
+def lidar_intersections(
+    robot_x: float,
+    robot_y: float,
+    lidar_range: int,
+    lidar_angles: np.ndarray,
+    segments: List,
+) -> Tuple[List, List]:
+
+    intersections = []
+    measurements = []
+    for i, angle in enumerate(lidar_angles):
+        lidar_segment = [
+            (robot_x, robot_y),
+            (
+                robot_x + lidar_range * np.cos(angle),
+                robot_y + lidar_range * np.sin(angle),
+            ),
+        ]
+
+        lidar_segment_transformed = [np.array(segmento) for segmento in lidar_segment]
+
+        intersected, int_point, lrange = range_seg_poly(
+            lidar_segment_transformed, segments
+        )
+
+        if intersected:
+            intersections.append(int_point)
+            measurements.append(lrange)
+
+        else:
+            intersections.append(None)
+            measurements.append(6.0)
+
+    return intersections, measurements
