@@ -273,7 +273,6 @@ class Continuous:
         # self.robot_body.position += v * dt * pymunk.Vec2d(self.robot_body.rotation_vector)
         # self.robot_body.angle += omega * dt
 
-        # Limita a velocidade máxima ao valor inicial
         self.max_speed = min(self.max_speed, self.initial_max_speed)
 
         vl = np.random.uniform(self.min_speed, self.max_speed)

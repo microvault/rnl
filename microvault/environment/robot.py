@@ -71,12 +71,9 @@ class Robot:
         v, omega = self.calculate_velocities(vl, vr)
         theta_new = theta + omega * dt
 
-        # Limitando a velocidade para evitar saltos muito grandes
         max_distance = v * dt
         dx = max_distance * np.cos(theta_new)
         dy = max_distance * np.sin(theta_new)
-
-        # Calculando a nova posição com base na velocidade limitada
         x_new = min(max(0, x + dx), self.xmax)
         y_new = min(max(0, y + dy), self.ymax)
 
@@ -147,16 +144,12 @@ class Robot:
         Returns:
         None
         """
-        # Calcula as velocidades linear e angular do robô
         v, omega = self.calculate_velocities(vl, vr)
-
-        # Atualiza a posição e a orientação do robô com base nas velocidades calculadas
         x[dt + 1], y[dt + 1], theta[dt + 1] = self.update_position(
             dt, x[dt], y[dt], theta[dt], vl, vr
         )
 
         # print("Pos X: ", x)
 
-        # Calcula as velocidades lineares x e y do robô
         vx[dt + 1] = v * np.cos(theta[dt + 1])
         vy[dt + 1] = v * np.sin(theta[dt + 1])

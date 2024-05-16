@@ -204,7 +204,8 @@ class TD3Agent:
 
             return (loss_critic, loss_actor, average_policy, max_policy)
 
-    def soft_update(self, local_model, target_model, tau) -> None:
+    @staticmethod
+    def soft_update(local_model, target_model, tau) -> None:
         """Soft update model parameters.
         θ_target = τ*θ_local + (1 - τ)*θ_target
         Params
