@@ -1,7 +1,9 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from mpl_toolkits.mplot3d import art3d
+from matplotlib.animation import HTMLWriter
+from mpl_toolkits.mplot3d import Axes3D, art3d
+from pymunk import Body, Circle, Space
 from shapely.geometry import Point, Polygon
 
 from .engine.collision import filter_segment, lidar_intersections
@@ -20,13 +22,13 @@ class Continuous:
         self,
         time: int = 100,  # max step
         size: float = 3.0,  # size robot
-        fps: int = 10,  # 10 frames per second
+        fps: int = 100,  # 10 frames per second
         random: float = 1e20,  # 100 random points
         max_speed: float = 0.6,  # 0.2 m/s
         min_speed: float = 0.5,  # 0.1 m/s
-        num_rays: int = 10,  # num range lidar
+        num_rays: int = 40,  # num range lidar
         max_range: int = 6,  # max range
-        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
+        grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.size = size
@@ -43,9 +45,16 @@ class Continuous:
         self.xmax = grid_lenght
         self.ymax = grid_lenght
 
+        self.initial_min_speed = 0.01
+        self.initial_max_speed = 0.02
+        self.speed_increase_rate = 0.01
+
+        self.min_speed = self.initial_min_speed
+        self.max_speed = self.initial_max_speed
+
         self.segments = None
 
-        self.fov = -90 * np.pi / 180
+        self.fov = 2 * np.pi  # -90 * np.pi / 180
 
         # TODO: remove the team and remove in array format
         self.target_x = 0
@@ -75,15 +84,31 @@ class Continuous:
             0,
             marker="x",
             markersize=self.size,
+            color="red",
         )[0]
 
         self.agent = self.ax.plot3D(
-            self.x, self.y, 0, marker="o", markersize=self.radius
+            self.x,
+            self.y,
+            0,
+            marker="o",
+            markersize=self.radius,
+            color="orange",
         )[0]
 
         self.init_animation(self.ax)
+        self.space = self._setup_space()
 
-    def init_animation(self, ax) -> None:
+    def init_animation(self, ax: Axes3D) -> None:
+        """
+        Initializes the 3D animation by setting up the environment and camera parameters.
+
+        Parameters:
+        ax (Axes3D): The 3D axes to be used for plotting.
+
+        Returns:
+        None
+        """
         ax.set_xlim(0, self.grid_lenght)
         ax.set_ylim(0, self.grid_lenght)
 
@@ -128,15 +153,62 @@ class Continuous:
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
-    def _ray_casting(self, poly: Polygon, x: float, y: float) -> bool:
-        return poly.contains(Point(x, y))
+    @staticmethod
+    def _setup_space() -> Space:
+        """
+        Sets up the pymunk physics space.
 
-    def _get_label(self, timestep: int) -> str:
+        Returns:
+        Space: The pymunk physics space.
+        """
+        space = Space()
+        space.gravity = (0, 0)  # 0.0 m/s^2
+        space.damping = 0.99
+        return space
+
+    @staticmethod
+    def _ray_casting(poly: Polygon, x: float, y: float) -> bool:
+        """
+        Checks if a point (x, y) is inside a polygon using the ray casting algorithm.
+
+        Parameters:
+        poly (Polygon): The polygon to check the point inclusion in.
+        x (float): The x-coordinate of the point to be checked.
+        y (float): The y-coordinate of the point to be checked.
+
+        Returns:
+        bool: True if the point is inside the polygon, False otherwise.
+        """
+        center = Point(x, y)
+        circle = center.buffer(0.5)
+        return circle.within(poly)
+
+    @staticmethod
+    def _get_label(timestep: int) -> str:
+        """
+        Generates a label for the environment.
+
+        Parameters:
+        timestep (int): The current time step.
+
+        Returns:
+        str: The generated label containing information about the environment and the current time step.
+        """
         line1 = "Environment\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
         return line1 + line2
 
     def reset(self) -> None:
+        """
+        Resets the environment.
+
+        Clears existing patches from the plot, generates a new map, places the target and agent randomly within the environment,
+        and initializes their velocities and directions randomly.
+
+        Returns:
+        None
+        """
+
         for patch in self.ax.patches:
             patch.remove()
 
@@ -151,6 +223,13 @@ class Continuous:
 
         self.x[0] = np.random.uniform(0, self.xmax)
         self.y[0] = np.random.uniform(0, self.ymax)
+
+        self.robot_body = Body()
+        self.robot_body.position = (self.x[0], self.y[0])
+        self.robot_shape = Circle(self.robot_body, radius=self.size)
+        self.robot_shape.elasticity = 0.8
+
+        self.space.add(self.robot_body, self.robot_shape)
 
         target_inside = False
 
@@ -172,8 +251,37 @@ class Continuous:
         self.vy[0] = self.sp[0] * np.sin(self.theta[0])
 
     def step(self, i: int) -> None:
-        self.robot.x_advance(i, self.x, self.vx)
-        self.robot.y_advance(i, self.y, self.vy)
+        """
+        Advances the simulation by one step.
+
+        Parameters:
+        i (int): The current time step.
+
+        Returns:
+        None
+        """
+        self.space.step(1 / self.fps)
+
+        # print(self.robot_body.position)
+
+        # self.robot.x_advance(i, self.x, self.vx)
+        # self.robot.y_advance(i, self.y, self.vy)
+        #
+
+        # self.max_speed += self.speed_increase_rate
+
+        # self.robot_body.position += v * dt * pymunk.Vec2d(self.robot_body.rotation_vector)
+        # self.robot_body.angle += omega * dt
+
+        # Limita a velocidade máxima ao valor inicial
+        self.max_speed = min(self.max_speed, self.initial_max_speed)
+
+        vl = np.random.uniform(self.min_speed, self.max_speed)
+        vr = np.random.uniform(self.min_speed, self.max_speed)
+
+        self.robot.move(i, self.x, self.y, self.theta, self.vx, self.vy, vl, vr)
+
+        # print(f'X: {self.x[i]} Y: {self.y[i]}')
 
         seg = filter_segment(self.segments, self.x[i], self.y[i], 6)
 
@@ -182,10 +290,12 @@ class Continuous:
                 scatter.remove()
             del self.laser_scatters
 
-        lidar_angles = np.linspace(0, 2 * np.pi, self.num_rays)
+        lidar_angles = np.linspace(0, self.fov, self.num_rays)
         intersections, measurements = lidar_intersections(
             self.x[i], self.y[i], self.max_range, lidar_angles, seg
         )
+
+        print(measurements)
 
         self.laser_scatters = []
         for angle, intersection in zip(lidar_angles, intersections):
@@ -210,23 +320,34 @@ class Continuous:
         self.label.set_text(self._get_label(i))
 
     def show(self, plot: bool = False) -> None:
+        """
+        Displays the simulation.
+
+        Parameters:
+        plot (bool): Whether to plot the animation (default is False).
+
+        Returns:
+        None
+        """
+        # TODO
+        # fig2 = plt.figure()
+        # ax2 = fig2.add_subplot(111)
+        # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])
+
+        ani = animation.FuncAnimation(
+            self.fig,
+            self.step,
+            init_func=self.reset,
+            blit=False,
+            frames=self.time,
+            interval=self.fps,
+        )
 
         if plot:
-
-            # TODO
-            # fig2 = plt.figure()
-            # ax2 = fig2.add_subplot(111)
-            # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])
-
-            ani = animation.FuncAnimation(
-                self.fig,
-                self.step,
-                init_func=self.reset,
-                blit=False,
-                frames=self.time,
-                interval=self.fps,
-            )
             plt.show()
+        # else:
+        #     ani.save("animacao.html", writer=HTMLWriter(fps=self.time))
+        # ani.save("animacao.mp4", fps=self.time)
 
 
 # env = Continuous()

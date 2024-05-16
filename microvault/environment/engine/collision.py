@@ -8,6 +8,19 @@ lru_cache(maxsize=5)
 
 
 def range_seg_poly(segment: list, poly: list) -> Tuple[bool, float, float]:
+    """
+    Determines if a line segment intersects with a polygon and calculates the intersection point and range.
+
+    Parameters:
+    segment (list): The line segment defined by two points.
+    poly (list): The polygon defined by a list of line segments.
+
+    Returns:
+    Tuple[bool, float, float]: A tuple containing:
+    - bool: True if there is an intersection, False otherwise.
+    - float: The intersection point.
+    - float: The range.
+    """
     inter = []
 
     for segments in poly:
@@ -42,14 +55,28 @@ def range_seg_poly(segment: list, poly: list) -> Tuple[bool, float, float]:
                 inter.append([True, int_point, lrange])
     if inter:
         min_lrange_index = np.argmin([point[2] for point in inter])
-        return inter[min_lrange_index]
+        int_point = inter[min_lrange_index][1]
+        lrange = round(inter[min_lrange_index][2], 3)
+        int_point_rounded = [round(coord, 3) for coord in int_point]
+        return True, tuple(int_point_rounded), lrange
     else:
         return False, 0.0, 0.0
 
 
 @njit
 def filter_segment(segs, x: float, y: float, max_range: int) -> List:
+    """
+    Filters line segments based on proximity to a given point.
 
+    Parameters:
+    segs (list): List of line segments.
+    x (float): X-coordinate of the point.
+    y (float): Y-coordinate of the point.
+    max_range (int): Maximum range for filtering segments.
+
+    Returns:
+    List: List of line segments filtered based on proximity to the given point.
+    """
     segments_trans = [
         [np.array(segments[:2]), np.array(segments[2:])] for segments in segs
     ]
@@ -71,6 +98,15 @@ def filter_segment(segs, x: float, y: float, max_range: int) -> List:
 
 @njit
 def extract_segment(stack: List) -> List:
+    """
+    Extracts line segments from a stack of polygons.
+
+    Parameters:
+    stack (List): List of polygons, each represented by a list of points.
+
+    Returns:
+    List: List of line segments extracted from the polygons.
+    """
     total_segments = []
     for polygon in stack:
         segments = []
@@ -90,13 +126,16 @@ def extract_segment(stack: List) -> List:
 
 
 @njit(fastmath=True)
-def cross_product(a, b) -> float:
+def cross_product(a: np.ndarray, b: np.ndarray) -> float:
     """
-    Calculate the cross product of two 2D vectors.
+    Calculates the cross product of two 2D vectors.
 
-    :param a: First vector [a1, a2]
-    :param b: Second vector [b1, b2]
-    :return: Cross product of the two vectors
+    Parameters:
+    a (np.ndarray): The first 2D vector.
+    b (np.ndarray): The second 2D vector.
+
+    Returns:
+    float: The cross product of the two vectors.
     """
     return a[0] * b[1] - a[1] * b[0]
 
@@ -111,7 +150,21 @@ def lidar_intersections(
     lidar_angles: np.ndarray,
     segments: List,
 ) -> Tuple[List, List]:
+    """
+    Calculates the intersections and measurements of lidar rays with line segments.
 
+    Parameters:
+    robot_x (float): The x-coordinate of the robot's position.
+    robot_y (float): The y-coordinate of the robot's position.
+    lidar_range (int): The maximum range of the lidar sensor.
+    lidar_angles (np.ndarray): Array of lidar angles.
+    segments (List): List of line segments representing obstacles.
+
+    Returns:
+    Tuple[List, List]: A tuple containing two lists:
+    - List: List of intersection points for each lidar ray.
+    - List: List of measurements for each lidar ray.
+    """
     intersections = []
     measurements = []
     for i, angle in enumerate(lidar_angles):

@@ -11,7 +11,16 @@ def generate_maze(
     num_cells_togo: int = 150,
 ) -> np.ndarray:
     """
-    Generates a maze using Kruskal's algorithm
+    Generates a maze using Kruskal's algorithm.
+
+    Parameters:
+    map_size (int): The size of the maze.
+    decimation (float): The probability of removing blocks.
+    min_blocks (int): The minimum number of blocks to keep.
+    num_cells_togo (int): The number of cells to remove.
+
+    Returns:
+    np.ndarray: The generated maze represented as a binary array.
     """
     m = (map_size - 1) // 2
     n = (map_size - 1) // 2
@@ -58,7 +67,7 @@ def generate_maze(
         L[i] = i
         R[i] = i
 
-    # Generate Map
+    # ----- Generate Map -----
     index_ones = np.arange(map_size * map_size)[maze.flatten() == 1]
 
     reserve = min(index_ones.size, min_blocks)
