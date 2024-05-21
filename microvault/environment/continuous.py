@@ -1,7 +1,8 @@
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.animation import HTMLWriter
+
+# from matplotlib.animation import HTMLWriter
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from pymunk import Body, Circle, Space
 from shapely.geometry import Point, Polygon
@@ -31,6 +32,7 @@ class Continuous:
         grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
+        self.reset_time = time
         self.size = size
         self.fps = fps
         self.num_rays = num_rays
@@ -96,10 +98,13 @@ class Continuous:
             color="orange",
         )[0]
 
-        self.init_animation(self.ax)
+        self.ani = None
+        self.reset_flag = False
+
+        self._init_animation(self.ax)
         self.space = self._setup_space()
 
-    def init_animation(self, ax: Axes3D) -> None:
+    def _init_animation(self, ax: Axes3D) -> None:
         """
         Initializes the 3D animation by setting up the environment and camera parameters.
 
@@ -260,6 +265,11 @@ class Continuous:
         Returns:
         None
         """
+        # if self.reset_flag:
+        #     self.reset_flag = False
+        #     self.reset()
+        #     return
+
         self.space.step(1 / self.fps)
 
         # print(self.robot_body.position)
@@ -294,8 +304,6 @@ class Continuous:
             self.x[i], self.y[i], self.max_range, lidar_angles, seg
         )
 
-        print(measurements)
-
         self.laser_scatters = []
         for angle, intersection in zip(lidar_angles, intersections):
             if intersection is not None:
@@ -318,6 +326,13 @@ class Continuous:
 
         self.label.set_text(self._get_label(i))
 
+        if i == 50:  # Replace with your condition
+            self.reset()
+            self.ani.frame_seq = self.ani.new_frame_seq()
+
+        #     self.time = 100
+        #     self.reset_flag = True
+
     def show(self, plot: bool = False) -> None:
         """
         Displays the simulation.
@@ -332,11 +347,13 @@ class Continuous:
         # fig2 = plt.figure()
         # ax2 = fig2.add_subplot(111)
         # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])
+        # if self.ani:
+        #     self.ani.event_source.stop()
 
-        ani = animation.FuncAnimation(
+        self.ani = animation.FuncAnimation(
             self.fig,
             self.step,
-            init_func=self.reset,
+            init_func=self.reset(),
             blit=False,
             frames=self.time,
             interval=self.fps,
