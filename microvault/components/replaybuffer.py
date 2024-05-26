@@ -10,7 +10,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReplayBuffer:
 
-    def __init__(self, buffer_size, batch_size):
+    def __init__(self, buffer_size: int, batch_size: int):
 
         self.memory = deque(maxlen=buffer_size)  # internal memory (deque)
         self.batch_size = batch_size
@@ -19,7 +19,14 @@ class ReplayBuffer:
             field_names=["state", "action", "reward", "next_state", "done"],
         )
 
-    def add(self, state, action, reward, next_state, done) -> None:
+    def add(
+        self,
+        state: np.ndarray,
+        action: np.ndarray,
+        reward: np.float64,
+        next_state: np.float32,
+        done: bool,
+    ) -> None:
         """Add experiences to the buffer
 
         Params
@@ -30,16 +37,6 @@ class ReplayBuffer:
             next_state (np.ndarray): agent next_state
         """
 
-        assert isinstance(
-            state, np.ndarray
-        ), "State is not of data structure (np.ndarray) in REPLAY BUFFER -> state: {}.".format(
-            type(state)
-        )
-        assert isinstance(
-            action, np.ndarray
-        ), "Action is not of data structure (np.ndarray) in REPLAY BUFFER -> action: {}.".format(
-            type(action)
-        )
         assert isinstance(
             next_state, np.ndarray
         ), "Next State is not of data structure (np.ndarray) in REPLAY BUFFER -> next state: {}.".format(
@@ -65,11 +62,6 @@ class ReplayBuffer:
             next_state[0], np.float32
         ), "Next State is not of type (np.float32) in REPLAY BUFFER -> next state type: {}.".format(
             type(next_state)
-        )
-        assert isinstance(
-            done, bool
-        ), "Done is not of type (bool) in REPLAY BUFFER -> done type: {}.".format(
-            type(done)
         )
 
         assert (
@@ -129,33 +121,33 @@ class ReplayBuffer:
         states = (
             torch.from_numpy(np.vstack([e.state for e in experiences if e is not None]))
             .float()
-            .to(DEVICE)
+            .to(device)
         )
         actions = (
             torch.from_numpy(
                 np.vstack([e.action for e in experiences if e is not None])
             )
             .float()
-            .to(DEVICE)
+            .to(device)
         )
         rewards = (
             torch.from_numpy(
                 np.vstack([e.reward for e in experiences if e is not None])
             )
             .float()
-            .to(DEVICE)
+            .to(device)
         )
         next_states = (
             torch.from_numpy(
                 np.vstack([e.next_state for e in experiences if e is not None])
             )
             .float()
-            .to(DEVICE)
+            .to(device)
         )
         dones = (
             torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]))
-            .float()
-            .to(DEVICE)
+            .int()
+            .to(device)
         )
 
         assert isinstance(
@@ -195,7 +187,7 @@ class ReplayBuffer:
             next_states.dtype
         )
         assert (
-            dones.dtype == torch.float32
+            dones.dtype == torch.int
         ), "The (dones) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
             dones.dtype
         )
@@ -205,6 +197,6 @@ class ReplayBuffer:
 
         return (states, actions, rewards, next_states, dones)
 
-    def __len__(self) -> int:
+    def __len__(self) -> None:
         """Return the current size of internal memory."""
         return len(self.memory)
