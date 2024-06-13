@@ -1,28 +1,25 @@
 import numpy as np
 
 
-def is_power_of_2(n):
-    return ((n & (n - 1)) == 0) and n != 0
-
-
-# A binary tree data structure where the parent’s value is the sum of its children
 class SumTree:
-    data_pointer = 0
-    data_length = 0
-
+    # Uma estrutura de dados de árvore binária onde o valor do pai é a soma de seus filhos
     def __init__(self, capacity):
-        # Initialize the tree with all nodes = 0, and initialize the data with all values = 0
+        # Número de folhas (nós finais) que contêm experiências
+        self.data_pointer = 0
+        # Número de experiências
+        self.data_length = 0
 
-        # Number of leaf nodes (final nodes) that contains experiences
-        # Should be power of 2.
+        # Inicialize a árvore com todos os nós = 0 e inicialize os dados com todos os valores = 0
+
+        # Número de nós folha (nós finais) que contém experiências
+        # Deve ser potência de 2.
         self.capacity = int(capacity)
-        assert is_power_of_2(self.capacity), "Capacity must be power of 2."
+        assert self.is_power_of_2(self.capacity), "A capacidade deve ser potência de 2."
 
-        # Generate the tree with all nodes values = 0
-        # To understand this calculation (2 * capacity - 1) look at the schema above
-        # Remember we are in a binary node (each node has max 2 children) so 2x size of leaf (capacity) - 1 (root node)
-        # Parent nodes = capacity - 1
-        # Leaf nodes = capacity
+        # Gere a árvore com todos os valores dos nós = 0
+        # Lembre-se que estamos em um nó binário (cada nó tem no máximo 2 filhos), então 2x o tamanho da folha (capacidade) - 1 (nó raiz)
+        # Nós pais = capacidade - 1
+        # Nós folha = capacidade
         self.tree = np.zeros(2 * capacity - 1)
 
         """ tree:
@@ -30,14 +27,18 @@ class SumTree:
            / \
           0   0
          / \\ / \
-        0  0 0  0  [Size: capacity] it's at this line where the priority scores are stored
+        0  0 0  0  [Tamanho: capacidade] é nesta linha que as pontuações de prioridade são armazenadas
         """
 
-        # Contains the experiences (so the size of data is capacity)
+        # Contém as experiências (portanto, o tamanho dos dados é a capacidade)
         self.data = np.zeros(capacity, dtype=object)
 
     def __len__(self):
         return self.data_length
+
+    @staticmethod
+    def is_power_of_2(n: int) -> bool:
+        return ((n & (n - 1)) == 0) and n != 0
 
     def add(self, data, priority):
         # Look at what index we want to put the experience
