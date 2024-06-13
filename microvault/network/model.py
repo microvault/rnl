@@ -17,12 +17,10 @@ BATCH_SIZE = 128
 
 
 class Actor(nn.Module):
-
     def __init__(
         self, state_size: int, action_size: int, max_action: float, l1=400, l2=300
     ):
         super().__init__()
-
         self.l1 = nn.Linear(state_size, l1)
         self.l2 = nn.Linear(l1, l2)
         self.l3 = nn.Linear(l2, action_size)
@@ -64,7 +62,6 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self, state_dim, action_dim, l1=400, l2=300):
         super().__init__()
-
         self.l1 = nn.Linear(state_dim + action_dim, l1)
         self.l2 = nn.Linear(l1, l2)
         self.l3 = nn.Linear(action_dim, l2)
