@@ -1,3 +1,5 @@
+from collections import deque
+
 import numpy as np
 import torch
 from sumtree import SumTree
@@ -6,10 +8,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class PER:
+    "Buffer de repetição de experiência priorizado."
 
-    def __init__(self, buffer_size: int, batch_size: int):
+    def __init__(self, buffer_size: int, batch_size: int, gamma: float, nstep: float):
         """
-        The tree is composed of a sum tree that contains the priority scores at his leaf and also a data array.
+        A árvore é composta por uma árvore de soma que contém as pontuações de prioridade em sua folha e também uma matriz de dados.
         """
         self.tree = SumTree(buffer_size)
         self.epsilon = 0.01  # small amount to avoid zero priority
@@ -23,20 +26,37 @@ class PER:
         self.absolute_error_upper = 1.0  # clipped abs error
         self.batch_size = batch_size
 
+        self.gamma = gamma
+        self.n_step = nstep
+        self.n_step_buffer = deque(maxlen=nstep)
+
     def __len__(self):
         return len(self.tree)
 
     def is_full(self):
         return len(self.tree) >= self.tree.capacity
 
+    def multistep(self):
+        # Retorno do buffer de n-step
+        ret = 0
+        for idx in range(1):
+            ret += (self.gamma**idx) * self.n_step_buffer[idx][2]
+
+        return (
+            self.n_step_buffer[0][0],
+            self.n_step_buffer[0][1],
+            ret,
+            self.n_step_buffer[-1][3],
+            self.n_step_buffer[-1][4],
+        )
+
     def add(
         self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.float64,
-        next_state: np.float64,
-        done: bool,
-        error: np.float64 = None,
+        state: np.ndarray = None,
+        action: np.ndarray = None,
+        reward: np.float64 = None,
+        next_state: np.float64 = None,
+        done: bool = False,
     ):
         assert isinstance(
             state[0], np.float32
@@ -104,14 +124,18 @@ class PER:
             next_state.ndim
         )
 
+        self.n_step_buffer.append((state, action, reward, next_state, done))
+        if len(self.n_step_buffer) == self.n_step:
+            (state, action, reward, next_state, done) = self.multistep()
+
         sample = (state, action, reward, next_state, done)
-        if error is None:
+        if reward is None:
             priority = np.amax(self.tree.tree[-self.tree.capacity :])
             if priority == 0:
                 priority = self.absolute_error_upper
         else:
             priority = min(
-                (abs(error) + self.epsilon) ** self.alpha, self.absolute_error_upper
+                (abs(reward) + self.epsilon) ** self.alpha, self.absolute_error_upper
             )
         self.tree.add(sample, priority)
 
@@ -239,7 +263,7 @@ class PER:
 
         return idxs, (states, actions, rewards, next_states, dones), is_weights
 
-    def batch_update(self, idxs, errors):
+    def batch_update(self, idxs, errors) -> None:
         """
         Update the priorities on the tree
         """
