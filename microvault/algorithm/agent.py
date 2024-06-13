@@ -1,28 +1,32 @@
-import copy
-import random
+# import copy
+# import random
 from typing import Tuple
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from components.icm import ICM, Forward, Inverse
 from components.replaybuffer import PER
+from engine.sanity import seed_everything
 from network.model import Actor, Critic
 from numpy import inf
 
+# Verificar se o cuda está disponivel
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-BUFFER_SIZE = 2**20  # replay buffer size
-GAMMA = 0.99  # discount factor
-TAU = 1e-3  # for soft update of target parameters
-LR_ACTOR = 1e-3  # learning rate of the actor
-LR_CRITIC = 1e-3  # learning rate of the critic
-UPDATE_EVERY_STEP = 2  # how often to update the target and actor networks
-BATCH_SIZE = 128  # minibatch size
+BUFFER_SIZE = 2**20  # Ramanho do "Replay buffer"
+GAMMA = 0.99  # Fator de desconto
+TAU = 1e-3  # Tamanho para definir a taxa de atualização dos parâmetros
+LR_ACTOR = 1e-3  # Taxa de aprendizado da rede "Actor"
+LR_CRITIC = 1e-3  # Taxa de aprendizado da rede "Critic"
+UPDATE_EVERY_STEP = 2  # Frequência de atualização da rede do segundo "Critic"
+BATCH_SIZE = 128  # Tamanho do lote
 
 
 class Agent:
-    """Interacts with and learns from the environment."""
+    """Treinamento do agente com o Ambiente."""
 
     def __init__(
         self,
@@ -35,18 +39,21 @@ class Agent:
         noise_clip: float = 0.5,
         pretraining: bool = False,
     ):
-        """Initialize an Agent object.
+        """Inicializar o agente.
 
-        Params
+        Parâmetros:
         ======
-            state_size (int): dimension of each state
-            action_size (int): dimension of each action
-            max_action (ndarray): the maximum valid value for each action vector
-            min_action (ndarray): the minimum valid value for each action vector
-            noise (float): the range to generate random noise while learning
-            noise_std (float): the range to generate random noise while performing action
-            noise_clip (float): to clip random noise into this range
+            state_size (int): Tamanho do espaço de estado
+            action_size (int): Tamanho do espaço de ação
+            max_action (ndarray): Valor maximo valido para cada vetor de ação
+            min_action (ndarray): Valor minimo valido para cada vetor de ação
+            noise (float): Valor de ruído gerado na política
+            noise_std (float): Desvio padrão do ruído
+            noise_clip (float): Cortar ruído aleatório neste intervalo
         """
+        # Setar o seed de todo o ambiente (padrão: 42)
+        seed_everything()
+
         self.state_size = state_size
         self.action_size = action_size
         self.max_action = max_action
@@ -55,29 +62,28 @@ class Agent:
         self.noise_std = noise_std
         self.noise_clip = noise_clip
 
-        # parameter noise
+        # Parâmetros do ruído
         self.distances = []
         self.desired_distance = 0.7
         self.scalar = 0.05
         self.scalar_decay = 0.99
 
-        # normal noise
+        # Normalizar o ruído
         self.normal_scalar = 0.25
+        self.nstep = 10
+        self.eta = 0.1
 
-        # step counter
-        self.t = 0
-
+        # Transfência de aprendizado
         if pretraining:
 
-            # Transfer Learning
-
-            # Actor Network (w/ Target Network)
-            self.actor = Actor(state_size, action_size, float(self.max_action[0])).to(
+            # Rede "Actor" (com/ Rede Alvo)
+            self.actor = Actor(state_size, action_size, float(self.max_action)).to(
                 device
             )
             self.actor.load_state_dict(torch.load("/content/checkpoint_actor.pth"))
+            # Definir o modelo alvo, porém, sem a necessidade de calcular gradientes
             self.actor_target = (
-                Actor(state_size, action_size, float(self.max_action[0]))
+                Actor(state_size, action_size, float(self.max_action))
                 .to(device)
                 .eval()
                 .requires_grad_(False)
@@ -87,12 +93,16 @@ class Agent:
                 torch.load("/content/checkpoint_actor_optimizer.pth")
             )
 
+            # Rede "Actor" para ruído
             self.actor_noised = Actor(
-                state_size, action_size, float(self.max_action[0])
+                state_size, action_size, float(self.max_action)
             ).to(device)
 
+            # Rede "Actor" (com/ Rede Alvo)
             self.critic = Critic(state_size, action_size).to(device)
-            self.critic.load_state_dict(torch.load("/content/checkpoint_critic.pth"))
+            self.critic.load_state_dict(
+                torch.load("/content/checkpoint_critic.pth", map_location=device)
+            )
             self.critic_target = (
                 Critic(state_size, action_size).to(device).eval().requires_grad_(False)
             )
@@ -103,45 +113,44 @@ class Agent:
             )
 
         else:
-            # Actor Network (w/ Target Network)
-            self.actor = Actor(state_size, action_size, float(max_action[0])).to(device)
-            self.actor_target = Actor(state_size, action_size, float(max_action[0])).to(
-                device
+            # Rede "Actor" (com/ Rede Alvo)
+            self.actor = Actor(state_size, action_size, float(max_action)).to(device)
+            self.actor_target = (
+                Actor(state_size, action_size, float(max_action))
+                .to(device)
+                .eval()
+                .requires_grad_(False)
             )
             self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
 
-            self.actor_noised = Actor(state_size, action_size, float(max_action[0])).to(
+            self.actor_noised = Actor(state_size, action_size, float(max_action)).to(
                 device
             )
 
-            # Critic Network (w/ Target Network)
+            # Rede "Actor" (com/ Rede Alvo)
             self.critic = Critic(state_size, action_size).to(device)
-            self.critic_target = Critic(state_size, action_size).to(device)
+            self.critic_target = (
+                Critic(state_size, action_size).to(device).eval().requires_grad_(False)
+            )
             self.critic_target.load_state_dict(self.critic.state_dict())
             self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
 
-        # self.scaler = torch.cuda.amp.GradScaler()
-        # self.clip_grad = torch.nn.utils.clip_grad_norm_
+        self.clip_grad = torch.nn.utils.clip_grad_norm_
 
-        # Inicializar schedulers
-        # self.actor_scheduler = optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.9)
-        # self.critic_scheduler = optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.9)
+        # Memória de replay priorizada
+        # Fonte: https://arxiv.org/abs/1511.05952
+        self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep)
 
-        # compile model
-        # self.actor = torch.compile(self.actor)
-        # self.critic = torch.compile(self.critic)
-
-        # Replay memory
-        self.memory = PER(BUFFER_SIZE, BATCH_SIZE)
-
-        self.seed_everything()
-
-        # Statistics
-        # self.q1_record = collections.deque(maxlen=1000)
-        # self.q2_record = collections.deque(maxlen=1000)
-        # self.q_func1_loss_record = collections.deque(maxlen=100)
-        # self.q_func2_loss_record = collections.deque(maxlen=100)
-        # self.policy_loss_record = collections.deque(maxlen=100)
+        # Inicializar o modelo de ICM
+        # Fonte: https://arxiv.org/abs/1705.05363
+        inverse_m = Inverse(self.state_size, self.action_size)
+        forward_m = Forward(
+            self.state_size,
+            self.action_size,
+            inverse_m.calc_input_layer(),
+            device=device,
+        )
+        self.ICM = ICM(inverse_m, forward_m).to(device)
 
     def step(
         self,
@@ -153,154 +162,204 @@ class Agent:
     ) -> None:
         if isinstance(state, tuple):
             state = np.array(state[0])
-        """Save experience in replay memory"""
-        self.memory.add(state, action, reward, next_state, done, reward)
-        # self.memory.add(state, action, reward, next_state, done)
+        """Salvar experiência na memória de replay (estado, ação, recompensa, próximo estado, feito)."""
+        self.memory.add(state, action, reward, next_state, done)
 
     def predict(self, states: np.ndarray) -> np.ndarray:
-        """Returns actions for given state as per current policy."""
+        """Retorna ações para determinado estado de acordo com a política atual."""
 
         assert isinstance(
             states, np.ndarray
-        ), "States is not of data structure (np.ndarray) in PREDICT -> states: {}.".format(
+        ), "Os estados não são de estrutura de dados (np.ndarray) em PREDICT -> estados: {}.".format(
             type(states)
         )
         assert isinstance(
             states[0], np.float32
-        ), "States is not of type (np.float32) in PREDICT -> states type: {}.".format(
+        ), "Estado não é do tipo (np.float32) em PREDICT -> states type: {}.".format(
             type(states)
         )
         assert (
             states.shape[0] == 24
-        ), "The size of the states is not (24) in PREDICT -> states size: {}.".format(
+        ), "O Tamanho dos estados não é (24) em PREDICT -> states size: {}.".format(
             states.shape[0]
         )
         assert (
             states.ndim == 1
-        ), "The ndim of the states is not (1) in PREDICT -> states ndim: {}.".format(
+        ), "O ndim dos estados não é (1) em PREDICT -> estados ndim: {}.".format(
             states.ndim
         )
 
+        # Verificar se o estado não é uma tupla, se for converter para (np.array)
         if isinstance(states, tuple):
             states = np.array(states[0])
 
+        # Converter estados para tensor
         state = torch.from_numpy(states).float().to(device)
 
+        # Desativar o cálculo de gradientes
         self.actor.eval()
         self.actor_noised.eval()
 
+        # Desativar o cálculo de gradientes
         with torch.no_grad():
-            action = self.actor(state).cpu().data.numpy()  # EXP: use detach ?
+            # Passar o estado para o modelo e retorna a ação em np.ndarray
+            action = self.actor(state).cpu().data.numpy()
 
-            # ---------------------------- adaptative noise weight ---------------------------- #
+            # ---------------------------- Adicionar Ruído as Camadas do Modelo ---------------------------- #
+            # Fonte: https://arxiv.org/abs/1706.01905
+
+            # Carregar os pesos do modelo para o modelo com ruído
             self.actor_noised.load_state_dict(self.actor.state_dict().copy())
-            # add noise to the copy
+            # Adicionar ruído ao modelo
             self.actor_noised.add_parameter_noise(self.scalar)
-            # get the next action values from the noised actor
+            # Obtenha os próximos valores de ação do ator barulhento
             action_noised = self.actor_noised(state).cpu().data.numpy()
-            # measure the distance between the action values from the regular and
-            # the noised actor to adjust the amount of noise that will be added next round
+            # Mede a distância entre os valores de ação dos ator regulares e ator ruidoso
             distance = np.sqrt(np.mean(np.square(action - action_noised)))
-            # for stats and print only
+            # Adicionar a distância ao histórico de distâncias
             self.distances.append(distance)
-            # adjust the amount of noise given to the actor_noised
+            # Ajuste a quantidade de ruído dada ao "actor_noised"
             if distance > self.desired_distance:
                 self.scalar *= self.scalar_decay
             if distance < self.desired_distance:
                 self.scalar /= self.scalar_decay
-            # set the noised action as action
+            # Definir a ação barulhenta como ação
             action = action_noised
 
+        # Ativar o cálculo de gradientes
         self.actor.train()
 
-        action = action.clip(self.min_action[0], self.max_action[0])
+        # Deixar a ação dentro dos limites
+        action = action.clip(self.min_action, self.max_action)
 
         assert (
             action.shape[0] == self.action_size
-        ), "The action size is different from the defined size in PREDICT."
-        # assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(type(action))
+        ), "O tamanho da ação é diferente do tamanho definido em PREDICT."
+
+        ## assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(type(action))
 
         return action
 
     def learn(
-        self, n_iteraion: int, gamma=GAMMA
+        self, n_iteraion: int, gamma: float = GAMMA
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Update policy and value parameters using given batch of experience tuples.
+        """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
-        Params
+        Parâmetros
         ======
-            n_iteraion (int): the number of iterations to train network
-            gamma (float): discount factor
+            n_iteraion (int): O número de iterações para treinar a rede
+            gamma (float): Factor de desconto
         """
+
+        self.actor.train()
+        self.critic.train()
+
+        # Se o tamanho da memória for maior que o tamanho do lote
         if len(self.memory) > BATCH_SIZE:
             average_Q = 0
             max_Q = -inf
             average_critic_loss = 0
             average_actor_loss = 0
 
+            # Percorrer o número de iterações
             for i in range(n_iteraion):
+                # ---------------------------- Amostragem de Experiência ---------------------------- #
+                # Obtero o índice da amostra, a amostra (s, a, r, s', d) e os pesos de importância
                 idxs, (state, action, reward, next_state, done), is_weights = (
                     self.memory.sample()
                 )
+
+                # Converter os pesos de importância para tensor
                 is_weights = torch.from_numpy(is_weights).float().to(device)
 
+                # Converter a ação para tensor
                 action_ = action.cpu().numpy()
 
-                # ---------------------------- update critic ---------------------------- #
-                # Get predicted next-state actions and Q values from target models
+                # Calcula o erro de predição do modelo de inversão e avanço
+                forward_pred_err, inverse_pred_err = self.ICM.calc_errors(
+                    state1=state, state2=next_state, action=action
+                )
+                # Calcula a recompensa intrínseca
+                reward_intrinsic = self.eta * forward_pred_err
+                assert (
+                    reward_intrinsic.shape == reward.shape
+                ), "recompensa e recompensa intrínseca não têm a mesma forma"
+                # Adiciona a recompensa intrínseca à recompensa
+                reward += reward_intrinsic.detach()
 
+                # ---------------------------- Atualizar crítico ---------------------------- #
+                # Obtenha ações de próximo estado previstas e valores Q de modelos de destino
+
+                # Desativar o cálculo de gradientes
                 with torch.no_grad():
 
-                    # Generate a random noise
+                    # Gerar um ruído aleatório para a ação
                     noise = (
                         torch.FloatTensor(action_)
                         .data.normal_(0, self.noise)
                         .to(device)
                     )
+                    # Deixar a ação dentro dos limites
                     noise = noise.clamp(-self.noise_clip, self.noise_clip)
+                    # Obter a próxima ação do ator de destino com ruído
                     actions_next = (self.actor_target(next_state) + noise).clamp(
-                        self.min_action[0].astype(float),
-                        self.max_action[0].astype(float),
+                        float(self.min_action),
+                        float(self.max_action),
                     )
 
+                    # Obter 2 Q-valor de destino para o próximo estado
                     Q1_targets_next, Q2_targets_next = self.critic_target(
                         next_state, actions_next
                     )
 
+                    # Obter o menor Q-valor de destino entre os 2 Q-valores
                     Q_targets_next = torch.min(Q1_targets_next, Q2_targets_next)
 
+                    # Média dos valores Q
                     average_Q += torch.mean(Q_targets_next)
+                    # Máximo dos valores Q
                     max_Q = max(max_Q, torch.max(Q_targets_next))
 
-                    # Compute Q targets for current states (y_i)
+                    # Calcular metas Q para estados atuais (y_i)
+                    # recompensa + (gamma * Q-valor de destino * (1 - feito))
                     Q_targets = reward + (gamma * Q_targets_next * (1 - done)).detach()
 
-                # Compute critic loss
+                # Passar o estado atual e ação para o modelo crítico
                 Q1_expected, Q2_expected = self.critic(state, action)
+                # Valor Q esperado minimo
                 Q_expected = torch.min(Q1_expected, Q2_expected)
+                # Erro absoluto entre os valores Q esperados e os valores Q alvos em np.adarray
                 errors = np.abs((Q_expected - Q_targets).detach().cpu().numpy())
+                # Erro do modelo de inversão e avanço
+                icm_loss = self.ICM.update_ICM(forward_pred_err, inverse_pred_err)
+                print(icm_loss)
+                # Calcular a perda do crítico
                 critic_loss = F.mse_loss(Q1_expected, Q_targets) + F.mse_loss(
                     Q2_expected, Q_targets
                 )
 
+                # Atualizar os pesos de importância na memória priorizada
                 self.memory.batch_update(idxs, errors)
 
-                # Minimize the loss
+                # Minimize a perda
                 self.critic_optimizer.zero_grad()
                 critic_loss.backward()
                 self.critic_optimizer.step()
 
+                actor_loss = 0
+
                 if i % UPDATE_EVERY_STEP == 0:
-                    # ---------------------------- update actor ---------------------------- #
-                    # Compute actor loss
+                    # ---------------------------- atualizar Ator ---------------------------- #
+                    # Calcular perda de ator
                     actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
 
-                    # Minimize the loss
+                    # Minimize a perda
                     self.actor_optimizer.zero_grad()
                     actor_loss.backward()
                     self.actor_optimizer.step()
 
-                    # ----------------------- update target networks ----------------------- #
+                    # ----------------------- Atualizar redes de destino ----------------------- #
+                    # Passar todos os pesos da rede de destino para a rede local usando a atualização suave
                     self.soft_update(self.critic, self.critic_target, TAU)
                     self.soft_update(self.actor, self.actor_target, TAU)
 
@@ -318,14 +377,16 @@ class Agent:
             return (0, 0, 0, 0)
 
     @staticmethod
-    def soft_update(local_model, target_model, tau) -> None:
-        """Soft update model parameters.
-        θ_target = τ*θ_local + (1 - τ)*θ_target
-        Params
+    def soft_update(
+        local_model: nn.Module, target_model: nn.Module, tau: float = 1e-3
+    ) -> None:
+        """Parâmetros do modelo de atualização suave.
+        θ_alvo = τ * θ_local + (1 - τ) * θ_alvo
+        Parâmetros
         ======
-            local_model: PyTorch model (weights will be copied from)
-            target_model: PyTorch model (weights will be copied to)
-            tau (float): interpolation parameter
+            local_model: modelo PyTorch (os pesos serão copiados)
+            target_model: modelo PyTorch (os pesos serão copiados)
+            tau (float): parâmetro de interpolação
         """
         for target_param, local_param in zip(
             target_model.parameters(), local_model.parameters()
@@ -334,32 +395,14 @@ class Agent:
                 tau * local_param.data + (1.0 - tau) * target_param.data
             )
 
-    def save(self, filename, version) -> None:
-        """Save the model"""
-        torch.save(self.critic.state_dict(), filename + "_critic_" + version + ".pth")
-        torch.save(
-            self.critic_optimizer.state_dict(),
-            filename + "_critic_optimizer_" + version + ".pth",
-        )
+    @staticmethod
+    def save(model: nn.Module, path: str, filename: str, version: str) -> None:
+        """Salvar o modelo"""
+        torch.save(model.state_dict(), path + "_" + filename + "_" + version + ".pth")
 
-        torch.save(self.actor.state_dict(), filename + "_actor_" + version + ".pth")
-        torch.save(
-            self.actor_optimizer.state_dict(),
-            filename + "_actor_optimizer_" + version + ".pth",
-        )
-
-    def load(self, filename) -> None:
-        """Load the model"""
-        self.critic.load_state_dict(
-            torch.load(filename + "_critic.pth")
+    @staticmethod
+    def load(model: nn.Module, filename: str, device: str) -> None:
+        """Carregar o modelo"""
+        model.load_state_dict(
+            torch.load(filename + "_critic.pth", map_location=device)
         )  # del torch.load
-        self.critic_optimizer.load_state_dict(
-            torch.load(filename + "_critic_optimizer.pth")
-        )
-        self.critic_target = copy.deepcopy(self.critic)
-
-        self.actor.load_state_dict(torch.load(filename + "_actor.pth"))
-        self.actor_optimizer.load_state_dict(
-            torch.load(filename + "_actor_optimizer.pth")
-        )
-        self.actor_target = copy.deepcopy(self.actor)
