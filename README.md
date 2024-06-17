@@ -18,6 +18,6 @@
 
 <div align="center">
 
-**This is a Deep Reinforcement Learning library focused on mobile service robots navigation.**
+**End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
 
 </div>
