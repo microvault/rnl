@@ -12,17 +12,10 @@ from components.replaybuffer import PER
 from engine.sanity import seed_everything
 from network.model import Actor, Critic
 from numpy import inf
+from omegaconf import OmegaConf
 
 # Verificar se o cuda está disponivel
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-BUFFER_SIZE = 2**20  # Ramanho do "Replay buffer"
-GAMMA = 0.99  # Fator de desconto
-TAU = 1e-3  # Tamanho para definir a taxa de atualização dos parâmetros
-LR_ACTOR = 1e-3  # Taxa de aprendizado da rede "Actor"
-LR_CRITIC = 1e-3  # Taxa de aprendizado da rede "Critic"
-UPDATE_EVERY_STEP = 2  # Frequência de atualização da rede do segundo "Critic"
-BATCH_SIZE = 128  # Tamanho do lote
 
 
 class Agent:
@@ -51,6 +44,7 @@ class Agent:
             noise_std (float): Desvio padrão do ruído
             noise_clip (float): Cortar ruído aleatório neste intervalo
         """
+        self.agent_config = OmegaConf.load("config/agent.yaml")
         # Setar o seed de todo o ambiente (padrão: 42)
         seed_everything()
 
@@ -88,7 +82,9 @@ class Agent:
                 .eval()
                 .requires_grad_(False)
             )
-            self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
+            self.actor_optimizer = optim.Adam(
+                self.actor.parameters(), lr=self.agent_config.MODEL.LR_ACTOR
+            )
             self.actor_optimizer.load_state_dict(
                 torch.load("/content/checkpoint_actor_optimizer.pth")
             )
@@ -107,7 +103,9 @@ class Agent:
                 Critic(state_size, action_size).to(device).eval().requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
-            self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
+            self.critic_optimizer = optim.Adam(
+                self.critic.parameters(), lr=self.agent_config.MODEL.LR_CRITIC
+            )
             self.critic_optimizer.load_state_dict(
                 torch.load("/content/checkpoint_critic_optimizer.pth")
             )
@@ -121,7 +119,9 @@ class Agent:
                 .eval()
                 .requires_grad_(False)
             )
-            self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
+            self.actor_optimizer = optim.Adam(
+                self.actor.parameters(), lr=self.agent_config.MODEL.LR_ACTOR
+            )
 
             self.actor_noised = Actor(state_size, action_size, float(max_action)).to(
                 device
@@ -133,15 +133,22 @@ class Agent:
                 Critic(state_size, action_size).to(device).eval().requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
-            self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
+            self.critic_optimizer = optim.Adam(
+                self.critic.parameters(), lr=self.agent_config.MODEL.LR_CRITIC
+            )
 
         self.clip_grad = torch.nn.utils.clip_grad_norm_
 
         # Memória de replay priorizada
         # Fonte: https://arxiv.org/abs/1511.05952
-        self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep)
+        self.memory = PER(
+            self.agent_config.RL.BUFFER_SIZE,
+            self.agent_config.MODEL.BATCH_SIZE,
+            self.agent_config.RL.GAMMA,
+            self.nstep,
+        )
 
-        # Inicializar o modelo de ICM
+        # Inicializar o modelo de Inverso e Direto
         # Fonte: https://arxiv.org/abs/1705.05363
         inverse_m = Inverse(self.state_size, self.action_size)
         forward_m = Forward(
@@ -150,6 +157,7 @@ class Agent:
             inverse_m.calc_input_layer(),
             device=device,
         )
+        # Inicializar o modelo de ICM
         self.ICM = ICM(inverse_m, forward_m).to(device)
 
     def step(
@@ -241,7 +249,7 @@ class Agent:
         return action
 
     def learn(
-        self, n_iteraion: int, gamma: float = GAMMA
+        self, n_iteraion: int, episode: int, gamma: float = GAMMA
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
@@ -251,11 +259,15 @@ class Agent:
             gamma (float): Factor de desconto
         """
 
+        if episode % 200 == 0:
+            self.save(self.actor, "/content/", "actor", str(episode))
+            self.save(self.critic, "/content/", "critic", str(episode))
+
         self.actor.train()
         self.critic.train()
 
         # Se o tamanho da memória for maior que o tamanho do lote
-        if len(self.memory) > BATCH_SIZE:
+        if len(self.memory) > self.agent_config.MODEL.BATCH_SIZE:
             average_Q = 0
             max_Q = -inf
             average_critic_loss = 0
@@ -348,7 +360,7 @@ class Agent:
 
                 actor_loss = 0
 
-                if i % UPDATE_EVERY_STEP == 0:
+                if i % self.agent_config.RL.UPDATE_EVERY_STEP == 0:
                     # ---------------------------- atualizar Ator ---------------------------- #
                     # Calcular perda de ator
                     actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
@@ -360,8 +372,12 @@ class Agent:
 
                     # ----------------------- Atualizar redes de destino ----------------------- #
                     # Passar todos os pesos da rede de destino para a rede local usando a atualização suave
-                    self.soft_update(self.critic, self.critic_target, TAU)
-                    self.soft_update(self.actor, self.actor_target, TAU)
+                    self.soft_update(
+                        self.critic, self.critic_target, self.agent_config.RL.TAU
+                    )
+                    self.soft_update(
+                        self.actor, self.actor_target, self.agent_config.RL.TAU
+                    )
 
                 average_critic_loss += critic_loss
                 average_actor_loss += actor_loss

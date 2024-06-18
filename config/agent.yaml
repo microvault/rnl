@@ -1,0 +1,15 @@
+RL:
+  BUFFER_SIZE: 2000000 # Tamanho do buffer de repetição
+  GAMMA: 0.99 # Factor de desconto
+  TAU: 1e-3 # Atualização suave de parâmetros de destino
+  UPDATE_EVERY_STEP: 2 # Taxa de atualização da rede ator
+
+MODEL:
+  LR_ACTOR: 1e-3 # Taxa de aprendizado do ator
+  LR_CRITIC: 1e-3 # Taxa de aprendizado do crítico
+  BATCH_SIZE: 128 # Tamanho do lote
+  NUM_EPISODES: 2000
+  PRETRAINED: True
+
+VISUALIZATION:
+  WANDB: True # Utilizar o wandb para visualizar os resultados
