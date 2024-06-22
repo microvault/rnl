@@ -1,5 +1,5 @@
-import numpy as np
 
+import numpy as np
 
 class SumTree:
     # Uma estrutura de dados de árvore binária onde o valor do pai é a soma de seus filhos
@@ -71,7 +71,7 @@ class SumTree:
                 0
                / \
               1   2
-             / \\ / \
+             / \ / \
             3  4 5  [6]
 
             If we are in leaf at index 6, we updated the priority score
@@ -88,7 +88,7 @@ class SumTree:
              0         -> storing priority sum
             / \
           1     2
-         / \\   / \
+         / \   / \
         3   4 5   6    -> storing priority for experiences
         Array type for storing:
         [0,1,2,3,4,5,6]
@@ -116,4 +116,4 @@ class SumTree:
 
     @property
     def total_priority(self):
-        return self.tree[0]  # the root
+        return self.tree[0]  # arroz
