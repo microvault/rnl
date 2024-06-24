@@ -1,5 +1,5 @@
 # === Start Traininig === #
-.PHONY: train
-train:
+.PHONY: sim
+sim:
 	@echo "Starting Training ..."
 	@python microvault/environment/continuous.py
