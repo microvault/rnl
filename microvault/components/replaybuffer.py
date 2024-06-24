@@ -1,8 +1,9 @@
+
 from collections import deque
 
 import numpy as np
 import torch
-from sumtree import SumTree
+from microvault.components.sumtree import SumTree
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -191,77 +192,55 @@ class PER:
             idxs[i] = index
             minibatch.append(data)
 
-        states = (
-            torch.from_numpy(np.vstack([e.state for e in minibatch if e is not None]))
-            .float()
-            .to(device)
-        )
-        actions = (
-            torch.from_numpy(np.vstack([e.action for e in minibatch if e is not None]))
-            .float()
-            .to(device)
-        )
-        rewards = (
-            torch.from_numpy(np.vstack([e.reward for e in minibatch if e is not None]))
-            .float()
-            .to(device)
-        )
-        next_states = (
-            torch.from_numpy(
-                np.vstack([e.next_state for e in minibatch if e is not None])
-            )
-            .float()
-            .to(device)
-        )
-        dones = (
-            torch.from_numpy(np.vstack([e.done for e in minibatch if e is not None]))
-            .int()
-            .to(device)
-        )
+        states = torch.from_numpy(np.vstack([e[0] for e in minibatch if e is not None])).float().to(device)
+        actions = torch.from_numpy(np.vstack([e[1] for e in minibatch if e is not None])).float().to(device)
+        rewards = torch.from_numpy(np.vstack([e[2] for e in minibatch if e is not None])).float().to(device)
+        next_states = torch.from_numpy(np.vstack([e[3] for e in minibatch if e is not None])).float().to(device)
+        dones = torch.from_numpy(np.vstack([e[4] for e in minibatch if e is not None]).astype(np.uint8)).float().to(device)
 
-        assert isinstance(
-            states, torch.Tensor
-        ), "State is not of type torch.Tensor in REPLAY BUFFER."
-        assert isinstance(
-            actions, torch.Tensor
-        ), "Actions is not of type torch.Tensor in REPLAY BUFFER."
-        assert isinstance(
-            rewards, torch.Tensor
-        ), "Rewards is not of type torch.Tensor in REPLAY BUFFER."
-        assert isinstance(
-            next_states, torch.Tensor
-        ), "Next states is not of type torch.Tensor in REPLAY BUFFER."
-        assert isinstance(
-            dones, torch.Tensor
-        ), "Dones is not of type torch.Tensor in REPLAY BUFFER."
+        # assert isinstance(
+        #     states, torch.Tensor
+        # ), "State is not of type torch.Tensor in REPLAY BUFFER."
+        # assert isinstance(
+        #     actions, torch.Tensor
+        # ), "Actions is not of type torch.Tensor in REPLAY BUFFER."
+        # assert isinstance(
+        #     rewards, torch.Tensor
+        # ), "Rewards is not of type torch.Tensor in REPLAY BUFFER."
+        # assert isinstance(
+        #     next_states, torch.Tensor
+        # ), "Next states is not of type torch.Tensor in REPLAY BUFFER."
+        # assert isinstance(
+        #     dones, torch.Tensor
+        # ), "Dones is not of type torch.Tensor in REPLAY BUFFER."
 
-        assert (
-            states.dtype == torch.float32
-        ), "The (state) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
-            states.dtype
-        )
-        assert (
-            actions.dtype == torch.float32
-        ), "The (actions) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
-            actions.dtype
-        )
-        assert (
-            rewards.dtype == torch.float32
-        ), "The (rewards) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
-            rewards.dtype
-        )
-        assert (
-            next_states.dtype == torch.float32
-        ), "The (next_states) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
-            next_states.dtype
-        )
-        assert (
-            dones.dtype == torch.int
-        ), "The (dones) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
-            dones.dtype
-        )
+        # assert (
+        #     states.dtype == torch.float32
+        # ), "The (state) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
+        #     states.dtype
+        # )
+        # assert (
+        #     actions.dtype == torch.float32
+        # ), "The (actions) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
+        #     actions.dtype
+        # )
+        # assert (
+        #     rewards.dtype == torch.float32
+        # ), "The (rewards) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
+        #     rewards.dtype
+        # )
+        # assert (
+        #     next_states.dtype == torch.float32
+        # ), "The (next_states) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
+        #     next_states.dtype
+        # )
+        # assert (
+        #     dones.dtype == torch.int
+        # ), "The (dones) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
+        #     dones.dtype
+        # )
 
-        return idxs, (states, actions, rewards, next_states, dones), is_weights
+        return idxs, states, actions, rewards, next_states, dones, is_weights
 
     def batch_update(self, idxs, errors) -> None:
         """

@@ -1,12 +1,8 @@
+
+import gymnasium as gym
+import wandb
 from typing import Union
-
-import gym
 import numpy as np
-import torch
-from algorithms.td3 import TD3Agent
-from gym import spaces
-from gym.spaces import Box
-
 
 class CustomWrapper(gym.Wrapper):
 
@@ -23,7 +19,7 @@ class CustomWrapper(gym.Wrapper):
             max_action (float, int or np.ndarray): The max values for each action. This may be a numpy array or a scalar.
         """
         assert isinstance(
-            env.action_space, spaces.Box
+            env.action_space, gym.spaces.Box
         ), f"expected Box action space, got {type(env.action_space)}"
         assert np.less_equal(min_action, max_action).all(), (min_action, max_action)
 
@@ -34,7 +30,7 @@ class CustomWrapper(gym.Wrapper):
         self.max_action = (
             np.zeros(env.action_space.shape, dtype=env.action_space.dtype) + max_action
         )
-        self.action_space = spaces.Box(
+        self.action_space = gym.spaces.Box(
             low=min_action,
             high=max_action,
             shape=env.action_space.shape,
@@ -42,12 +38,12 @@ class CustomWrapper(gym.Wrapper):
         )
         low = self.observation_space.low[:24]
         high = self.observation_space.high[:24]
-        self.observation_space = Box(low, high, dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low, high, dtype=np.float32)
 
     def step(self, action):
-        obs, reward, terminated, info = self.env.step(action)
+        obs, reward, terminated, info, _ = self.env.step(action)
         obs = obs[:24]
-        return obs, reward, terminated, info
+        return obs, reward, terminated
 
     def reset(self):
         obs = self.env.reset()
@@ -73,19 +69,3 @@ class CustomWrapper(gym.Wrapper):
         )
         action = np.clip(action, low, high)
         return action
-
-    def seed(self, seed):
-        torch.manual_seed(seed)
-        np.random.seed(seed)
-
-
-gym.logger.set_level(40)
-env = CustomWrapper(gym.make("BipedalWalker-v3"), min_action=-1.0, max_action=1.0)
-env.seed(0)
-
-agent = TD3Agent(
-    state_size=env.observation_space.shape[0],
-    action_size=env.action_space.shape[0],
-    max_action=env.action_space.high,
-    min_action=env.action_space.low,
-)
