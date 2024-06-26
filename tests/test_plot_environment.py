@@ -18,5 +18,5 @@ def continuous_instance():
 
 
 def test_environment(continuous_instance):
-    continuous_instance.show(plot=False)
+    continuous_instance.render(plot="")
     assert plt.gcf()

@@ -1,4 +1,4 @@
-import matplotlib.animation as animation
+import matplotlib.animation as animation  # HTMLWriter
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -24,12 +24,12 @@ class Continuous:
         time: int = 100,  # max step
         size: float = 3.0,  # size robot
         fps: int = 100,  # 10 frames per second
-        random: float = 1e20,  # 100 random points
+        random: int = 1300,  # 100 random points
         max_speed: float = 0.6,  # 0.2 m/s
         min_speed: float = 0.5,  # 0.1 m/s
         num_rays: int = 40,  # num range lidar
         max_range: int = 6,  # max range
-        grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
+        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
     ):
         self.time = time
         self.reset_time = time
@@ -39,6 +39,9 @@ class Continuous:
         self.max_range = max_range
         self.max_speed = max_speed
         self.min_speed = min_speed
+
+        self.vr = 0
+        self.vl = 0
 
         self.random = random
 
@@ -55,6 +58,7 @@ class Continuous:
         self.max_speed = self.initial_max_speed
 
         self.segments = None
+        self.poly = None
 
         self.fov = 2 * np.pi  # -90 * np.pi / 180
 
@@ -189,6 +193,19 @@ class Continuous:
         return circle.within(poly)
 
     @staticmethod
+    def _setup_space() -> Space:
+        """
+        Sets up the pymunk physics space.
+
+        Returns:
+        Space: The pymunk physics space.
+        """
+        space = Space()
+        space.gravity = (0, 0)  # 0.0 m/s^2
+        space.damping = 0.99
+        return space
+
+    @staticmethod
     def _get_label(timestep: int) -> str:
         """
         Generates a label for the environment.
@@ -203,7 +220,7 @@ class Continuous:
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
         return line1 + line2
 
-    def reset(self) -> None:
+    def reset_world(self) -> None:
         """
         Resets the environment.
 
@@ -219,15 +236,13 @@ class Continuous:
 
         new_map_path, poly, seg = self.generator.world()
         self.segments = seg
+        self.poly = poly
 
         self.ax.add_patch(new_map_path)
         art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
         self.target_x = np.random.uniform(0, self.xmax)
         self.target_y = np.random.uniform(0, self.ymax)
-
-        self.x[0] = np.random.uniform(0, self.xmax)
-        self.y[0] = np.random.uniform(0, self.ymax)
 
         self.robot_body = Body()
         self.robot_body.position = (self.x[0], self.y[0])
@@ -242,18 +257,22 @@ class Continuous:
             self.target_x = np.random.uniform(0, self.xmax)
             self.target_y = np.random.uniform(0, self.ymax)
 
+            if self._ray_casting(poly, self.target_x, self.target_y):
+                target_inside = True
+
+    def reset_agent(self, poly) -> None:
+        self.theta[0] = np.random.uniform(0, 2 * np.pi)
+        self.x[0] = np.random.uniform(0, self.xmax)
+        self.y[0] = np.random.uniform(0, self.ymax)
+
+        agent_inside = False
+
+        while not agent_inside:
             self.x[0] = np.random.uniform(0, self.xmax)
             self.y[0] = np.random.uniform(0, self.ymax)
 
-            if self._ray_casting(
-                poly, self.target_x, self.target_y
-            ) and self._ray_casting(poly, self.x[0], self.y[0]):
-                target_inside = True
-
-        self.sp[0] = np.random.uniform(self.min_speed, self.max_speed)
-        self.theta[:] = np.random.uniform(0, 2 * np.pi)
-        self.vx[0] = self.sp[0] * np.cos(self.theta[0])
-        self.vy[0] = self.sp[0] * np.sin(self.theta[0])
+            if self._ray_casting(poly, self.x[0], self.y[0]):
+                agent_inside = True
 
     def step(self, i: int) -> None:
         """
@@ -265,32 +284,21 @@ class Continuous:
         Returns:
         None
         """
+
         # if self.reset_flag:
         #     self.reset_flag = False
         #     self.reset()
         #     return
 
-        self.space.step(1 / self.fps)
+        # self.space.step(1 / self.fps)
 
-        # print(self.robot_body.position)
+        self.vr = np.random.uniform(0.1, 0.9)
+        self.vl = np.random.uniform(0.1, 0.9)
 
-        # self.robot.x_advance(i, self.x, self.vx)
-        # self.robot.y_advance(i, self.y, self.vy)
-        #
-
-        # self.max_speed += self.speed_increase_rate
-
-        # self.robot_body.position += v * dt * pymunk.Vec2d(self.robot_body.rotation_vector)
-        # self.robot_body.angle += omega * dt
-
-        self.max_speed = min(self.max_speed, self.initial_max_speed)
-
-        vl = np.random.uniform(self.min_speed, self.max_speed)
-        vr = np.random.uniform(self.min_speed, self.max_speed)
-
-        self.robot.move(i, self.x, self.y, self.theta, self.vx, self.vy, vl, vr)
-
-        # print(f'X: {self.x[i]} Y: {self.y[i]}')
+        if i == 0:
+            self.reset_agent(self.poly)
+        else:
+            self.robot.move(i, self.x, self.y, self.theta, self.vl, self.vr)
 
         seg = filter_segment(self.segments, self.x[i], self.y[i], 6)
 
@@ -326,14 +334,14 @@ class Continuous:
 
         self.label.set_text(self._get_label(i))
 
-        if i == 50:  # Replace with your condition
-            self.reset()
-            self.ani.frame_seq = self.ani.new_frame_seq()
+        # if i == 50:  # Replace with your condition
+        #     self.reset()
+        #     self.ani.frame_seq = self.ani.new_frame_seq()
 
         #     self.time = 100
         #     self.reset_flag = True
 
-    def show(self, plot: bool = False) -> None:
+    def render(self, plot: str = "local") -> None:
         """
         Displays the simulation.
 
@@ -343,28 +351,28 @@ class Continuous:
         Returns:
         None
         """
-        # TODO
-        # fig2 = plt.figure()
-        # ax2 = fig2.add_subplot(111)
-        # ax2.plot([1, 2, 3, 4], [1, 4, 9, 16])
-        # if self.ani:
-        #     self.ani.event_source.stop()
 
         self.ani = animation.FuncAnimation(
             self.fig,
             self.step,
-            init_func=self.reset(),
+            init_func=self.reset_world,
             blit=False,
             frames=self.time,
             interval=self.fps,
         )
 
-        if plot:
+        if plot == "local":
             plt.show()
-        # else:
-        #     ani.save("animacao.html", writer=HTMLWriter(fps=self.time))
-        # ani.save("animacao.mp4", fps=self.time)
+        # elif plot == "html":
+        # self.ani.save("animacao.html", writer=HTMLWriter(fps=self.time))
+        elif plot == "video":
+            self.ani.save("animacao.mp4", fps=self.time)
+        else:
+            pass
+
+    def trainer(self, visualize: str = "local"):
+        self.render(visualize)
 
 
-# env = Continuous()
-# env.show(plot=True)
+# agent = Continuous()
+# agent.trainer()

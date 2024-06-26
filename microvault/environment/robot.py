@@ -25,6 +25,7 @@ class Robot:
 
         self.wheel_radius = wheel_radius
         self.wheel_base = wheel_base
+        self.body = None
 
     def init_agent(self, ax: Axes3D) -> Tuple[
         np.ndarray,
@@ -62,94 +63,29 @@ class Robot:
 
         return (x, y, sp, theta, vx, vy, radius)
 
-    def calculate_velocities(self, vl, vr):
-        v = (self.wheel_radius / 2) * (vl + vr)
-        omega = (self.wheel_radius / self.wheel_base) * (vr - vl)
-        return v, omega
+    def move(self, dt, x, y, theta, vl, vr) -> None:
+        delta_t = 1  # Assuming time step of 1 unit
 
-    def update_position(self, dt, x, y, theta, vl, vr):
-        v, omega = self.calculate_velocities(vl, vr)
-        theta_new = theta + omega * dt
+        v_right = vr * self.wheel_radius
+        v_left = vl * self.wheel_radius
 
-        max_distance = v * dt
-        dx = max_distance * np.cos(theta_new)
-        dy = max_distance * np.sin(theta_new)
-        x_new = min(max(0, x + dx), self.xmax)
-        y_new = min(max(0, y + dy), self.ymax)
+        v = (v_right + v_left) / 2
+        omega = (v_right - v_left) / self.wheel_base
 
-        return x_new, y_new, theta_new
+        theta_prev = theta[dt - 1]
+        theta_new = theta_prev + omega * delta_t
 
-    def x_advance(self, dt: int, x: np.ndarray, vx: np.ndarray) -> None:
-        """
-        Advances the agent's x position based on its current velocity.
+        # Ensure theta stays within -2π to 2π
+        if theta_new > 2 * np.pi or theta_new < -2 * np.pi:
+            theta_new = 0
 
-        Parameters:
-        dt (int): The current time step.
-        x (np.ndarray): Array of agent's x positions over time.
-        vx (np.ndarray): Array of agent's x velocities over time.
+        theta[dt] = theta_new
 
-        Returns:
-        None
-        """
-        if (self.time - 1) != dt:
-            if x[dt] + vx[dt] >= self.xmax or x[dt] + vx[dt] <= 0:
-                x[dt + 1] = x[dt] - vx[dt]
-                vx[dt + 1] = -vx[dt]
-            else:
-                x[dt + 1] = x[dt] + vx[dt]
-                vx[dt + 1] = vx[dt]
-        else:
-            if x[dt] + vx[dt] >= self.xmax or x[dt] + vx[dt] <= 0:
-                x[dt] = x[dt] - vx[dt]
-                vx[dt] = -vx[dt]
-            else:
-                x[dt] = x[dt] + vx[dt]
-                vx[dt] = vx[dt]
+        x_temp = x[dt - 1] + v * np.cos(theta_new) * delta_t
+        y_temp = y[dt - 1] + v * np.sin(theta_new) * delta_t
 
-    def y_advance(self, dt: int, y: np.ndarray, vy: np.ndarray) -> None:
-        """
-        Advances the agent's y position based on its current velocity.
+        x_new = max(0.0, float(min(x_temp, self.xmax)))
+        y_new = max(0.0, float(min(y_temp, self.ymax)))
 
-        Parameters:
-        dt (int): The current time step.
-        y (np.ndarray): Array of agent's y positions over time.
-        vy (np.ndarray): Array of agent's y velocities over time.
-
-        Returns:
-        None
-        """
-        if (self.time - 1) != dt:
-            if y[dt] + vy[dt] >= self.ymax or y[dt] + vy[dt] <= 0:
-                y[dt + 1] = y[dt] - vy[dt]
-                vy[dt + 1] = -vy[dt]
-            else:
-                y[dt + 1] = y[dt] + vy[dt]
-                vy[dt + 1] = vy[dt]
-        else:
-            if y[dt] + vy[dt] >= self.ymax or y[dt] + vy[dt] <= 0:
-                y[dt] = y[dt] - vy[dt]
-                vy[dt] = -vy[dt]
-            else:
-                y[dt] = y[dt] + vy[dt]
-                vy[dt] = vy[dt]
-
-    def move(self, dt, x, y, theta, vx, vy, vl, vr):
-        """
-        Move o robô com base nas velocidades das rodas esquerda e direita.
-
-        Parameters:
-        vl (float): Velocidade linear da roda esquerda.
-        vr (float): Velocidade linear da roda direita.
-
-        Returns:
-        None
-        """
-        v, omega = self.calculate_velocities(vl, vr)
-        x[dt + 1], y[dt + 1], theta[dt + 1] = self.update_position(
-            dt, x[dt], y[dt], theta[dt], vl, vr
-        )
-
-        # print("Pos X: ", x)
-
-        vx[dt + 1] = v * np.cos(theta[dt + 1])
-        vy[dt + 1] = v * np.sin(theta[dt + 1])
+        x[dt] = x_new
+        y[dt] = y_new

@@ -96,19 +96,6 @@ class Generator:
         border = self._map_border(m)
         map_grid = 1 - border
 
-        # print(map_grid)
-
-        # new_resolution = 0.1
-        # new_map = self.upscale_map(map_grid, new_resolution)
-
-        # print(new_map)
-
-        # map_grid = new_map
-
-        # plt.imshow(new_map, cmap='binary', origin='lower')
-        # plt.colorbar()
-        # plt.show()
-
         contours = measure.find_contours(map_grid, 0.5)
 
         exterior = [
@@ -137,29 +124,6 @@ class Generator:
 
         segment = extract_segment(stacks)
 
-        # x, y = segment.xy  # Extrai coordenadas x e y do segmento
-
-        # for seg in segment:
-        #     x_values = [seg[0], seg[2]]
-        #     y_values = [seg[1], seg[3]]
-        #     plt.plot(x_values, y_values, color='blue')
-        # plt.xlabel('X')
-        # plt.ylabel('Y')
-        # plt.title('Line Segments')
-        # plt.grid(True)
-        # plt.show()
-
-        # for i in range(len(stacks)):
-        #     x, y = stacks[i].T
-        #     plt.plot(x, y, color='black')
-
-        # plt.plot(x, y)  # Plota o segmento
-        # plt.xlabel('X')
-        # plt.ylabel('Y')
-        # plt.title('Segmento')
-        # plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
         poly = Polygon(exterior, holes=interiors)
 
         if not poly.is_valid:
@@ -176,7 +140,3 @@ class Generator:
         )
 
         return path_patch, poly, segment
-
-
-# env = Generator()
-# path_patch, poly, segment = env.world()
