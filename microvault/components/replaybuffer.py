@@ -1,9 +1,8 @@
-
 from collections import deque
 
 import numpy as np
 import torch
-from microvault.components.sumtree import SumTree
+from components.sumtree import SumTree
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -82,13 +81,13 @@ class PER:
         )
 
         assert (
-            state.shape[0] == 24
-        ), "The size of the state is not (24) in REPLAY BUFFER -> state size: {}.".format(
+            state.shape[0] == 23
+        ), "The size of the state is not (23) in REPLAY BUFFER -> state size: {}.".format(
             state.shape[0]
         )
         assert (
-            action.shape[0] == 4
-        ), "The size of the action is not (4) in REPLAY BUFFER -> action size: {}.".format(
+            action.shape[0] == 2
+        ), "The size of the action is not (2) in REPLAY BUFFER -> action size: {}.".format(
             state.shape[0]
         )
         if isinstance(reward, np.float64):
@@ -98,8 +97,8 @@ class PER:
                 reward.size
             )
         assert (
-            next_state.shape[0] == 24
-        ), "The size of the next_state is not (24) in REPLAY BUFFER -> next_state size: {}.".format(
+            next_state.shape[0] == 23
+        ), "The size of the next_state is not (23) in REPLAY BUFFER -> next_state size: {}.".format(
             next_state.shape[0]
         )
 
@@ -192,11 +191,33 @@ class PER:
             idxs[i] = index
             minibatch.append(data)
 
-        states = torch.from_numpy(np.vstack([e[0] for e in minibatch if e is not None])).float().to(device)
-        actions = torch.from_numpy(np.vstack([e[1] for e in minibatch if e is not None])).float().to(device)
-        rewards = torch.from_numpy(np.vstack([e[2] for e in minibatch if e is not None])).float().to(device)
-        next_states = torch.from_numpy(np.vstack([e[3] for e in minibatch if e is not None])).float().to(device)
-        dones = torch.from_numpy(np.vstack([e[4] for e in minibatch if e is not None]).astype(np.uint8)).float().to(device)
+        states = (
+            torch.from_numpy(np.vstack([e[0] for e in minibatch if e is not None]))
+            .float()
+            .to(device)
+        )
+        actions = (
+            torch.from_numpy(np.vstack([e[1] for e in minibatch if e is not None]))
+            .float()
+            .to(device)
+        )
+        rewards = (
+            torch.from_numpy(np.vstack([e[2] for e in minibatch if e is not None]))
+            .float()
+            .to(device)
+        )
+        next_states = (
+            torch.from_numpy(np.vstack([e[3] for e in minibatch if e is not None]))
+            .float()
+            .to(device)
+        )
+        dones = (
+            torch.from_numpy(
+                np.vstack([e[4] for e in minibatch if e is not None]).astype(np.uint8)
+            )
+            .float()
+            .to(device)
+        )
 
         # assert isinstance(
         #     states, torch.Tensor

@@ -1,4 +1,5 @@
-
+import os
+import sys
 from typing import Tuple
 
 import numpy as np
@@ -8,8 +9,10 @@ import torch.nn.functional as F
 import torch.optim as optim
 from numpy import inf
 
-from microvault.network.model import ModelActor, ModelCritic
-from microvault.components.replaybuffer import PER
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from components.replaybuffer import PER
+from network.model import ModelActor, ModelCritic
 
 # Verificar se o cuda está disponivel
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,8 +26,9 @@ UPDATE_EVERY_STEP = 2  # Frequência de atualização da rede do segundo "Critic
 BATCH_SIZE = 128  # Tamanho do lote
 
 
-class TD3Agent:
+class Agent:
     """Treinamento do agente com o Ambiente."""
+
     def __init__(
         self,
         state_size: int = 24,
@@ -97,14 +101,19 @@ class TD3Agent:
                 torch.load("/content/checkpoint_critic.pth", map_location=device)
             )
             self.critic_target = (
-                ModelCritic(state_size, action_size).to(device).eval().requires_grad_(False)
+                ModelCritic(state_size, action_size)
+                .to(device)
+                .eval()
+                .requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
             self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
 
         else:
             # Rede "Actor" (com/ Rede Alvo)
-            self.actor = ModelActor(state_size, action_size, float(max_action)).to(device)
+            self.actor = ModelActor(state_size, action_size, float(max_action)).to(
+                device
+            )
             self.actor_target = (
                 ModelActor(state_size, action_size, float(max_action))
                 .to(device)
@@ -113,14 +122,17 @@ class TD3Agent:
             )
             self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
 
-            self.actor_noised = ModelActor(state_size, action_size, float(max_action)).to(
-                device
-            )
+            self.actor_noised = ModelActor(
+                state_size, action_size, float(max_action)
+            ).to(device)
 
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = ModelCritic(state_size, action_size).to(device)
             self.critic_target = (
-                ModelCritic(state_size, action_size).to(device).eval().requires_grad_(False)
+                ModelCritic(state_size, action_size)
+                .to(device)
+                .eval()
+                .requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
             self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
@@ -131,7 +143,7 @@ class TD3Agent:
         # Fonte: https://arxiv.org/abs/1511.05952
         self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep)
 
-        # Inicializar o modelo RND
+        # TODO: Inicializar o modelo RND
 
     def step(
         self,
@@ -141,17 +153,12 @@ class TD3Agent:
         next_state: np.ndarray,
         done: bool,
     ) -> None:
-        if isinstance(state, tuple):
-            state = np.array(state[0])
         """Salvar experiência na memória de replay (estado, ação, recompensa, próximo estado, feito)."""
 
         self.memory.add(state, action, reward, next_state, done)
 
     def predict(self, states: np.ndarray) -> np.ndarray:
         """Retorna ações para determinado estado de acordo com a política atual."""
-
-        if isinstance(states, tuple):
-            states = np.array(states[0])
 
         assert isinstance(
             states, np.ndarray
@@ -164,8 +171,8 @@ class TD3Agent:
             type(states)
         )
         assert (
-            states.shape[0] == 24
-        ), "O Tamanho dos estados não é (24) em PREDICT -> states size: {}.".format(
+            states.shape[0] == self.state_size
+        ), f"O Tamanho dos estados não é {self.state_size} em PREDICT -> states size: {states.shape[0]}.".format(
             states.shape[0]
         )
         assert (
@@ -173,10 +180,6 @@ class TD3Agent:
         ), "O ndim dos estados não é (1) em PREDICT -> estados ndim: {}.".format(
             states.ndim
         )
-
-        # Verificar se o estado não é uma tupla, se for converter para (np.array)
-        if isinstance(states, tuple):
-            states = np.array(states[0])
 
         # Converter estados para tensor
         state = torch.from_numpy(states).float().to(device)
@@ -235,10 +238,11 @@ class TD3Agent:
             n_iteraion (int): O número de iterações para treinar a rede
             gamma (float): Factor de desconto
         """
+        print("Learning...")
 
         if episode % 200 == 0:
-          self.save(self.actor, "/content/", "actor", str(episode))
-          self.save(self.critic, "/content/", "critic", str(episode))
+            self.save(self.actor, "/content/", "actor", str(episode))
+            self.save(self.critic, "/content/", "critic", str(episode))
 
         self.actor.train()
         self.critic.train()
@@ -374,11 +378,11 @@ class TD3Agent:
     @staticmethod
     def save(model: nn.Module, path: str, filename: str, version: str) -> None:
         """Salvar o modelo"""
-        torch.save(model.state_dict(), path + "checkpoint_" + filename + "_" + version + ".pth")
+        torch.save(
+            model.state_dict(), path + "checkpoint_" + filename + "_" + version + ".pth"
+        )
 
     @staticmethod
     def load(model: nn.Module, path: str, device: str) -> None:
         """Carregar o modelo"""
-        model.load_state_dict(
-            torch.load(path, map_location=device)
-        )  # del torch.load
+        model.load_state_dict(torch.load(path, map_location=device))  # del torch.load

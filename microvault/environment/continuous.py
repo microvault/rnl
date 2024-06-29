@@ -1,15 +1,17 @@
-import matplotlib.animation as animation  # HTMLWriter
+import os
+import sys
+
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-
-# from matplotlib.animation import HTMLWriter
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from pymunk import Body, Circle, Space
 from shapely.geometry import Point, Polygon
 
-from .engine.collision import filter_segment, lidar_intersections
 from .generate import Generator
 from .robot import Robot
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from algorithm.td3agent import Agent
 
 # car racing
 # - 8 m/s
@@ -21,55 +23,70 @@ from .robot import Robot
 class Continuous:
     def __init__(
         self,
-        time: int = 100,  # max step
+        timestep: int = 100,  # max step
         size: float = 3.0,  # size robot
         fps: int = 100,  # 10 frames per second
-        random: int = 1300,  # 100 random points
-        max_speed: float = 0.6,  # 0.2 m/s
-        min_speed: float = 0.5,  # 0.1 m/s
-        num_rays: int = 40,  # num range lidar
+        random: int = 1000,  # 100 random points
+        max_linear: float = 1.0,  # 0.2 m/s
+        min_linear: float = 0.0,  # 0.1 m/s
+        max_angular: float = 1.0,  # 0.2 rad/s
+        min_angular: float = -1.0,  # 0.1 rad/s
+        num_rays: int = 20,  # num range lidar
+        fov: int = 2 * np.pi,  # 360 degrees
         max_range: int = 6,  # max range
-        grid_lenght: int = 20,  # TODO: error < 5 -> [5 - 15]
+        epochs: int = 1000,  # 1000 epochs
+        threshold: float = 0.1,  # 0.1 threshold
+        grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
     ):
-        self.time = time
-        self.reset_time = time
+        self.timestep = timestep
+        self.max_timestep = timestep
         self.size = size
         self.fps = fps
-        self.num_rays = num_rays
-        self.max_range = max_range
-        self.max_speed = max_speed
-        self.min_speed = min_speed
-
-        self.vr = 0
-        self.vl = 0
-
-        self.random = random
+        self.max_linear = max_linear
+        self.min_linear = min_linear
+        self.max_angular = max_angular
+        self.min_angular = min_angular
+        self.threshold = threshold
 
         self.grid_lenght = grid_lenght
 
-        self.xmax = grid_lenght
-        self.ymax = grid_lenght
-
-        self.initial_min_speed = 0.01
-        self.initial_max_speed = 0.02
-        self.speed_increase_rate = 0.01
-
-        self.min_speed = self.initial_min_speed
-        self.max_speed = self.initial_max_speed
+        self.xmax = grid_lenght - 0.25
+        self.ymax = grid_lenght - 0.25
 
         self.segments = None
         self.poly = None
-
-        self.fov = 2 * np.pi  # -90 * np.pi / 180
+        self.epoch = 0
+        self.max_epoch = epochs
 
         # TODO: remove the team and remove in array format
         self.target_x = 0
         self.target_y = 0
 
+        self.laser_scatters = []
+
         self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
 
-        self.generator = Generator(grid_lenght=grid_lenght, random=self.random)
-        self.robot = Robot(self.time, 1, 3, self.grid_lenght, self.grid_lenght)
+        self.generator = Generator(grid_lenght=grid_lenght, random=random)
+        self.robot = Robot(
+            self.timestep,
+            1,
+            3,
+            max_grid=grid_lenght,
+            max_range=max_range,
+            num_rays=num_rays,
+            fov=fov,
+        )
+        # state_dim = 20 (lidar) + 2 (velocity) + 1 (dist target)
+        self.agent = Agent(
+            state_size=23,
+            action_size=2,
+            max_action=1,
+            min_action=0.1,
+            noise=0.2,
+            noise_std=0.1,
+            noise_clip=0.5,
+            pretraining=False,
+        )
 
         self.ax.remove()
         self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
@@ -77,10 +94,8 @@ class Continuous:
         (
             self.x,
             self.y,
-            self.sp,
             self.theta,
-            self.vx,
-            self.vy,
+            self.lidar_angle,
             self.radius,
         ) = self.robot.init_agent(self.ax)
 
@@ -93,7 +108,7 @@ class Continuous:
             color="red",
         )[0]
 
-        self.agent = self.ax.plot3D(
+        self.agents = self.ax.plot3D(
             self.x,
             self.y,
             0,
@@ -106,7 +121,6 @@ class Continuous:
         self.reset_flag = False
 
         self._init_animation(self.ax)
-        self.space = self._setup_space()
 
     def _init_animation(self, ax: Axes3D) -> None:
         """
@@ -153,7 +167,7 @@ class Continuous:
             0,
             0,
             0.05,
-            self._get_label(0),
+            self._get_label(0, 0),
         )
 
         self.label.set_fontsize(14)
@@ -161,19 +175,6 @@ class Continuous:
         self.label.set_color("#666666")
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
-
-    @staticmethod
-    def _setup_space() -> Space:
-        """
-        Sets up the pymunk physics space.
-
-        Returns:
-        Space: The pymunk physics space.
-        """
-        space = Space()
-        space.gravity = (0, 0)  # 0.0 m/s^2
-        space.damping = 0.99
-        return space
 
     @staticmethod
     def _ray_casting(poly: Polygon, x: float, y: float) -> bool:
@@ -193,20 +194,7 @@ class Continuous:
         return circle.within(poly)
 
     @staticmethod
-    def _setup_space() -> Space:
-        """
-        Sets up the pymunk physics space.
-
-        Returns:
-        Space: The pymunk physics space.
-        """
-        space = Space()
-        space.gravity = (0, 0)  # 0.0 m/s^2
-        space.damping = 0.99
-        return space
-
-    @staticmethod
-    def _get_label(timestep: int) -> str:
+    def _get_label(timestep: int, epoch: int) -> str:
         """
         Generates a label for the environment.
 
@@ -218,7 +206,12 @@ class Continuous:
         """
         line1 = "Environment\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
-        return line1 + line2
+        line3 = "Epochs:".ljust(14) + f"{epoch:4.0f}\n"
+        return line1 + line2 + line3
+
+    @staticmethod
+    def distance(x: float, y: float, target_x: float, target_y: float) -> float:
+        return np.sqrt((x - target_x) ** 2 + (y - target_y) ** 2)
 
     def reset_world(self) -> None:
         """
@@ -230,6 +223,7 @@ class Continuous:
         Returns:
         None
         """
+        self.epoch += 1
 
         for patch in self.ax.patches:
             patch.remove()
@@ -244,13 +238,6 @@ class Continuous:
         self.target_x = np.random.uniform(0, self.xmax)
         self.target_y = np.random.uniform(0, self.ymax)
 
-        self.robot_body = Body()
-        self.robot_body.position = (self.x[0], self.y[0])
-        self.robot_shape = Circle(self.robot_body, radius=self.size)
-        self.robot_shape.elasticity = 0.8
-
-        self.space.add(self.robot_body, self.robot_shape)
-
         target_inside = False
 
         while not target_inside:
@@ -259,6 +246,43 @@ class Continuous:
 
             if self._ray_casting(poly, self.target_x, self.target_y):
                 target_inside = True
+
+    def plot_anim(
+        self,
+        i: int,
+        intersections: np.ndarray,
+        x: np.ndarray,
+        y: np.ndarray,
+        target_x: np.ndarray,
+        target_y: np.ndarray,
+        epoch: int,
+    ) -> None:
+        if hasattr(self, "laser_scatters"):
+            for scatter in self.laser_scatters:
+                scatter.remove()
+            del self.laser_scatters
+
+        self.laser_scatters = []
+        for angle, intersection in zip(self.lidar_angle, intersections):
+            if intersection is not None:
+                scatter = plt.scatter(
+                    intersection[0], intersection[1], color="g", s=0.5
+                )
+                self.laser_scatters.append(scatter)
+
+        self.agents.set_data_3d(
+            [x[i]],
+            [y[i]],
+            [0],
+        )
+
+        self.target.set_data_3d(
+            [target_x],
+            [target_y],
+            [0],
+        )
+
+        self.label.set_text(self._get_label(i, epoch))
 
     def reset_agent(self, poly) -> None:
         self.theta[0] = np.random.uniform(0, 2 * np.pi)
@@ -285,61 +309,50 @@ class Continuous:
         None
         """
 
-        # if self.reset_flag:
-        #     self.reset_flag = False
-        #     self.reset()
-        #     return
-
-        # self.space.step(1 / self.fps)
-
-        self.vr = np.random.uniform(0.1, 0.9)
-        self.vl = np.random.uniform(0.1, 0.9)
+        vr = np.random.uniform(self.min_angular, self.max_angular)
+        vl = np.random.uniform(self.min_linear, self.max_linear)
+        reward = 0
+        done = False
 
         if i == 0:
             self.reset_agent(self.poly)
+
         else:
-            self.robot.move(i, self.x, self.y, self.theta, self.vl, self.vr)
+            self.robot.move(i, self.x, self.y, self.theta, vl, vr)
 
-        seg = filter_segment(self.segments, self.x[i], self.y[i], 6)
-
-        if hasattr(self, "laser_scatters"):
-            for scatter in self.laser_scatters:
-                scatter.remove()
-            del self.laser_scatters
-
-        lidar_angles = np.linspace(0, self.fov, self.num_rays)
-        intersections, measurements = lidar_intersections(
-            self.x[i], self.y[i], self.max_range, lidar_angles, seg
-        )
-
-        self.laser_scatters = []
-        for angle, intersection in zip(lidar_angles, intersections):
-            if intersection is not None:
-                scatter = plt.scatter(
-                    intersection[0], intersection[1], color="g", s=0.5
+            intersections, measurements = self.robot.sensor(
+                i, self.x, self.y, self.segments
+            )
+            dist = self.distance(self.x[i], self.y[i], self.target_x, self.target_y)
+            state = np.concatenate(
+                (
+                    np.array(measurements, dtype=np.float32),
+                    np.array([vr], dtype=np.float32),
+                    np.array([vl], dtype=np.float32),
+                    np.array([dist], dtype=np.float32),
                 )
-                self.laser_scatters.append(scatter)
+            )
+            action = self.agent.predict(state)
 
-        self.agent.set_data_3d(
-            [self.x[i]],
-            [self.y[i]],
-            [0],
-        )
+            self.agent.step(state, action, reward, state, done)
 
-        self.target.set_data_3d(
-            [self.target_x],
-            [self.target_y],
-            [0],
-        )
+            self.plot_anim(
+                i,
+                intersections,
+                self.x,
+                self.y,
+                self.target_x,
+                self.target_y,
+                self.epoch,
+            )
 
-        self.label.set_text(self._get_label(i))
-
-        # if i == 50:  # Replace with your condition
-        #     self.reset()
-        #     self.ani.frame_seq = self.ani.new_frame_seq()
-
-        #     self.time = 100
-        #     self.reset_flag = True
+            for m in measurements:
+                if m <= self.threshold:
+                    self.agent.learn(self.max_timestep, self.epoch)
+                    self.reset_world()
+                    self.reset_agent(self.poly)
+                    self.ani.frame_seq = self.ani.new_frame_seq()
+                    self.timestep = self.max_timestep
 
     def render(self, plot: str = "local") -> None:
         """
@@ -357,22 +370,20 @@ class Continuous:
             self.step,
             init_func=self.reset_world,
             blit=False,
-            frames=self.time,
+            frames=self.timestep,
             interval=self.fps,
         )
 
         if plot == "local":
             plt.show()
-        # elif plot == "html":
-        # self.ani.save("animacao.html", writer=HTMLWriter(fps=self.time))
         elif plot == "video":
-            self.ani.save("animacao.mp4", fps=self.time)
+            self.ani.save("anim.mp4", fps=self.time)
         else:
             pass
 
-    def trainer(self, visualize: str = "local"):
+    def trainer(self, visualize: str = ""):
         self.render(visualize)
 
 
 # agent = Continuous()
-# agent.trainer()
+# agent.trainer(visualize="local")

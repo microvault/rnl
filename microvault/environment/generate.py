@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
-# import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
@@ -57,21 +56,17 @@ class Generator:
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
     def upscale_map(self, original_map, resolution):
-        # Calcula as dimensões do novo mapa
+        # TODO
         new_shape = (
             original_map.shape[0] * int(1 / resolution),
             original_map.shape[1] * int(1 / resolution),
         )
 
-        # Cria um novo mapa com a resolução desejada
         new_map = np.zeros(new_shape)
 
-        # Itera sobre cada célula do novo mapa
         for i in range(new_shape[0]):
             for j in range(new_shape[1]):
-                # Verifica o valor correspondente no mapa original
                 original_value = original_map[int(i * resolution), int(j * resolution)]
-                # Define o valor no novo mapa
                 new_map[i, j] = original_value
 
         return new_map
@@ -98,12 +93,35 @@ class Generator:
 
         contours = measure.find_contours(map_grid, 0.5)
 
-        exterior = [
-            (border.shape[1] - 1, border.shape[0] - 1),
-            (0, border.shape[0] - 1),
-            (0, 0),
-            (border.shape[1] - 1, 0),
-        ]
+        height, width = map_grid.shape
+        exterior = []
+
+        """
+        #---------1---------#
+        |                   |
+        |                   |
+        4                   2
+        |                   |
+        |                   |
+        #---------3---------#
+        """
+
+        # 1
+        for x in range(width):
+            exterior.append((x, height - 1))
+
+        # 2
+        for y in range(height - 2, -1, -1):
+            exterior.append((width - 1, y))
+
+        # 3
+        for x in range(width - 2, -1, -1):
+            exterior.append((x, 0))
+
+        # 4
+        for y in range(1, height - 1):
+            exterior.append((0, y))
+
         interiors = []
         segments = []
 
@@ -124,11 +142,7 @@ class Generator:
 
         segment = extract_segment(stacks)
 
-        poly = Polygon(exterior, holes=interiors)
-
-        if not poly.is_valid:
-            poly = poly.buffer(0)
-            print("invalid")
+        poly = Polygon(exterior, holes=interiors).buffer(0)
 
         path = Path.make_compound_path(
             Path(np.asarray(poly.exterior.coords)[:, :2]),
