@@ -1,3 +1,4 @@
+
 from collections import deque
 
 import numpy as np
@@ -10,7 +11,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class PER:
     "Buffer de repetição de experiência priorizado."
 
-    def __init__(self, buffer_size: int, batch_size: int, gamma: float, nstep: float):
+    def __init__(self, buffer_size: int, batch_size: int, gamma: float, nstep: float, state_dim: int, action_dim: int):
         """
         A árvore é composta por uma árvore de soma que contém as pontuações de prioridade em sua folha e também uma matriz de dados.
         """
@@ -29,6 +30,8 @@ class PER:
         self.gamma = gamma
         self.n_step = nstep
         self.n_step_buffer = deque(maxlen=nstep)
+        self.state_dim = state_dim
+        self.action_dim = action_dim
 
     def __len__(self):
         return len(self.tree)
@@ -60,69 +63,55 @@ class PER:
     ):
         assert isinstance(
             state[0], np.float32
-        ), "State is not of type (np.float32) in REPLAY BUFFER -> state type: {}.".format(
-            type(state)
-        )
+        ), f"State is not of type (np.float32) in REPLAY BUFFER -> state type: {type(state)}."
+            
         # assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in REPLAY BUFFER -> action type: {}.".format(type(action))
         assert isinstance(
             reward, (int, np.float64)
-        ), "Reward is not of type (np.float64 / int) in REPLAY BUFFER -> reward: {}.".format(
-            type(reward)
-        )
+        ), f"Reward is not of type (np.float64 / int) in REPLAY BUFFER -> reward: {type(reward)}."
+            
         assert isinstance(
             next_state[0], np.float32
-        ), "Next State is not of type (np.float32) in REPLAY BUFFER -> next state type: {}.".format(
-            type(next_state)
-        )
+        ), f"Next State is not of type (np.float32) in REPLAY BUFFER -> next state type: {type(next_state)}."
+            
         assert isinstance(
             done, bool
-        ), "Done is not of type (bool) in REPLAY BUFFER -> done type: {}.".format(
-            type(done)
-        )
+        ), f"Done is not of type (bool) in REPLAY BUFFER -> done type: {type(done)}."
 
         assert (
-            state.shape[0] == 23
-        ), "The size of the state is not (23) in REPLAY BUFFER -> state size: {}.".format(
-            state.shape[0]
-        )
+            state.shape[0] == self.state_dim
+        ), f"The size of the state is not {self.state_dim} in REPLAY BUFFER -> state size: {next_state.shape[0]}."
+        
         assert (
-            action.shape[0] == 2
-        ), "The size of the action is not (2) in REPLAY BUFFER -> action size: {}.".format(
-            state.shape[0]
-        )
+            action.shape[0] == self.action_dim
+        ), f"The size of the action is not {self.action_dim} in REPLAY BUFFER -> action size: {action.shape[0]}."
+
+      
         if isinstance(reward, np.float64):
             assert (
                 reward.size == 1
-            ), "The size of the reward is not (1) in REPLAY BUFFER -> reward size: {}.".format(
-                reward.size
-            )
+            ), f"The size of the reward is not (1) in REPLAY BUFFER -> reward size: {reward.size}."
+
         assert (
-            next_state.shape[0] == 23
-        ), "The size of the next_state is not (23) in REPLAY BUFFER -> next_state size: {}.".format(
-            next_state.shape[0]
-        )
+            next_state.shape[0] == self.state_dim
+        ), f"The size of the next_state is not {self.state_dim} in REPLAY BUFFER -> next_state size: {next_state.shape[0]}."
 
         assert (
             state.ndim == 1
-        ), "The ndim of the state is not (1) in REPLAY BUFFER -> state ndim: {}.".format(
-            state.ndim
-        )
+        ), f"The ndim of the state is not (1) in REPLAY BUFFER -> state ndim: {state.ndim}."
+        
         assert (
             action.ndim == 1
-        ), "The ndim of the action is not (1) in REPLAY BUFFER -> action ndim: {}.".format(
-            state.ndim
-        )
+        ), f"The ndim of the action is not (1) in REPLAY BUFFER -> action ndim: {action.ndim}."
+        
         if isinstance(reward, np.float64):
             assert (
                 reward.ndim == 0
-            ), "The ndim of the reward is not (0) in REPLAY BUFFER -> reward ndim: {}.".format(
-                reward.ndim
-            )
+            ), f"The ndim of the reward is not (0) in REPLAY BUFFER -> reward ndim: {reward.ndim}."
+
         assert (
             next_state.ndim == 1
-        ), "The ndim of the next_state is not (1) in REPLAY BUFFER -> next_state ndim: {}.".format(
-            next_state.ndim
-        )
+        ), f"The ndim of the next_state is not (1) in REPLAY BUFFER -> next_state ndim: {next_state.ndim}."
 
         self.n_step_buffer.append((state, action, reward, next_state, done))
         if len(self.n_step_buffer) == self.n_step:
@@ -273,3 +262,4 @@ class PER:
 
         for idx, p in zip(idxs, ps):
             self.tree.update(idx, p)
+
