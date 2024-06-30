@@ -7,5 +7,11 @@ sim:
 # === Generate World === #
 .PHONY: gen
 gen:
-	@echo "Starting Training ..."
+	@echo "Generate World ..."
 	@python microvault/environment/generate.py
+
+# === Pull Github === #
+.PHONY: up
+up:
+	@echo "Git Pull ..."
+	@git pull
