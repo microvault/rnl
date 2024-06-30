@@ -1,3 +1,4 @@
+
 import os
 import sys
 from typing import Tuple
@@ -141,7 +142,7 @@ class Agent:
 
         # Memória de replay priorizada
         # Fonte: https://arxiv.org/abs/1511.05952
-        self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep)
+        self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep, self.state_size, self.action_size) 
 
         # TODO: Inicializar o modelo RND
 
@@ -386,3 +387,4 @@ class Agent:
     def load(model: nn.Module, path: str, device: str) -> None:
         """Carregar o modelo"""
         model.load_state_dict(torch.load(path, map_location=device))  # del torch.load
+
