@@ -1,15 +1,46 @@
-RL:
-  BUFFER_SIZE: 2000000 # Tamanho do buffer de repetição
-  GAMMA: 0.99 # Factor de desconto
-  TAU: 1e-3 # Atualização suave de parâmetros de destino
-  UPDATE_EVERY_STEP: 2 # Taxa de atualização da rede ator
-
-MODEL:
-  LR_ACTOR: 1e-3 # Taxa de aprendizado do ator
-  LR_CRITIC: 1e-3 # Taxa de aprendizado do crítico
-  BATCH_SIZE: 128 # Tamanho do lote
-  NUM_EPISODES: 2000
-  PRETRAINED: True
-
-VISUALIZATION:
-  WANDB: True # Utilizar o wandb para visualizar os resultados
+# agent
+buffer_size: 1048576 # Tamanho do buffer de repetição
+gamma: 0.99 # Factor de desconto
+tau: 1e-3 # Atualização suave de parâmetros de destino
+update_every_step: 2 # Taxa de atualização da rede ator
+lr_actor: 1e-3 # Taxa de aprendizado do ator
+lr_critic: 1e-3 # Taxa de aprendizado do crítico
+batch_size: 128 # Tamanho do lote
+num_episodes: 2000
+pretrained: False
+wandb: True
+# Noise
+desired_distance: 0.7
+scalar: 0.05
+scalar_decay: 0.99
+# Normalizar o ruído
+normal_scalar: 0.25
+nstep: 10
+eta: 0.1
+save_checkpoint: 200
+# priorized replay buffer
+alpha: 0.6
+beta: 0.4
+beta_increment_per_sampling: 1e-4
+absolute_error_upper: 1.0
+# engine
+seed: 42
+device: cpu
+# model
+layers_actor: [400, 300]
+layers_critic: [400, 300]
+# environment
+timestep: 100 # max step
+size: 3.0 # size robot
+fps: 1000 # 10 frames per second
+random: 1000 # 100 random points
+max_linear: 1.0 # 0.2 m/s
+min_linear: 0.0 # 0.1 m/s
+max_angular: 1.0 # 0.2 rad/s
+min_angular: -1.0 # 0.1 rad/s
+num_rays: 20 # num range lidar
+fov: 6.283185307179586 # 360 degrees
+max_range: 6 # max range
+epochs: 1000 # 1000 epochs
+threshold: 0.1 # 0.1 threshold
+grid_lenght: 10 # TODO: error < 5 -> [5 - 15]
