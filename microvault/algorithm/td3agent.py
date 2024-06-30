@@ -1,4 +1,3 @@
-
 import os
 import sys
 from typing import Tuple
@@ -9,22 +8,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from numpy import inf
+from omegaconf import OmegaConf
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from components.replaybuffer import PER
 from network.model import ModelActor, ModelCritic
-
-# Verificar se o cuda está disponivel
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-BUFFER_SIZE = 2**20  # Ramanho do "Replay buffer"
-GAMMA = 0.99  # Fator de desconto
-TAU = 1e-3  # Tamanho para definir a taxa de atualização dos parâmetros
-LR_ACTOR = 1e-3  # Taxa de aprendizado da rede "Actor"
-LR_CRITIC = 1e-3  # Taxa de aprendizado da rede "Critic"
-UPDATE_EVERY_STEP = 2  # Frequência de atualização da rede do segundo "Critic"
-BATCH_SIZE = 128  # Tamanho do lote
 
 
 class Agent:
@@ -53,7 +42,10 @@ class Agent:
             noise_std (float): Desvio padrão do ruído
             noise_clip (float): Cortar ruído aleatório neste intervalo
         """
-        # Setar o seed de todo o ambiente (padrão: 42)
+        config_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "../../config/agent.yaml")
+        )
+        self.param = OmegaConf.load(config_path)
 
         self.state_size = state_size
         self.action_size = action_size
@@ -65,84 +57,161 @@ class Agent:
 
         # Parâmetros do ruído
         self.distances = []
-        self.desired_distance = 0.7
-        self.scalar = 0.05
-        self.scalar_decay = 0.99
-
-        # Normalizar o ruído
-        self.normal_scalar = 0.25
-        self.nstep = 10
-        self.eta = 0.1
 
         # Transfência de aprendizado
         if pretraining:
 
             # Rede "Actor" (com/ Rede Alvo)
-            self.actor = ModelActor(state_size, action_size, float(self.max_action)).to(
-                device
-            )
+            self.actor = ModelActor(
+                state_dim=state_size,
+                action_dim=action_size,
+                max_action=float(self.max_action),
+                l1=self.param.layers_actor[0],
+                l2=self.param.layers_actor[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
             self.actor.load_state_dict(torch.load("/content/checkpoint_actor.pth"))
             # Definir o modelo alvo, porém, sem a necessidade de calcular gradientes
             self.actor_target = (
-                ModelActor(state_size, action_size, float(self.max_action))
-                .to(device)
+                ModelActor(
+                    state_dim=state_size,
+                    action_dim=action_size,
+                    max_action=float(self.max_action),
+                    l1=self.param.layers_actor[0],
+                    l2=self.param.layers_actor[1],
+                    device=self.param.device,
+                    batch_size=self.param.batch_size,
+                )
+                .to(self.param.device)
                 .eval()
                 .requires_grad_(False)
             )
-            self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
+            self.actor_optimizer = optim.Adam(
+                self.actor.parameters(), lr=self.param.lr_actor
+            )
 
             # Rede "Actor" para ruído
             self.actor_noised = ModelActor(
-                state_size, action_size, float(self.max_action)
-            ).to(device)
+                state_dim=state_size,
+                action_dim=action_size,
+                max_action=float(self.max_action),
+                l1=self.param.layers_actor[0],
+                l2=self.param.layers_actor[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
 
             # Rede "Actor" (com/ Rede Alvo)
-            self.critic = ModelCritic(state_size, action_size).to(device)
+            self.critic = ModelCritic(
+                state_dim=state_size,
+                action_dim=action_size,
+                l1=self.param.layers_critic[0],
+                l2=self.param.layers_critic[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
             self.critic.load_state_dict(
-                torch.load("/content/checkpoint_critic.pth", map_location=device)
+                torch.load(
+                    "/content/checkpoint_critic.pth", map_location=self.param.device
+                )
             )
             self.critic_target = (
-                ModelCritic(state_size, action_size)
-                .to(device)
+                ModelCritic(
+                    state_dim=state_size,
+                    action_dim=action_size,
+                    l1=self.param.layers_critic[0],
+                    l2=self.param.layers_critic[1],
+                    device=self.param.device,
+                    batch_size=self.param.batch_size,
+                )
+                .to(self.param.device)
                 .eval()
                 .requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
-            self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
+            self.critic_optimizer = optim.Adam(
+                self.critic.parameters(), lr=self.param.lr_critic
+            )
 
         else:
             # Rede "Actor" (com/ Rede Alvo)
-            self.actor = ModelActor(state_size, action_size, float(max_action)).to(
-                device
-            )
+            self.actor = ModelActor(
+                state_dim=state_size,
+                action_dim=action_size,
+                max_action=float(max_action),
+                l1=self.param.layers_actor[0],
+                l2=self.param.layers_actor[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
             self.actor_target = (
-                ModelActor(state_size, action_size, float(max_action))
-                .to(device)
+                ModelActor(
+                    state_dim=state_size,
+                    action_dim=action_size,
+                    max_action=float(max_action),
+                    l1=self.param.layers_actor[0],
+                    l2=self.param.layers_actor[1],
+                    device=self.param.device,
+                    batch_size=self.param.batch_size,
+                )
+                .to(self.param.device)
                 .eval()
                 .requires_grad_(False)
             )
-            self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=LR_ACTOR)
+            self.actor_optimizer = optim.Adam(
+                self.actor.parameters(), lr=self.param.lr_critic
+            )
 
             self.actor_noised = ModelActor(
-                state_size, action_size, float(max_action)
-            ).to(device)
+                state_dim=state_size,
+                action_dim=action_size,
+                max_action=float(max_action),
+                l1=self.param.layers_actor[0],
+                l2=self.param.layers_actor[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
 
             # Rede "Actor" (com/ Rede Alvo)
-            self.critic = ModelCritic(state_size, action_size).to(device)
+            self.critic = ModelCritic(
+                state_dim=state_size,
+                action_dim=action_size,
+                l1=self.param.layers_critic[0],
+                l2=self.param.layers_critic[1],
+                device=self.param.device,
+                batch_size=self.param.batch_size,
+            ).to(self.param.device)
             self.critic_target = (
-                ModelCritic(state_size, action_size)
-                .to(device)
+                ModelCritic(
+                    state_dim=state_size,
+                    action_dim=action_size,
+                    l1=self.param.layers_critic[0],
+                    l2=self.param.layers_critic[1],
+                    device=self.param.device,
+                    batch_size=self.param.batch_size,
+                )
+                .to(self.param.device)
                 .eval()
                 .requires_grad_(False)
             )
             self.critic_target.load_state_dict(self.critic.state_dict())
-            self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=LR_CRITIC)
+            self.critic_optimizer = optim.Adam(
+                self.critic.parameters(), lr=self.param.lr_critic
+            )
 
         self.clip_grad = torch.nn.utils.clip_grad_norm_
 
         # Memória de replay priorizada
         # Fonte: https://arxiv.org/abs/1511.05952
-        self.memory = PER(BUFFER_SIZE, BATCH_SIZE, GAMMA, self.nstep, self.state_size, self.action_size) 
+        self.memory = PER(
+            self.param.buffer_size,
+            self.param.batch_size,
+            self.param.gamma,
+            self.param.nstep,
+            self.state_size,
+            self.action_size,
+        )
 
         # TODO: Inicializar o modelo RND
 
@@ -183,7 +252,7 @@ class Agent:
         )
 
         # Converter estados para tensor
-        state = torch.from_numpy(states).float().to(device)
+        state = torch.from_numpy(states).float().to(self.param.device)
 
         # Desativar o cálculo de gradientes
         self.actor.eval()
@@ -200,7 +269,7 @@ class Agent:
             # Carregar os pesos do modelo para o modelo com ruído
             self.actor_noised.load_state_dict(self.actor.state_dict().copy())
             # Adicionar ruído ao modelo
-            self.actor_noised.add_parameter_noise(self.scalar)
+            self.actor_noised.add_parameter_noise(self.param.scalar)
             # Obtenha os próximos valores de ação do ator barulhento
             action_noised = self.actor_noised(state).cpu().data.numpy()
             # Mede a distância entre os valores de ação dos ator regulares e ator ruidoso
@@ -208,10 +277,10 @@ class Agent:
             # Adicionar a distância ao histórico de distâncias
             self.distances.append(distance)
             # Ajuste a quantidade de ruído dada ao "actor_noised"
-            if distance > self.desired_distance:
-                self.scalar *= self.scalar_decay
-            if distance < self.desired_distance:
-                self.scalar /= self.scalar_decay
+            if distance > self.param.desired_distance:
+                self.param.scalar *= self.param.scalar_decay
+            if distance < self.param.desired_distance:
+                self.param.scalar /= self.param.scalar_decay
             # Definir a ação barulhenta como ação
             action = action_noised
 
@@ -230,16 +299,14 @@ class Agent:
         return action
 
     def learn(
-        self, n_iteraion: int, episode: int, gamma: float = GAMMA
+        self, n_iteraion: int, episode: int
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
         Parâmetros
         ======
             n_iteraion (int): O número de iterações para treinar a rede
-            gamma (float): Factor de desconto
         """
-        print("Learning...")
 
         if episode % 200 == 0:
             self.save(self.actor, "/content/", "actor", str(episode))
@@ -249,7 +316,7 @@ class Agent:
         self.critic.train()
 
         # Se o tamanho da memória for maior que o tamanho do lote
-        if len(self.memory) > BATCH_SIZE:
+        if len(self.memory) > self.param.batch_size:
             average_Q = 0
             max_Q = -inf
             average_critic_loss = 0
@@ -264,7 +331,7 @@ class Agent:
                 )
 
                 # Converter os pesos de importância para tensor
-                is_weights = torch.from_numpy(is_weights).float().to(device)
+                is_weights = torch.from_numpy(is_weights).float().to(self.param.device)
 
                 # Converter a ação para tensor
                 action_ = action.cpu().numpy()
@@ -281,7 +348,7 @@ class Agent:
                     noise = (
                         torch.FloatTensor(action_)
                         .data.normal_(0, self.noise)
-                        .to(device)
+                        .to(self.param.device)
                     )
                     # Deixar a ação dentro dos limites
                     noise = noise.clamp(-self.noise_clip, self.noise_clip)
@@ -306,7 +373,10 @@ class Agent:
 
                     # Calcular metas Q para estados atuais (y_i)
                     # recompensa + (gamma * Q-valor de destino * (1 - feito))
-                    Q_targets = reward + (gamma * Q_targets_next * (1 - done)).detach()
+                    Q_targets = (
+                        reward
+                        + (self.param.gamma * Q_targets_next * (1 - done)).detach()
+                    )
 
                 # Passar o estado atual e ação para o modelo crítico
                 Q1_expected, Q2_expected = self.critic(state, action)
@@ -329,7 +399,7 @@ class Agent:
 
                 actor_loss = 0
 
-                if i % UPDATE_EVERY_STEP == 0:
+                if i % self.param.update_every_step == 0:
                     # ---------------------------- atualizar Ator ---------------------------- #
                     # Calcular perda de ator
                     actor_loss = -self.critic.Q1(state, self.actor(state)).mean()
@@ -341,8 +411,8 @@ class Agent:
 
                     # ----------------------- Atualizar redes de destino ----------------------- #
                     # Passar todos os pesos da rede de destino para a rede local usando a atualização suave
-                    self.soft_update(self.critic, self.critic_target, TAU)
-                    self.soft_update(self.actor, self.actor_target, TAU)
+                    self.soft_update(self.critic, self.critic_target, self.param.tau)
+                    self.soft_update(self.actor, self.actor_target, self.param.tau)
 
                 average_critic_loss += critic_loss
                 average_actor_loss += actor_loss
@@ -387,4 +457,3 @@ class Agent:
     def load(model: nn.Module, path: str, device: str) -> None:
         """Carregar o modelo"""
         model.load_state_dict(torch.load(path, map_location=device))  # del torch.load
-
