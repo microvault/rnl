@@ -19,6 +19,7 @@ nstep: 10
 eta: 0.1
 save_checkpoint: 200
 # priorized replay buffer
+epsilon: 0.01
 alpha: 0.6
 beta: 0.4
 beta_increment_per_sampling: 1e-4

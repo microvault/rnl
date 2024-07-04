@@ -1,4 +1,3 @@
-
 from collections import deque
 
 import numpy as np
@@ -11,22 +10,36 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class PER:
     "Buffer de repetição de experiência priorizado."
 
-    def __init__(self, buffer_size: int, batch_size: int, gamma: float, nstep: float, state_dim: int, action_dim: int):
+    def __init__(
+        self,
+        buffer_size: int,
+        batch_size: int,
+        gamma: float,
+        nstep: float,
+        state_dim: int,
+        action_dim: int,
+        epsilon: float = 0.01,
+        alpha: float = 0.6,
+        beta: float = 0.4,
+        beta_increment_per_sampling: float = 1e-4,
+        absolute_error_upper: float = 1.0,
+    ):
         """
         A árvore é composta por uma árvore de soma que contém as pontuações de prioridade em sua folha e também uma matriz de dados.
         """
         self.tree = SumTree(buffer_size)
-        self.epsilon = 0.01  # small amount to avoid zero priority
+        self.epsilon = epsilon  # small amount to avoid zero priority
         self.alpha = (
-            0.6  # [0..1] convert the importance of TD error to priority, often 0.6
+            alpha  # [0..1] convert the importance of TD error to priority, often 0.6
         )
         self.beta = (
-            0.4  # importance-sampling, from initial value increasing to 1, often 0.4
+            beta  # importance-sampling, from initial value increasing to 1, often 0.4
         )
-        self.beta_increment_per_sampling = 1e-4  # annealing the bias, often 1e-3
-        self.absolute_error_upper = 1.0  # clipped abs error
+        self.beta_increment_per_sampling = (
+            beta_increment_per_sampling  # annealing the bias, often 1e-3
+        )
+        self.absolute_error_upper = absolute_error_upper  # clipped abs error
         self.batch_size = batch_size
-
         self.gamma = gamma
         self.n_step = nstep
         self.n_step_buffer = deque(maxlen=nstep)
@@ -64,16 +77,16 @@ class PER:
         assert isinstance(
             state[0], np.float32
         ), f"State is not of type (np.float32) in REPLAY BUFFER -> state type: {type(state)}."
-            
+
         # assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in REPLAY BUFFER -> action type: {}.".format(type(action))
         assert isinstance(
             reward, (int, np.float64)
         ), f"Reward is not of type (np.float64 / int) in REPLAY BUFFER -> reward: {type(reward)}."
-            
+
         assert isinstance(
             next_state[0], np.float32
         ), f"Next State is not of type (np.float32) in REPLAY BUFFER -> next state type: {type(next_state)}."
-            
+
         assert isinstance(
             done, bool
         ), f"Done is not of type (bool) in REPLAY BUFFER -> done type: {type(done)}."
@@ -81,12 +94,11 @@ class PER:
         assert (
             state.shape[0] == self.state_dim
         ), f"The size of the state is not {self.state_dim} in REPLAY BUFFER -> state size: {next_state.shape[0]}."
-        
+
         assert (
             action.shape[0] == self.action_dim
         ), f"The size of the action is not {self.action_dim} in REPLAY BUFFER -> action size: {action.shape[0]}."
 
-      
         if isinstance(reward, np.float64):
             assert (
                 reward.size == 1
@@ -99,11 +111,11 @@ class PER:
         assert (
             state.ndim == 1
         ), f"The ndim of the state is not (1) in REPLAY BUFFER -> state ndim: {state.ndim}."
-        
+
         assert (
             action.ndim == 1
         ), f"The ndim of the action is not (1) in REPLAY BUFFER -> action ndim: {action.ndim}."
-        
+
         if isinstance(reward, np.float64):
             assert (
                 reward.ndim == 0
@@ -262,4 +274,3 @@ class PER:
 
         for idx, p in zip(idxs, ps):
             self.tree.update(idx, p)
-

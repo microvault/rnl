@@ -205,12 +205,17 @@ class Agent:
         # Memória de replay priorizada
         # Fonte: https://arxiv.org/abs/1511.05952
         self.memory = PER(
-            self.param.buffer_size,
-            self.param.batch_size,
-            self.param.gamma,
-            self.param.nstep,
-            self.state_size,
-            self.action_size,
+            buffer_size=self.param.buffer_size,
+            batch_size=self.param.batch_size,
+            gamma=self.param.gamma,
+            nstep=self.param.nstep,
+            state_dim=self.state_size,
+            action_dim=self.action_size,
+            epsilon=self.param.epsilon,
+            alpha=self.param.alpha,
+            beta=self.param.beta,
+            beta_increment_per_sampling=self.param.beta_increment_per_sampling,
+            absolute_error_upper=self.param.absolute_error_upper,
         )
 
         # TODO: Inicializar o modelo RND
