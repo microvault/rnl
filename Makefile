@@ -1,8 +1,8 @@
-# === Start Traininig === #
-.PHONY: sim
-sim:
+# === Start Training  === #
+.PHONY: train
+train:
 	@echo "Starting Training ..."
-	@python microvault/environment/continuous.py
+	@python train.py
 
 # === Generate World === #
 .PHONY: gen
@@ -15,3 +15,11 @@ gen:
 up:
 	@echo "Git Pull ..."
 	@git pull
+
+.PHONY: format
+format:
+	@echo "Formatting with Black, iSort, and Ruff ..."
+	@[ -n "$(file)" ] || (echo "Error: 'file' variable is not set"; exit 1)
+	@black $(file)
+	@isort $(file)
+	@ruff $(file)
