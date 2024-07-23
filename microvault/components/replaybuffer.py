@@ -3,21 +3,23 @@ from collections import deque
 import numpy as np
 import torch
 from components.sumtree import SumTree
+from training import ReplayBufferConfig
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
-class PER:
+class ReplayBuffer:
     "Buffer de repetição de experiência priorizado."
 
     def __init__(
         self,
-        buffer_size: int,
-        batch_size: int,
-        gamma: float,
-        nstep: float,
-        state_dim: int,
-        action_dim: int,
+        # __config = ReplayBufferConfig,
+        buffer_size: int = 1048576,
+        batch_size: int = 32,
+        gamma: float = 0.99,
+        nstep: float = 10,
+        state_dim: int = 13,
+        action_dim: int = 2,
         epsilon: float = 0.01,
         alpha: float = 0.6,
         beta: float = 0.4,
@@ -88,7 +90,7 @@ class PER:
         ), f"Next State is not of type (np.float32) in REPLAY BUFFER -> next state type: {type(next_state)}."
 
         assert isinstance(
-            done, bool
+            done, np.bool_
         ), f"Done is not of type (bool) in REPLAY BUFFER -> done type: {type(done)}."
 
         assert (

@@ -2,24 +2,26 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
+from engine import Collision, GenerateWorld
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
-
-from .engine.collision import extract_segment
-from .engine.world_generate import generate_maze
 
 
 @dataclass
 class Generator:
     def __init__(
         self,
+        collision=Collision,
+        generate=GenerateWorld,
         grid_lenght: int = 10,
         random: int = 1300,
     ):
         self.grid_lenght = grid_lenght
         self.random = random
+        self.collision = collision
+        self.generate = generate
 
     @staticmethod
     def _map_border(m: np.ndarray) -> np.ndarray:
@@ -81,10 +83,10 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        m = generate_maze(
+        m = self.generate.generate_maze(
             map_size=self.grid_lenght,
             decimation=0.0,
-            min_blocks=10,
+            min_blocks=0,
             num_cells_togo=self.random,
         )
 
@@ -140,7 +142,7 @@ class Generator:
 
         stacks = [self.line_to_np_stack(line) for line in segments]
 
-        segment = extract_segment(stacks)
+        segment = self.collision.extract_seg_from_polygon(stacks)
 
         poly = Polygon(exterior, holes=interiors).buffer(0)
 

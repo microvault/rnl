@@ -16,9 +16,9 @@ class ModelActor(nn.Module):
 
     def __init__(
         self,
-        state_dim: int,
-        action_dim: int,
-        max_action: float,
+        state_dim: int = 13,
+        action_dim: int = 2,
+        max_action: float = 1.0,
         l1: int = 400,
         l2: int = 300,
         device: str = "cpu",
@@ -42,7 +42,7 @@ class ModelActor(nn.Module):
         self.l2.weight.data.uniform_(*hidden_init(self.l2))
         self.l3.weight.data.uniform_(-3e-3, 3e-3)
 
-    def forward(self, state) -> torch.Tensor:
+    def forward(self, state: torch.Tensor) -> torch.Tensor:
         assert isinstance(
             state, torch.Tensor
         ), "State is not of type torch.Tensor in ACTOR."
@@ -59,6 +59,7 @@ class ModelActor(nn.Module):
         x = F.relu(self.l1(state))
         x = F.relu(self.l2(x))
         action = self.max_action * torch.tanh(self.l3(x))
+
         return action
 
     def add_parameter_noise(self, scalar=0.1):
@@ -71,8 +72,8 @@ class ModelActor(nn.Module):
 class ModelCritic(nn.Module):
     def __init__(
         self,
-        state_dim: int,
-        action_dim: int,
+        state_dim: int = 13,
+        action_dim: int = 2,
         l1: int = 400,
         l2: int = 300,
         device: str = "cpu",
@@ -107,7 +108,9 @@ class ModelCritic(nn.Module):
         self.l7.weight.data.uniform_(*hidden_init(self.l7))
         self.l8.weight.data.uniform_(-3e-3, 3e-3)
 
-    def forward(self, state, action) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, state: torch.Tensor, action: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         assert isinstance(
             state, torch.Tensor
         ), "State is not of type torch.Tensor in CRITIC."
@@ -149,7 +152,7 @@ class ModelCritic(nn.Module):
         q2 = self.l8(s2)
         return (q1, q2)
 
-    def Q1(self, state, action) -> torch.Tensor:
+    def Q1(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
         assert isinstance(
             state, torch.Tensor
         ), "State is not of type torch.Tensor in CRITIC."

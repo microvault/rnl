@@ -1,9 +1,11 @@
+from typing import Tuple
 
 import numpy as np
 
+
 class SumTree:
     # Uma estrutura de dados de árvore binária onde o valor do pai é a soma de seus filhos
-    def __init__(self, capacity):
+    def __init__(self, capacity: int) -> None:
         # Número de folhas (nós finais) que contêm experiências
         self.data_pointer = 0
         # Número de experiências
@@ -40,7 +42,7 @@ class SumTree:
     def is_power_of_2(n: int) -> bool:
         return ((n & (n - 1)) == 0) and n != 0
 
-    def add(self, data, priority):
+    def add(self, data: tuple, priority: float) -> None:
         # Look at what index we want to put the experience
         tree_index = self.data_pointer + self.capacity - 1
         # Update data frame
@@ -54,7 +56,7 @@ class SumTree:
         if self.data_length < self.capacity:
             self.data_length += 1
 
-    def update(self, tree_index, priority):
+    def update(self, tree_index: int, priority: float):
         # change = new priority score - former priority score
         priority = max(
             priority.item() if isinstance(priority, np.ndarray) else priority, 1e-5
@@ -71,7 +73,7 @@ class SumTree:
                 0
                / \
               1   2
-             / \ / \
+             / \\ / \
             3  4 5  [6]
 
             If we are in leaf at index 6, we updated the priority score
@@ -80,7 +82,7 @@ class SumTree:
             tree_index = (tree_index - 1) // 2
             self.tree[tree_index] += change
 
-    def get_leaf(self, v):
+    def get_leaf(self, v: float) -> Tuple[int, np.ndarray, int]:
         # Get the leaf_index, priority value of that leaf and experience associated with that index
         """
         Tree structure and array storage:
@@ -88,7 +90,7 @@ class SumTree:
              0         -> storing priority sum
             / \
           1     2
-         / \   / \
+         / \\   / \
         3   4 5   6    -> storing priority for experiences
         Array type for storing:
         [0,1,2,3,4,5,6]
@@ -116,4 +118,4 @@ class SumTree:
 
     @property
     def total_priority(self):
-        return self.tree[0]  # arroz
+        return self.tree[0]

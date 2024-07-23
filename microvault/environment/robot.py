@@ -2,24 +2,24 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
+from engine import Collision
 from mpl_toolkits.mplot3d import Axes3D
-
-from .engine.collision import filter_segment, lidar_intersections
 
 
 @dataclass
 class Robot:
     def __init__(
         self,
+        collision: Collision,
         time: int = 100,
-        min_radius: int = 1,
-        max_radius: int = 3,
+        min_radius: float = 1.0,
+        max_radius: float = 3.0,
         max_grid: int = 15,
         wheel_radius: float = 0.3,
         wheel_base: float = 0.3,
-        fov: int = 2 * np.pi,
-        num_rays: int = 40,
-        max_range: int = 6,
+        fov: float = 2 * np.pi,
+        num_rays: int = 10,
+        max_range: float = 6.0,
     ):
         self.time = time
         self.min_radius = min_radius
@@ -31,10 +31,14 @@ class Robot:
         self.num_rays = num_rays
         self.wheel_radius = wheel_radius
         self.wheel_base = wheel_base
+        self.collision = collision
         self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
         self.dt = 1
 
-    def init_agent(self, ax: Axes3D) -> Tuple[
+    def init_agent(self) -> Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
         np.ndarray,
         np.ndarray,
         np.ndarray,
@@ -60,51 +64,51 @@ class Robot:
         """
         x = np.zeros(self.time)
         y = np.zeros(self.time)
+        vr = np.zeros(self.time)
+        vl = np.zeros(self.time)
         theta = np.zeros(self.time)
+        measurements = np.zeros((self.time, self.num_rays))
         radius = np.random.uniform(self.min_radius, self.max_radius)
 
-        return (x, y, theta, self.lidar_angle, radius)
+        return (x, y, theta, self.lidar_angle, measurements, vr, vl, radius)
 
-    def move(
+    def move_robot(
         self,
-        i: int,
-        x: np.ndarray,
-        y: np.ndarray,
-        theta: np.ndarray,
+        x: float,
+        y: float,
+        theta: float,
         vl: float,
         vr: float,
-    ) -> None:
+    ):
         v_right = vr * self.wheel_radius
         v_left = vl * self.wheel_radius
 
         v = (v_right + v_left) / 2
         omega = (v_right - v_left) / self.wheel_base
 
-        theta_prev = theta[i - 1]
-        theta_new = theta_prev + omega * self.dt
+        theta_new = theta + omega * self.dt
 
         # Ensure theta stays within -2π to 2π
         if theta_new > 2 * np.pi or theta_new < -2 * np.pi:
             theta_new = 0
 
-        theta[i] = theta_new
-
-        x_temp = x[i - 1] + v * np.cos(theta_new) * self.dt
-        y_temp = y[i - 1] + v * np.sin(theta_new) * self.dt
+        x_temp = x + v * np.cos(theta_new) * self.dt
+        y_temp = y + v * np.sin(theta_new) * self.dt
 
         x_new = max(0.0, float(min(x_temp, self.xmax)))
         y_new = max(0.0, float(min(y_temp, self.ymax)))
 
-        x[i] = x_new
-        y[i] = y_new
+        return x_new, y_new, theta_new
 
-    def sensor(
-        self, i: int, x: np.ndarray, y: np.ndarray, segments
-    ) -> Tuple[np.ndarray, np.ndarray]:
-        seg = filter_segment(segments, x[i], y[i], 6)
+    def sensor(self, x: float, y: float, segments) -> Tuple[np.ndarray, np.ndarray]:
+        seg = self.collision.filter_segments(segments, x, y, 6)
 
-        intersections, measurements = lidar_intersections(
-            x[i], y[i], self.max_range, self.lidar_angle, seg
+        intersections = self.collision.lidar_intersection(
+            x, y, self.max_range, self.lidar_angle, seg
+        )
+
+        measurements = self.collision.lidar_measurement(
+            x, y, self.max_range, self.lidar_angle, seg
         )
 
         return intersections, measurements

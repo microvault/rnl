@@ -1,8 +1,9 @@
+from typing import Union
 
 import gymnasium as gym
-import wandb
-from typing import Union
 import numpy as np
+import wandb
+
 
 class CustomWrapper(gym.Wrapper):
 
