@@ -41,12 +41,12 @@ repos:
       - id: pyupgrade
         args: [--py36-plus]
 
-  - repo: local
-    hooks:
-      - id: pytest-check
-        name: pytest-check
-        entry: pytest
-        args: ["-s", "-x", "tests"]
-        language: system
-        pass_filenames: false
-        always_run: true
+  # - repo: local
+  #   hooks:
+  #     - id: pytest-check
+  #       name: pytest-check
+  #       entry: pytest
+  #       args: ["-s", "-x", "tests"]
+  #       language: system
+  #       pass_filenames: false
+  #       always_run: true

@@ -764,3 +764,5 @@ docs/.next/
 /microvault/environment/utils/*.cpp
 
 /microvault/environment/utils/map.py
+/microvault/outputs/
+/outputs
