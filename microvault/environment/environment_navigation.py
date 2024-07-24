@@ -1,25 +1,20 @@
+import logging
 import os
 import sys
+from typing import Tuple
 
+import gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+from gym import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from omegaconf import OmegaConf
 from shapely.geometry import Point, Polygon
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import logging
-from typing import Tuple
-
-import gym
-from algorithm.agent import Agent
-from components.replaybuffer import ReplayBuffer
-from gym import spaces
-from models.model import ModelActor, ModelCritic
-
-from .generate_world import Generator
-from .robot import Robot
+from microvault.algorithms.agent import Agent
+from microvault.environment.generate_world import Generator
+from microvault.environment.robot import Robot
 
 # Suprimir os warnings do Matplotlib
 logging.getLogger("matplotlib").setLevel(logging.ERROR)
@@ -36,6 +31,7 @@ class NaviEnv(gym.Env):
         self,
         robot=Robot,
         generator=Generator,
+        agent=Agent,
         timestep: int = 100,  # max step
         size: float = 3.0,  # size robot
         random: int = 1000,  # 100 random points
@@ -54,6 +50,10 @@ class NaviEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(13,), dtype=np.float32
         )
 
+        self.generator = generator
+        self.robot = robot
+        self.agent = agent
+
         self.rgb_array = rgb_array
         self.max_epochs = max_episode
         self.timestep = timestep
@@ -71,8 +71,6 @@ class NaviEnv(gym.Env):
         # TODO: remove the team and remove in array format
         self.target_x = 0
         self.target_y = 0
-        self.generator = generator
-        self.robot = robot
         self.last_position_x = 0
         self.last_position_y = 0
         self.last_theta = 0

@@ -2,8 +2,9 @@ from collections import deque
 
 import numpy as np
 import torch
-from components.sumtree import SumTree
-from training import ReplayBufferConfig
+
+from microvault.components.sumtree import SumTree
+from microvault.training.config import ReplayBufferConfig
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

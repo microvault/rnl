@@ -1,14 +1,19 @@
 import gym
 import hydra
-from algorithm import Agent
-from components import ReplayBuffer
-from engine import Collision, GenerateWorld
-from environment import Generator, Robot
 from hydra.core.config_store import ConfigStore
-from models import ModelActor, ModelCritic
-from training import Engine, TrainerConfig
 
-import microvault
+from microvault import (
+    Agent,
+    Collision,
+    Engine,
+    GenerateWorld,
+    Generator,
+    ModelActor,
+    ModelCritic,
+    ReplayBuffer,
+    Robot,
+    TrainerConfig,
+)
 
 cs = ConfigStore.instance()
 cs.store(name="trainer_config", node=TrainerConfig)
@@ -107,6 +112,7 @@ def main(cfg: TrainerConfig):
         done = False
 
         for timestep in range(100):
+            print("Timestep ", timestep)
             action = env.action_space.sample()
             observation, reward, terminated, truncated, info = env.step(action)
     else:

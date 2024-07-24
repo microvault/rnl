@@ -7,9 +7,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from components.replaybuffer import ReplayBuffer
-from models.model import ModelActor, ModelCritic
 from numpy import inf
+
+from microvault.components.replaybuffer import ReplayBuffer
+from microvault.models.model import ModelActor, ModelCritic
 
 
 class Agent:

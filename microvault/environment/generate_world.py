@@ -2,11 +2,13 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 import numpy as np
-from engine import Collision, GenerateWorld
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
+
+from microvault.engine.collision import Collision
+from microvault.engine.world_generate import GenerateWorld
 
 
 @dataclass
