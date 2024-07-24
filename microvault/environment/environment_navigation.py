@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 from typing import Tuple
 
 import gym
@@ -15,9 +13,6 @@ from shapely.geometry import Point, Polygon
 from microvault.algorithms.agent import Agent
 from microvault.environment.generate_world import Generator
 from microvault.environment.robot import Robot
-
-# Suprimir os warnings do Matplotlib
-logging.getLogger("matplotlib").setLevel(logging.ERROR)
 
 # car racing reference
 # - 8 m/s

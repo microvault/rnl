@@ -2,24 +2,22 @@ import gym
 import hydra
 from hydra.core.config_store import ConfigStore
 
-from microvault import (
-    Agent,
-    Collision,
-    Engine,
-    GenerateWorld,
-    Generator,
-    ModelActor,
-    ModelCritic,
-    ReplayBuffer,
-    Robot,
-    TrainerConfig,
-)
+from microvault.algorithms.agent import Agent
+from microvault.components.replaybuffer import ReplayBuffer
+from microvault.engine.collision import Collision
+from microvault.environment.generate_world import GenerateWorld, Generator
+from microvault.environment.robot import Robot
+from microvault.models.model import ModelActor, ModelCritic
+from microvault.training.config import TrainerConfig
+from microvault.training.engine import Engine
 
 cs = ConfigStore.instance()
 cs.store(name="trainer_config", node=TrainerConfig)
 
 
-@hydra.main(config_path="microvault/configs", config_name="config", version_base="1.2")
+@hydra.main(
+    config_path="../microvault/configs", config_name="config", version_base="1.2"
+)
 def main(cfg: TrainerConfig):
 
     engine = Engine(seed=cfg.engine.seed, device=cfg.engine.device)

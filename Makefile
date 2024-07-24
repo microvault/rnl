@@ -2,7 +2,7 @@
 .PHONY: train
 train:
 	@echo "Starting Training ..."
-	@python train.py
+	@poetry run python -m microvault.training.train
 
 # === Generate World === #
 .PHONY: gen

@@ -33,6 +33,7 @@ cython = "^3.0.8"
 scikit-image = "*"
 numba = "^0.59.1"
 pybind11 = "^2.13.1"
+gym = "^0.26.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"
