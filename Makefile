@@ -8,13 +8,7 @@ train:
 .PHONY: gen
 gen:
 	@echo "Generate World ..."
-	@python microvault/environment/generate.py
-
-# === Pull Github === #
-.PHONY: up
-up:
-	@echo "Git Pull ..."
-	@git pull
+	@poetry run python -m microvault.environment.generate
 
 .PHONY: format
 format:
