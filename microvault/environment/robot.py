@@ -1,81 +1,114 @@
+from dataclasses import dataclass
+from typing import Tuple
+
 import numpy as np
 
+from microvault.engine.collision import Collision
 
+
+@dataclass
 class Robot:
     def __init__(
         self,
-        type="robot",
-        size=10,
-        max_speed=1.8,
-        min_speed=0.1,
-        position_x=0,
-        position_y=0,
-        theta=0,
-        vx=0,
-        vy=0,
-        acceleration=0,
-        fov=90,
-        control_hz=10,
-        laser_max=10,
-        laser_min=0,
-        torque=0,
+        collision: Collision,
+        time: int = 100,
+        min_radius: float = 1.0,
+        max_radius: float = 3.0,
+        max_grid: int = 15,
+        wheel_radius: float = 0.3,
+        wheel_base: float = 0.3,
+        fov: float = 2 * np.pi,
+        num_rays: int = 10,
+        max_range: float = 6.0,
     ):
-        self.type = type
-        self.size = size
-        self.max_speed = max_speed
-        self.min_speed = min_speed
-        self.position_x = position_x
-        self.position_y = position_y
-        self.theta = theta
-        self.vx = vx
-        self.vy = vy
-        self.acceleration = acceleration
+        self.time = time
+        self.min_radius = min_radius
+        self.max_radius = max_radius
+        self.xmax = max_grid
+        self.ymax = max_grid
         self.fov = fov
-        self.control_hz = control_hz
-        self.laser_max = laser_max
-        self.laser_min = laser_min
-        self.torque = torque
+        self.max_range = max_range
+        self.num_rays = num_rays
+        self.wheel_radius = wheel_radius
+        self.wheel_base = wheel_base
+        self.collision = collision
+        self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
+        self.dt = 1
 
-    def init_agent(self, num_agents, time):
-        self.x = np.zeros((num_agents, time))  # position
-        self.y = np.zeros((num_agents, time))  # position
-        self.sp = np.zeros((num_agents, time))  # speed
-        self.theta = np.zeros((num_agents, time))  # angle
-        self.vx = np.zeros((num_agents, time))  # velocity
-        self.vy = np.zeros((num_agents, time))  # velocity
+    def init_agent(self) -> Tuple[
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        np.ndarray,
+        float,
+    ]:
+        """
+        Initializes the agent's parameters for the simulation.
 
-        return self.x, self.y, self.sp, self.theta, self.vx, self.vy
+        Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
+            Tuple containing the following:
+            - x (np.ndarray): Array of agent's x positions over time.
+            - y (np.ndarray): Array of agent's y positions over time.
+            - sp (np.ndarray): Array of agent's speed magnitudes over time.
+            - theta (np.ndarray): Array of agent's angles of velocity over time.
+            - vx (np.ndarray): Array of agent's x velocities over time.
+            - vy (np.ndarray): Array of agent's y velocities over time.
+            - radius (float): Radius of the robot.
+        """
+        x = np.zeros(self.time)
+        y = np.zeros(self.time)
+        vr = np.zeros(self.time)
+        vl = np.zeros(self.time)
+        theta = np.zeros(self.time)
+        measurements = np.zeros((self.time, self.num_rays))
+        radius = np.random.uniform(self.min_radius, self.max_radius)
 
-    def x_direction(self, agents, i, num_agents, xmax, x, vx, time) -> None:
-        for a in range(0, num_agents):
-            if (time - 1) != i:
-                if x[a, i] + vx[a, i] >= xmax or x[a, i] + vx[a, i] <= 0:
-                    x[a, i + 1] = x[a, i] - vx[a, i]
-                    vx[a, i + 1] = -vx[a, i]
-                else:
-                    x[a, i + 1] = x[a, i] + vx[a, i]
-                    vx[a, i + 1] = vx[a, i]
-            else:
-                if x[a, i] + vx[a, i] >= xmax or x[a, i] + vx[a, i] <= 0:
-                    x[a, i] = x[a, i] - vx[a, i]
-                    vx[a, i] = -vx[a, i]
-                else:
-                    x[a, i] = x[a, i] + vx[a, i]
-                    vx[a, i] = vx[a, i]
+        return (x, y, theta, self.lidar_angle, measurements, vr, vl, radius)
 
-    def y_direction(self, agents, i, num_agents, ymax, y, vy, time) -> None:
-        for a in range(0, num_agents):
-            if (time - 1) != i:
-                if y[a, i] + vy[a, i] >= ymax or y[a, i] + vy[a, i] <= 0:
-                    y[a, i + 1] = y[a, i] - vy[a, i]
-                    vy[a, i + 1] = -vy[a, i]
-                else:
-                    y[a, i + 1] = y[a, i] + vy[a, i]
-                    vy[a, i + 1] = vy[a, i]
-            else:
-                if y[a, i] + vy[a, i] >= ymax or y[a, i] + vy[a, i] <= 0:
-                    y[a, i] = y[a, i] - vy[a, i]
-                    vy[a, i] = -vy[a, i]
-                else:
-                    y[a, i] = y[a, i] + vy[a, i]
-                    vy[a, i] = vy[a, i]
+    def move_robot(
+        self,
+        x: float,
+        y: float,
+        theta: float,
+        vl: float,
+        vr: float,
+    ):
+        v_right = vr * self.wheel_radius
+        v_left = vl * self.wheel_radius
+
+        v = (v_right + v_left) / 2
+        omega = (v_right - v_left) / self.wheel_base
+
+        theta_new = theta + omega * self.dt
+
+        # Ensure theta stays within -2π to 2π
+        if theta_new > 2 * np.pi or theta_new < -2 * np.pi:
+            theta_new = 0
+
+        x_temp = x + v * np.cos(theta_new) * self.dt
+        y_temp = y + v * np.sin(theta_new) * self.dt
+
+        x_new = max(0.0, float(min(x_temp, self.xmax)))
+        y_new = max(0.0, float(min(y_temp, self.ymax)))
+
+        return x_new, y_new, theta_new
+
+    def sensor(self, x: float, y: float, segments) -> Tuple[np.ndarray, np.ndarray]:
+        seg = self.collision.filter_segments(segments, x, y, 6)
+
+        intersections = self.collision.lidar_intersection(
+            x, y, self.max_range, self.lidar_angle, seg
+        )
+
+        measurements = self.collision.lidar_measurement(
+            x, y, self.max_range, self.lidar_angle, seg
+        )
+
+        return intersections, measurements
+
+    def step(self):
+        pass
