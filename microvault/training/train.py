@@ -33,6 +33,7 @@ def main(cfg: TrainerConfig):
         beta=cfg.replay_buffer.beta,
         beta_increment_per_sampling=cfg.replay_buffer.beta_increment_per_sampling,
         absolute_error_upper=cfg.replay_buffer.absolute_error_upper,
+        device=cfg.engine.device,
     )
 
     modelActor = ModelActor(

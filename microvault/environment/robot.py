@@ -2,7 +2,6 @@ from dataclasses import dataclass
 from typing import Tuple
 
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 from microvault.engine.collision import Collision
 
@@ -48,9 +47,6 @@ class Robot:
     ]:
         """
         Initializes the agent's parameters for the simulation.
-
-        Parameters:
-        ax (Axes3D): The 3D axes to be used for plotting.
 
         Returns:
         Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:

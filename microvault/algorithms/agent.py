@@ -1,5 +1,3 @@
-import os
-import sys
 from typing import Tuple
 
 import numpy as np
@@ -48,8 +46,8 @@ class Agent:
         ======
             state_size (int): Tamanho do espaço de estado
             action_size (int): Tamanho do espaço de ação
-            max_action (ndarray): Valor maximo valido para cada vetor de ação
-            min_action (ndarray): Valor minimo valido para cada vetor de ação
+            max_action (ndarray): Valor maximo valido para cada vector de ação
+            min_action (ndarray): Valor minimo valido para cada vector de ação
             noise (float): Valor de ruído gerado na política
             noise_std (float): Desvio padrão do ruído
             noise_clip (float): Cortar ruído aleatório neste intervalo
@@ -283,7 +281,7 @@ class Agent:
             Q1_expected, Q2_expected = self.critic(state, action)
             # Valor Q esperado minimo
             Q_expected = torch.min(Q1_expected, Q2_expected)
-            # Erro absoluto entre os valores Q esperados e os valores Q alvos em np.adarray
+            # Error absoluto entre os valores Q esperados e os valores Q alvos em np.adarray
             errors = np.abs((Q_expected - Q_targets).detach().cpu().numpy())
             # Calcular a perda do crítico
             critic_loss = F.mse_loss(Q1_expected, Q_targets) + F.mse_loss(

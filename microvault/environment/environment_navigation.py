@@ -1,13 +1,9 @@
-import logging
-from typing import Tuple
-
 import gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from omegaconf import OmegaConf
 from shapely.geometry import Point, Polygon
 
 from microvault.algorithms.agent import Agent

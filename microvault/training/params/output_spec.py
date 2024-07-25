@@ -61,7 +61,7 @@ class OutputSpec:
 
         error_items = [_ for _ in error_items if _ is not None]
         if len(error_items):
-            raise RuntimeError("validade")
+            raise RuntimeError("validate")
 
     def validate_range(self, output):
         low, high = self.range

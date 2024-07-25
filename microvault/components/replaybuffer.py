@@ -4,9 +4,6 @@ import numpy as np
 import torch
 
 from microvault.components.sumtree import SumTree
-from microvault.training.config import ReplayBufferConfig
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class ReplayBuffer:
@@ -26,6 +23,7 @@ class ReplayBuffer:
         beta: float = 0.4,
         beta_increment_per_sampling: float = 1e-4,
         absolute_error_upper: float = 1.0,
+        device: str = "cpu",
     ):
         """
         A árvore é composta por uma árvore de soma que contém as pontuações de prioridade em sua folha e também uma matriz de dados.
@@ -49,6 +47,7 @@ class ReplayBuffer:
         self.n_step_buffer = deque(maxlen=nstep)
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self.device = device
 
     def __len__(self):
         return len(self.tree)
@@ -199,29 +198,29 @@ class ReplayBuffer:
         states = (
             torch.from_numpy(np.vstack([e[0] for e in minibatch if e is not None]))
             .float()
-            .to(device)
+            .to(self.device)
         )
         actions = (
             torch.from_numpy(np.vstack([e[1] for e in minibatch if e is not None]))
             .float()
-            .to(device)
+            .to(self.device)
         )
         rewards = (
             torch.from_numpy(np.vstack([e[2] for e in minibatch if e is not None]))
             .float()
-            .to(device)
+            .to(self.device)
         )
         next_states = (
             torch.from_numpy(np.vstack([e[3] for e in minibatch if e is not None]))
             .float()
-            .to(device)
+            .to(self.device)
         )
         dones = (
             torch.from_numpy(
                 np.vstack([e[4] for e in minibatch if e is not None]).astype(np.uint8)
             )
             .float()
-            .to(device)
+            .to(self.device)
         )
 
         # assert isinstance(

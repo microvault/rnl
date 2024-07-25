@@ -14,11 +14,11 @@ class SumTree:
         # Inicialize a árvore com todos os nós = 0 e inicialize os dados com todos os valores = 0
 
         # Número de nós folha (nós finais) que contém experiências
-        # Deve ser potência de 2.
+        # Deve set potência de 2.
         self.capacity = int(capacity)
-        assert self.is_power_of_2(self.capacity), "A capacidade deve ser potência de 2."
+        assert self.is_power_of_2(self.capacity), "A capacidade deve set potência de 2."
 
-        # Gere a árvore com todos os valores dos nós = 0
+        # Here a árvore com todos os valores dos nós = 0
         # Lembre-se que estamos em um nó binário (cada nó tem no máximo 2 filhos), então 2x o tamanho da folha (capacidade) - 1 (nó raiz)
         # Nós pais = capacidade - 1
         # Nós folha = capacidade

@@ -60,8 +60,8 @@ class Forward(nn.Module):
         Output:
         encoded state s' prediction by the forward model with shape: (batch_size, embedding_size)
 
-        Gets as inputs the aciton taken from the policy and the encoded state by the encoder in the inverse model.
-        The froward model trys to predict the encoded next state.
+        Gets as inputs the action taken from the policy and the encoded state by the encoder in the inverse model.
+        The forward model tries to predict the encoded next state.
         Returns the predicted encoded next state.
         Gets optimized by the MSE between the actual encoded next state and the predicted version of the forward model!
 
