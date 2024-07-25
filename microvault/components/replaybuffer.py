@@ -11,9 +11,10 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class ReplayBuffer:
 
+    # Memória de replay priorizada
+    # Fonte: https://arxiv.org/abs/1511.05952
     def __init__(
         self,
-        # __config = ReplayBufferConfig,
         buffer_size: int = 1048576,
         batch_size: int = 32,
         gamma: float = 0.99,
@@ -29,6 +30,7 @@ class ReplayBuffer:
         """
         A árvore é composta por uma árvore de soma que contém as pontuações de prioridade em sua folha e também uma matriz de dados.
         """
+
         self.tree = SumTree(buffer_size)
         self.epsilon = epsilon  # small amount to avoid zero priority
         self.alpha = (
@@ -91,7 +93,7 @@ class ReplayBuffer:
 
         assert isinstance(
             done, np.bool_
-        ), f"Done is not of type (bool) in REPLAY BUFFER -> done type: {type(done)}."
+        ), f"Done is not of type (np.bool_) in REPLAY BUFFER -> done type: {type(done)}."
 
         assert (
             state.shape[0] == self.state_dim

@@ -75,7 +75,7 @@ class EngineConfig:
     wandb: bool
     save_checkpoint: int
     epochs: int
-    train: bool
+    visualize: bool
 
 
 @dataclass

@@ -210,13 +210,13 @@ class NaviEnv(gym.Env):
 
         for m in self.measurement:
             if m <= self.threshold:
-                return states, -10, False, True, {}
+                return states, -10, np.bool_(False), {}
 
         if self.done == True:
-            return states, -10, False, True, {}
+            return states, -10, np.bool_(False), {}
 
         else:
-            return states, reward, False, False, {}
+            return states, reward, np.bool_(False), {}
 
     def reset(self):
         new_map_path, poly, seg = self.generator.world()

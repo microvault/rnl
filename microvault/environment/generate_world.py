@@ -15,8 +15,8 @@ from microvault.engine.world_generate import GenerateWorld
 class Generator:
     def __init__(
         self,
-        collision=Collision,
-        generate=GenerateWorld,
+        collision: Collision,
+        generate: GenerateWorld,
         grid_lenght: int = 10,
         random: int = 1300,
     ):

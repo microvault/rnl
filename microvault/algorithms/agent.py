@@ -18,9 +18,8 @@ class Agent:
 
     def __init__(
         self,
-        replayBuffer=ReplayBuffer,
-        modelActor=ModelActor,
-        modelCritic=ModelCritic,
+        modelActor: ModelActor,
+        modelCritic: ModelCritic,
         state_size: int = 13,
         action_size: int = 2,
         max_action: float = 1.0,
@@ -55,9 +54,6 @@ class Agent:
             noise_std (float): Desvio padrão do ruído
             noise_clip (float): Cortar ruído aleatório neste intervalo
         """
-
-        # modelActor = ModelActor()
-        # modelCritic = ModelCritic()
 
         self.state_size = state_size
         self.action_size = action_size
@@ -137,23 +133,7 @@ class Agent:
 
         self.clip_grad = torch.nn.utils.clip_grad_norm_
 
-        # Memória de replay priorizada
-        # Fonte: https://arxiv.org/abs/1511.05952
-        self.memory = replayBuffer
-
         # TODO: Inicializar o modelo RND
-
-    def step(
-        self,
-        state: np.ndarray,
-        action: np.ndarray,
-        reward: np.ndarray,
-        next_state: np.ndarray,
-        done: bool,
-    ) -> None:
-        """Salvar experiência na memória de replay (estado, ação, recompensa, próximo estado, feito)."""
-
-        self.memory.add(state, action, reward, next_state, done)
 
     def predict(self, states: np.ndarray) -> np.ndarray:
         """Retorna ações para determinado estado de acordo com a política atual."""
@@ -227,7 +207,7 @@ class Agent:
         return action
 
     def learn(
-        self, n_iteraion: int, episode: int
+        self, memory: ReplayBuffer, n_iteraion: int, episode: int
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, bool]:
         """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
@@ -247,12 +227,9 @@ class Agent:
 
         # Percorrer o número de iterações
         for i in range(n_iteraion):
-            print("learn: ", i)
             # ---------------------------- Amostragem de Experiência ---------------------------- #
             # Obtero o índice da amostra, a amostra (s, a, r, s', d) e os pesos de importância
-            idxs, state, action, reward, next_state, done, is_weights = (
-                self.memory.sample()
-            )
+            idxs, state, action, reward, next_state, done, is_weights = memory.sample()
 
             # Converter os pesos de importância para tensor
             is_weights = torch.from_numpy(is_weights).float().to(self.device)
@@ -314,7 +291,7 @@ class Agent:
             )
 
             # Atualizar os pesos de importância na memória priorizada
-            self.memory.batch_update(idxs, errors)
+            memory.batch_update(idxs, errors)
 
             # Minimize a perda
             self.critic_optimizer.zero_grad()

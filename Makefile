@@ -13,7 +13,6 @@ gen:
 .PHONY: format
 format:
 	@echo "Formatting with Black, iSort, and Ruff ..."
-	@[ -n "$(file)" ] || (echo "Error: 'file' variable is not set"; exit 1)
-	@black $(file)
-	@isort $(file)
-	@ruff $(file)
+	@black .py*
+	@isort .py*
+	@ruff .py*

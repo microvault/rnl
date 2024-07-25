@@ -1,5 +1,6 @@
 import gym
 import hydra
+import numpy as np
 from hydra.core.config_store import ConfigStore
 
 from microvault.algorithms.agent import Agent
@@ -18,7 +19,8 @@ cs.store(name="trainer_config", node=TrainerConfig)
 @hydra.main(config_path="../configs", config_name="config", version_base="1.2")
 def main(cfg: TrainerConfig):
 
-    engine = Engine(seed=cfg.engine.seed, device=cfg.engine.device)
+    Engine(seed=cfg.engine.seed, device=cfg.engine.device)
+
     replaybuffer = ReplayBuffer(
         buffer_size=cfg.replay_buffer.buffer_size,
         batch_size=cfg.engine.batch_size,
@@ -32,6 +34,7 @@ def main(cfg: TrainerConfig):
         beta_increment_per_sampling=cfg.replay_buffer.beta_increment_per_sampling,
         absolute_error_upper=cfg.replay_buffer.absolute_error_upper,
     )
+
     modelActor = ModelActor(
         state_dim=cfg.environment.state_size,
         action_dim=cfg.environment.action_size,
@@ -41,6 +44,7 @@ def main(cfg: TrainerConfig):
         device=cfg.engine.device,
         batch_size=cfg.engine.batch_size,
     )
+
     modelCritic = ModelCritic(
         state_dim=cfg.environment.state_size,
         action_dim=cfg.environment.action_size,
@@ -49,8 +53,8 @@ def main(cfg: TrainerConfig):
         device=cfg.engine.device,
         batch_size=cfg.engine.batch_size,
     )
+
     agent = Agent(
-        replayBuffer=replaybuffer,
         modelActor=modelActor,
         modelCritic=modelCritic,
         state_size=cfg.environment.state_size,
@@ -76,14 +80,18 @@ def main(cfg: TrainerConfig):
         scalar_decay=cfg.noise_layer.scalar_decay,
     )
 
+    collision = Collision()
+    generate = GenerateWorld()
+
     generate = Generator(
-        collision=Collision(),
-        generate=GenerateWorld(),
+        collision=collision,
+        generate=generate,
         grid_lenght=cfg.environment.grid_lenght,
         random=cfg.environment.random,
     )
+
     robot = Robot(
-        collision=Collision(),
+        collision=collision,
         time=cfg.environment.timestep,
         min_radius=cfg.robot.min_radius,
         max_radius=cfg.robot.max_radius,
@@ -103,17 +111,26 @@ def main(cfg: TrainerConfig):
         generator=generate,
     )
 
-    if cfg.engine.train:
+    if cfg.engine.visualize:
+        state = env.reset()
+        env.render()
+
+    else:
         state = env.reset()
         done = False
 
         for timestep in range(100):
-            print("Timestep ", timestep)
-            action = env.action_space.sample()
-            observation, reward, terminated, truncated, info = env.step(action)
-    else:
-        state = env.reset()
-        env.render()
+
+            if isinstance(state, tuple):
+                state = np.array(state[0])
+
+            action = agent.predict(state)
+            next_state, reward, done, info = env.step(action)
+            replaybuffer.add(state, action, reward, next_state, done)
+
+        critic_loss, actor_loss, q, max_q, _ = agent.learn(
+            memory=replaybuffer, n_iteraion=100, episode=10
+        )
 
 
 if __name__ == "__main__":
