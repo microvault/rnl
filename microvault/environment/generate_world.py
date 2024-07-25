@@ -1,26 +1,29 @@
 from dataclasses import dataclass
 from typing import List, Tuple
 
-# import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 
-from .engine.collision import extract_segment
-from .engine.world_generate import generate_maze
+from microvault.engine.collision import Collision
+from microvault.engine.world_generate import GenerateWorld
 
 
 @dataclass
 class Generator:
     def __init__(
         self,
+        collision: Collision,
+        generate: GenerateWorld,
         grid_lenght: int = 10,
         random: int = 1300,
     ):
         self.grid_lenght = grid_lenght
         self.random = random
+        self.collision = collision
+        self.generate = generate
 
     @staticmethod
     def _map_border(m: np.ndarray) -> np.ndarray:
@@ -57,21 +60,17 @@ class Generator:
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
     def upscale_map(self, original_map, resolution):
-        # Calcula as dimensões do novo mapa
+        # TODO
         new_shape = (
             original_map.shape[0] * int(1 / resolution),
             original_map.shape[1] * int(1 / resolution),
         )
 
-        # Cria um novo mapa com a resolução desejada
         new_map = np.zeros(new_shape)
 
-        # Itera sobre cada célula do novo mapa
         for i in range(new_shape[0]):
             for j in range(new_shape[1]):
-                # Verifica o valor correspondente no mapa original
                 original_value = original_map[int(i * resolution), int(j * resolution)]
-                # Define o valor no novo mapa
                 new_map[i, j] = original_value
 
         return new_map
@@ -86,37 +85,47 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        m = generate_maze(
+        m = self.generate.generate_maze(
             map_size=self.grid_lenght,
             decimation=0.0,
-            min_blocks=10,
+            min_blocks=0,
             num_cells_togo=self.random,
         )
 
         border = self._map_border(m)
         map_grid = 1 - border
 
-        # print(map_grid)
-
-        # new_resolution = 0.1
-        # new_map = self.upscale_map(map_grid, new_resolution)
-
-        # print(new_map)
-
-        # map_grid = new_map
-
-        # plt.imshow(new_map, cmap='binary', origin='lower')
-        # plt.colorbar()
-        # plt.show()
-
         contours = measure.find_contours(map_grid, 0.5)
 
-        exterior = [
-            (border.shape[1] - 1, border.shape[0] - 1),
-            (0, border.shape[0] - 1),
-            (0, 0),
-            (border.shape[1] - 1, 0),
-        ]
+        height, width = map_grid.shape
+        exterior = []
+
+        """
+        #---------1---------#
+        |                   |
+        |                   |
+        4                   2
+        |                   |
+        |                   |
+        #---------3---------#
+        """
+
+        # 1
+        for x in range(width):
+            exterior.append((x, height - 1))
+
+        # 2
+        for y in range(height - 2, -1, -1):
+            exterior.append((width - 1, y))
+
+        # 3
+        for x in range(width - 2, -1, -1):
+            exterior.append((x, 0))
+
+        # 4
+        for y in range(1, height - 1):
+            exterior.append((0, y))
+
         interiors = []
         segments = []
 
@@ -135,36 +144,9 @@ class Generator:
 
         stacks = [self.line_to_np_stack(line) for line in segments]
 
-        segment = extract_segment(stacks)
+        segment = self.collision.extract_seg_from_polygon(stacks)
 
-        # x, y = segment.xy  # Extrai coordenadas x e y do segmento
-
-        # for seg in segment:
-        #     x_values = [seg[0], seg[2]]
-        #     y_values = [seg[1], seg[3]]
-        #     plt.plot(x_values, y_values, color='blue')
-        # plt.xlabel('X')
-        # plt.ylabel('Y')
-        # plt.title('Line Segments')
-        # plt.grid(True)
-        # plt.show()
-
-        # for i in range(len(stacks)):
-        #     x, y = stacks[i].T
-        #     plt.plot(x, y, color='black')
-
-        # plt.plot(x, y)  # Plota o segmento
-        # plt.xlabel('X')
-        # plt.ylabel('Y')
-        # plt.title('Segmento')
-        # plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
-        poly = Polygon(exterior, holes=interiors)
-
-        if not poly.is_valid:
-            poly = poly.buffer(0)
-            print("invalid")
+        poly = Polygon(exterior, holes=interiors).buffer(0)
 
         path = Path.make_compound_path(
             Path(np.asarray(poly.exterior.coords)[:, :2]),
@@ -176,7 +158,3 @@ class Generator:
         )
 
         return path_patch, poly, segment
-
-
-# env = Generator()
-# path_patch, poly, segment = env.world()

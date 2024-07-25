@@ -2,18 +2,26 @@ import numpy as np
 import pytest
 from matplotlib.patches import PathPatch
 
-from microvault.environment.engine.world_generate import generate_maze
-from microvault.environment.generate import Generator
+from microvault.engine.collision import Collision
+from microvault.engine.world_generate import GenerateWorld
+from microvault.environment.generate_world import Generator
 
 
 @pytest.fixture
 def generate_instance():
-    return Generator(grid_lenght=10, random=1300)
+    collision = Collision()
+    generator = GenerateWorld()
+    return Generator(collision, generator)
 
 
-def test_generate_maze(generate_instance):
+@pytest.fixture
+def generate_grid_instance():
+    return GenerateWorld()
+
+
+def test_generate_maze(generate_grid_instance):
     size = 10
-    maze = generate_maze(size)
+    maze = generate_grid_instance.generate_maze(size)
     assert maze.shape == (size, size)
 
 

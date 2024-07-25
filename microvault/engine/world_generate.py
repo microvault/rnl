@@ -3,6 +3,20 @@ import numpy.random as npr
 from numba import njit
 
 
+class GenerateWorld:
+    def __init__(self):
+        pass
+
+    def generate_maze(
+        self,
+        map_size: int,
+        decimation: float = 0.0,
+        min_blocks: int = 10,
+        num_cells_togo: int = 150,
+    ) -> np.ndarray:
+        return generate_maze(map_size, decimation, min_blocks, num_cells_togo)
+
+
 @njit(parallel=True)
 def generate_maze(
     map_size: int,
@@ -69,6 +83,9 @@ def generate_maze(
 
     # ----- Generate Map -----
     index_ones = np.arange(map_size * map_size)[maze.flatten() == 1]
+
+    if index_ones.size < min_blocks:
+        raise ValueError("Minimum number of blocks cannot be placed.")
 
     reserve = min(index_ones.size, min_blocks)
     num_cells_togo = min(num_cells_togo, index_ones.size - reserve)
