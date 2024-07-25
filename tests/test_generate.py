@@ -1,28 +1,28 @@
 import numpy as np
 import pytest
+from matplotlib.patches import PathPatch
 
-from microvault.environment.generate import Generator
-
-# from matplotlib.patches import PathPatch
+from microvault.engine.collision import Collision
+from microvault.engine.world_generate import GenerateWorld
+from microvault.environment.generate_world import Generator
 
 
 @pytest.fixture
 def generate_instance():
-    return Generator(grid_lenght=10, random=1300)
+    collision = Collision()
+    generator = GenerateWorld()
+    return Generator(collision, generator)
 
 
-def test_generate_maze(generate_instance):
+@pytest.fixture
+def generate_grid_instance():
+    return GenerateWorld()
+
+
+def test_generate_maze(generate_grid_instance):
     size = 10
-    maze = generate_instance._generate_maze(size)
+    maze = generate_grid_instance.generate_maze(size)
     assert maze.shape == (size, size)
-
-
-def test_generate_map(generate_instance):
-    size = 10
-    random = 1300
-
-    map = generate_instance._generate_map(size, random)
-    assert map.shape == (size, size)
 
 
 def test_generate_shape_border(generate_instance):
@@ -31,6 +31,6 @@ def test_generate_shape_border(generate_instance):
     assert map.shape == (12, 12)
 
 
-# def test_world_output_type(generate_instance):
-#     patch = generate_instance.world()
-#     assert isinstance(patch, PathPatch)
+def test_world_output_type(generate_instance):
+    new_map_path, poly, seg = generate_instance.world()
+    assert isinstance(new_map_path, PathPatch)

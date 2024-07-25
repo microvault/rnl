@@ -1,11 +1,17 @@
-# === Clean docker === #
-.PHONY: clean
-clean:
-	@echo "Closing all running docker containers ..."
-	@sudo docker system prune -f
+.PHONY: train
+train:
+	@poetry run python -m microvault.training.train
 
-# === Stop Docker === #
-.PHONY: kill
-kill:
-	@echo "Stopping Docker ..."
-	@sudo docker stop $(shell sudo docker ps -a -q)
+.PHONY: gen
+gen:
+	@poetry run python -m microvault.environment.generate
+
+.PHONY: format
+format:
+	@black .py*
+	@isort .py*
+	@ruff .py*
+
+.PHONY: test
+test:
+	@poetry run task test
