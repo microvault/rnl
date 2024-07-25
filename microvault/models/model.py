@@ -132,7 +132,7 @@ class ModelCritic(nn.Module):
         ), "Tensor elements are not of type torch.float32 in CRITIC."
         assert (
             action.shape[0] == self.batch_size
-        ), "The action shape is not torch.Size([100]) in CRITIC."
+        ), "The action shape is not torch.Size([100]) in CRITIC"
         assert (
             str(action.device.type) == self.device
         ), "The action must be on the same device  in CRITIC."
