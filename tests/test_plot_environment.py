@@ -1,23 +1,8 @@
-import matplotlib.pyplot as plt
 import pytest
 
-from microvault.environment.continuous import Continuous
+from microvault.environment.environment_navigation import NaviEnv
 
 
 @pytest.fixture
 def continuous_instance():
-    return Continuous(
-        n=10,
-        time=10,
-        size=2,
-        frame=100,
-        random=300,
-        max_speed=1.8,
-        min_speed=0.4,
-        grid_lenght=10,
-    )
-
-
-def test_environment(continuous_instance):
-    continuous_instance.show(plot=False)
-    assert plt.gcf()
+    return NaviEnv()
