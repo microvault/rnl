@@ -10,9 +10,6 @@ class Engine:
         self.seed = seed
         self.device = device
 
-        self.seed_everything()
-        self.set_device()
-
     def seed_everything(self):
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
