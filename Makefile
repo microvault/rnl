@@ -1,6 +1,10 @@
 .PHONY: train
 train:
-	@poetry run python -m microvault.training.train
+	@poetry run python -m microvault.training.run
+
+.PHONY: tune
+tune:
+	@poetry run python -m microvault.training.finetune
 
 .PHONY: gen
 gen:
