@@ -10,6 +10,13 @@ RESET = "\033[0m"
 
 class Collision:
 
+    def check_collision(self, edges: list, xp: np.ndarray, yp: np.ndarray) -> bool:
+        try:
+            return ray_casting(edges, xp, yp)
+        except Exception as e:
+            print(f"{RED_BOLD}Error in check_collision: {e}{RESET}")
+            raise
+
     def filter_segments(self, segs: List, x: float, y: float, max_range: int):
         try:
             return filter_list_segment(segs, x, y, max_range)
@@ -28,7 +35,7 @@ class Collision:
         self,
         robot_x: float,
         robot_y: float,
-        lidar_range: int,
+        lidar_range: float,
         lidar_angles: np.ndarray,
         segments: List,
     ):
@@ -44,7 +51,7 @@ class Collision:
         self,
         robot_x: float,
         robot_y: float,
-        lidar_range: int,
+        lidar_range: float,
         lidar_angles: np.ndarray,
         segments: List,
     ):
@@ -323,7 +330,7 @@ lru_cache(maxsize=5)
 def lidar_intersections(
     robot_x: float,
     robot_y: float,
-    lidar_range: int,
+    lidar_range: float,
     lidar_angles: np.ndarray,
     segments: List,
 ):
@@ -370,7 +377,7 @@ def position_intersection(
 def lidar_measurements(
     robot_x: float,
     robot_y: float,
-    lidar_range: int,
+    lidar_range: float,
     lidar_angles: np.ndarray,
     segments: List,
 ):
@@ -410,7 +417,7 @@ def measurements_intersection(intersection: List) -> Tuple[bool, float]:
 
 @njit
 def lidar_to_segment(
-    robot_x: float, robot_y: float, lidar_range: int, angle: float
+    robot_x: float, robot_y: float, lidar_range: float, angle: float
 ) -> List[Tuple[float, float]]:
     return [
         (robot_x, robot_y),
@@ -434,3 +441,25 @@ def cross_product_2d_vector(a: np.ndarray, b: np.ndarray) -> float:
     assert a.shape == b.shape, "Vectors must have the same shape in 2D cross product."
     assert a.shape[0] == 2, "Vectors must be 2D for cross product."
     return a[0] * b[1] - a[1] * b[0]
+
+
+@njit
+def ray_casting(edges: list, xp: np.ndarray, yp: np.ndarray) -> bool:
+    """
+    Ray casting algorithm to check if a point is inside a polygon.
+
+    Parameters:
+    edges (list): The edges of the polygon.
+    xp (np.ndarray): The x coordinates of the point.
+    yp (np.ndarray): The y coordinates of the point.
+
+    Returns:
+    bool: True if the point is inside the polygon, False otherwise
+    """
+
+    cnt = 0
+    for edge in edges:
+        (x1, y1, x2, y2) = edge
+        if (yp < y1) != (yp < y2) and xp < x1 + ((yp - y1) / (y2 - y1)) * (x2 - x1):
+            cnt += 1
+    return cnt % 2 == 1
