@@ -2,6 +2,13 @@ from dataclasses import dataclass
 
 
 @dataclass
+class WandbConfig:
+    project: str
+    entity: str
+    mode: str
+
+
+@dataclass
 class AgentConfig:
     gamma: float
     tau: float
@@ -20,11 +27,6 @@ class AgentConfig:
 @dataclass
 class ReplayBufferConfig:
     buffer_size: int
-    epsilon: float
-    alpha: float
-    beta: float
-    beta_increment_per_sampling: float
-    absolute_error_upper: float
 
 
 @dataclass
@@ -89,6 +91,7 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
+    wandb: WandbConfig
     agent: AgentConfig
     noise_layer: NoiseLayerConfig
     replay_buffer: ReplayBufferConfig

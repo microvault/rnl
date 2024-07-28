@@ -97,7 +97,9 @@ class Robot:
 
         return x_new, y_new, theta_new
 
-    def sensor(self, x: float, y: float, segments) -> Tuple[np.ndarray, np.ndarray]:
+    def sensor(
+        self, x: float, y: float, segments: list
+    ) -> Tuple[np.ndarray, np.ndarray]:
         seg = self.collision.filter_segments(segments, x, y, 6)
 
         intersections = self.collision.lidar_intersection(

@@ -59,8 +59,8 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
+    # TODO
     def upscale_map(self, original_map, resolution):
-        # TODO
         new_shape = (
             original_map.shape[0] * int(1 / resolution),
             original_map.shape[1] * int(1 / resolution),
