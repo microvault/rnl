@@ -144,7 +144,7 @@ def run_experiment(cfg: TrainerConfig) -> None:
         trainer = Training(env, agent, replaybuffer)
 
         if cfg.engine.visualize:
-            state = env.reset()
+            env.reset()
             env.render()
 
         else:
@@ -152,13 +152,6 @@ def run_experiment(cfg: TrainerConfig) -> None:
             scalar_decay_deque = deque(maxlen=100)
             distance_deque = deque(maxlen=100)
             scores_deque = deque(maxlen=100)
-            time_foward_deque = deque(maxlen=100)
-
-            success_count = 0
-            failure_count = 0
-            last_success_rate = 0
-            last_failure_rate = 0
-
             scores = []
 
             for epoch in np.arange(1, epochs + 1):
@@ -185,7 +178,6 @@ def run_experiment(cfg: TrainerConfig) -> None:
                 mean_scalar_deque = np.mean(scalar_deque)
                 mean_scalar_decay_deque = np.mean(scalar_decay_deque)
                 mean_distance_deque = np.mean(distance_deque)
-                mean_time_foward_deque = np.mean(time_foward_deque)
                 scores_deque.append(score)
                 scores.append(score)
                 mean_score = np.mean(scores_deque)
@@ -202,7 +194,6 @@ def run_experiment(cfg: TrainerConfig) -> None:
                         "max_q": max_q,
                         "time_per_epoch": elapsed_time,
                         "mean_reward": mean_score,
-                        "mean_time_foward": mean_time_foward_deque,
                         "intrinsic_reward": intrinsic_reward,
                         "error": error,
                     }
