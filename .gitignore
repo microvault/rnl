@@ -766,3 +766,5 @@ docs/.next/
 /microvault/environment/utils/map.py
 /microvault/outputs/
 /outputs
+/wandb/
+/microvault/environment/utils/
