@@ -1,3 +1,4 @@
+import timeit
 from typing import Tuple
 
 import numpy as np
@@ -22,7 +23,6 @@ class Agent:
         action_size: int = 2,
         max_action: float = 1.0,
         min_action: float = -1.0,
-        batch_size: int = 128,
         update_every_step: int = 2,
         gamma: float = 0.99,
         tau: float = 1e-3,
@@ -30,9 +30,7 @@ class Agent:
         lr_critic: float = 1e-3,
         weight_decay: float = 0.0,
         noise: float = 0.2,
-        noise_std: float = 0.1,
         noise_clip: float = 0.5,
-        random_seed: int = 42,
         device: str = "cpu",
         pretrained: bool = False,
         nstep: int = 1,
@@ -49,7 +47,6 @@ class Agent:
             max_action (ndarray): Valor maximo valido para cada vector de ação
             min_action (ndarray): Valor minimo valido para cada vector de ação
             noise (float): Valor de ruído gerado na política
-            noise_std (float): Desvio padrão do ruído
             noise_clip (float): Cortar ruído aleatório neste intervalo
         """
 
@@ -57,7 +54,6 @@ class Agent:
         self.action_size = action_size
         self.max_action = max_action
         self.min_action = min_action
-        self.batch_size = batch_size
         self.gamma = gamma
         self.tau = tau
         self.update_every_step = update_every_step
@@ -65,18 +61,13 @@ class Agent:
         self.lr_critic = lr_critic
         self.weight_decay = weight_decay
         self.noise = noise
-        self.noise_std = noise_std
         self.noise_clip = noise_clip
-        self.random_seed = random_seed
         self.device = device
         self.pretrained = pretrained
         self.nstep = nstep
         self.desired_distance = desired_distance
         self.scalar = scalar
         self.scalar_decay = scalar_decay
-
-        # Parâmetros do ruído
-        self.distances = []
 
         # Transfência de aprendizado
         if self.pretrained:
@@ -103,7 +94,9 @@ class Agent:
             )  # .eval().requires_grad_(False)
             self.critic_target.load_state_dict(self.critic.state_dict())
             self.critic_optimizer = optim.Adam(
-                self.critic.parameters(), lr=self.lr_critic
+                self.critic.parameters(),
+                lr=self.lr_critic,
+                weight_decay=self.weight_decay,
             )
 
         else:
@@ -126,14 +119,18 @@ class Agent:
             )  # .eval().requires_grad_(False)
             self.critic_target.load_state_dict(self.critic.state_dict())
             self.critic_optimizer = optim.Adam(
-                self.critic.parameters(), lr=self.lr_critic
+                self.critic.parameters(),
+                lr=self.lr_critic,
+                weight_decay=self.weight_decay,
             )
 
         self.clip_grad = torch.nn.utils.clip_grad_norm_
 
         # TODO: Inicializar o modelo RND
 
-    def predict(self, states: np.ndarray) -> np.ndarray:
+    def predict(
+        self, states: np.ndarray
+    ) -> Tuple[np.ndarray, float, float, float, float]:
         """Retorna ações para determinado estado de acordo com a política atual."""
 
         assert isinstance(
@@ -167,7 +164,9 @@ class Agent:
         # Desativar o cálculo de gradientes
         with torch.no_grad():
             # Passar o estado para o modelo e retorna a ação em np.ndarray
+            start_time = timeit.default_timer()
             action = self.actor(state).cpu().data.numpy()
+            elapsed_time = timeit.default_timer() - start_time
 
             # ---------------------------- Adicionar Ruído as Camadas do Modelo ---------------------------- #
             # Fonte: https://arxiv.org/abs/1706.01905
@@ -181,7 +180,6 @@ class Agent:
             # Mede a distância entre os valores de ação dos ator regulares e ator ruidoso
             distance = np.sqrt(np.mean(np.square(action - action_noised)))
             # Adicionar a distância ao histórico de distâncias
-            self.distances.append(distance)
             # Ajuste a quantidade de ruído dada ao "actor_noised"
             if distance > self.desired_distance:
                 self.scalar *= self.scalar_decay
@@ -200,37 +198,39 @@ class Agent:
             action.shape[0] == self.action_size
         ), "O tamanho da ação é diferente do tamanho definido em PREDICT."
 
-        ## assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(type(action))
-
-        return action
+        assert isinstance(
+            action[0], np.float32
+        ), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(
+            type(action)
+        )
+        return action, self.scalar, self.scalar_decay, distance, elapsed_time
 
     def learn(
-        self, memory: ReplayBuffer, n_iteraion: int, episode: int
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, bool]:
+        self, memory: ReplayBuffer, n_iteration: int, episode: int
+    ) -> Tuple[float, float, float, float, float, float]:
         """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
         Parâmetros
         ======
             n_iteraion (int): O número de iterações para treinar a rede
         """
+
         self.actor.train()
         self.critic.train()
 
-        # Se o tamanho da memória for maior que o tamanho do lote
-        # if len(self.memory) > self.batch_size:
         average_Q = 0
         max_Q = -inf
         average_critic_loss = 0
         average_actor_loss = 0
+        intrinsic_reward = 0
+        errors = 0
+        actor_loss = torch.tensor(0)
 
         # Percorrer o número de iterações
-        for i in range(n_iteraion):
+        for i in range(n_iteration):  # loop:
             # ---------------------------- Amostragem de Experiência ---------------------------- #
             # Obtero o índice da amostra, a amostra (s, a, r, s', d) e os pesos de importância
-            idxs, state, action, reward, next_state, done, is_weights = memory.sample()
-
-            # Converter os pesos de importância para tensor
-            is_weights = torch.from_numpy(is_weights).float().to(self.device)
+            state, action, reward, next_state, done = memory.sample()
 
             # Converter a ação para tensor
             action_ = action.cpu().numpy()
@@ -283,20 +283,18 @@ class Agent:
             Q_expected = torch.min(Q1_expected, Q2_expected)
             # Error absoluto entre os valores Q esperados e os valores Q alvos em np.adarray
             errors = np.abs((Q_expected - Q_targets).detach().cpu().numpy())
+
+            # TODO: random intrinsic reward 0 a 10
+            intrinsic_reward = torch.rand(1) * 10
             # Calcular a perda do crítico
             critic_loss = F.mse_loss(Q1_expected, Q_targets) + F.mse_loss(
                 Q2_expected, Q_targets
             )
 
-            # Atualizar os pesos de importância na memória priorizada
-            memory.batch_update(idxs, errors)
-
             # Minimize a perda
             self.critic_optimizer.zero_grad()
             critic_loss.backward()
             self.critic_optimizer.step()
-
-            actor_loss = 0
 
             if i % self.update_every_step == 0:
                 # ---------------------------- atualizar Ator ---------------------------- #
@@ -313,18 +311,35 @@ class Agent:
                 self.soft_update(self.critic, self.critic_target, self.tau)
                 self.soft_update(self.actor, self.actor_target, self.tau)
 
-            average_critic_loss += critic_loss
-            average_actor_loss += actor_loss
+                average_actor_loss += actor_loss
 
-        loss_critic = average_critic_loss / n_iteraion
-        loss_actor = average_actor_loss / n_iteraion
-        average_policy = average_Q / n_iteraion
+            average_critic_loss += critic_loss
+
+        loss_critic = average_critic_loss / n_iteration
+        loss_actor = average_actor_loss / n_iteration
+        average_intrinsic_reward = intrinsic_reward / n_iteration
+        average_policy = average_Q / n_iteration
+        average_errors = errors / n_iteration
         max_policy = max_Q
 
-        return (loss_critic, loss_actor, average_policy, max_policy, True)
+        # delete variables
+        del (
+            average_Q,
+            max_Q,
+            average_critic_loss,
+            average_actor_loss,
+            intrinsic_reward,
+            errors,
+        )
 
-        # else:
-        #     return (0, 0, 0, 0, False)
+        return (
+            float(loss_critic.item()),
+            float(loss_actor.item()),
+            float(average_policy.item()),
+            float(max_policy.item()),
+            float(average_intrinsic_reward.item()),
+            float(average_errors[0]),
+        )
 
     @staticmethod
     def soft_update(
