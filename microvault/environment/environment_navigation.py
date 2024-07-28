@@ -1,3 +1,5 @@
+import warnings
+
 import gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
@@ -7,8 +9,11 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 from shapely.geometry import Point, Polygon
 
 from microvault.algorithms.agent import Agent
+from microvault.engine.collision import Collision
 from microvault.environment.generate_world import Generator
 from microvault.environment.robot import Robot
+
+warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*np.bool8.*")
 
 # car racing reference
 # - 8 m/s
@@ -20,9 +25,10 @@ from microvault.environment.robot import Robot
 class NaviEnv(gym.Env):
     def __init__(
         self,
-        robot=Robot,
-        generator=Generator,
-        agent=Agent,
+        robot: Robot,
+        generator: Generator,
+        agent: Agent,
+        collision: Collision,
         timestep: int = 100,  # max step
         size: float = 3.0,  # size robot
         random: int = 1000,  # 100 random points
@@ -44,6 +50,7 @@ class NaviEnv(gym.Env):
         self.generator = generator
         self.robot = robot
         self.agent = agent
+        self.collision = collision
 
         self.rgb_array = rgb_array
         self.max_epochs = max_episode
@@ -56,20 +63,15 @@ class NaviEnv(gym.Env):
         self.xmax = grid_lenght - 0.25
         self.ymax = grid_lenght - 0.25
 
-        self.segments = None
+        self.segments = []
         self.poly = None
 
-        # TODO: remove the team and remove in array format
         self.target_x = 0
         self.target_y = 0
         self.last_position_x = 0
         self.last_position_y = 0
         self.last_theta = 0
         self.epoch = 0
-
-        self.init_position_x = 0
-        self.init_position_y = 0
-        self.init_theta = 0
 
         self.radius = 1.0
         self.lidar_angle = np.linspace(0, 2 * np.pi, 10)
@@ -98,7 +100,7 @@ class NaviEnv(gym.Env):
                 color="orange",
             )[0]
 
-            self.ani = None
+            self.ani = animation.FuncAnimation
             self._init_animation(self.ax)
 
     @staticmethod
@@ -115,7 +117,7 @@ class NaviEnv(gym.Env):
         bool: True if the point is inside the polygon, False otherwise.
         """
         center = Point(x, y)
-        circle = center.buffer(0.5)
+        circle = center.buffer(1.0)
         return circle.within(poly)
 
     @staticmethod
@@ -124,59 +126,56 @@ class NaviEnv(gym.Env):
 
     def _animation(self, i):
 
-        if i == 0:
-            self.last_theta = self.init_theta
-            self.last_position_x = self.init_position_x
-            self.last_position_y = self.init_position_y
-        else:
-            vl = np.random.uniform(-1, 1)
-            vr = np.random.uniform(0, 1)
+        vl = np.random.uniform(-1, 1)
+        vr = np.random.uniform(0, 1)
 
-            reward = np.float64(np.random.uniform(0, 10))
-            done = np.bool_(np.random.choice([True, False], p=[0.01, 0.99]))
+        reward = np.float64(np.random.uniform(0, 10))
+        done = np.bool_(
+            False
+        )  # np.bool_(np.random.choice([True, False], p=[0.01, 0.99]))
 
-            x, y, theta = self.robot.move_robot(
-                self.last_position_x, self.last_position_y, self.last_theta, vl, vr
+        x, y, theta = self.robot.move_robot(
+            self.last_position_x, self.last_position_y, self.last_theta, vl, vr
+        )
+
+        intersections, measurement = self.robot.sensor(x=x, y=y, segments=self.segments)
+        dist = self.distance(x, y, self.target_x, self.target_y)
+        states = np.concatenate(
+            (
+                np.array(measurement, dtype=np.float32),
+                np.array([vr], dtype=np.float32),
+                np.array([vl], dtype=np.float32),
+                np.array([dist], dtype=np.float32),
             )
+        )
 
-            intersections, measurement = self.robot.sensor(x, y, self.segments)
-            dist = self.distance(x, y, self.target_x, self.target_y)
-            states = np.concatenate(
-                (
-                    np.array(measurement, dtype=np.float32),
-                    np.array([vr], dtype=np.float32),
-                    np.array([vl], dtype=np.float32),
-                    np.array([dist], dtype=np.float32),
-                )
-            )
+        self._plot_anim(
+            i,
+            intersections,
+            x,
+            y,
+            self.target_x,
+            self.target_y,
+            self.epoch,
+        )
 
-            self._plot_anim(
-                i,
-                intersections,
-                x,
-                y,
-                self.target_x,
-                self.target_y,
-                self.epoch,
-            )
+        self.last_theta = theta
+        self.last_position_x = x
+        self.last_position_y = y
 
-            self.last_theta = theta
-            self.last_position_x = x
-            self.last_position_y = y
+        if done == True:
+            self.close()
 
-            if done == True:
+        elif (i + 1) == self.max_timestep:
+            self.close()
+
+        elif self.epoch == self.max_epochs:
+            self.ani.event_source.stop()
+            plt.close(self.fig)
+
+        for m in measurement:
+            if m <= self.threshold:
                 self.close()
-
-            elif i == self.max_timestep:
-                self.close()
-
-            elif self.epoch == self.max_epochs:
-                self.ani.event_source.stop()
-                plt.close(self.fig)
-
-            for m in measurement:
-                if m <= self.threshold:
-                    self.close()
 
     def step(self, action):
 
@@ -184,7 +183,7 @@ class NaviEnv(gym.Env):
         vr = np.random.uniform(0, 1)
 
         reward = np.float64(np.random.uniform(0, 10))
-        done = np.bool_(np.random.choice([True, False], p=[0.01, 0.99]))
+        done = np.bool_(np.random.choice([True, False], p=[0.1, 0.90]))
 
         x, y, theta = self.robot.move_robot(
             self.last_position_x, self.last_position_y, self.last_theta, vl, vr
@@ -206,15 +205,17 @@ class NaviEnv(gym.Env):
 
         for m in self.measurement:
             if m <= self.threshold:
-                return states, -10, np.bool_(False), {}
+                return states, -10, done, {}
 
-        if self.done == True:
-            return states, -10, np.bool_(False), {}
+        if done == True:
+            return states, -10, done, {}
 
         else:
-            return states, reward, np.bool_(False), {}
+            return states, reward, done, {}
 
-    def reset(self):
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+
         new_map_path, poly, seg = self.generator.world()
         self.segments = seg
         self.poly = poly
@@ -227,36 +228,24 @@ class NaviEnv(gym.Env):
             self.ax.add_patch(new_map_path)
             art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
 
-        self.target_x = np.random.uniform(0, self.xmax)
-        self.target_y = np.random.uniform(0, self.ymax)
-
-        target_inside = False
-
-        while not target_inside:
+        while True:
             self.target_x = np.random.uniform(0, self.xmax)
             self.target_y = np.random.uniform(0, self.ymax)
+            self.last_position_x = np.random.uniform(0, self.xmax)
+            self.last_position_y = np.random.uniform(0, self.ymax)
+            self.last_theta = np.random.uniform(0, 2 * np.pi)
 
-            if self._ray_casting(poly, self.target_x, self.target_y):
-                target_inside = True
-
-        self.init_position_x = np.random.uniform(0, self.xmax)
-        self.init_position_y = np.random.uniform(0, self.ymax)
-        self.init_theta = np.random.uniform(0, 2 * np.pi)
-
-        agent_inside = False
-
-        while not agent_inside:
-            self.init_position_x = np.random.uniform(0, self.xmax)
-            self.init_position_y = np.random.uniform(0, self.ymax)
-
-            if self._ray_casting(poly, self.init_position_x, self.init_position_y):
-                agent_inside = True
+            if self.collision.check_collision(
+                seg, self.last_position_x, self.last_position_y
+            ) and self.collision.check_collision(seg, self.target_x, self.target_y):
+                break
 
         intersections, measurement = self.robot.sensor(
-            self.init_position_x, self.init_position_y, self.segments
+            x=self.last_position_x, y=self.last_position_y, segments=seg
         )
+
         dist = self.distance(
-            self.init_position_x, self.init_position_y, self.target_x, self.target_y
+            self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
         states = np.concatenate(
@@ -279,7 +268,6 @@ class NaviEnv(gym.Env):
             blit=False,
             frames=self.timestep,
             interval=self.fps,
-            repeat=False,
         )
 
         plt.show()
@@ -334,7 +322,7 @@ class NaviEnv(gym.Env):
             0,
             0,
             0.05,
-            self._get_label(0, 0, False),
+            self._get_label(0),
         )
 
         self.label.set_fontsize(14)
@@ -344,7 +332,7 @@ class NaviEnv(gym.Env):
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
 
     @staticmethod
-    def _get_label(timestep: int, epoch: int, train: bool) -> str:
+    def _get_label(timestep: int) -> str:
         """
         Generates a label for the environment.
 
@@ -356,10 +344,8 @@ class NaviEnv(gym.Env):
         """
         line1 = "Environment\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
-        line3 = "Epochs:".ljust(14) + f"{epoch:4.0f}\n"
-        line4 = "Training".ljust(14) + f"{train}\n"
 
-        return line1 + line2 + line3 + line4
+        return line1 + line2
 
     def _plot_anim(
         self,
@@ -372,7 +358,7 @@ class NaviEnv(gym.Env):
         epoch: int,
     ) -> None:
 
-        self.label.set_text(self._get_label(i, epoch, False))
+        self.label.set_text(self._get_label(i))
 
         if hasattr(self, "laser_scatters"):
             for scatter in self.laser_scatters:
