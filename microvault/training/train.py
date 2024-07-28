@@ -29,9 +29,6 @@ class Training:
         scalar_deque: deque,
         scalar_decay_deque: deque,
         distance_deque: deque,
-        time_foward_deque: deque,
-        success_count: int,
-        failure_count: int,
     ) -> Tuple[
         np.ndarray,
         np.ndarray,
@@ -43,9 +40,6 @@ class Training:
         deque,
         deque,
         deque,
-        deque,
-        int,
-        int,
         float,
     ]:
         start_time = timeit.default_timer()
@@ -65,9 +59,7 @@ class Training:
             if isinstance(state, tuple):
                 state = np.array(state[0])
 
-            action, scalar, scalar_decay, distance, time_foward = self.agent.predict(
-                state
-            )
+            action, scalar, scalar_decay, distance, _, _ = self.agent.predict(state)
             next_state, reward, done, info = self.env.step(action)
             self.replaybuffer.add(state, action, reward, next_state, done)
 
@@ -77,7 +69,6 @@ class Training:
             scalar_deque.append(scalar)
             scalar_decay_deque.append(scalar_decay)
             distance_deque.append(distance)
-            time_foward_deque.append(time_foward)
 
             if done or t == (timestep - 1):
                 if len(self.replaybuffer) > batch_size:
@@ -101,8 +92,5 @@ class Training:
             scalar_deque,
             scalar_decay_deque,
             distance_deque,
-            time_foward_deque,
-            success_count,
-            failure_count,
             elapsed_time,
         )

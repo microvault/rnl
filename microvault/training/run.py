@@ -142,6 +142,7 @@ def run_experiment(cfg=TrainerConfig) -> None:
             for epoch in np.arange(1, cfg.engine.epochs + 1):
 
                 print("Epoch: ", epoch)
+
                 (
                     critic_loss,
                     actor_loss,
@@ -153,9 +154,6 @@ def run_experiment(cfg=TrainerConfig) -> None:
                     scalar_deque,
                     scalar_decay_deque,
                     distance_deque,
-                    time_foward_deque,
-                    success_count,
-                    failure_count,
                     elapsed_time,
                 ) = trainer.train_one_epoch(
                     cfg.engine.batch_size,
@@ -163,9 +161,6 @@ def run_experiment(cfg=TrainerConfig) -> None:
                     scalar_deque,
                     scalar_decay_deque,
                     distance_deque,
-                    time_foward_deque,
-                    success_count,
-                    failure_count,
                 )
 
                 mean_scalar_deque = np.mean(scalar_deque)

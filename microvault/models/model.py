@@ -22,7 +22,7 @@ class ModelActor(nn.Module):
         l1: int = 400,
         l2: int = 300,
         device: str = "cpu",
-        batch_size: int = 128,
+        batch_size: int = 32,
     ):
         super().__init__()
 
@@ -77,7 +77,7 @@ class ModelCritic(nn.Module):
         l1: int = 400,
         l2: int = 300,
         device: str = "cpu",
-        batch_size: int = 128,
+        batch_size: int = 32,
     ):
         super().__init__()
 

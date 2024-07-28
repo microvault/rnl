@@ -82,7 +82,7 @@ class Agent:
             self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr_actor)
 
             # Rede "Actor" para ruído
-            self.actor_noised = modelActor.to(self.device)
+            self.actor_noised = modelActor.to(self.device).eval().requires_grad_(False)
 
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = modelCritic.to(self.device)
@@ -110,7 +110,7 @@ class Agent:
                 self.actor.parameters(), lr=self.lr_critic
             )
 
-            self.actor_noised = modelActor.to(self.device)
+            self.actor_noised = modelActor.to(self.device).eval().requires_grad_(False)
 
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = modelCritic.to(self.device)
@@ -130,7 +130,7 @@ class Agent:
 
     def predict(
         self, states: np.ndarray
-    ) -> Tuple[np.ndarray, float, float, float, float]:
+    ) -> Tuple[np.ndarray, float, float, float, torch.Tensor, torch.Tensor]:
         """Retorna ações para determinado estado de acordo com a política atual."""
 
         assert isinstance(
@@ -159,14 +159,11 @@ class Agent:
 
         # Desativar o cálculo de gradientes
         self.actor.eval()
-        self.actor_noised.eval()
 
         # Desativar o cálculo de gradientes
         with torch.no_grad():
             # Passar o estado para o modelo e retorna a ação em np.ndarray
-            start_time = timeit.default_timer()
-            action = self.actor(state).cpu().data.numpy()
-            elapsed_time = timeit.default_timer() - start_time
+            actions_without_noise = self.actor(state).cpu().data.numpy()
 
             # ---------------------------- Adicionar Ruído as Camadas do Modelo ---------------------------- #
             # Fonte: https://arxiv.org/abs/1706.01905
@@ -178,21 +175,18 @@ class Agent:
             # Obtenha os próximos valores de ação do ator barulhento
             action_noised = self.actor_noised(state).cpu().data.numpy()
             # Mede a distância entre os valores de ação dos ator regulares e ator ruidoso
-            distance = np.sqrt(np.mean(np.square(action - action_noised)))
+            distance = np.sqrt(
+                np.mean(np.square(actions_without_noise - action_noised))
+            )
             # Adicionar a distância ao histórico de distâncias
             # Ajuste a quantidade de ruído dada ao "actor_noised"
             if distance > self.desired_distance:
                 self.scalar *= self.scalar_decay
             if distance < self.desired_distance:
                 self.scalar /= self.scalar_decay
-            # Definir a ação barulhenta como ação
-            action = action_noised
-
-        # Ativar o cálculo de gradientes
-        self.actor.train()
 
         # Deixar a ação dentro dos limites
-        action = action.clip(self.min_action, self.max_action)
+        action = actions_without_noise.clip(self.min_action, self.max_action)
 
         assert (
             action.shape[0] == self.action_size
@@ -203,7 +197,14 @@ class Agent:
         ), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(
             type(action)
         )
-        return action, self.scalar, self.scalar_decay, distance, elapsed_time
+        return (
+            action,
+            self.scalar,
+            self.scalar_decay,
+            distance,
+            actions_without_noise,
+            action_noised,
+        )
 
     def learn(
         self, memory: ReplayBuffer, n_iteration: int, episode: int
