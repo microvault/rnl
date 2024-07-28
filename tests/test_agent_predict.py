@@ -1,10 +1,8 @@
 import numpy as np
 import pytest
-import torch
 from omegaconf import OmegaConf
 
 from microvault.algorithms.agent import Agent
-from microvault.components.replaybuffer import ReplayBuffer
 from microvault.models.model import ModelActor, ModelCritic
 
 config_path = "../microvault/microvault/configs/default.yaml"
