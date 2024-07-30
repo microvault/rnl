@@ -9,12 +9,12 @@ from omegaconf import OmegaConf
 import wandb
 from microvault.algorithms.agent import Agent
 from microvault.components.replaybuffer import ReplayBuffer
+from microvault.configs.config import TrainerConfig
 from microvault.engine.collision import Collision
+from microvault.engine.engine import Engine
 from microvault.environment.generate_world import GenerateWorld, Generator
 from microvault.environment.robot import Robot
 from microvault.models.model import ModelActor, ModelCritic
-from microvault.training.config import TrainerConfig
-from microvault.training.engine import Engine
 from microvault.training.training import Training
 
 cs = ConfigStore.instance()
@@ -144,13 +144,14 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
             state_size=cfg.environment.state_size,
         )
 
-        trainer = Training(env, agent, replaybuffer)
+        trainer = Training(
+            env, agent, replaybuffer, cfg.robot.min_action, cfg.robot.max_action
+        )
 
         scores_deque = deque(maxlen=100)
         scores = []
 
         for epoch in np.arange(1, epochs + 1):
-            print(f"Epoch: {epoch}/{epochs}")
             (
                 critic_loss,
                 actor_loss,
@@ -168,6 +169,12 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
             scores_deque.append(score)
             scores.append(score)
             mean_score = np.mean(scores_deque)
+
+            print(
+                "\rEpisode {}\tAverage Score: {:.2f}\tScore: {:.2f}".format(
+                    epoch, mean_score, score
+                )
+            )
 
             wandb.log(
                 {

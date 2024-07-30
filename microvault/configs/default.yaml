@@ -20,9 +20,9 @@ replay_buffer:
   buffer_size: 1048576
 
 environment:
-  timestep: 100
+  timestep: 2000
   size: 2.0
-  fps: 100
+  fps: 1
   random: 100000000000
   threshold: 0.1
   grid_lenght: 10 # TODO: error < 5 -> [5 - 15]
@@ -47,7 +47,7 @@ robot:
 
 engine:
   seed: 42
-  device: cpu
+  device: cpu # cuda / cpu / mps
   batch_size: 32
   num_episodes: 2000
   pretrained: False

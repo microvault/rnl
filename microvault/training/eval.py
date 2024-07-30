@@ -3,12 +3,12 @@ import hydra
 from hydra.core.config_store import ConfigStore
 
 from microvault.algorithms.agent import Agent
+from microvault.configs.config import TrainerConfig
 from microvault.engine.collision import Collision
+from microvault.engine.engine import Engine
 from microvault.environment.generate_world import GenerateWorld, Generator
 from microvault.environment.robot import Robot
 from microvault.models.model import ModelActor, ModelCritic
-from microvault.training.config import TrainerConfig
-from microvault.training.engine import Engine
 
 cs = ConfigStore.instance()
 cs.store(name="trainer_config", node=TrainerConfig)
