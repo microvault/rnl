@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     python3-pip \
     python3-dev \
-    gcc \
     apt-utils && \
     rm -rf /var/lib/apt/lists/*
 
@@ -18,4 +17,5 @@ WORKDIR /microvault
 
 COPY . /microvault
 
-RUN pip install -r requirements.txt --no-cache-dir
+RUN make install
+RUN make test
