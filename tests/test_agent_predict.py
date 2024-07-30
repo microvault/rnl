@@ -11,20 +11,41 @@ cfg = OmegaConf.to_container(path, resolve=True)
 
 
 @pytest.fixture
-def agent_instance_default():
-    modelActor = ModelActor()
-    modelCritic = ModelCritic()
-    return Agent(modelActor=modelActor, modelCritic=modelCritic)
+def actor_instance_default():
+    return ModelActor(
+        state_dim=cfg["environment"]["state_size"],
+        action_dim=cfg["environment"]["action_size"],
+        max_action=cfg["robot"]["max_action"],
+        l1=cfg["network"]["layers_actor_l1"],
+        l2=cfg["network"]["layers_actor_l2"],
+        device=cfg["engine"]["device"],
+        batch_size=cfg["engine"]["batch_size"],
+    )
 
 
 @pytest.fixture
-def agent_instance_config():
-    modelActor = ModelActor()
-    modelCritic = ModelCritic()
+def critic_instance_default():
+    return ModelCritic(
+        state_dim=cfg["environment"]["state_size"],
+        action_dim=cfg["environment"]["action_size"],
+        l1=cfg["network"]["layers_critic_l1"],
+        l2=cfg["network"]["layers_critic_l2"],
+        device=cfg["engine"]["device"],
+        batch_size=cfg["engine"]["batch_size"],
+    )
+
+
+@pytest.fixture
+def agent_instance_default(actor_instance_default, critic_instance_default):
+    return Agent(modelActor=actor_instance_default, modelCritic=critic_instance_default)
+
+
+@pytest.fixture
+def agent_instance_config(actor_instance_default, critic_instance_default):
 
     agent = Agent(
-        modelActor=modelActor,
-        modelCritic=modelCritic,
+        modelActor=actor_instance_default,
+        modelCritic=critic_instance_default,
         state_size=cfg["environment"]["state_size"],
         action_size=cfg["environment"]["action_size"],
         max_action=cfg["robot"]["max_action"],

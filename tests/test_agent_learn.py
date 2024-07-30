@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 import pytest
 from omegaconf import OmegaConf
@@ -12,13 +14,36 @@ cfg = OmegaConf.to_container(path, resolve=True)
 
 
 @pytest.fixture
-def agent_instance_config():
-    modelActor = ModelActor()
-    modelCritic = ModelCritic()
+def actor_instance_default():
+    return ModelActor(
+        state_dim=cfg["environment"]["state_size"],
+        action_dim=cfg["environment"]["action_size"],
+        max_action=cfg["robot"]["max_action"],
+        l1=cfg["network"]["layers_actor_l1"],
+        l2=cfg["network"]["layers_actor_l2"],
+        device=cfg["engine"]["device"],
+        batch_size=cfg["engine"]["batch_size"],
+    )
+
+
+@pytest.fixture
+def critic_instance_default():
+    return ModelCritic(
+        state_dim=cfg["environment"]["state_size"],
+        action_dim=cfg["environment"]["action_size"],
+        l1=cfg["network"]["layers_critic_l1"],
+        l2=cfg["network"]["layers_critic_l2"],
+        device=cfg["engine"]["device"],
+        batch_size=cfg["engine"]["batch_size"],
+    )
+
+
+@pytest.fixture
+def agent_instance_config(actor_instance_default, critic_instance_default):
 
     agent = Agent(
-        modelActor=modelActor,
-        modelCritic=modelCritic,
+        modelActor=actor_instance_default,
+        modelCritic=critic_instance_default,
         state_size=cfg["environment"]["state_size"],
         action_size=cfg["environment"]["action_size"],
         max_action=cfg["robot"]["max_action"],
@@ -52,16 +77,6 @@ def replay_buffer():
     )
 
 
-@pytest.fixture
-def actor_instance_default():
-    return ModelActor()
-
-
-@pytest.fixture
-def critic_instance_default():
-    return ModelCritic()
-
-
 def test_learn(agent_instance_config, replay_buffer):
     agent = agent_instance_config
     memory = replay_buffer
@@ -82,9 +97,8 @@ def test_learn(agent_instance_config, replay_buffer):
             break
 
     n_iteration = 5
-    episode = 1
 
-    results = agent.learn(memory, n_iteration, episode)
+    results = agent.learn(memory, n_iteration)
 
     assert isinstance(results, tuple)
     assert len(results) == 6
@@ -92,9 +106,16 @@ def test_learn(agent_instance_config, replay_buffer):
         assert isinstance(result, float)
 
 
-def test_save_model(agent_instance_config, actor_instance_default, tmpdir):
-    model = actor_instance_default
-    path = str(tmpdir)
+def test_save_model(agent_instance_config):
     filename = "network"
     version = "v1"
-    agent_instance_config.save(model, path, filename, version)
+    agent_instance_config.save(filename, version)
+
+    critic_path = filename + "_critic_" + version + ".pth"
+    critic_optimizer_path = filename + "_critic_optimizer_" + version + ".pth"
+    actor_path = filename + "_actor_" + version + ".pth"
+    actor_optimizer_path = filename + "_actor_optimizer_" + version + ".pth"
+
+    for path in [critic_path, critic_optimizer_path, actor_path, actor_optimizer_path]:
+        if os.path.exists(path):
+            os.remove(path)

@@ -2,8 +2,8 @@ import pytest
 import torch
 from torch import optim
 
+from microvault.engine.sanity import Sanity
 from microvault.models.model import ModelCritic
-from microvault.training.sanity import Sanity
 
 
 @pytest.fixture

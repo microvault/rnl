@@ -166,7 +166,7 @@ class Agent:
         return action
 
     def learn(
-        self, memory: ReplayBuffer, n_iteration: int, episode: int
+        self, memory: ReplayBuffer, n_iteration: int
     ) -> Tuple[float, float, float, float, float, float]:
         """Atualize parâmetros de política e valor usando determinado lote de tuplas de experiência.
 
@@ -320,14 +320,16 @@ class Agent:
                 tau * local_param.data + (1.0 - tau) * target_param.data
             )
 
-    @staticmethod
-    def save(model: nn.Module, path: str, filename: str, version: str) -> None:
-        """Salvar o modelo"""
+    def save(self, filename: str = "checkpoint", version: str = "latest") -> None:
+        """Save the model"""
+        torch.save(self.critic.state_dict(), filename + "_critic_" + version + ".pth")
         torch.save(
-            model.state_dict(), path + "checkpoint_" + filename + "_" + version + ".pth"
+            self.critic_optimizer.state_dict(),
+            filename + "_critic_optimizer_" + version + ".pth",
         )
 
-    @staticmethod
-    def load(model: nn.Module, path: str, device: str) -> None:
-        """Carregar o modelo"""
-        model.load_state_dict(torch.load(path, map_location=device))  # del torch.load
+        torch.save(self.actor.state_dict(), filename + "_actor_" + version + ".pth")
+        torch.save(
+            self.actor_optimizer.state_dict(),
+            filename + "_actor_optimizer_" + version + ".pth",
+        )
