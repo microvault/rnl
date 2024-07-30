@@ -22,10 +22,10 @@ jobs:
         run: python -m pip install --upgrade pip && pip install poetry
 
       - name: Install dependencies
-        run: poetry install
+        run: make install
 
       - name: Run tests
-        run: poetry run task test --cov-report=xml
+        run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
