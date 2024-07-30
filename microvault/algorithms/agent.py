@@ -279,7 +279,7 @@ class Agent:
         loss_actor = average_actor_loss / n_iteration
         average_intrinsic_reward = intrinsic_reward / n_iteration
         average_policy = average_Q / n_iteration
-        average_errors = errors / n_iteration
+        average_errors = np.mean(errors / n_iteration)
         max_policy = max_Q
 
         # delete variables
@@ -293,12 +293,12 @@ class Agent:
         )
 
         return (
-            float(loss_critic.item()),
-            float(loss_actor.item()),
-            float(average_policy.item()),
-            float(max_policy.item()),
-            float(average_intrinsic_reward.item()),
-            float(average_errors[0]),
+            float(loss_critic),
+            float(loss_actor),
+            float(average_policy),
+            float(max_policy),
+            float(average_intrinsic_reward),
+            float(average_errors),
         )
 
     @staticmethod
