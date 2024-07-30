@@ -1,6 +1,4 @@
-import math
 import warnings
-from typing import Tuple
 
 import gym
 import matplotlib.animation as animation
@@ -11,6 +9,12 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from microvault.algorithms.agent import Agent
 from microvault.engine.collision import Collision
+from microvault.engine.utils import (
+    angle_to_goal,
+    distance_to_goal,
+    get_reward,
+    min_laser,
+)
 from microvault.environment.generate_world import Generator
 from microvault.environment.robot import Robot
 
@@ -147,8 +151,8 @@ class NaviEnv(gym.Env):
             self.epoch,
         )
 
-        dist = self.distance_to_goal(x, y, self.target_x, self.target_y)
-        angle = self.angle_to_goal(
+        dist = distance_to_goal(x, y, self.target_x, self.target_y)
+        angle = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -173,14 +177,13 @@ class NaviEnv(gym.Env):
         if self.epoch == self.max_epochs:
             self.ani.event_source.stop()
 
-        collision, laser = self.min_laser(measurement, self.threshold)
-        reward, done = self.reward(dist, action, measurement, collision)
+        collision, laser = min_laser(measurement, self.threshold)
+        reward, done = get_reward(dist, action, measurement, collision)
 
         print(
             "\rReward {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
                 reward, laser, dist, angle
             ),
-            end="",
         )
 
         if done:
@@ -198,11 +201,11 @@ class NaviEnv(gym.Env):
 
         intersections, measurement = self.robot.sensor(x, y, self.segments)
 
-        dist = self.distance_to_goal(
+        dist = distance_to_goal(
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        angle = self.angle_to_goal(
+        angle = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -223,13 +226,13 @@ class NaviEnv(gym.Env):
         self.last_position_x = x
         self.last_position_y = y
 
-        collision, laser = self.min_laser(measurement, self.threshold)
-        reward, done = self.reward(dist, action, measurement, collision)
+        collision, laser = min_laser(measurement, self.threshold)
+        reward, done = get_reward(dist, action, measurement, collision)
 
         if done:
             return self.states, reward, done, {}
         else:
-            return self.states, reward, np.bool_(False), {}
+            return self.states, reward, False, {}
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -274,11 +277,11 @@ class NaviEnv(gym.Env):
                 self.epoch,
             )
 
-        dist = self.distance_to_goal(
+        dist = distance_to_goal(
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        angle = self.angle_to_goal(
+        angle = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -423,58 +426,3 @@ class NaviEnv(gym.Env):
             [target_y],
             [0],
         )
-
-    @staticmethod
-    def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
-        return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
-
-    @staticmethod
-    def angle_to_goal(
-        x: float, y: float, theta: float, goal_x: float, goal_y: float
-    ) -> float:
-        skewX = goal_x - x
-        skewY = goal_y - y
-        dot = skewX * 1 + skewY * 0
-        mag1 = math.sqrt(math.pow(skewX, 2) + math.pow(skewY, 2))
-        mag2 = math.sqrt(math.pow(1, 2) + math.pow(0, 2))
-        beta = math.acos(dot / (mag1 * mag2))
-        if skewY < 0:
-            if skewX < 0:
-                beta = -beta
-            else:
-                beta = 0 - beta
-        beta2 = beta - theta
-        if beta2 > np.pi:
-            beta2 = np.pi - beta2
-            beta2 = -np.pi - beta2
-        if beta2 < -np.pi:
-            beta2 = -np.pi - beta2
-            beta2 = np.pi - beta2
-
-        return beta2
-
-    def reward(
-        self, distance, action, measurement, collision
-    ) -> Tuple[np.float64, np.bool_]:
-        if distance < 0.3:
-            return 80.0, np.bool_(True)
-        elif collision:
-            return -100.0, np.bool_(True)
-        else:
-            reward = action[0] / 2 - abs(action[1]) / 2 - self.r3(min(measurement)) / 2
-            return np.float64(reward), np.bool_(False)
-
-    @staticmethod
-    def min_laser(measurement: np.ndarray, threshold: float = 0.1):
-        laser = np.min(measurement)
-        if laser < threshold:
-            return True, laser
-        else:
-            return False, laser
-
-    @staticmethod
-    def r3(x):
-        if x < 1:
-            return 1 - x
-        else:
-            return 0.0
