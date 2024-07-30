@@ -1,10 +1,14 @@
 .PHONY: train
 train:
-	@poetry run python -m microvault.training.run
+	@poetry run python -m microvault.training.train
 
 .PHONY: tune
 tune:
 	@poetry run python -m microvault.training.finetune
+
+.PHONY: eval
+eval:
+	@poetry run python -m microvault.training.eval
 
 .PHONY: gen
 gen:
@@ -18,4 +22,16 @@ format:
 
 .PHONY: test
 test:
-	@poetry run task test
+	@poetry run pytest -s -x --cov=microvault -vv
+
+.PHONY: post_test
+post_test:
+	@poetry run coverage html
+
+.PHONY: publish
+publish:
+	@poetry publish --build -u __token__ -p $MICROVAULT_PYPI_TOKEN
+
+.PHONY: install
+install:
+		@poetry install
