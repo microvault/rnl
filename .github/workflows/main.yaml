@@ -72,18 +72,18 @@ jobs:
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-  Push:
-    needs: [Build]
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # Push:
+  #   needs: [Build]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: login to ghcr.io
-        run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u microvault --password-stdin
+  #     - name: login to ghcr.io
+  #       run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u microvault --password-stdin
 
-      - name: Build image
-        run: docker build -t ghcr.io/microvault/microvault:latest .
+  #     - name: Build image
+  #       run: docker build -t ghcr.io/microvault/microvault:latest .
 
-      - name: Push image
-        run: docker push ghcr.io/microvault/microvault:latest
+  #     - name: Push image
+  #       run: docker push ghcr.io/microvault/microvault:latest
