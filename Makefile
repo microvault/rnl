@@ -35,3 +35,12 @@ publish:
 .PHONY: install
 install:
 		@poetry install
+
+.PHONY: build
+build:
+	@sudo docker build -t microvault-docker .
+
+.PHONY: start
+start:
+	@echo "Starting training ..."
+	@sudo docker run -it --net=host --memory=40g microvault-docker bash -c "make train"
