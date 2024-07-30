@@ -12,6 +12,7 @@ author = "Nicolas Alan"
 release = "0.2.32"
 
 extensions = [
+    "recommonmark",
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
@@ -35,3 +36,4 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "furo"
 html_static_path = ["_static"]
+source_suffix = [".rst", ".md"]
