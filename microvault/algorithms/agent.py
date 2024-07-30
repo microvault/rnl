@@ -18,7 +18,7 @@ class Agent:
         self,
         modelActor: ModelActor,
         modelCritic: ModelCritic,
-        state_size: int = 13,
+        state_size: int = 14,
         action_size: int = 2,
         max_action: float = 1.0,
         min_action: float = -1.0,
@@ -33,9 +33,6 @@ class Agent:
         device: str = "cpu",
         pretrained: bool = False,
         nstep: int = 1,
-        desired_distance: float = 0.7,
-        scalar: float = 0.05,
-        scalar_decay: float = 0.99,
     ):
         """Inicializar o agente.
 
@@ -64,9 +61,6 @@ class Agent:
         self.device = device
         self.pretrained = pretrained
         self.nstep = nstep
-        self.desired_distance = desired_distance
-        self.scalar = scalar
-        self.scalar_decay = scalar_decay
 
         # Transfência de aprendizado
         if self.pretrained:
@@ -79,9 +73,6 @@ class Agent:
                 self.device
             )  # .eval().requires_grad_(False)
             self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=self.lr_actor)
-
-            # Rede "Actor" para ruído
-            self.actor_noised = modelActor.to(self.device).eval().requires_grad_(False)
 
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = modelCritic.to(self.device)
@@ -109,8 +100,6 @@ class Agent:
                 self.actor.parameters(), lr=self.lr_critic
             )
 
-            self.actor_noised = modelActor.to(self.device).eval().requires_grad_(False)
-
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = modelCritic.to(self.device)
             self.critic_target = modelCritic.to(
@@ -127,9 +116,7 @@ class Agent:
 
         # TODO: Inicializar o modelo RND
 
-    def predict(
-        self, states: np.ndarray
-    ) -> Tuple[np.ndarray, float, float, float, torch.Tensor, torch.Tensor]:
+    def predict(self, states: np.ndarray[np.float32]) -> np.ndarray[np.float32]:
         """Retorna ações para determinado estado de acordo com a política atual."""
 
         assert isinstance(
@@ -164,26 +151,6 @@ class Agent:
             # Passar o estado para o modelo e retorna a ação em np.ndarray
             actions_without_noise = self.actor(state).cpu().data.numpy()
 
-            # ---------------------------- Adicionar Ruído as Camadas do Modelo ---------------------------- #
-            # Fonte: https://arxiv.org/abs/1706.01905
-
-            # Carregar os pesos do modelo para o modelo com ruído
-            self.actor_noised.load_state_dict(self.actor.state_dict().copy())
-            # Adicionar ruído ao modelo
-            self.actor_noised.add_parameter_noise(self.scalar)
-            # Obtenha os próximos valores de ação do ator barulhento
-            action_noised = self.actor_noised(state).cpu().data.numpy()
-            # Mede a distância entre os valores de ação dos ator regulares e ator ruidoso
-            distance = np.sqrt(
-                np.mean(np.square(actions_without_noise - action_noised))
-            )
-            # Adicionar a distância ao histórico de distâncias
-            # Ajuste a quantidade de ruído dada ao "actor_noised"
-            if distance > self.desired_distance:
-                self.scalar *= self.scalar_decay
-            if distance < self.desired_distance:
-                self.scalar /= self.scalar_decay
-
         # Deixar a ação dentro dos limites
         action = actions_without_noise.clip(self.min_action, self.max_action)
 
@@ -196,14 +163,7 @@ class Agent:
         ), "Action is not of type (np.float32) in PREDICT -> action type: {}.".format(
             type(action)
         )
-        return (
-            action,
-            self.scalar,
-            self.scalar_decay,
-            distance,
-            actions_without_noise,
-            action_noised,
-        )
+        return action
 
     def learn(
         self, memory: ReplayBuffer, n_iteration: int, episode: int
@@ -271,7 +231,7 @@ class Agent:
                 max_Q = max(max_Q, torch.max(Q_targets_next))
 
                 # Calcular metas Q para estados atuais (y_i)
-                # recompensa + (gamma * Q-valor de destino * (1 - feito))
+                # recompensa + (gamma^nstep * Q-valor de destino * (1 - feito))
                 Q_targets = (
                     reward
                     + (self.gamma**self.nstep * Q_targets_next * (1 - done)).detach()

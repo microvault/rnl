@@ -1,4 +1,6 @@
+import math
 import warnings
+from typing import Tuple
 
 import gym
 import matplotlib.animation as animation
@@ -6,7 +8,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gym import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from shapely.geometry import Point, Polygon
 
 from microvault.algorithms.agent import Agent
 from microvault.engine.collision import Collision
@@ -35,22 +36,25 @@ class NaviEnv(gym.Env):
         num_rays: int = 10,  # num range lidar
         fov: float = 2 * np.pi,  # 360 degrees
         max_range: float = 6.0,  # max range
-        threshold: float = 0.1,  # 0.1 threshold
+        threshold: float = 0.05,  # 0.1 threshold
         grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
         rgb_array: bool = False,
         fps: int = 100,  # 10 frames per second
         max_episode: int = 10,
+        state_size: int = 14,
+        controller: bool = False,
     ):
         super().__init__()
         self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
         self.observation_space = spaces.Box(
-            low=-np.inf, high=np.inf, shape=(13,), dtype=np.float32
+            low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
 
         self.generator = generator
         self.robot = robot
         self.agent = agent
         self.collision = collision
+        self.states = None
 
         self.rgb_array = rgb_array
         self.max_epochs = max_episode
@@ -64,7 +68,6 @@ class NaviEnv(gym.Env):
         self.ymax = grid_lenght - 0.25
 
         self.segments = []
-        self.poly = None
 
         self.target_x = 0
         self.target_y = 0
@@ -78,6 +81,9 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(10)
 
         if rgb_array:
+            self.speed = 1.0
+            self.angular_speed = 0.5
+
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
@@ -87,7 +93,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="x",
-                markersize=self.size,
+                markersize=3.0,
                 color="red",
             )[0]
 
@@ -101,53 +107,35 @@ class NaviEnv(gym.Env):
             )[0]
 
             self.ani = animation.FuncAnimation
+
             self._init_animation(self.ax)
+            if controller:
+                self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
-    @staticmethod
-    def _ray_casting(poly: Polygon, x: float, y: float) -> bool:
-        """
-        Checks if a point (x, y) is inside a polygon using the ray casting algorithm.
-
-        Parameters:
-        poly (Polygon): The polygon to check the point inclusion in.
-        x (float): The x-coordinate of the point to be checked.
-        y (float): The y-coordinate of the point to be checked.
-
-        Returns:
-        bool: True if the point is inside the polygon, False otherwise.
-        """
-        center = Point(x, y)
-        circle = center.buffer(1.0)
-        return circle.within(poly)
-
-    @staticmethod
-    def distance(x: float, y: float, target_x: float, target_y: float) -> float:
-        return np.sqrt((x - target_x) ** 2 + (y - target_y) ** 2)
+    def on_key_press(self, event):
+        if event.key == "up":
+            self.speed += 0.1
+        elif event.key == "down":
+            self.speed -= 0.1
+        elif event.key == "left":
+            self.angular_speed -= 0.1
+        elif event.key == "right":
+            self.angular_speed += 0.1
+        print(f"Speed: {self.speed}, Angular Speed: {self.angular_speed}")
 
     def _animation(self, i):
-
-        vl = np.random.uniform(-1, 1)
-        vr = np.random.uniform(0, 1)
-
-        reward = np.float64(np.random.uniform(0, 10))
-        done = np.bool_(
-            False
-        )  # np.bool_(np.random.choice([True, False], p=[0.01, 0.99]))
+        actions = self.agent.predict(self.states)
+        action = [(actions[0] + 1) / 2, actions[1]]
 
         x, y, theta = self.robot.move_robot(
-            self.last_position_x, self.last_position_y, self.last_theta, vl, vr
+            self.last_position_x,
+            self.last_position_y,
+            self.last_theta,
+            action[0],
+            action[1],
         )
 
         intersections, measurement = self.robot.sensor(x=x, y=y, segments=self.segments)
-        dist = self.distance(x, y, self.target_x, self.target_y)
-        states = np.concatenate(
-            (
-                np.array(measurement, dtype=np.float32),
-                np.array([vr], dtype=np.float32),
-                np.array([vl], dtype=np.float32),
-                np.array([dist], dtype=np.float32),
-            )
-        )
 
         self._plot_anim(
             i,
@@ -159,66 +147,95 @@ class NaviEnv(gym.Env):
             self.epoch,
         )
 
+        dist = self.distance_to_goal(x, y, self.target_x, self.target_y)
+        angle = self.angle_to_goal(
+            self.last_position_x,
+            self.last_position_y,
+            self.last_theta,
+            self.target_x,
+            self.target_y,
+        )
+
+        self.states = np.concatenate(
+            (
+                np.array(measurement, dtype=np.float32),
+                np.array([action[0]], dtype=np.float32),
+                np.array([action[1]], dtype=np.float32),
+                np.array([dist], dtype=np.float32),
+                np.array([angle], dtype=np.float32),
+            )
+        )
+
         self.last_theta = theta
         self.last_position_x = x
         self.last_position_y = y
 
-        if done == True:
-            self.close()
-
-        elif (i + 1) == self.max_timestep:
-            self.close()
-
-        elif self.epoch == self.max_epochs:
+        if self.epoch == self.max_epochs:
             self.ani.event_source.stop()
-            plt.close(self.fig)
 
-        for m in measurement:
-            if m <= self.threshold:
-                self.close()
+        collision, laser = self.min_laser(measurement, self.threshold)
+        reward, done = self.reward(dist, action, measurement, collision)
+
+        print(
+            "\rReward {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
+                reward, laser, dist, angle
+            ),
+            end="",
+        )
+
+        if done:
+            self.close()
 
     def step(self, action):
 
-        vl = np.random.uniform(-1, 1)
-        vr = np.random.uniform(0, 1)
-
-        reward = np.float64(np.random.uniform(0, 10))
-        done = np.bool_(np.random.choice([True, False], p=[0.1, 0.90]))
-
         x, y, theta = self.robot.move_robot(
-            self.last_position_x, self.last_position_y, self.last_theta, vl, vr
+            self.last_position_x,
+            self.last_position_y,
+            self.last_theta,
+            action[0],
+            action[1],
         )
 
         intersections, measurement = self.robot.sensor(x, y, self.segments)
-        dist = self.distance(x, y, self.target_x, self.target_y)
-        states = np.concatenate(
+
+        dist = self.distance_to_goal(
+            self.last_position_x, self.last_position_y, self.target_x, self.target_y
+        )
+
+        angle = self.angle_to_goal(
+            self.last_position_x,
+            self.last_position_y,
+            self.last_theta,
+            self.target_x,
+            self.target_y,
+        )
+
+        self.states = np.concatenate(
             (
                 np.array(measurement, dtype=np.float32),
-                np.array([vr], dtype=np.float32),
-                np.array([vl], dtype=np.float32),
+                np.array([action[0]], dtype=np.float32),
+                np.array([action[1]], dtype=np.float32),
                 np.array([dist], dtype=np.float32),
+                np.array([angle], dtype=np.float32),
             )
         )
         self.last_theta = theta
         self.last_position_x = x
         self.last_position_y = y
 
-        for m in self.measurement:
-            if m <= self.threshold:
-                return states, -10, done, {}
+        collision, laser = self.min_laser(measurement, self.threshold)
+        reward, done = self.reward(dist, action, measurement, collision)
 
-        if done == True:
-            return states, -10, done, {}
-
+        if done:
+            return self.states, reward, done, {}
         else:
-            return states, reward, done, {}
+            return self.states, reward, np.bool_(False), {}
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
-        new_map_path, poly, seg = self.generator.world()
-        self.segments = seg
-        self.poly = poly
+        new_map_path, exterior, interior, all_seg = self.generator.world()
+        self.segments = all_seg
 
         if self.rgb_array:
             self.epoch += 1
@@ -236,29 +253,51 @@ class NaviEnv(gym.Env):
             self.last_theta = np.random.uniform(0, 2 * np.pi)
 
             if self.collision.check_collision(
-                seg, self.last_position_x, self.last_position_y
-            ) and self.collision.check_collision(seg, self.target_x, self.target_y):
+                exterior, interior, self.last_position_x, self.last_position_y
+            ) and self.collision.check_collision(
+                exterior, interior, self.target_x, self.target_y
+            ):
                 break
 
         intersections, measurement = self.robot.sensor(
-            x=self.last_position_x, y=self.last_position_y, segments=seg
+            x=self.last_position_x, y=self.last_position_y, segments=all_seg
         )
 
-        dist = self.distance(
+        if self.rgb_array:
+            self._plot_anim(
+                0,
+                intersections,
+                self.last_position_x,
+                self.last_position_y,
+                self.target_x,
+                self.target_y,
+                self.epoch,
+            )
+
+        dist = self.distance_to_goal(
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        states = np.concatenate(
+        angle = self.angle_to_goal(
+            self.last_position_x,
+            self.last_position_y,
+            self.last_theta,
+            self.target_x,
+            self.target_y,
+        )
+
+        self.states = np.concatenate(
             (
-                np.array(measurement, dtype=np.float32),
-                np.array([0], dtype=np.float32),
-                np.array([0], dtype=np.float32),
-                np.array([dist], dtype=np.float32),
+                np.array(measurement, dtype=np.float32),  # measurement
+                np.array([0], dtype=np.float32),  # vr
+                np.array([0], dtype=np.float32),  # vl
+                np.array([dist], dtype=np.float32),  # distance
+                np.array([angle], dtype=np.float32),  # angle
             )
         )
 
         info = {}
-        return states, info
+        return self.states, info
 
     def render(self):
         self.ani = animation.FuncAnimation(
@@ -292,7 +331,7 @@ class NaviEnv(gym.Env):
 
         # ------ Create wordld ------ #
 
-        path, _, _ = self.generator.world()
+        path, _, _, _ = self.generator.world()
 
         ax.add_patch(path)
 
@@ -384,3 +423,58 @@ class NaviEnv(gym.Env):
             [target_y],
             [0],
         )
+
+    @staticmethod
+    def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
+        return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+
+    @staticmethod
+    def angle_to_goal(
+        x: float, y: float, theta: float, goal_x: float, goal_y: float
+    ) -> float:
+        skewX = goal_x - x
+        skewY = goal_y - y
+        dot = skewX * 1 + skewY * 0
+        mag1 = math.sqrt(math.pow(skewX, 2) + math.pow(skewY, 2))
+        mag2 = math.sqrt(math.pow(1, 2) + math.pow(0, 2))
+        beta = math.acos(dot / (mag1 * mag2))
+        if skewY < 0:
+            if skewX < 0:
+                beta = -beta
+            else:
+                beta = 0 - beta
+        beta2 = beta - theta
+        if beta2 > np.pi:
+            beta2 = np.pi - beta2
+            beta2 = -np.pi - beta2
+        if beta2 < -np.pi:
+            beta2 = -np.pi - beta2
+            beta2 = np.pi - beta2
+
+        return beta2
+
+    def reward(
+        self, distance, action, measurement, collision
+    ) -> Tuple[np.float64, np.bool_]:
+        if distance < 0.3:
+            return 80.0, np.bool_(True)
+        elif collision:
+            return -100.0, np.bool_(True)
+        else:
+            reward = action[0] / 2 - abs(action[1]) / 2 - self.r3(min(measurement)) / 2
+            return np.float64(reward), np.bool_(False)
+
+    @staticmethod
+    def min_laser(measurement: np.ndarray, threshold: float = 0.1):
+        laser = np.min(measurement)
+        if laser < threshold:
+            return True, laser
+        else:
+            return False, laser
+
+    @staticmethod
+    def r3(x):
+        if x < 1:
+            return 1 - x
+        else:
+            return 0.0

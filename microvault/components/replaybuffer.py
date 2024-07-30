@@ -16,7 +16,7 @@ class ReplayBuffer:
         batch_size: int = 32,
         gamma: float = 0.99,
         nstep: int = 10,
-        state_dim: int = 13,
+        state_dim: int = 14,
         action_dim: int = 2,
         device: str = "cpu",
     ):
@@ -65,8 +65,8 @@ class ReplayBuffer:
 
         # assert isinstance(action[0], np.float32), "Action is not of type (np.float32) in REPLAY BUFFER -> action type: {}.".format(type(action))
         assert isinstance(
-            reward, (int, np.float64)
-        ), f"Reward is not of type (np.float64 / int) in REPLAY BUFFER -> reward: {type(reward)}."
+            reward, (np.float32, np.float64)
+        ), f"Reward is not of type (np.float64 / np.float32) in REPLAY BUFFER -> reward: {type(reward)}."
 
         assert isinstance(
             next_state[0], np.float32

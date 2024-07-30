@@ -75,7 +75,7 @@ class Generator:
 
         return new_map
 
-    def world(self) -> Tuple[PathPatch, Polygon, List]:
+    def world(self) -> Tuple[PathPatch, List, List, List]:
         """
         Generates a maze world.
 
@@ -142,6 +142,9 @@ class Generator:
         exterior_segment = LineString(exterior + [exterior[0]])
         segments.insert(0, exterior_segment)
 
+        ext_segments = self.convert_to_segments(exterior)
+        int_segments = [self.convert_to_segments(interior) for interior in interiors]
+
         stacks = [self.line_to_np_stack(line) for line in segments]
 
         segment = self.collision.extract_seg_from_polygon(stacks)
@@ -157,4 +160,14 @@ class Generator:
             path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
         )
 
-        return path_patch, poly, segment
+        return path_patch, ext_segments, int_segments, segment
+
+    @staticmethod
+    def convert_to_segments(polygon):
+        segments = []
+        n = len(polygon)
+        for i in range(n):
+            x1, y1 = polygon[i]
+            x2, y2 = polygon[(i + 1) % n]
+            segments.append((x1, y1, x2, y2))
+        return segments

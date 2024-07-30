@@ -6,6 +6,7 @@ class WandbConfig:
     project: str
     entity: str
     mode: str
+    use_sweep: bool
 
 
 @dataclass
@@ -56,13 +57,7 @@ class RobotConfig:
     min_angular: float
     max_action: float
     min_action: float
-
-
-@dataclass
-class NoiseLayerConfig:
-    desired_distance: float
-    scalar: float
-    scalar_decay: float
+    size: float
 
 
 @dataclass
@@ -77,7 +72,6 @@ class EngineConfig:
     wandb: bool
     save_checkpoint: int
     epochs: int
-    visualize: bool
 
 
 @dataclass
@@ -87,13 +81,13 @@ class NetworkConfig:
     layers_critic_l1: int
     layers_critic_l2: int
     activation: str
+    noise_std: float
 
 
 @dataclass
 class TrainerConfig:
     wandb: WandbConfig
     agent: AgentConfig
-    noise_layer: NoiseLayerConfig
     replay_buffer: ReplayBufferConfig
     environment: EnvironmentConfig
     engine: EngineConfig

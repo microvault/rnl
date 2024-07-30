@@ -15,10 +15,12 @@ from microvault.environment.robot import Robot
 from microvault.models.model import ModelActor, ModelCritic
 from microvault.training.config import TrainerConfig
 from microvault.training.engine import Engine
-from microvault.training.train import Training
+from microvault.training.training import Training
 
 cs = ConfigStore.instance()
 cs.store(name="trainer_config", node=TrainerConfig)
+
+wandb.login()
 
 config_path = "../microvault/microvault/configs/sweep.yaml"
 path_sweep = OmegaConf.load(config_path)
@@ -26,11 +28,9 @@ sweep_configuration = OmegaConf.to_container(path_sweep, resolve=True)
 
 sweep_id = wandb.sweep(sweep=sweep_configuration, project="rl-sweep")
 
-wandb.login()
-
 
 @hydra.main(config_path="../configs", config_name="default", version_base="1.2")
-def run_experiment(cfg: TrainerConfig) -> None:
+def finetune_experiment(cfg: TrainerConfig) -> None:
     config_default = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
 
     with wandb.init(project="rl-sweep", config=config_default):
@@ -42,9 +42,7 @@ def run_experiment(cfg: TrainerConfig) -> None:
         noise = wandb.config.noise
         nstep = wandb.config.nstep
         weight_decay = wandb.config.weight_decay
-        desired_distance = wandb.config.desired_distance
-        scalar = wandb.config.scalar
-        scalar_decay = wandb.config.scalar_decay
+        noise_std = wandb.config.noise_std
         seed = wandb.config.seed
         layers_actor_l1 = wandb.config.layers_actor_l1
         layers_actor_l2 = wandb.config.layers_actor_l2
@@ -73,6 +71,7 @@ def run_experiment(cfg: TrainerConfig) -> None:
             l1=layers_actor_l1,
             l2=layers_actor_l2,
             device=cfg.engine.device,
+            noise_std=noise_std,
             batch_size=batch_size,
         )
 
@@ -103,9 +102,6 @@ def run_experiment(cfg: TrainerConfig) -> None:
             device=cfg.engine.device,
             pretrained=cfg.engine.pretrained,
             nstep=nstep,
-            desired_distance=desired_distance,
-            scalar=scalar,
-            scalar_decay=scalar_decay,
         )
 
         collision = Collision()
@@ -134,71 +130,59 @@ def run_experiment(cfg: TrainerConfig) -> None:
         env = gym.make(
             "microvault/NaviEnv-v0",
             rgb_array=False,
-            max_episode=1000,
+            max_episode=epochs,
             robot=robot,
             generator=generate,
             agent=agent,
             collision=collision,
+            timestep=cfg.environment.timestep,
+            threshold=cfg.environment.threshold,
+            num_rays=cfg.robot.num_rays,
+            fov=cfg.robot.fov,
+            max_range=cfg.robot.max_range,
+            grid_lenght=cfg.environment.grid_lenght,
+            state_size=cfg.environment.state_size,
         )
 
         trainer = Training(env, agent, replaybuffer)
 
-        if cfg.engine.visualize:
-            env.reset()
-            env.render()
+        scores_deque = deque(maxlen=100)
+        scores = []
 
-        else:
-            scalar_deque = deque(maxlen=100)
-            scalar_decay_deque = deque(maxlen=100)
-            distance_deque = deque(maxlen=100)
-            scores_deque = deque(maxlen=100)
-            scores = []
+        for epoch in np.arange(1, epochs + 1):
+            print(f"Epoch: {epoch}/{epochs}")
+            (
+                critic_loss,
+                actor_loss,
+                q,
+                max_q,
+                intrinsic_reward,
+                error,
+                score,
+                elapsed_time,
+            ) = trainer.train_one_epoch(
+                batch_size,
+                cfg.environment.timestep,
+            )
 
-            for epoch in np.arange(1, epochs + 1):
-                (
-                    critic_loss,
-                    actor_loss,
-                    q,
-                    max_q,
-                    intrinsic_reward,
-                    error,
-                    score,
-                    scalar_deque,
-                    scalar_decay_deque,
-                    distance_deque,
-                    elapsed_time,
-                ) = trainer.train_one_epoch(
-                    batch_size,
-                    cfg.environment.timestep,
-                    scalar_deque,
-                    scalar_decay_deque,
-                    distance_deque,
-                )
+            scores_deque.append(score)
+            scores.append(score)
+            mean_score = np.mean(scores_deque)
 
-                mean_scalar_deque = np.mean(scalar_deque)
-                mean_scalar_decay_deque = np.mean(scalar_decay_deque)
-                mean_distance_deque = np.mean(distance_deque)
-                scores_deque.append(score)
-                scores.append(score)
-                mean_score = np.mean(scores_deque)
-
-                wandb.log(
-                    {
-                        "epoch": epoch,
-                        "mean_scalar": mean_scalar_deque,
-                        "mean_scalar_decay": mean_scalar_decay_deque,
-                        "mean_distance": mean_distance_deque,
-                        "critic_loss": critic_loss,
-                        "actor_loss": actor_loss,
-                        "q": q,
-                        "max_q": max_q,
-                        "time_per_epoch": elapsed_time,
-                        "mean_reward": mean_score,
-                        "intrinsic_reward": intrinsic_reward,
-                        "error": error,
-                    }
-                )
+            wandb.log(
+                {
+                    "epoch": epoch,
+                    "critic_loss": critic_loss,
+                    "actor_loss": actor_loss,
+                    "q": q,
+                    "max_q": max_q,
+                    "time_per_epoch": elapsed_time,
+                    "mean_reward": mean_score,
+                    "intrinsic_reward": intrinsic_reward,
+                    "error": error,
+                }
+            )
 
 
 if __name__ == "__main__":
-    wandb.agent(sweep_id, function=run_experiment, count=8)
+    wandb.agent(sweep_id, function=finetune_experiment, count=8)

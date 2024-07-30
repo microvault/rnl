@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from microvault.models.noise import NoisyLinear
+
 
 def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
@@ -16,12 +18,13 @@ class ModelActor(nn.Module):
 
     def __init__(
         self,
-        state_dim: int = 13,
+        state_dim: int = 14,
         action_dim: int = 2,
         max_action: float = 1.0,
         l1: int = 400,
         l2: int = 300,
         device: str = "cpu",
+        noise_std: float = 0.5,
         batch_size: int = 32,
     ):
         super().__init__()
@@ -32,7 +35,7 @@ class ModelActor(nn.Module):
 
         self.l1 = nn.Linear(state_dim, l1)
         self.l2 = nn.Linear(l1, l2)
-        self.l3 = nn.Linear(l2, action_dim)
+        self.l3 = NoisyLinear(l2, action_dim, noise_std)
         self.reset_parameters()
 
         self.max_action = max_action
@@ -40,7 +43,6 @@ class ModelActor(nn.Module):
     def reset_parameters(self):
         self.l1.weight.data.uniform_(*hidden_init(self.l1))
         self.l2.weight.data.uniform_(*hidden_init(self.l2))
-        self.l3.weight.data.uniform_(-3e-3, 3e-3)
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         assert isinstance(
@@ -62,17 +64,11 @@ class ModelActor(nn.Module):
 
         return action
 
-    def add_parameter_noise(self, scalar=0.1):
-        for layer in [self.l1, self.l2, self.l3]:
-            layer.weight.data += torch.randn_like(layer.weight.data) * scalar
-            if layer.bias is not None:
-                layer.bias.data += torch.randn_like(layer.bias.data) * scalar
-
 
 class ModelCritic(nn.Module):
     def __init__(
         self,
-        state_dim: int = 13,
+        state_dim: int = 14,
         action_dim: int = 2,
         l1: int = 400,
         l2: int = 300,

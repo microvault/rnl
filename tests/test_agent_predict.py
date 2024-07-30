@@ -40,16 +40,13 @@ def agent_instance_config():
         device=cfg["engine"]["device"],
         pretrained=cfg["engine"]["pretrained"],
         nstep=cfg["agent"]["nstep"],
-        desired_distance=cfg["noise_layer"]["desired_distance"],
-        scalar=cfg["noise_layer"]["scalar"],
-        scalar_decay=cfg["noise_layer"]["scalar_decay"],
     )
 
     return agent
 
 
 def test_default_values(agent_instance_default):
-    assert agent_instance_default.state_size == 13
+    assert agent_instance_default.state_size == 14
     assert agent_instance_default.action_size == 2
     assert agent_instance_default.max_action == 1.0
     assert agent_instance_default.min_action == -1.0
@@ -64,62 +61,33 @@ def test_default_values(agent_instance_default):
     assert agent_instance_default.device == "cpu"
     assert not agent_instance_default.pretrained
     assert agent_instance_default.nstep == 1
-    assert agent_instance_default.desired_distance == 0.7
-    assert agent_instance_default.scalar == 0.05
-    assert agent_instance_default.scalar_decay == 0.99
 
 
 def test_predict_size_action_with_default(agent_instance_default):
-    action, _, _, _, _, _ = agent_instance_default.predict(
-        np.zeros(13, dtype=np.float32)
-    )
+    action = agent_instance_default.predict(np.zeros(14, dtype=np.float32))
     assert action.shape == (2,)
 
 
 def test_predict_size_action_with_config(agent_instance_config):
-    action, _, _, _, _, _ = agent_instance_config.predict(
-        np.zeros(13, dtype=np.float32)
-    )
+    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
     assert action.shape == (2,)
 
 
 def test_states_size(agent_instance_config):
-    states = np.zeros(13, dtype=np.float32)
-    action, _, _, _, _, _ = agent_instance_config.predict(
-        np.zeros(13, dtype=np.float32)
-    )
+    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
     assert action.shape == (2,)
 
 
 def test_action_type(agent_instance_config):
-    action, _, _, _, _, _ = agent_instance_config.predict(
-        np.zeros(13, dtype=np.float32)
-    )
+    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
     assert action.dtype == np.float32, "O tipo da ação não é np.float32."
 
 
 def test_action_within_limits(agent_instance_config):
-    action, _, _, _, _, _ = agent_instance_config.predict(
-        np.zeros(13, dtype=np.float32)
-    )
+    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
     assert np.all(action >= -1.0) and np.all(
         action <= 1.0
     ), "Ação não está dentro dos limites."
-
-
-def test_noise_and_distance(agent_instance_config):
-    agent_instance_config.desired_distance = 0.1
-    agent_instance_config.scalar = 0.05
-    agent_instance_config.scalar_decay = 0.99
-
-    action, scalar, scalar_decay, distance, action, action_noised = (
-        agent_instance_config.predict(np.zeros(13, dtype=np.float32))
-    )
-
-    assert distance == pytest.approx(
-        np.sqrt(np.mean(np.square(action - action_noised)))
-    ), "A distância calculada está incorreta."
-    assert scalar != 0.05, "O scalar não foi ajustado corretamente."
 
 
 # TODO: teste scalar

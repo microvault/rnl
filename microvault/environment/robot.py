@@ -77,11 +77,11 @@ class Robot:
         vl: float,
         vr: float,
     ):
-        v_right = vr * self.wheel_radius
-        v_left = vl * self.wheel_radius
+        # v_right = vr * self.wheel_radius
+        # v_left = vl * self.wheel_radius
 
-        v = (v_right + v_left) / 2
-        omega = (v_right - v_left) / self.wheel_base
+        v = (vr + vl) / 2
+        omega = (vr - vl) / self.wheel_base
 
         theta_new = theta + omega * self.dt
 

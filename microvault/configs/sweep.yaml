@@ -21,15 +21,9 @@ parameters:
   weight_decay:
     min: 0.0
     max: 0.1
-  desired_distance:
-    min: 0.5
-    max: 1.0
-  scalar:
+  noise_std:
     min: 0.01
-    max: 0.1
-  scalar_decay:
-    min: 0.9
-    max: 0.99
+    max: 0.5
   seed:
     values: [42, 43, 44, 45, 46, 47, 48, 49, 50]
   layers_actor_l1:

@@ -10,9 +10,11 @@ RESET = "\033[0m"
 
 class Collision:
 
-    def check_collision(self, edges: list, xp: np.ndarray, yp: np.ndarray) -> bool:
+    def check_collision(
+        self, exterior: list, interiors: list, xp: np.ndarray, yp: np.ndarray
+    ) -> bool:
         try:
-            return ray_casting(edges, xp, yp)
+            return is_circle_in_polygon(exterior, interiors, xp, yp)
         except Exception as e:
             print(f"{RED_BOLD}Error in check_collision: {e}{RESET}")
             raise
@@ -398,9 +400,9 @@ def lidar_measurements(
                 measurements.append(ranges)
 
             else:
-                measurements.append(0.0)
+                measurements.append(0.2)
         else:
-            measurements.append(0.0)
+            measurements.append(0.2)
             continue
 
     return measurements
@@ -463,3 +465,46 @@ def ray_casting(edges: list, xp: np.ndarray, yp: np.ndarray) -> bool:
         if (yp < y1) != (yp < y2) and xp < x1 + ((yp - y1) / (y2 - y1)) * (x2 - x1):
             cnt += 1
     return cnt % 2 == 1
+
+
+def is_point_in_polygon(exterior: list, interiors: list, xp: float, yp: float) -> bool:
+
+    if not ray_casting(exterior, xp, yp):
+        return False
+
+    for hole in interiors:
+        if ray_casting(hole, xp, yp):
+            return False
+
+    return True
+
+
+def is_circle_in_polygon(
+    exterior: list,
+    interiors: list,
+    xc: float,
+    yc: float,
+    radius: float = 0.3,
+    num_segments: int = 100,
+) -> bool:
+    """
+    Checks if a circle is completely within a polygon (including avoiding holes).
+
+    Parameters:
+    - exterior: List of edges defining the outer boundary of the polygon.
+    - interiors: List of lists of edges defining holes in the polygon.
+    - xc: X coordinate of the circle's center.
+    - yc: Y coordinate of the circle's center.
+    - radius: Radius of the circle.
+    - num_segments: Number of segments to approximate the circle boundary.
+
+    Returns:
+    - bool: True if the circle is completely inside the polygon and not in any hole, False otherwise.
+    """
+    angles = np.linspace(0, 2 * np.pi, num_segments)
+    for angle in angles:
+        xp = xc + radius * np.cos(angle)
+        yp = yc + radius * np.sin(angle)
+        if not is_point_in_polygon(exterior, interiors, xp, yp):
+            return False
+    return True

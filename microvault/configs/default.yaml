@@ -2,6 +2,7 @@ wandb:
   project: rl-navigation
   entity:
   mode: online
+  use_sweep: True
 
 agent:
   desc: "TD3"
@@ -15,22 +16,17 @@ agent:
   nstep: 10
   weight_decay: 0.0
 
-noise_layer:
-  desired_distance: 0.7
-  scalar: 0.05
-  scalar_decay: 0.99
-
 replay_buffer:
   buffer_size: 1048576
 
 environment:
   timestep: 100
   size: 2.0
-  fps: 50
+  fps: 100
   random: 100000000000
-  threshold: 0.005
+  threshold: 0.1
   grid_lenght: 10 # TODO: error < 5 -> [5 - 15]
-  state_size: 13
+  state_size: 14
   action_size: 2
 
 robot:
@@ -47,6 +43,7 @@ robot:
   min_linear: 0.0 # 0.1 m/s
   max_angular: 1.0 # 0.2 rad/s
   min_angular: -1.0 # 0.1 rad/s
+  size: 0.3
 
 engine:
   seed: 42
@@ -58,11 +55,11 @@ engine:
   path: "./"
   wandb: True
   save_checkpoint: 200
-  epochs: 1000
-  visualize: False
+  epochs: 100
 
 network:
   layers_actor_l1: 400
   layers_actor_l2: 300
   layers_critic_l1: 400
   layers_critic_l2: 300
+  noise_std: 0.5

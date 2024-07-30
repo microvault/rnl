@@ -15,6 +15,7 @@ def model_actor_instance():
         l1=400,
         l2=300,
         device="cpu",
+        noise_std=0.5,
         batch_size=64,
     )
 

@@ -34,7 +34,6 @@ pytest = "^8.0.0"
 pytest-cov = "^4.1.0"
 black = "^24.1.1"
 isort = "^5.13.2"
-taskipy = "^1.12.2"
 ruff = "^0.2.1"
 codespell = "^2.2.6"
 commitizen = "^3.14.1"
@@ -48,13 +47,6 @@ pre-commit = "^3.7.0"
 
 [tool.pytest.ini_options]
 pythonpath = "."
-
-[tool.taskipy.tasks]
-lint = "codespell --skip=*.css,*.js,*.map,*.scss,*.svg,*.html,*.json,*.yml,*.yaml,*.md,*.jsx,*.mdx,*.pyx,*.cpp,./data/map/*,./docs/*"
-pre_test = "task lint"
-test = "pytest -s -x --cov=microvault -vv"
-post_test = "coverage html"
-publish = "poetry publish --build -u __token__ -p $MICROVAULT_PYPI_TOKEN"
 
 [build-system]
 requires = ["poetry-core"]
