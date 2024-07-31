@@ -83,7 +83,7 @@ def environment_instance():
     env = gym.make(
         "microvault/NaviEnv-v0",
         rgb_array=False,
-        max_episode=cfg["engine"]["num_episodes"],
+        max_episode=cfg["engine"]["epochs"],
         robot=robot,
         generator=generate,
         agent=agent,

@@ -13,7 +13,7 @@ agent:
   lr_critic: 1e-3
   noise: 0.2
   noise_clip: 0.5
-  nstep: 10
+  nstep: 1
   weight_decay: 0.0
 
 replay_buffer:
@@ -49,13 +49,11 @@ engine:
   seed: 42
   device: cpu # cuda / cpu / mps
   batch_size: 32
-  num_episodes: 2000
   pretrained: False
-  checkpoint: 200
   path: "./"
-  wandb: True
+  wandb: False
   save_checkpoint: 200
-  epochs: 100
+  epochs: 20000
 
 network:
   layers_actor_l1: 400

@@ -35,40 +35,6 @@ class Robot:
         self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
         self.dt = 1
 
-    def init_agent(self) -> Tuple[
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        float,
-    ]:
-        """
-        Initializes the agent's parameters for the simulation.
-
-        Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
-            Tuple containing the following:
-            - x (np.ndarray): Array of agent's x positions over time.
-            - y (np.ndarray): Array of agent's y positions over time.
-            - sp (np.ndarray): Array of agent's speed magnitudes over time.
-            - theta (np.ndarray): Array of agent's angles of velocity over time.
-            - vx (np.ndarray): Array of agent's x velocities over time.
-            - vy (np.ndarray): Array of agent's y velocities over time.
-            - radius (float): Radius of the robot.
-        """
-        x = np.zeros(self.time)
-        y = np.zeros(self.time)
-        vr = np.zeros(self.time)
-        vl = np.zeros(self.time)
-        theta = np.zeros(self.time)
-        measurements = np.zeros((self.time, self.num_rays))
-        radius = np.random.uniform(self.min_radius, self.max_radius)
-
-        return (x, y, theta, self.lidar_angle, measurements, vr, vl, radius)
-
     def move_robot(
         self,
         x: float,
@@ -111,6 +77,3 @@ class Robot:
         )
 
         return intersections, measurements
-
-    def step(self):
-        pass

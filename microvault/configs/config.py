@@ -65,9 +65,7 @@ class EngineConfig:
     seed: int
     device: str
     batch_size: int
-    num_episodes: int
     pretrained: bool
-    checkpoint: int
     path: str
     wandb: bool
     save_checkpoint: int

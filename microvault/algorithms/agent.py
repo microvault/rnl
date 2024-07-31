@@ -67,7 +67,11 @@ class Agent:
 
             # Rede "Actor" (com/ Rede Alvo)
             self.actor = modelActor.to(self.device)
-            self.actor.load_state_dict(torch.load("/content/checkpoint_actor.pth"))
+            self.actor.load_state_dict(
+                torch.load(
+                    "/Users/nicolasalan/microvault/microvault/checkpoints/checkpoint_actor_1800.pth"
+                )
+            )
             # Definir o modelo alvo, porém, sem a necessidade de calcular gradientes
             self.actor_target = modelActor.to(
                 self.device
@@ -77,7 +81,10 @@ class Agent:
             # Rede "Actor" (com/ Rede Alvo)
             self.critic = modelCritic.to(self.device)
             self.critic.load_state_dict(
-                torch.load("/content/checkpoint_critic.pth", map_location=self.device)
+                torch.load(
+                    "/Users/nicolasalan/microvault/microvault/checkpoints/checkpoint_critic_1800.pth",
+                    map_location=self.device,
+                )
             )
             self.critic_target = modelCritic.to(
                 self.device
@@ -320,7 +327,9 @@ class Agent:
                 tau * local_param.data + (1.0 - tau) * target_param.data
             )
 
-    def save(self, filename: str = "checkpoint", version: str = "latest") -> None:
+    def save(
+        self, filename: str = "checkpoints/checkpoint", version: str = "latest"
+    ) -> None:
         """Save the model"""
         torch.save(self.critic.state_dict(), filename + "_critic_" + version + ".pth")
         torch.save(

@@ -181,8 +181,8 @@ class NaviEnv(gym.Env):
         reward, done = get_reward(dist, action, measurement, collision)
 
         print(
-            "\rReward {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
-                reward, laser, dist, angle
+            "\rReward {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {}".format(
+                reward, laser, dist, angle, str(actions)
             ),
         )
 

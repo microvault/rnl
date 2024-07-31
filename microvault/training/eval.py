@@ -86,7 +86,7 @@ def eval_experiment(cfg=TrainerConfig) -> None:
     env = gym.make(
         "microvault/NaviEnv-v0",
         rgb_array=True,
-        max_episode=cfg.engine.num_episodes,
+        max_episode=cfg.engine.epochs,
         robot=robot,
         generator=generate,
         agent=agent,

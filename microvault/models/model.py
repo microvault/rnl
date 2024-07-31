@@ -5,8 +5,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from microvault.models.noise import NoisyLinear
-
 
 def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
@@ -35,7 +33,8 @@ class ModelActor(nn.Module):
 
         self.l1 = nn.Linear(state_dim, l1)
         self.l2 = nn.Linear(l1, l2)
-        self.l3 = NoisyLinear(l2, action_dim, noise_std)
+        self.l3 = nn.Linear(l2, action_dim)
+        # self.l3 = NoisyLinear(l2, action_dim, noise_std)
         self.reset_parameters()
 
         self.max_action = max_action

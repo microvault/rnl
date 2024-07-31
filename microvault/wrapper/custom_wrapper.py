@@ -55,23 +55,3 @@ class CustomWrapper(gym.Wrapper):
         if isinstance(obs, tuple):
             obs = np.array(obs[0])
         return obs
-
-    def action(self, action):
-        """Rescales the action affinely from  [:attr:`min_action`, :attr:`max_action`] to the action space of the base environment, :attr:`env`.
-        Args:
-            action: The action to rescale
-        Returns:
-            The rescaled action
-        """
-        assert np.all(np.greater_equal(action, self.min_action)), (
-            action,
-            self.min_action,
-        )
-        assert np.all(np.less_equal(action, self.max_action)), (action, self.max_action)
-        low = self.env.action_space.low
-        high = self.env.action_space.high
-        action = low + (high - low) * (
-            (action - self.min_action) / (self.max_action - self.min_action)
-        )
-        action = np.clip(action, low, high)
-        return action

@@ -37,6 +37,7 @@ class Training:
         np.ndarray,
         np.ndarray,
         np.ndarray,
+        np.ndarray,
         float,
         float,
     ]:
@@ -53,13 +54,23 @@ class Training:
         intrinsic_reward = 0.0
         error = 0.0
 
+        mean_action = np.array([0.0, 0.0])
+
         for t in range(timestep):
             action = self.agent.predict(state)
-            next_state, reward, done, info = env.step(action)
-            self.replaybuffer.add(state, action, reward, next_state, done)
+            actions = [(action[0] + 1) / 2, action[1]]
+            next_state, reward, done, info = env.step(actions)
+            self.replaybuffer.add(state, np.array(actions), reward, next_state, done)
 
             state = next_state
             score += reward
+            mean_action += actions
+
+            # print(
+            #     "\rTimestep {:.2f}\tActions Network: {}\tActions Process: {}\tDone: {:.2f}".format(
+            #         t, str(actions), str(action), done
+            #     ), end=""
+            # )
 
             if done or t == (timestep - 1):
                 if len(self.replaybuffer) > batch_size:
@@ -77,6 +88,7 @@ class Training:
             max_q,
             intrinsic_reward,
             error,
+            mean_action,
             score,
             elapsed_time,
         )
