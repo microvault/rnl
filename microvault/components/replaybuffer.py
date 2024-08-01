@@ -14,10 +14,8 @@ class ReplayBuffer:
         self,
         buffer_size: int = 1048576,
         batch_size: int = 32,
-        gamma: float = 0.99,
-        nstep: int = 10,
         state_dim: int = 14,
-        action_dim: int = 2,
+        action_dim: int = 4,
         device: str = "cpu",
     ):
         """
@@ -25,9 +23,6 @@ class ReplayBuffer:
         """
 
         self.batch_size = batch_size
-        self.gamma = gamma
-        self.n_step = nstep
-        self.n_step_buffer = deque(maxlen=nstep)
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.device = device
@@ -37,24 +32,10 @@ class ReplayBuffer:
             field_names=["state", "action", "reward", "next_state", "done"],
         )
 
-    def multistep(self):
-        # Retorno do buffer de n-step
-        ret = 0
-        for idx in range(1):
-            ret += (self.gamma**idx) * self.n_step_buffer[idx][2]
-
-        return (
-            self.n_step_buffer[0][0],
-            self.n_step_buffer[0][1],
-            ret,
-            self.n_step_buffer[-1][3],
-            self.n_step_buffer[-1][4],
-        )
-
     def add(
         self,
         state: np.ndarray = None,
-        action: np.ndarray = None,
+        action: int = 0,
         reward: np.float64 = None,
         next_state: np.float64 = None,
         done: np.bool_ = np.bool_(False),
@@ -80,10 +61,6 @@ class ReplayBuffer:
             state.shape[0] == self.state_dim
         ), f"The size of the state is not {self.state_dim} in REPLAY BUFFER -> state size: {next_state.shape[0]}."
 
-        assert (
-            action.shape[0] == self.action_dim
-        ), f"The size of the action is not {self.action_dim} in REPLAY BUFFER -> action size: {action.shape[0]}."
-
         if isinstance(reward, np.float64):
             assert (
                 reward.size == 1
@@ -97,10 +74,6 @@ class ReplayBuffer:
             state.ndim == 1
         ), f"The ndim of the state is not (1) in REPLAY BUFFER -> state ndim: {state.ndim}."
 
-        assert (
-            action.ndim == 1
-        ), f"The ndim of the action is not (1) in REPLAY BUFFER -> action ndim: {action.ndim}."
-
         if isinstance(reward, np.float64):
             assert (
                 reward.ndim == 0
@@ -109,10 +82,6 @@ class ReplayBuffer:
         assert (
             next_state.ndim == 1
         ), f"The ndim of the next_state is not (1) in REPLAY BUFFER -> next_state ndim: {next_state.ndim}."
-
-        self.n_step_buffer.append((state, action, reward, next_state, done))
-        if len(self.n_step_buffer) == self.n_step:
-            (state, action, reward, next_state, done) = self.multistep()
 
         e = self.experience(state, action, reward, next_state, done)
         self.memory.append(e)
@@ -135,7 +104,7 @@ class ReplayBuffer:
         )
         actions = (
             torch.from_numpy(np.vstack([e[1] for e in experiences if e is not None]))
-            .float()
+            .long()
             .to(self.device)
         )
         rewards = (
@@ -162,7 +131,7 @@ class ReplayBuffer:
             states.dtype
         )
         assert (
-            actions.dtype == torch.float32
+            actions.dtype == torch.int64
         ), "The (actions) tensor elements are not of type torch.float32 in the REPLAY BUFFER -> {}.".format(
             actions.dtype
         )

@@ -14,14 +14,7 @@ class AgentConfig:
     gamma: float
     tau: float
     update_every_step: int
-    lr_actor: float
-    lr_critic: float
-    noise: float
-    noise_std: float
-    noise_clip: float
-    normal_scalar: float
-    nstep: int
-    eta: float
+    lr_model: float
     weight_decay: float
 
 
@@ -44,20 +37,11 @@ class EnvironmentConfig:
 
 @dataclass
 class RobotConfig:
-    min_radius: float
-    max_radius: float
     wheel_radius: float
     wheel_base: float
     fov: float
     num_rays: int
     max_range: float
-    max_linear: float
-    min_linear: float
-    max_angular: float
-    min_angular: float
-    max_action: float
-    min_action: float
-    size: float
 
 
 @dataclass
@@ -74,12 +58,8 @@ class EngineConfig:
 
 @dataclass
 class NetworkConfig:
-    layers_actor_l1: int
-    layers_actor_l2: int
-    layers_critic_l1: int
-    layers_critic_l2: int
-    activation: str
-    noise_std: float
+    layers_model_l1: int
+    layers_model_l2: int
 
 
 @dataclass

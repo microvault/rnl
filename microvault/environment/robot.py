@@ -11,21 +11,12 @@ class Robot:
     def __init__(
         self,
         collision: Collision,
-        time: int = 100,
-        min_radius: float = 1.0,
-        max_radius: float = 3.0,
-        max_grid: int = 15,
         wheel_radius: float = 0.3,
         wheel_base: float = 0.3,
         fov: float = 2 * np.pi,
         num_rays: int = 10,
         max_range: float = 6.0,
     ):
-        self.time = time
-        self.min_radius = min_radius
-        self.max_radius = max_radius
-        self.xmax = max_grid
-        self.ymax = max_grid
         self.fov = fov
         self.max_range = max_range
         self.num_rays = num_rays
@@ -33,33 +24,33 @@ class Robot:
         self.wheel_base = wheel_base
         self.collision = collision
         self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
-        self.dt = 1
 
     def move_robot(
         self,
-        x: float,
-        y: float,
-        theta: float,
+        last_position_x: float,
+        last_position_y: float,
+        last_theta: float,
         vl: float,
         vr: float,
     ):
-        # v_right = vr * self.wheel_radius
-        # v_left = vl * self.wheel_radius
+        epsilon = 1e-6
 
-        v = (vr + vl) / 2
-        omega = (vr - vl) / self.wheel_base
+        v = vl
+        omega = vr
 
-        theta_new = theta + omega * self.dt
+        theta_new = last_theta + omega
+        theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
 
-        # Ensure theta stays within -2π to 2π
-        if theta_new > 2 * np.pi or theta_new < -2 * np.pi:
-            theta_new = 0
-
-        x_temp = x + v * np.cos(theta_new) * self.dt
-        y_temp = y + v * np.sin(theta_new) * self.dt
-
-        x_new = max(0.0, float(min(x_temp, self.xmax)))
-        y_new = max(0.0, float(min(y_temp, self.ymax)))
+        if abs(omega) < epsilon:
+            x_new = last_position_x + v * np.cos(last_theta)
+            y_new = last_position_y + v * np.sin(last_theta)
+        else:
+            radius = v / omega if omega != 0 else float("inf")
+            cx = last_position_x - radius * np.sin(last_theta)
+            cy = last_position_y + radius * np.cos(last_theta)
+            delta_theta = omega
+            x_new = cx + radius * np.sin(last_theta + delta_theta)
+            y_new = cy - radius * np.cos(last_theta + delta_theta)
 
         return x_new, y_new, theta_new
 

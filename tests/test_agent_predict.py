@@ -3,7 +3,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from microvault.algorithms.agent import Agent
-from microvault.models.model import ModelActor, ModelCritic
+from microvault.models.model import QModel
 
 config_path = "../microvault/microvault/configs/default.yaml"
 path = OmegaConf.load(config_path)
@@ -11,104 +11,73 @@ cfg = OmegaConf.to_container(path, resolve=True)
 
 
 @pytest.fixture
-def actor_instance_default():
-    return ModelActor(
-        state_dim=cfg["environment"]["state_size"],
-        action_dim=cfg["environment"]["action_size"],
-        max_action=cfg["robot"]["max_action"],
-        l1=cfg["network"]["layers_actor_l1"],
-        l2=cfg["network"]["layers_actor_l2"],
-        device=cfg["engine"]["device"],
-        batch_size=cfg["engine"]["batch_size"],
-    )
-
-
-@pytest.fixture
-def critic_instance_default():
-    return ModelCritic(
-        state_dim=cfg["environment"]["state_size"],
-        action_dim=cfg["environment"]["action_size"],
-        l1=cfg["network"]["layers_critic_l1"],
-        l2=cfg["network"]["layers_critic_l2"],
-        device=cfg["engine"]["device"],
-        batch_size=cfg["engine"]["batch_size"],
-    )
-
-
-@pytest.fixture
-def agent_instance_default(actor_instance_default, critic_instance_default):
-    return Agent(modelActor=actor_instance_default, modelCritic=critic_instance_default)
-
-
-@pytest.fixture
-def agent_instance_config(actor_instance_default, critic_instance_default):
-
-    agent = Agent(
-        modelActor=actor_instance_default,
-        modelCritic=critic_instance_default,
+def model_instance_default():
+    return QModel(
         state_size=cfg["environment"]["state_size"],
         action_size=cfg["environment"]["action_size"],
-        max_action=cfg["robot"]["max_action"],
-        min_action=cfg["robot"]["min_action"],
-        update_every_step=cfg["agent"]["update_every_step"],
+        fc1_units=cfg["network"]["layers_model_l1"],
+        fc2_units=cfg["network"]["layers_model_l2"],
+        device=cfg["engine"]["device"],
+        batch_size=cfg["engine"]["batch_size"],
+    )
+
+
+@pytest.fixture
+def agent_instance_default(model_instance_default):
+    return Agent(model=model_instance_default)
+
+
+@pytest.fixture
+def agent_instance_config(model_instance_default):
+
+    agent = Agent(
+        model=model_instance_default,
+        state_size=cfg["environment"]["state_size"],
+        action_size=cfg["environment"]["action_size"],
         gamma=cfg["agent"]["gamma"],
         tau=cfg["agent"]["tau"],
-        lr_actor=cfg["agent"]["lr_actor"],
-        lr_critic=cfg["agent"]["lr_critic"],
+        lr_model=cfg["agent"]["lr_model"],
         weight_decay=cfg["agent"]["weight_decay"],
-        noise=cfg["agent"]["noise"],
-        noise_clip=cfg["agent"]["noise_clip"],
         device=cfg["engine"]["device"],
         pretrained=cfg["engine"]["pretrained"],
-        nstep=cfg["agent"]["nstep"],
     )
 
     return agent
 
 
 def test_default_values(agent_instance_default):
-    assert agent_instance_default.state_size == 14
-    assert agent_instance_default.action_size == 2
-    assert agent_instance_default.max_action == 1.0
-    assert agent_instance_default.min_action == -1.0
-    assert agent_instance_default.update_every_step == 2
+    assert agent_instance_default.state_size == 13
+    assert agent_instance_default.action_size == 4
     assert agent_instance_default.gamma == 0.99
     assert agent_instance_default.tau == 1e-3
-    assert agent_instance_default.lr_actor == 1e-3
-    assert agent_instance_default.lr_critic == 1e-3
+    assert agent_instance_default.lr_model == 1e-3
     assert agent_instance_default.weight_decay == 0.0
-    assert agent_instance_default.noise == 0.2
-    assert agent_instance_default.noise_clip == 0.5
     assert agent_instance_default.device == "cpu"
     assert not agent_instance_default.pretrained
-    assert agent_instance_default.nstep == 1
 
 
 def test_predict_size_action_with_default(agent_instance_default):
-    action = agent_instance_default.predict(np.zeros(14, dtype=np.float32))
-    assert action.shape == (2,)
+    action = agent_instance_default.predict(np.zeros(13, dtype=np.float32))
+    assert action.shape == ()
 
 
 def test_predict_size_action_with_config(agent_instance_config):
-    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
-    assert action.shape == (2,)
+    action = agent_instance_config.predict(np.zeros(13, dtype=np.float32))
+    assert action.shape == ()
 
 
 def test_states_size(agent_instance_config):
-    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
-    assert action.shape == (2,)
+    action = agent_instance_config.predict(np.zeros(13, dtype=np.float32))
+    assert action.shape == ()
 
 
 def test_action_type(agent_instance_config):
-    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
-    assert action.dtype == np.float32, "O tipo da ação não é np.float32."
+    action = agent_instance_config.predict(np.zeros(13, dtype=np.float32))
+    assert action.dtype == np.int64, "O tipo da ação não é np.int64."
 
 
 def test_action_within_limits(agent_instance_config):
-    action = agent_instance_config.predict(np.zeros(14, dtype=np.float32))
-    assert np.all(action >= -1.0) and np.all(
-        action <= 1.0
+    action = agent_instance_config.predict(np.zeros(13, dtype=np.float32))
+    assert np.all(action >= 0) and np.all(
+        action <= 3
     ), "Ação não está dentro dos limites."
-
-
-# TODO: teste scalar

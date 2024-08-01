@@ -17,54 +17,44 @@ class Training:
         environment: gym.Env,
         agent: Agent,
         replaybuffer: ReplayBuffer,
-        min_action: float,
-        max_action: float,
     ):
         self.env = environment
         self.agent = agent
         self.replaybuffer = replaybuffer
-        self.min_action = min_action
-        self.max_action = max_action
 
     def train_one_epoch(
         self,
         batch_size: int,
         timestep: int,
+        eps: float,
     ) -> Tuple[
         np.ndarray,
         np.ndarray,
         np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
-        np.ndarray,
+        float,
         float,
         float,
     ]:
 
-        env = CustomWrapper(self.env, self.min_action, self.max_action)
+        env = CustomWrapper(self.env)
         start_time = timeit.default_timer()
         state = env.reset()
         done = False
         score = 0
-        critic_loss = 0.0
-        actor_loss = 0.0
+        model_loss = 0.0
         q = 0.0
         max_q = 0.0
-        intrinsic_reward = 0.0
-        error = 0.0
 
-        mean_action = np.array([0.0, 0.0])
+        selection_action = 0.0
 
         for t in range(timestep):
             action = self.agent.predict(state)
-            actions = [(action[0] + 1) / 2, action[1]]
-            next_state, reward, done, info = env.step(actions)
-            self.replaybuffer.add(state, np.array(actions), reward, next_state, done)
+            next_state, reward, done, info = env.step(action)
+            self.replaybuffer.add(state, np.array(action), reward, next_state, done)
 
             state = next_state
             score += reward
-            mean_action += actions
+            selection_action = action
 
             # print(
             #     "\rTimestep {:.2f}\tActions Network: {}\tActions Process: {}\tDone: {:.2f}".format(
@@ -74,21 +64,18 @@ class Training:
 
             if done or t == (timestep - 1):
                 if len(self.replaybuffer) > batch_size:
-                    critic_loss, actor_loss, q, max_q, intrinsic_reward, error = (
-                        self.agent.learn(memory=self.replaybuffer, n_iteration=t + 1)
+                    model_loss, q, max_q = self.agent.learn(
+                        memory=self.replaybuffer, n_iteration=t + 1
                     )
                 break
 
         elapsed_time = timeit.default_timer() - start_time
 
         return (
-            critic_loss,
-            actor_loss,
+            model_loss,
             q,
             max_q,
-            intrinsic_reward,
-            error,
-            mean_action,
+            selection_action,
             score,
             elapsed_time,
         )

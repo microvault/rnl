@@ -14,7 +14,7 @@ from microvault.engine.collision import Collision
 from microvault.engine.engine import Engine
 from microvault.environment.generate_world import GenerateWorld, Generator
 from microvault.environment.robot import Robot
-from microvault.models.model import ModelActor, ModelCritic
+from microvault.models.model import QModel
 from microvault.training.training import Training
 
 # from omegaconf import OmegaConf
@@ -44,51 +44,30 @@ def train_experiment(cfg=TrainerConfig) -> None:
         replaybuffer = ReplayBuffer(
             buffer_size=cfg.replay_buffer.buffer_size,
             batch_size=cfg.engine.batch_size,
-            gamma=cfg.agent.gamma,
-            nstep=cfg.agent.nstep,
             state_dim=cfg.environment.state_size,
             action_dim=cfg.environment.action_size,
             device=cfg.engine.device,
         )
 
-        modelActor = ModelActor(
-            state_dim=cfg.environment.state_size,
-            action_dim=cfg.environment.action_size,
-            max_action=cfg.robot.max_action,
-            l1=cfg.network.layers_actor_l1,
-            l2=cfg.network.layers_actor_l2,
-            device=cfg.engine.device,
-            noise_std=cfg.network.noise_std,
+        model = QModel(
+            state_size=cfg.environment.state_size,
+            action_size=cfg.environment.action_size,
+            fc1_units=cfg.network.layers_model_l1,
+            fc2_units=cfg.network.layers_model_l2,
             batch_size=cfg.engine.batch_size,
-        )
-
-        modelCritic = ModelCritic(
-            state_dim=cfg.environment.state_size,
-            action_dim=cfg.environment.action_size,
-            l1=cfg.network.layers_critic_l1,
-            l2=cfg.network.layers_critic_l2,
             device=cfg.engine.device,
-            batch_size=cfg.engine.batch_size,
         )
 
         agent = Agent(
-            modelActor=modelActor,
-            modelCritic=modelCritic,
+            model=model,
             state_size=cfg.environment.state_size,
             action_size=cfg.environment.action_size,
-            max_action=cfg.robot.max_action,
-            min_action=cfg.robot.min_action,
-            update_every_step=cfg.agent.update_every_step,
             gamma=cfg.agent.gamma,
             tau=cfg.agent.tau,
-            lr_actor=cfg.agent.lr_actor,
-            lr_critic=cfg.agent.lr_critic,
+            lr_model=cfg.agent.lr_model,
             weight_decay=cfg.agent.weight_decay,
-            noise=cfg.agent.noise,
-            noise_clip=cfg.agent.noise_clip,
             device=cfg.engine.device,
             pretrained=cfg.engine.pretrained,
-            nstep=cfg.agent.nstep,
         )
 
         collision = Collision()
@@ -103,10 +82,6 @@ def train_experiment(cfg=TrainerConfig) -> None:
 
         robot = Robot(
             collision=collision,
-            time=cfg.environment.timestep,
-            min_radius=cfg.robot.min_radius,
-            max_radius=cfg.robot.max_radius,
-            max_grid=cfg.environment.grid_lenght,
             wheel_radius=cfg.robot.wheel_radius,
             wheel_base=cfg.robot.wheel_base,
             fov=cfg.robot.fov,
@@ -117,65 +92,59 @@ def train_experiment(cfg=TrainerConfig) -> None:
         env = gym.make(
             "microvault/NaviEnv-v0",
             rgb_array=False,
-            max_episode=cfg.engine.epochs,
             robot=robot,
             generator=generate,
             agent=agent,
             collision=collision,
+            state_size=cfg.environment.state_size,
+            fps=cfg.environment.fps,
             timestep=cfg.environment.timestep,
             threshold=cfg.environment.threshold,
-            num_rays=cfg.robot.num_rays,
-            fov=cfg.robot.fov,
-            max_range=cfg.robot.max_range,
             grid_lenght=cfg.environment.grid_lenght,
-            state_size=cfg.environment.state_size,
         )
 
-        trainer = Training(
-            env, agent, replaybuffer, cfg.robot.min_action, cfg.robot.max_action
-        )
+        trainer = Training(env, agent, replaybuffer)
 
         scores_deque = deque(maxlen=100)
         scores = []
-        action_deque = deque(maxlen=100)
-        actions = []
 
+        eps_start = 1.0
+        eps_end = 0.01
+        eps_decay = 0.995
+
+        eps = eps_start
         for epoch in np.arange(1, cfg.engine.epochs + 1):
 
             (
-                critic_loss,
-                actor_loss,
+                model_loss,
                 q,
                 max_q,
-                intrinsic_reward,
-                error,
                 action,
                 score,
                 elapsed_time,
             ) = trainer.train_one_epoch(
                 cfg.engine.batch_size,
                 cfg.environment.timestep,
+                eps,
             )
+
+            eps = max(eps_end, eps_decay * eps)
 
             scores_deque.append(score)
             scores.append(score)
             mean_score = np.mean(scores_deque)
 
-            action_deque.append(action)
-            actions.append(action)
-            mean_action = np.mean(action_deque)
-
             print(
-                "\rEpisode {}\tAv. Score: {:.2f}\tScore: {:.2f}\tAv. Action: {:.2f}\tTime: {:.2f}\tError: {:.2f}\tQ: {:.2f}\tCrit. Loss: {:.2f}\tAct. loss: {:.2f}".format(
+                "\rEpisode {}\tAv. Score: {:.2f}\tScore: {:.2f}\tSelec. Action: {:.2f}\tTime: {:.2f}\tQ: {:.2f}\tMax Q: {:.2f}\tloss: {:.2f}\tEps: {:.2f}".format(
                     epoch,
                     mean_score,
                     score,
-                    mean_action,
+                    action,
                     elapsed_time,
-                    error,
                     q,
-                    critic_loss,
-                    actor_loss,
+                    max_q,
+                    model_loss,
+                    eps,
                 )
             )
 
@@ -184,19 +153,17 @@ def train_experiment(cfg=TrainerConfig) -> None:
                 wandb.log(
                     {
                         "epoch": epoch,
-                        "critic_loss": critic_loss,
-                        "actor_loss": actor_loss,
+                        "model_loss": model_loss,
                         "q": q,
                         "max_q": max_q,
                         "time_per_epoch": elapsed_time,
                         "mean_reward": mean_score,
-                        "intrinsic_reward": intrinsic_reward,
-                        "error": error,
+                        "eps": eps,
                     }
                 )
 
-            # if epoch % cfg.engine.save_checkpoint == 0:
-            #     agent.save("checkpoint", str(epoch))
+            if epoch % cfg.engine.save_checkpoint == 0:
+                agent.save("checkpoint", str(epoch))
 
             if mean_score >= 200:
                 print(

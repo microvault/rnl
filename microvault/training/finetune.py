@@ -14,7 +14,7 @@ from microvault.engine.collision import Collision
 from microvault.engine.engine import Engine
 from microvault.environment.generate_world import GenerateWorld, Generator
 from microvault.environment.robot import Robot
-from microvault.models.model import ModelActor, ModelCritic
+from microvault.models.model import QModel
 from microvault.training.training import Training
 
 cs = ConfigStore.instance()
@@ -37,17 +37,11 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
 
         batch_size = wandb.config.batch_size
         epochs = wandb.config.epochs
-        learning_rate_actor = wandb.config.learning_rate_actor
-        learning_rate_critic = wandb.config.learning_rate_critic
-        noise = wandb.config.noise
-        nstep = wandb.config.nstep
+        learning_rate_model = wandb.config.learning_rate_model
         weight_decay = wandb.config.weight_decay
-        noise_std = wandb.config.noise_std
         seed = wandb.config.seed
-        layers_actor_l1 = wandb.config.layers_actor_l1
-        layers_actor_l2 = wandb.config.layers_actor_l2
-        layers_critic_l1 = wandb.config.layers_critic_l1
-        layers_critic_l2 = wandb.config.layers_critic_l2
+        layers_model_l1 = wandb.config.layers_model_l1
+        layers_model_l2 = wandb.config.layers_model_l2
 
         engine = Engine(seed=seed, device=cfg.engine.device)
 
@@ -57,51 +51,30 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
         replaybuffer = ReplayBuffer(
             buffer_size=cfg.replay_buffer.buffer_size,
             batch_size=batch_size,
-            gamma=cfg.agent.gamma,
-            nstep=nstep,
             state_dim=cfg.environment.state_size,
             action_dim=cfg.environment.action_size,
             device=cfg.engine.device,
         )
 
-        modelActor = ModelActor(
-            state_dim=cfg.environment.state_size,
-            action_dim=cfg.environment.action_size,
-            max_action=cfg.robot.max_action,
-            l1=layers_actor_l1,
-            l2=layers_actor_l2,
-            device=cfg.engine.device,
-            noise_std=noise_std,
+        model = QModel(
+            state_size=cfg.environment.state_size,
+            action_size=cfg.environment.action_size,
+            fc1_units=layers_model_l1,
+            fc2_units=layers_model_l2,
             batch_size=batch_size,
-        )
-
-        modelCritic = ModelCritic(
-            state_dim=cfg.environment.state_size,
-            action_dim=cfg.environment.action_size,
-            l1=layers_critic_l1,
-            l2=layers_critic_l2,
             device=cfg.engine.device,
-            batch_size=batch_size,
         )
 
         agent = Agent(
-            modelActor=modelActor,
-            modelCritic=modelCritic,
+            model=model,
             state_size=cfg.environment.state_size,
             action_size=cfg.environment.action_size,
-            max_action=cfg.robot.max_action,
-            min_action=cfg.robot.min_action,
-            update_every_step=cfg.agent.update_every_step,
             gamma=cfg.agent.gamma,
             tau=cfg.agent.tau,
-            lr_actor=learning_rate_actor,
-            lr_critic=learning_rate_critic,
+            lr_model=learning_rate_model,
             weight_decay=weight_decay,
-            noise=noise,
-            noise_clip=cfg.agent.noise_clip,
             device=cfg.engine.device,
             pretrained=cfg.engine.pretrained,
-            nstep=nstep,
         )
 
         collision = Collision()
@@ -116,10 +89,6 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
 
         robot = Robot(
             collision=collision,
-            time=cfg.environment.timestep,
-            min_radius=cfg.robot.min_radius,
-            max_radius=cfg.robot.max_radius,
-            max_grid=cfg.environment.grid_lenght,
             wheel_radius=cfg.robot.wheel_radius,
             wheel_base=cfg.robot.wheel_base,
             fov=cfg.robot.fov,
@@ -130,41 +99,42 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
         env = gym.make(
             "microvault/NaviEnv-v0",
             rgb_array=False,
-            max_episode=epochs,
             robot=robot,
             generator=generate,
             agent=agent,
             collision=collision,
+            state_size=cfg.environment.state_size,
+            fps=cfg.environment.fps,
             timestep=cfg.environment.timestep,
             threshold=cfg.environment.threshold,
-            num_rays=cfg.robot.num_rays,
-            fov=cfg.robot.fov,
-            max_range=cfg.robot.max_range,
             grid_lenght=cfg.environment.grid_lenght,
-            state_size=cfg.environment.state_size,
         )
 
-        trainer = Training(
-            env, agent, replaybuffer, cfg.robot.min_action, cfg.robot.max_action
-        )
+        trainer = Training(env, agent, replaybuffer)
 
         scores_deque = deque(maxlen=100)
         scores = []
 
+        eps_start = 1.0
+        eps_end = 0.01
+        eps_decay = 0.995
+
+        eps = eps_start
         for epoch in np.arange(1, epochs + 1):
             (
-                critic_loss,
-                actor_loss,
+                model_loss,
                 q,
                 max_q,
-                intrinsic_reward,
-                error,
+                mean_action,
                 score,
                 elapsed_time,
             ) = trainer.train_one_epoch(
                 batch_size,
                 cfg.environment.timestep,
+                eps,
             )
+
+            eps = max(eps_end, eps_decay * eps)
 
             scores_deque.append(score)
             scores.append(score)
@@ -179,14 +149,11 @@ def finetune_experiment(cfg: TrainerConfig) -> None:
             wandb.log(
                 {
                     "epoch": epoch,
-                    "critic_loss": critic_loss,
-                    "actor_loss": actor_loss,
+                    "model_loss": model_loss,
                     "q": q,
                     "max_q": max_q,
                     "time_per_epoch": elapsed_time,
                     "mean_reward": mean_score,
-                    "intrinsic_reward": intrinsic_reward,
-                    "error": error,
                 }
             )
 

@@ -34,22 +34,16 @@ class NaviEnv(gym.Env):
         generator: Generator,
         agent: Agent,
         collision: Collision,
-        timestep: int = 100,  # max step
-        size: float = 3.0,  # size robot
-        random: int = 1000,  # 100 random points
-        num_rays: int = 10,  # num range lidar
-        fov: float = 2 * np.pi,  # 360 degrees
-        max_range: float = 6.0,  # max range
-        threshold: float = 0.05,  # 0.1 threshold
+        timestep: int = 1000,  # max step
+        threshold: float = 0.1,  # 0.1 threshold
         grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
         rgb_array: bool = False,
         fps: int = 100,  # 10 frames per second
-        max_episode: int = 10,
-        state_size: int = 14,
+        state_size: int = 13,
         controller: bool = False,
     ):
         super().__init__()
-        self.action_space = spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+        self.action_space = spaces.Discrete(4)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
@@ -61,10 +55,8 @@ class NaviEnv(gym.Env):
         self.states = None
 
         self.rgb_array = rgb_array
-        self.max_epochs = max_episode
         self.timestep = timestep
         self.max_timestep = timestep
-        self.size = size
         self.fps = fps
         self.threshold = threshold
         self.grid_lenght = grid_lenght
@@ -72,22 +64,21 @@ class NaviEnv(gym.Env):
         self.ymax = grid_lenght - 0.25
 
         self.segments = []
+        self.controller = controller
 
         self.target_x = 0
         self.target_y = 0
         self.last_position_x = 0
         self.last_position_y = 0
         self.last_theta = 0
-        self.epoch = 0
+        self.vl = 0.01
+        self.vr = 0.01
+        self.init_distance = 0
 
-        self.radius = 1.0
         self.lidar_angle = np.linspace(0, 2 * np.pi, 10)
         self.measurement = np.zeros(10)
 
         if rgb_array:
-            self.speed = 1.0
-            self.angular_speed = 0.5
-
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
@@ -106,7 +97,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="o",
-                markersize=self.radius,
+                markersize=1.0,
                 color="orange",
             )[0]
 
@@ -118,25 +109,46 @@ class NaviEnv(gym.Env):
 
     def on_key_press(self, event):
         if event.key == "up":
-            self.speed += 0.1
+            self.vl = 0.05
+            self.vr = 0.0
         elif event.key == "down":
-            self.speed -= 0.1
+            self.vl = 0.0
+            self.vr -= 0.1
         elif event.key == "left":
-            self.angular_speed -= 0.1
+            self.vl = 0.05
+            self.vr = 0.05
         elif event.key == "right":
-            self.angular_speed += 0.1
-        print(f"Speed: {self.speed}, Angular Speed: {self.angular_speed}")
+            self.vl = 0.05
+            self.vr = -0.05
+        elif event.key == " ":
+            self.vl = 0.0
+            self.vr = 0.0
 
-    def _animation(self, i):
-        actions = self.agent.predict(self.states)
-        action = [(actions[0] + 1) / 2, actions[1]]
+    def step_animation(self, i):
+        if self.controller:
+            predict = 1.0
+        else:
+            predict = self.agent.predict(self.states)
+
+        if predict == 0:
+            self.vl = 0.05
+            self.vr = 0.0
+        elif predict == 1:
+            self.vl = 0.0
+            self.vr += 0.1
+        elif predict == 2:
+            self.vl = 0.05
+            self.vr = 0.05
+        elif predict == 3:
+            self.vl = 0.05
+            self.vr = -0.05
 
         x, y, theta = self.robot.move_robot(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
-            action[0],
-            action[1],
+            self.vl,
+            self.vr,
         )
 
         intersections, measurement = self.robot.sensor(x=x, y=y, segments=self.segments)
@@ -148,11 +160,11 @@ class NaviEnv(gym.Env):
             y,
             self.target_x,
             self.target_y,
-            self.epoch,
         )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
-        angle = angle_to_goal(
+
+        alpha, alpha_norm = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -163,10 +175,9 @@ class NaviEnv(gym.Env):
         self.states = np.concatenate(
             (
                 np.array(measurement, dtype=np.float32),
-                np.array([action[0]], dtype=np.float32),
-                np.array([action[1]], dtype=np.float32),
+                np.array([predict], dtype=np.float32),
                 np.array([dist], dtype=np.float32),
-                np.array([angle], dtype=np.float32),
+                np.array([alpha], dtype=np.float32),
             )
         )
 
@@ -174,29 +185,43 @@ class NaviEnv(gym.Env):
         self.last_position_x = x
         self.last_position_y = y
 
-        if self.epoch == self.max_epochs:
-            self.ani.event_source.stop()
+        diff_to_init = self.init_distance - dist
 
         collision, laser = min_laser(measurement, self.threshold)
-        reward, done = get_reward(dist, action, measurement, collision)
-
-        print(
-            "\rReward {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {}".format(
-                reward, laser, dist, angle, str(actions)
-            ),
+        reward, done = get_reward(
+            measurement, dist, diff_to_init, laser, collision, alpha_norm, alpha
         )
+
+        # print(
+        #     "\rReward: {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tDistance init: {:.2f}\tAlpha_norm: {:.2f}".format(
+        #         reward, laser, dist, alpha, diff_to_init, alpha_norm
+        #     ),
+        # )
 
         if done:
             self.close()
 
     def step(self, action):
 
+        if action == 0:
+            self.vl = 0.05
+            self.vr = 0.0
+        elif action == 1:
+            self.vl = 0.0
+            self.vr += 0.1
+        elif action == 2:
+            self.vl = 0.05
+            self.vr = 0.05
+        elif action == 3:
+            self.vl = 0.05
+            self.vr = -0.05
+
         x, y, theta = self.robot.move_robot(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
-            action[0],
-            action[1],
+            self.vl,
+            self.vr,
         )
 
         intersections, measurement = self.robot.sensor(x, y, self.segments)
@@ -205,7 +230,7 @@ class NaviEnv(gym.Env):
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        angle = angle_to_goal(
+        alpha, alpha_norm = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -216,18 +241,21 @@ class NaviEnv(gym.Env):
         self.states = np.concatenate(
             (
                 np.array(measurement, dtype=np.float32),
-                np.array([action[0]], dtype=np.float32),
-                np.array([action[1]], dtype=np.float32),
+                np.array([action], dtype=np.float32),
                 np.array([dist], dtype=np.float32),
-                np.array([angle], dtype=np.float32),
+                np.array([alpha], dtype=np.float32),
             )
         )
         self.last_theta = theta
         self.last_position_x = x
         self.last_position_y = y
 
+        diff_to_init = self.init_distance - dist
+
         collision, laser = min_laser(measurement, self.threshold)
-        reward, done = get_reward(dist, action, measurement, collision)
+        reward, done = get_reward(
+            measurement, dist, diff_to_init, laser, collision, alpha_norm, alpha
+        )
 
         if done:
             return self.states, reward, done, {}
@@ -241,7 +269,6 @@ class NaviEnv(gym.Env):
         self.segments = all_seg
 
         if self.rgb_array:
-            self.epoch += 1
             for patch in self.ax.patches:
                 patch.remove()
 
@@ -274,14 +301,15 @@ class NaviEnv(gym.Env):
                 self.last_position_y,
                 self.target_x,
                 self.target_y,
-                self.epoch,
             )
 
         dist = distance_to_goal(
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        angle = angle_to_goal(
+        self.init_distance = dist
+
+        alpha, alpha_norm = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -292,10 +320,9 @@ class NaviEnv(gym.Env):
         self.states = np.concatenate(
             (
                 np.array(measurement, dtype=np.float32),  # measurement
-                np.array([0], dtype=np.float32),  # vr
-                np.array([0], dtype=np.float32),  # vl
+                np.array([0], dtype=np.float32),  # velocity
                 np.array([dist], dtype=np.float32),  # distance
-                np.array([angle], dtype=np.float32),  # angle
+                np.array([alpha], dtype=np.float32),  # angle
             )
         )
 
@@ -305,7 +332,7 @@ class NaviEnv(gym.Env):
     def render(self):
         self.ani = animation.FuncAnimation(
             self.fig,
-            self._animation,
+            self.step_animation,
             init_func=self.reset,
             blit=False,
             frames=self.timestep,
@@ -397,7 +424,6 @@ class NaviEnv(gym.Env):
         y: np.ndarray,
         target_x: np.ndarray,
         target_y: np.ndarray,
-        epoch: int,
     ) -> None:
 
         self.label.set_text(self._get_label(i))

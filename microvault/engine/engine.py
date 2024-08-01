@@ -20,9 +20,14 @@ class Engine:
             torch.backends.cudnn.deterministic = True
             torch.backends.cudnn.benchmark = False
 
+        # Metal Performance Shaders
+        elif torch.backends.mps.is_available():
+            print("MPS available")
+
     def set_device(self):
+        # clear the cache
         if torch.cuda.is_available():
-            # clear the cache
             torch.cuda.empty_cache()
+
         # Set the device globally
         torch.set_default_device(self.device)

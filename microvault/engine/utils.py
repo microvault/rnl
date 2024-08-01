@@ -1,4 +1,3 @@
-import math
 from typing import Tuple
 
 import numpy as np
@@ -10,30 +9,32 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
 
 
-@njit
 def angle_to_goal(
     x: float, y: float, theta: float, goal_x: float, goal_y: float
-) -> float:
-    skewX = goal_x - x
-    skewY = goal_y - y
-    dot = skewX * 1 + skewY * 0
-    mag1 = math.sqrt(math.pow(skewX, 2) + math.pow(skewY, 2))
-    mag2 = math.sqrt(math.pow(1, 2) + math.pow(0, 2))
-    beta = math.acos(dot / (mag1 * mag2))
-    if skewY < 0:
-        if skewX < 0:
-            beta = -beta
-        else:
-            beta = 0 - beta
-    beta2 = beta - theta
-    if beta2 > np.pi:
-        beta2 = np.pi - beta2
-        beta2 = -np.pi - beta2
-    if beta2 < -np.pi:
-        beta2 = -np.pi - beta2
-        beta2 = np.pi - beta2
+) -> Tuple[float, float]:
+    o_t = np.array([np.cos(theta), np.sin(theta)])
+    g_t = np.array([goal_x - x, goal_y - y])
 
-    return beta2
+    # Ângulo alpha
+    cross_product = np.cross(o_t, g_t)
+    dot_product = np.dot(o_t, g_t)
+
+    alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
+
+    # Cálculo de alpha_norm
+    if alpha <= 0.0:
+        alpha = 0.1
+    elif alpha >= 3.2:
+        alpha = 3.3
+
+    alpha_norm = (1 / alpha) * 0.2
+
+    if alpha_norm <= 0.04:
+        alpha_norm = 0.04
+    elif alpha_norm >= 5.0:
+        alpha_norm = 5.0
+
+    return alpha, alpha_norm
 
 
 def min_laser(measurement: np.ndarray, threshold: float = 0.1):
@@ -44,19 +45,23 @@ def min_laser(measurement: np.ndarray, threshold: float = 0.1):
         return False, laser
 
 
-def get_reward(distance, action, measurement, collision) -> Tuple[np.float64, np.bool_]:
+def get_reward(
+    measurement, distance, distance_init, min_laser, collision, alpha_norm, alpha
+) -> Tuple[np.float64, np.bool_]:
+
     if distance < 0.3:
-        return 80.0, np.bool_(True)
+        return 50.0, np.bool_(True)
     elif collision:
-        return -100.0, np.bool_(True)
+        return -50.0, np.bool_(True)
     else:
-        reward = action[0] / 2 - abs(action[1]) / 2 - r3(min(measurement)) / 2
-        return np.float32(reward), np.bool_(False)
+        reward = distance_init + alpha_norm - distance - r3(min(measurement))
+
+    return np.float32(reward), np.bool_(False)
 
 
 @njit
 def r3(x):
-    if x < 1:
+    if x < 0.3:
         return 1 - x
     else:
         return 0.0

@@ -14,8 +14,6 @@ def replay_buffer():
     return ReplayBuffer(
         buffer_size=cfg["replay_buffer"]["buffer_size"],
         batch_size=32,
-        gamma=cfg["agent"]["gamma"],
-        nstep=cfg["agent"]["nstep"],
         state_dim=cfg["environment"]["state_size"],
         action_dim=cfg["environment"]["action_size"],
         device=cfg["engine"]["device"],
@@ -47,11 +45,10 @@ def test_sample_experiences(replay_buffer):
     memory = replay_buffer
 
     state_size = cfg["environment"]["state_size"]
-    action_size = cfg["environment"]["action_size"]
 
     while True:
         state = np.random.randn(state_size).astype(np.float32)
-        action = np.random.randn(action_size).astype(np.float32)
+        action = np.random.choice([0, 1, 2, 3])
         reward = np.random.randn(1).astype(np.float32)
         next_state = np.random.randn(state_size).astype(np.float32)
         done = np.random.choice([0, 1])

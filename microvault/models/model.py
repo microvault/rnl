@@ -1,184 +1,57 @@
-from typing import Tuple
-
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 
-def hidden_init(layer):
-    fan_in = layer.weight.data.size()[0]
-    lim = 1.0 / np.sqrt(fan_in)
-    return (-lim, lim)
-
-
-class ModelActor(nn.Module):
+class QModel(nn.Module):
+    """Modelo de Ator (Política)"""
 
     def __init__(
         self,
-        state_dim: int = 14,
-        action_dim: int = 2,
-        max_action: float = 1.0,
-        l1: int = 400,
-        l2: int = 300,
-        device: str = "cpu",
-        noise_std: float = 0.5,
+        state_size: int = 13,
+        action_size: int = 4,
+        fc1_units: int = 128,
+        fc2_units: int = 32,
         batch_size: int = 32,
+        device: str = "cpu",
     ):
+        """Inicializar os parâmetros e construir o modelo.
+        parâmetros
+        ======
+                state_size: tamanho do espaço de estado.
+                action_size: tamanho do espaço de ação.
+                semente (int): semente aleatória
+                fc1_units (int): Número de nós na primeira camada oculta
+                fc2_units (int): Número de nós na segunda camada oculta
+        """
         super().__init__()
-
-        self.state_size = state_dim
-        self.device = device
+        self.state_size = state_size
         self.batch_size = batch_size
+        self.device = device
 
-        self.l1 = nn.Linear(state_dim, l1)
-        self.l2 = nn.Linear(l1, l2)
-        self.l3 = nn.Linear(l2, action_dim)
-        # self.l3 = NoisyLinear(l2, action_dim, noise_std)
-        self.reset_parameters()
-
-        self.max_action = max_action
-
-    def reset_parameters(self):
-        self.l1.weight.data.uniform_(*hidden_init(self.l1))
-        self.l2.weight.data.uniform_(*hidden_init(self.l2))
+        self.fc1 = nn.Linear(state_size, fc1_units)  # camada de entrda com 128 nos
+        self.fc2 = nn.Linear(
+            fc1_units, fc2_units
+        )  # camada oculta com 128 de entrada e 32 de saida
+        self.fc3 = nn.Linear(
+            fc2_units, action_size
+        )  # camada de saida com acoes possiveis
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
+        """Construir uma rede que mapeia estado -> valores de ação."""
+
         assert isinstance(
             state, torch.Tensor
-        ), "State is not of type torch.Tensor in ACTOR."
+        ), "State is not of type torch.Tensor in Network."
         assert (
             state.dtype == torch.float32
-        ), "Tensor elements are not of type torch.float32 in ACTOR."
+        ), "Tensor elements are not of type torch.float32 in Network."
         assert (
             state.shape[0] <= self.state_size or state.shape[0] >= self.batch_size
-        ), "The tensor shape is not torch.Size([24]) in ACTOR."
+        ), f"The tensor shape is not torch.Size([24]) in Network., {state.shape[0]}"
         assert (
             str(state.device.type) == self.device
-        ), "The state must be on the same device in ACTOR."
-
-        x = F.relu(self.l1(state))
-        x = F.relu(self.l2(x))
-        action = self.max_action * torch.tanh(self.l3(x))
-
-        return action
-
-
-class ModelCritic(nn.Module):
-    def __init__(
-        self,
-        state_dim: int = 14,
-        action_dim: int = 2,
-        l1: int = 400,
-        l2: int = 300,
-        device: str = "cpu",
-        batch_size: int = 32,
-    ):
-        super().__init__()
-
-        self.device = device
-        self.batch_size = batch_size
-
-        self.l1 = nn.Linear(state_dim + action_dim, l1)
-        self.l2 = nn.Linear(l1, l2)
-        self.l3 = nn.Linear(action_dim, l2)
-        self.l4 = nn.Linear(l2, 1)
-        self.reset_parameters_q1()
-
-        self.l5 = nn.Linear(state_dim + action_dim, l1)
-        self.l6 = nn.Linear(l1, l2)
-        self.l7 = nn.Linear(action_dim, l2)
-        self.l8 = nn.Linear(l2, 1)
-        self.reset_parameters_q2()
-
-    def reset_parameters_q1(self):
-        self.l1.weight.data.uniform_(*hidden_init(self.l1))
-        self.l2.weight.data.uniform_(*hidden_init(self.l2))
-        self.l3.weight.data.uniform_(*hidden_init(self.l3))
-        self.l4.weight.data.uniform_(-3e-3, 3e-3)
-
-    def reset_parameters_q2(self):
-        self.l5.weight.data.uniform_(*hidden_init(self.l5))
-        self.l6.weight.data.uniform_(*hidden_init(self.l6))
-        self.l7.weight.data.uniform_(*hidden_init(self.l7))
-        self.l8.weight.data.uniform_(-3e-3, 3e-3)
-
-    def forward(
-        self, state: torch.Tensor, action: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        assert isinstance(
-            state, torch.Tensor
-        ), "State is not of type torch.Tensor in CRITIC."
-        assert (
-            state.dtype == torch.float32
-        ), "Tensor elements are not of type torch.float32 in CRITIC."
-        assert (
-            state.shape[0] == self.batch_size
-        ), "The tensor shape is not torch.Size([100]) in CRITIC."
-        assert (
-            str(state.device.type) == self.device
-        ), "The state must be on the same device  in CRITIC."
-
-        assert isinstance(
-            action, torch.Tensor
-        ), "Action is not of type torch.Tensor in CRITIC."
-        assert (
-            action.dtype == torch.float32
-        ), "Tensor elements are not of type torch.float32 in CRITIC."
-        assert (
-            action.shape[0] == self.batch_size
-        ), "The action shape is not torch.Size([100]) in CRITIC"
-        assert (
-            str(action.device.type) == self.device
-        ), "The action must be on the same device  in CRITIC."
-
-        s = torch.cat([state, action], dim=1)
-
-        s1 = F.relu(self.l1(s))
-        s1 = F.relu(self.l2(s1))
-        a1 = F.relu(self.l3(action))
-        s1 = s1 + a1
-        q1 = self.l4(s1)
-
-        s2 = F.relu(self.l5(s))
-        s2 = F.relu(self.l6(s2))
-        a2 = F.relu(self.l7(action))
-        s2 = s2 + a2
-        q2 = self.l8(s2)
-        return (q1, q2)
-
-    def Q1(self, state: torch.Tensor, action: torch.Tensor) -> torch.Tensor:
-        assert isinstance(
-            state, torch.Tensor
-        ), "State is not of type torch.Tensor in CRITIC."
-        assert (
-            state.dtype == torch.float32
-        ), "Tensor elements are not of type torch.float32 in CRITIC."
-        assert (
-            state.shape[0] == self.batch_size
-        ), "The tensor shape is not torch.Size([100]) in CRITIC."
-        assert (
-            str(state.device.type) == self.device
-        ), "The state must be on the same device in CRITIC."
-
-        assert isinstance(
-            action, torch.Tensor
-        ), "Action is not of type torch.Tensor in CRITIC."
-        assert (
-            action.dtype == torch.float32
-        ), "Tensor elements are not of type torch.float32 in CRITIC."
-        assert (
-            action.shape[0] == self.batch_size
-        ), "The action shape is not torch.Size([100]) in CRITIC."
-        assert (
-            str(action.device.type) == self.device
-        ), "The action must be on the same device in CRITIC."
-
-        s = torch.cat([state, action], dim=1)
-
-        s1 = F.relu(self.l1(s))
-        s1 = F.relu(self.l2(s1))
-        a1 = F.relu(self.l3(action))
-        s1 = s1 + a1
-        q1 = self.l4(s1)
-        return q1
+        ), "The state must be on the same device in Network."
+        x = F.relu(self.fc1(state))  # funcao de ativação relu
+        x = F.relu(self.fc2(x))  # funcao de ativação relu
+        return F.softmax(self.fc3(x), dim=-1)  # retorna a camada de saida
