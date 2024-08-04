@@ -30,17 +30,13 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*np.boo
 class NaviEnv(gym.Env):
     def __init__(
         self,
-        robot: Robot,
-        generator: Generator,
-        agent: Agent,
-        collision: Collision,
-        timestep: int = 1000,  # max step
+        timestep: int = 2000,  # max step
         threshold: float = 0.1,  # 0.1 threshold
         grid_lenght: int = 10,  # TODO: error < 5 -> [5 - 15]
         rgb_array: bool = False,
-        fps: int = 100,  # 10 frames per second
+        fps: int = 10,  # 10 frames per second
         state_size: int = 13,
-        controller: bool = True,
+        controller: bool = False,
     ):
         super().__init__()
         self.action_space = spaces.Discrete(4)
@@ -48,10 +44,11 @@ class NaviEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
 
-        self.generator = generator
-        self.robot = robot
-        self.agent = agent
-        self.collision = collision
+        self.generator = Generator()
+        self.collision = Collision()
+        self.robot = Robot(self.collision)
+        # self.agent = agent
+
         self.states = None
 
         self.rgb_array = rgb_array
@@ -128,81 +125,82 @@ class NaviEnv(gym.Env):
             self.vr = -0.05
 
     def step_animation(self, i):
-        if self.controller:
-            predict = 1
-        else:
-            predict = self.agent.predict(self.states)
+        pass
+        # if self.controller:
+        #     predict = 1
+        # else:
+        #     predict = self.agent.predict(self.states)
 
-            if predict == 0:
-                self.vl = 0.05
-                self.vr = 0.0
-            elif predict == 1:
-                self.vl = 0.0
-                self.vr = 0.0
-            elif predict == 2:
-                self.vl = 0.05
-                self.vr = 0.10
-            elif predict == 3:
-                self.vl = 0.05
-                self.vr = -0.10
+        #     if predict == 0:
+        #         self.vl = 0.05
+        #         self.vr = 0.0
+        #     elif predict == 1:
+        #         self.vl = 0.0
+        #         self.vr = 0.0
+        #     elif predict == 2:
+        #         self.vl = 0.05
+        #         self.vr = 0.10
+        #     elif predict == 3:
+        #         self.vl = 0.05
+        #         self.vr = -0.10
 
-        x, y, theta = self.robot.move_robot(
-            self.last_position_x,
-            self.last_position_y,
-            self.last_theta,
-            self.vl,
-            self.vr,
-        )
+        # x, y, theta = self.robot.move_robot(
+        #     self.last_position_x,
+        #     self.last_position_y,
+        #     self.last_theta,
+        #     self.vl,
+        #     self.vr,
+        # )
 
-        intersections, measurement = self.robot.sensor(x=x, y=y, segments=self.segments)
+        # intersections, measurement = self.robot.sensor(x=x, y=y, segments=self.segments)
 
-        self._plot_anim(
-            i,
-            intersections,
-            x,
-            y,
-            self.target_x,
-            self.target_y,
-        )
+        # self._plot_anim(
+        #     i,
+        #     intersections,
+        #     x,
+        #     y,
+        #     self.target_x,
+        #     self.target_y,
+        # )
 
-        dist = distance_to_goal(x, y, self.target_x, self.target_y)
+        # dist = distance_to_goal(x, y, self.target_x, self.target_y)
 
-        alpha = angle_to_goal(
-            self.last_position_x,
-            self.last_position_y,
-            self.last_theta,
-            self.target_x,
-            self.target_y,
-        )
+        # alpha = angle_to_goal(
+        #     self.last_position_x,
+        #     self.last_position_y,
+        #     self.last_theta,
+        #     self.target_x,
+        #     self.target_y,
+        # )
 
-        self.states = np.concatenate(
-            (
-                np.array(measurement, dtype=np.float32),
-                np.array([predict], dtype=np.float32),
-                np.array([dist], dtype=np.float32),
-                np.array([alpha], dtype=np.float32),
-            )
-        )
+        # self.states = np.concatenate(
+        #     (
+        #         np.array(measurement, dtype=np.float32),
+        #         np.array([predict], dtype=np.float32),
+        #         np.array([dist], dtype=np.float32),
+        #         np.array([alpha], dtype=np.float32),
+        #     )
+        # )
 
-        self.last_theta = theta
-        self.last_position_x = x
-        self.last_position_y = y
+        # self.last_theta = theta
+        # self.last_position_x = x
+        # self.last_position_y = y
 
-        diff_to_init = self.init_distance - dist
+        # diff_to_init = self.init_distance - dist
 
-        collision, laser = min_laser(measurement, self.threshold)
-        reward, done = get_reward(measurement, dist, diff_to_init, collision, alpha)
+        # collision, laser = min_laser(measurement, self.threshold)
+        # reward, done = get_reward(measurement, dist, diff_to_init, collision, alpha)
 
-        self.cumulated_reward += reward
+        # self.cumulated_reward += reward
 
-        print(
-            "\rReward: {:.2f}\tC. reward: {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
-                reward, self.cumulated_reward, laser, dist, alpha
-            ),
-        )
+        # print(
+        #     "\rReward: {:.2f}\tC. reward: {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
+        #         reward, self.cumulated_reward, laser, dist, alpha
+        #     ),
+        # )
 
-        if done:
-            self.close()
+        # if done:
+        #     self.close()
 
     def step(self, action):
 

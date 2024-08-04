@@ -15,15 +15,13 @@ from microvault.engine.world_generate import GenerateWorld
 class Generator:
     def __init__(
         self,
-        collision: Collision,
-        generate: GenerateWorld,
         grid_lenght: int = 10,
         random: int = 1300,
     ):
         self.grid_lenght = grid_lenght
         self.random = random
-        self.collision = collision
-        self.generate = generate
+        self.collision = Collision()
+        self.generate = GenerateWorld()
 
     @staticmethod
     def _map_border(m: np.ndarray) -> np.ndarray:
