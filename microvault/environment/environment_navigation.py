@@ -15,8 +15,6 @@ from microvault.engine.utils import (
     get_reward,
     min_laser,
 )
-
-import torch
 from microvault.environment.generate_world import Generator
 from microvault.environment.robot import Robot
 
@@ -193,9 +191,7 @@ class NaviEnv(gym.Env):
         diff_to_init = self.init_distance - dist
 
         collision, laser = min_laser(measurement, self.threshold)
-        reward, done = get_reward(
-            measurement, dist, self.init_distance, collision, alpha
-        )
+        reward, done = get_reward(measurement, dist, diff_to_init, collision, alpha)
 
         self.cumulated_reward += reward
 
@@ -260,9 +256,7 @@ class NaviEnv(gym.Env):
         diff_to_init = self.init_distance - dist
 
         collision, laser = min_laser(measurement, self.threshold)
-        reward, done = get_reward(
-            measurement, self.init_distance, dist, collision, alpha
-        )
+        reward, done = get_reward(measurement, diff_to_init, dist, collision, alpha)
 
         if done:
             return self.states, reward, done, {}

@@ -88,8 +88,8 @@ class Generator:
         m = self.generate.generate_maze(
             map_size=self.grid_lenght,
             decimation=0.0,
-            min_blocks=0,
-            num_cells_togo=self.random,
+            min_blocks=5,
+            num_cells_togo=1300,
         )
 
         border = self._map_border(m)
