@@ -15,6 +15,8 @@ from microvault.engine.utils import (
     get_reward,
     min_laser,
 )
+
+import torch
 from microvault.environment.generate_world import Generator
 from microvault.environment.robot import Robot
 
@@ -40,7 +42,7 @@ class NaviEnv(gym.Env):
         rgb_array: bool = False,
         fps: int = 100,  # 10 frames per second
         state_size: int = 13,
-        controller: bool = False,
+        controller: bool = True,
     ):
         super().__init__()
         self.action_space = spaces.Discrete(4)
@@ -65,6 +67,7 @@ class NaviEnv(gym.Env):
 
         self.segments = []
         self.controller = controller
+        self.cumulated_reward = 0.0
 
         self.target_x = 0
         self.target_y = 0
@@ -107,41 +110,43 @@ class NaviEnv(gym.Env):
             if controller:
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
+        self.reset()
+
     def on_key_press(self, event):
         if event.key == "up":
             self.vl = 0.05
             self.vr = 0.0
         elif event.key == "down":
             self.vl = 0.0
-            self.vr -= 0.1
+            self.vr = 0.0
         elif event.key == "left":
             self.vl = 0.05
-            self.vr = 0.05
+            self.vr = 0.10
         elif event.key == "right":
             self.vl = 0.05
-            self.vr = -0.05
+            self.vr = -0.10
         elif event.key == " ":
             self.vl = 0.0
-            self.vr = 0.0
+            self.vr = -0.05
 
     def step_animation(self, i):
         if self.controller:
-            predict = 1.0
+            predict = 1
         else:
             predict = self.agent.predict(self.states)
 
-        if predict == 0:
-            self.vl = 0.05
-            self.vr = 0.0
-        elif predict == 1:
-            self.vl = 0.0
-            self.vr += 0.1
-        elif predict == 2:
-            self.vl = 0.05
-            self.vr = 0.05
-        elif predict == 3:
-            self.vl = 0.05
-            self.vr = -0.05
+            if predict == 0:
+                self.vl = 0.05
+                self.vr = 0.0
+            elif predict == 1:
+                self.vl = 0.0
+                self.vr = 0.0
+            elif predict == 2:
+                self.vl = 0.05
+                self.vr = 0.10
+            elif predict == 3:
+                self.vl = 0.05
+                self.vr = -0.10
 
         x, y, theta = self.robot.move_robot(
             self.last_position_x,
@@ -164,7 +169,7 @@ class NaviEnv(gym.Env):
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
 
-        alpha, alpha_norm = angle_to_goal(
+        alpha = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -189,14 +194,16 @@ class NaviEnv(gym.Env):
 
         collision, laser = min_laser(measurement, self.threshold)
         reward, done = get_reward(
-            measurement, dist, diff_to_init, laser, collision, alpha_norm, alpha
+            measurement, dist, self.init_distance, collision, alpha
         )
 
-        # print(
-        #     "\rReward: {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tDistance init: {:.2f}\tAlpha_norm: {:.2f}".format(
-        #         reward, laser, dist, alpha, diff_to_init, alpha_norm
-        #     ),
-        # )
+        self.cumulated_reward += reward
+
+        print(
+            "\rReward: {:.2f}\tC. reward: {:.2f}\tMin Laser: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}".format(
+                reward, self.cumulated_reward, laser, dist, alpha
+            ),
+        )
 
         if done:
             self.close()
@@ -207,8 +214,8 @@ class NaviEnv(gym.Env):
             self.vl = 0.05
             self.vr = 0.0
         elif action == 1:
-            self.vl = 0.0
-            self.vr += 0.1
+            self.vl = 0.05
+            self.vr = 0.10
         elif action == 2:
             self.vl = 0.05
             self.vr = 0.05
@@ -230,7 +237,7 @@ class NaviEnv(gym.Env):
             self.last_position_x, self.last_position_y, self.target_x, self.target_y
         )
 
-        alpha, alpha_norm = angle_to_goal(
+        alpha = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,
@@ -254,7 +261,7 @@ class NaviEnv(gym.Env):
 
         collision, laser = min_laser(measurement, self.threshold)
         reward, done = get_reward(
-            measurement, dist, diff_to_init, laser, collision, alpha_norm, alpha
+            measurement, self.init_distance, dist, collision, alpha
         )
 
         if done:
@@ -264,6 +271,8 @@ class NaviEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+
+        self.cumulated_reward = 0.0
 
         new_map_path, exterior, interior, all_seg = self.generator.world()
         self.segments = all_seg
@@ -309,7 +318,7 @@ class NaviEnv(gym.Env):
 
         self.init_distance = dist
 
-        alpha, alpha_norm = angle_to_goal(
+        alpha = angle_to_goal(
             self.last_position_x,
             self.last_position_y,
             self.last_theta,

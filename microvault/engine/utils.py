@@ -11,7 +11,7 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
 
 def angle_to_goal(
     x: float, y: float, theta: float, goal_x: float, goal_y: float
-) -> Tuple[float, float]:
+) -> float:
     o_t = np.array([np.cos(theta), np.sin(theta)])
     g_t = np.array([goal_x - x, goal_y - y])
 
@@ -27,14 +27,7 @@ def angle_to_goal(
     elif alpha >= 3.2:
         alpha = 3.3
 
-    alpha_norm = (1 / alpha) * 0.2
-
-    if alpha_norm <= 0.04:
-        alpha_norm = 0.04
-    elif alpha_norm >= 5.0:
-        alpha_norm = 5.0
-
-    return alpha, alpha_norm
+    return alpha
 
 
 def min_laser(measurement: np.ndarray, threshold: float = 0.1):
@@ -46,17 +39,26 @@ def min_laser(measurement: np.ndarray, threshold: float = 0.1):
 
 
 def get_reward(
-    measurement, distance, distance_init, min_laser, collision, alpha_norm, alpha
+    measurement, distance, distance_init, collision, alpha
 ) -> Tuple[np.float64, np.bool_]:
 
-    if distance < 0.3:
+    alpha_norm = (1 / alpha) * 0.2
+
+    if alpha >= 0.0 and alpha <= 0.7:
+        alpha = 2
+    else:
+        alpha = 0
+
+    if distance < 0.2:
         return 50.0, np.bool_(True)
     elif collision:
         return -50.0, np.bool_(True)
     else:
-        reward = distance_init + alpha_norm - distance - r3(min(measurement))
-
-    return np.float32(reward), np.bool_(False)
+        obstacle = r3(min(measurement))
+        if distance < 0.4:
+            obstacle = 0
+        reward = distance_init + abs(alpha * 1.2) - abs(distance) - obstacle
+        return np.float32(reward), np.bool_(False)
 
 
 @njit

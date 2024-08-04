@@ -11,17 +11,17 @@ class Engine:
         self.device = device
 
     def seed_everything(self):
-        torch.manual_seed(self.seed)
-        np.random.seed(self.seed)
-        random.seed(self.seed)
+        # torch.manual_seed(self.seed)
+        # np.random.seed(self.seed)
+        # random.seed(self.seed)
 
-        if torch.cuda.is_available():
-            torch.cuda.manual_seed_all(self.seed)
-            torch.backends.cudnn.deterministic = True
-            torch.backends.cudnn.benchmark = False
+        # if torch.cuda.is_available():
+        #     torch.cuda.manual_seed_all(self.seed)
+        #     torch.backends.cudnn.deterministic = True
+        #     torch.backends.cudnn.benchmark = False
 
         # Metal Performance Shaders
-        elif torch.backends.mps.is_available():
+        if torch.backends.mps.is_available():
             print("MPS available")
 
     def set_device(self):
