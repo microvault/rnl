@@ -34,12 +34,12 @@ robot:
 
 engine:
   seed: 42
-  device: cpu # cuda / cpu / mps
-  batch_size: 32
+  device: mps # cuda / cpu / mps
+  batch_size: 64
   pretrained: False
   path: "./"
   wandb: False
-  save_checkpoint: 200
+  save_checkpoint: 400
   epochs: 20000
 
 network:

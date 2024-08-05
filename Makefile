@@ -10,6 +10,10 @@ tune:
 eval:
 	@poetry run python -m microvault.training.eval
 
+.PHONY: agile
+agile:
+	@poetry run python -m microvault.training.agile
+
 .PHONY: gen
 gen:
 	@poetry run python -m microvault.environment.generate

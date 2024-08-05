@@ -6,17 +6,31 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
+    pkg-config \
     python3-pip \
     python3-dev \
-    apt-utils && \
-    rm -rf /var/lib/apt/lists/*
+    apt-utils \
+    g++ \
+    git \
+    swig \
+    zlib1g-dev \
+    libhdf5-dev \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --upgrade pip
-RUN pip install poetry
+
+RUN pip install --upgrade "setuptools>=44.0.0"
+RUN pip install --upgrade "wheel>=0.37.1"
+RUN pip install --upgrade Cython
+RUN pip install --no-binary=h5py h5py
+RUN pip install gymnasium[box2d]
 
 WORKDIR /microvault
 
-COPY . /microvault
+RUN pip install agilerl
 
-RUN make install
-RUN make test
+RUN pip install matplotlib scikit-image numba shapely
+
+COPY ./microvault /microvault
+
+RUN export PYTHONPATH=$(pwd)

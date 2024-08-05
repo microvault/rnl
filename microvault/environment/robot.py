@@ -13,8 +13,8 @@ class Robot:
         collision: Collision,
         wheel_radius: float = 0.3,
         wheel_base: float = 0.3,
-        fov: float = 2 * np.pi,
-        num_rays: int = 10,
+        fov: float = 4 * np.pi,
+        num_rays: int = 20,
         max_range: float = 6.0,
     ):
         self.fov = fov

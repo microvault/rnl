@@ -15,7 +15,7 @@ from microvault.engine.world_generate import GenerateWorld
 class Generator:
     def __init__(
         self,
-        grid_lenght: int = 10,
+        grid_lenght: int = 5,
         random: int = 1300,
     ):
         self.grid_lenght = grid_lenght

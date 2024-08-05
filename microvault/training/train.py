@@ -1,186 +1,151 @@
 import os
-from collections import deque
 
-import gym
-import hydra
+import gymnasium as gym
+import imageio
 import numpy as np
-from hydra.core.config_store import ConfigStore
+import torch
+from agilerl.algorithms.dqn_rainbow import RainbowDQN
+from agilerl.components.replay_buffer import (
+    MultiStepReplayBuffer,
+    PrioritizedReplayBuffer,
+)
+from agilerl.hpo.mutation import Mutations
+from agilerl.hpo.tournament import TournamentSelection
+from agilerl.training.train_off_policy import train_off_policy
+from agilerl.utils.utils import make_vect_envs
+from tqdm import trange
 
-import wandb
-from microvault.algorithms.agent import Agent
-from microvault.components.replaybuffer import ReplayBuffer
-from microvault.configs.config import TrainerConfig
-from microvault.engine.collision import Collision
-from microvault.engine.engine import Engine
-from microvault.environment.generate_world import GenerateWorld, Generator
-from microvault.environment.robot import Robot
-from microvault.models.model import QModel
-from microvault.training.training import Training
+env = gym.make("NaviEnv-v0")
 
-# from omegaconf import OmegaConf
+INIT_HP = {
+    "BATCH_SIZE": 128,  # Batch size
+    "LR": 0.0001,  # Learning rate
+    "GAMMA": 0.99,  # Discount factor
+    "MEMORY_SIZE": 1000000,  # Max memory buffer size
+    "LEARN_STEP": 1,  # Learning frequency
+    "N_STEP": 3,  # Step number to calculate td error
+    "PER": True,  # Use prioritized experience replay buffer
+    "ALPHA": 0.6,  # Prioritized replay buffer parameter
+    "BETA": 0.4,  # Importance sampling coefficient
+    "TAU": 0.001,  # For soft update of target parameters
+    "PRIOR_EPS": 0.000001,  # Minimum priority for sampling
+    "NUM_ATOMS": 51,  # Unit number of support
+    "V_MIN": -200.0,  # Minimum value of support
+    "V_MAX": 200.0,  # Maximum value of support
+    "NOISY": True,  # Add noise directly to the weights of the network
+    # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
+    "LEARNING_DELAY": 1000,  # Steps before starting learning
+    "CHANNELS_LAST": False,  # Use with RGB states
+    "TARGET_SCORE": 20.0,  # Target score that will beat the environment
+    "MAX_STEPS": 1000000,  # Maximum number of steps an agent takes in an environment
+    "EVO_STEPS": 10000,  # Evolution frequency
+    "EVAL_STEPS": None,  # Number of evaluation steps per episode
+    "EVAL_LOOP": 1,  # Number of evaluation episodes
+}
 
+num_envs = 16
+env = make_vect_envs("NaviEnv-v0", num_envs=num_envs)  # Create environment
+try:
+    state_dim = env.single_observation_space.n  # Discrete observation space
+    one_hot = True  # Requires one-hot encoding
+except Exception:
+    state_dim = env.single_observation_space.shape  # Continuous observation space
+    one_hot = False  # Does not require one-hot encoding
+try:
+    action_dim = env.single_action_space.n  # Discrete action space
+except Exception:
+    action_dim = env.single_action_space.shape[0]  # Continuous action space
 
-cs = ConfigStore.instance()
-cs.store(name="trainer_config", node=TrainerConfig)
+if INIT_HP["CHANNELS_LAST"]:
+    # Adjust dimensions for PyTorch API (C, H, W), for envs with RGB image states
+    state_dim = (state_dim[2], state_dim[0], state_dim[1])
 
-script_dir = os.path.dirname(os.path.realpath(__file__))
-checkpoints_dir = os.path.join(script_dir, "checkpoints")
+# Set-up the device
+device = "cuda" if torch.cuda.is_available() else "cpu"
 
-# wandb.login()
+# Define the network configuration of a simple mlp with two hidden layers, each with 64 nodes
+net_config = {"arch": "mlp", "hidden_size": [400, 400]}
 
+# Define a Rainbow-DQN agent
+rainbow_dqn = RainbowDQN(
+    state_dim=state_dim,
+    action_dim=action_dim,
+    one_hot=one_hot,
+    net_config=net_config,
+    batch_size=INIT_HP["BATCH_SIZE"],
+    lr=INIT_HP["LR"],
+    learn_step=INIT_HP["LEARN_STEP"],
+    gamma=INIT_HP["GAMMA"],
+    tau=INIT_HP["TAU"],
+    beta=INIT_HP["BETA"],
+    n_step=INIT_HP["N_STEP"],
+    device=device,
+)
 
-@hydra.main(config_path="../configs", config_name="default", version_base="1.2")
-def train_experiment(cfg=TrainerConfig) -> None:
-    # config_default = OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
+mutations = Mutations(
+    algo="RainbowDQN",  # Algorithm
+    no_mutation=0.4,  # No mutation
+    architecture=0.2,  # Architecture mutation
+    new_layer_prob=0.2,  # New layer mutation
+    parameters=0.2,  # Network parameters mutation
+    activation=0,  # Activation layer mutation
+    rl_hp=0.2,  # Learning HP mutation
+    rl_hp_selection=["lr", "batch_size"],  # Learning HPs to choose from
+    mutation_sd=0.1,  # Mutation strength
+    arch=net_config["arch"],  # Network architecture
+    rand_seed=1,  # Random seed
+    device=device,
+)
 
-    try:
-        # wandb.init(project="rl-sweep", config=config_default)
+tournament = TournamentSelection(
+    tournament_size=2,  # Tournament selection size
+    elitism=True,  # Elitism in tournament selection
+    population_size=6,  # Population size
+    evo_step=1,
+)  # Evaluate using last N fitness scores
 
-        engine = Engine(seed=cfg.engine.seed, device=cfg.engine.device)
-
-        engine.seed_everything()
-        engine.set_device()
-
-        replaybuffer = ReplayBuffer(
-            buffer_size=cfg.replay_buffer.buffer_size,
-            batch_size=cfg.engine.batch_size,
-            state_dim=cfg.environment.state_size,
-            action_dim=cfg.environment.action_size,
-            device=cfg.engine.device,
-        )
-
-        model = QModel(
-            state_size=cfg.environment.state_size,
-            action_size=cfg.environment.action_size,
-            fc1_units=cfg.network.layers_model_l1,
-            fc2_units=cfg.network.layers_model_l2,
-            batch_size=cfg.engine.batch_size,
-            device=cfg.engine.device,
-        )
-
-        agent = Agent(
-            model=model,
-            state_size=cfg.environment.state_size,
-            action_size=cfg.environment.action_size,
-            gamma=cfg.agent.gamma,
-            tau=cfg.agent.tau,
-            lr_model=cfg.agent.lr_model,
-            weight_decay=cfg.agent.weight_decay,
-            device=cfg.engine.device,
-            pretrained=cfg.engine.pretrained,
-        )
-
-        collision = Collision()
-        generate = GenerateWorld()
-
-        generate = Generator(
-            collision=collision,
-            generate=generate,
-            grid_lenght=cfg.environment.grid_lenght,
-            random=cfg.environment.random,
-        )
-
-        robot = Robot(
-            collision=collision,
-            wheel_radius=cfg.robot.wheel_radius,
-            wheel_base=cfg.robot.wheel_base,
-            fov=cfg.robot.fov,
-            num_rays=cfg.robot.num_rays,
-            max_range=cfg.robot.max_range,
-        )
-
-        env = gym.make(
-            "microvault/NaviEnv-v0",
-            rgb_array=False,
-            robot=robot,
-            generator=generate,
-            agent=agent,
-            collision=collision,
-            state_size=cfg.environment.state_size,
-            fps=cfg.environment.fps,
-            timestep=cfg.environment.timestep,
-            threshold=cfg.environment.threshold,
-            grid_lenght=cfg.environment.grid_lenght,
-        )
-
-        trainer = Training(env, agent, replaybuffer)
-
-        scores_deque = deque(maxlen=100)
-        scores = []
-
-        eps_start = 1.0
-        eps_end = 0.01
-        eps_decay = 0.995
-
-        eps = eps_start
-        for epoch in np.arange(1, cfg.engine.epochs + 1):
-
-            (
-                model_loss,
-                q,
-                max_q,
-                action,
-                score,
-                elapsed_time,
-            ) = trainer.train_one_epoch(
-                cfg.engine.batch_size,
-                cfg.environment.timestep,
-                eps,
-            )
-
-            eps = max(eps_end, eps_decay * eps)
-
-            scores_deque.append(score)
-            scores.append(score)
-            mean_score = np.mean(scores_deque)
-
-            print(
-                "\rEpisode {}\tAv. Score: {:.2f}\tScore: {:.2f}\tSelec. Action: {:.2f}\tTime: {:.2f}\tQ: {:.2f}\tMax Q: {:.2f}\tloss: {:.2f}\tEps: {:.2f}".format(
-                    epoch,
-                    mean_score,
-                    score,
-                    action,
-                    elapsed_time,
-                    q,
-                    max_q,
-                    model_loss,
-                    eps,
-                )
-            )
-
-            if cfg.engine.wandb:
-
-                wandb.log(
-                    {
-                        "epoch": epoch,
-                        "model_loss": model_loss,
-                        "q": q,
-                        "max_q": max_q,
-                        "time_per_epoch": elapsed_time,
-                        "mean_reward": mean_score,
-                        "eps": eps,
-                    }
-                )
-
-            if epoch % cfg.engine.save_checkpoint == 0:
-                agent.save("checkpoint", str(epoch))
-
-            if mean_score >= 200:
-                print(
-                    "\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}".format(
-                        epoch, mean_score
-                    )
-                )
-                agent.save("checkpoint", str(epoch))
-                # wandb.finish()
-                break
-
-    except KeyboardInterrupt:
-        print("\nTraining interrupted. Finishing run...")
-    finally:
-        # wandb.finish()
-        print("WandB run finished.")
+field_names = ["state", "action", "reward", "next_state", "termination"]
+memory = PrioritizedReplayBuffer(
+    memory_size=INIT_HP["MEMORY_SIZE"],
+    field_names=field_names,
+    num_envs=num_envs,
+    alpha=INIT_HP["ALPHA"],
+    gamma=INIT_HP["GAMMA"],
+    device=device,
+)
+n_step_memory = MultiStepReplayBuffer(
+    memory_size=INIT_HP["MEMORY_SIZE"],
+    field_names=field_names,
+    num_envs=num_envs,
+    n_step=INIT_HP["N_STEP"],
+    gamma=INIT_HP["GAMMA"],
+    device=device,
+)
 
 
-if __name__ == "__main__":
-    train_experiment()
+trained_pop, pop_fitnesses = train_off_policy(
+    env=env,
+    env_name="NaviEnv-v0",
+    algo="RainbowDQN",
+    pop=[rainbow_dqn],
+    memory=memory,
+    n_step_memory=n_step_memory,
+    INIT_HP=INIT_HP,
+    swap_channels=INIT_HP["CHANNELS_LAST"],
+    max_steps=INIT_HP["MAX_STEPS"],
+    evo_steps=INIT_HP["EVO_STEPS"],
+    eval_steps=INIT_HP["EVAL_STEPS"],
+    eval_loop=INIT_HP["EVAL_LOOP"],
+    learning_delay=INIT_HP["LEARNING_DELAY"],
+    target=INIT_HP["TARGET_SCORE"],
+    n_step=True,
+    per=True,
+    tournament=tournament,
+    mutation=mutations,
+    wb=True,  # Boolean flag to record run with Weights & Biases
+    checkpoint=INIT_HP["MAX_STEPS"],
+    checkpoint_path="RainbowDQN.pt",
+)
+
+save_path = "RainbowDQN.pt"
+rainbow_dqn.save_checkpoint(save_path)

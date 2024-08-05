@@ -26,11 +26,18 @@ class Training:
         self,
         batch_size: int,
         timestep: int,
-        eps: float,
     ) -> Tuple[
         np.ndarray,
         np.ndarray,
         np.ndarray,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
+        float,
         float,
         float,
         float,
@@ -44,29 +51,47 @@ class Training:
         model_loss = 0.0
         q = 0.0
         max_q = 0.0
-
         selection_action = 0.0
+        alpha = 0.0
+        beta = 0.0
+        total_priority = 0.0
+        data_length = 0.0
+        total_priorities = 0.0
+        min_priorities = 0.0
+        max_priorities = 0.0
+        mean_priorities = 0.0
 
         for t in range(timestep):
             action = self.agent.predict(state)
             next_state, reward, done, info = env.step(action)
-            self.replaybuffer.add(state, np.array(action), reward, next_state, done)
+            self.replaybuffer.add(state, action, reward, next_state, done)
 
             state = next_state
             score += reward
             selection_action = action
 
-            # print(
-            #     "\rTimestep {:.2f}\tActions Network: {}\tActions Process: {}\tDone: {:.2f}".format(
-            #         t, str(actions), str(action), done
-            #     ), end=""
-            # )
+            print(
+                "\rTimestep {:.2f}\tActions: {:.2f}\tReward: {:.2f}".format(
+                    t, action, reward
+                ),
+                end="",
+            )
 
             if done or t == (timestep - 1):
                 if len(self.replaybuffer) > batch_size:
-                    model_loss, q, max_q = self.agent.learn(
-                        memory=self.replaybuffer, n_iteration=t + 1
-                    )
+                    (
+                        model_loss,
+                        q,
+                        max_q,
+                        alpha,
+                        beta,
+                        total_priority,
+                        data_length,
+                        total_priorities,
+                        min_priorities,
+                        max_priorities,
+                        mean_priorities,
+                    ) = self.agent.learn(memory=self.replaybuffer, n_iteration=t + 1)
                 break
 
         elapsed_time = timeit.default_timer() - start_time
@@ -78,4 +103,12 @@ class Training:
             selection_action,
             score,
             elapsed_time,
+            alpha,
+            beta,
+            total_priority,
+            data_length,
+            total_priorities,
+            min_priorities,
+            max_priorities,
+            mean_priorities,
         )
