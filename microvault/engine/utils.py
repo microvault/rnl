@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 from numba import njit
+import math
 
 
 @njit
@@ -57,3 +58,9 @@ def r3(x):
         return 1 - x
     else:
         return 0.0
+
+
+def standard_scaler(x, max_value, min_value):
+    s = (max_value - min_value) / math.sqrt(12)
+    u = sum(x) / len(x)
+    return (x - u) / s

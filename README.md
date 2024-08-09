@@ -21,3 +21,7 @@
 **End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
 
 </div>
+
+
+540000 steps
+7:32:42 hours
