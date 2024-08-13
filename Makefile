@@ -1,18 +1,6 @@
-.PHONY: train
-train:
-	@poetry run python -m microvault.training.train
-
-.PHONY: tune
-tune:
-	@poetry run python -m microvault.training.finetune
-
-.PHONY: eval
-eval:
-	@poetry run python -m microvault.training.eval
-
-.PHONY: agile
-agile:
-	@poetry run python -m microvault.training.agile
+.PHONY: run
+run:
+	@poetry run python -m microvault.training.trainer
 
 .PHONY: gen
 gen:

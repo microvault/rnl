@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from microvault.networks.custom_components import GumbelSoftmax, NoisyLinear
+from microvault.networks.custom_components import NoisyLinear
 
 
 class EvolvableMLP(nn.Module):
@@ -142,7 +142,6 @@ class EvolvableMLP(nn.Module):
             "ELU": nn.ELU,
             "Softsign": nn.Softsign,
             "Sigmoid": nn.Sigmoid,
-            "GumbelSoftmax": GumbelSoftmax,
             "Softplus": nn.Softplus,
             "Softmax": nn.Softmax,
             "LeakyReLU": nn.LeakyReLU,

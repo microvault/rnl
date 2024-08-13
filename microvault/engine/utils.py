@@ -2,7 +2,6 @@ from typing import Tuple
 
 import numpy as np
 from numba import njit
-import math
 
 
 @njit
@@ -39,16 +38,29 @@ def min_laser(measurement: np.ndarray, threshold: float = 0.1):
         return False, laser
 
 
-def get_reward(measurement, distance, collision) -> Tuple[np.float64, np.bool_]:
+def get_reward(
+    measurement, distance, collision, alpha, distance_init
+) -> Tuple[np.float64, np.bool_]:
 
     reward = 0.0
 
-    if distance < 0.3:
+    alpha_norm = (1 / alpha) * 0.2
+
+    if alpha_norm >= 0.0 and alpha_norm <= 0.7:
+        alpha_norm = 2
+    else:
+        alpha_norm = 0
+
+    if distance < 0.4:
         return 500.0, np.bool_(True)
     elif collision:
         return -500.0, np.bool_(True)
     else:
-        reward -= abs(distance)
+        obstacle = r3(min(measurement))
+        if distance < 0.4:
+            obstacle = 0
+
+        reward = distance_init + abs(alpha_norm) - abs(distance) - obstacle
         return np.float32(reward), np.bool_(False)
 
 
@@ -60,7 +72,6 @@ def r3(x):
         return 0.0
 
 
-def standard_scaler(x, max_value, min_value):
-    s = (max_value - min_value) / math.sqrt(12)
-    u = sum(x) / len(x)
-    return (x - u) / s
+@njit
+def normalize(value, min_value, max_value):
+    return (value - min_value) / (max_value - min_value)
