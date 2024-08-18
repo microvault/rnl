@@ -2,6 +2,10 @@
 run:
 	@poetry run python -m microvault.training.trainer
 
+.PHONY: train
+train:
+	@poetry run python -m train_model_base
+
 .PHONY: gen
 gen:
 	@poetry run python -m microvault.environment.generate
