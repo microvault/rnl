@@ -17,6 +17,7 @@ class Generator:
         self,
         grid_lenght: int = 5,
         random: int = 1300,
+        mode: str = "normal",
     ):
         self.grid_lenght = grid_lenght
         self.random = random

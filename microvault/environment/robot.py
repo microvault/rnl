@@ -16,6 +16,7 @@ class Robot:
         fov: float = 4 * np.pi,
         num_rays: int = 20,
         max_range: float = 6.0,
+        min_range: float = 1.0,
     ):
         self.fov = fov
         self.max_range = max_range

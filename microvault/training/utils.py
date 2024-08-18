@@ -5,17 +5,24 @@ import numpy as np
 from microvault.algorithms.rainbow import RainbowDQN
 
 
-def make_vect_envs(env_name, num_envs=1):
-    """Returns async-vectorized gym environments.
+def make_vect_envs(env_name, num_envs=1, **env_kwargs):
+    """Returns async-vectorized gym environments with custom parameters.
 
-    :param env_name: Gym environment name
-    :type env_name: str
+    :param env_name: Gym environment name or custom environment class
+    :type env_name: str or type
     :param num_envs: Number of vectorized environments, defaults to 1
     :type num_envs: int, optional
+    :param env_kwargs: Additional keyword arguments for the environment
+    :type env_kwargs: dict
     """
-    return gym.vector.AsyncVectorEnv(
-        [lambda: gym.make(env_name) for i in range(num_envs)]
-    )
+
+    def make_env():
+        if isinstance(env_name, str):
+            return gym.make(env_name, **env_kwargs)
+        else:
+            return env_name(**env_kwargs)
+
+    return gym.vector.AsyncVectorEnv([make_env for _ in range(num_envs)])
 
 
 def make_skill_vect_envs(env_name, skill, num_envs=1):

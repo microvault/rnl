@@ -5,6 +5,8 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
+from microvault.algorithms.rainbow import RainbowDQN
+from microvault.configs.config import RobotConfig, SensorConfig
 from microvault.engine.collision import Collision
 from microvault.engine.utils import (
     angle_to_goal,
@@ -20,6 +22,8 @@ from microvault.environment.robot import Robot
 class NaviEnv(gym.Env):
     def __init__(
         self,
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
         state_size: int = 24,
         action_size: int = 6,
         max_timestep: int = 1000,  # max step
@@ -27,7 +31,7 @@ class NaviEnv(gym.Env):
         grid_lenght: int = 5,  # TODO: error < 5 -> [5 - 15]
         rgb_array: bool = False,
         fps: int = 100,  # 10 frames per second
-        controller: bool = False,
+        mode: str = "normal",
     ):
         super().__init__()
         self.action_space = spaces.Discrete(action_size)
@@ -35,9 +39,15 @@ class NaviEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
 
-        self.generator = Generator()
+        self.generator = Generator(grid_lenght=grid_lenght, mode=mode)
         self.collision = Collision()
-        self.robot = Robot(self.collision)
+        self.robot = Robot(
+            self.collision,
+            fov=sensor_config.fov,
+            num_rays=sensor_config.num_rays,
+            max_range=sensor_config.max_range,
+            min_range=sensor_config.min_range,
+        )
 
         self.last_states = np.zeros(state_size)
 
@@ -53,7 +63,8 @@ class NaviEnv(gym.Env):
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
 
         self.segments = []
-        self.controller = controller
+        # TODO
+        self.controller = False
         self.cumulated_reward = 0.0
 
         self.target_x = 0
@@ -68,6 +79,11 @@ class NaviEnv(gym.Env):
 
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
+
+        self.rainbow = RainbowDQN.load(
+            "/Users/nicolasalan/microvault/microvault/checkpoints/model_dqn_5_90000.pt",
+            device="mps",
+        )
 
         if rgb_array:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -95,7 +111,7 @@ class NaviEnv(gym.Env):
             self.ani = animation.FuncAnimation
 
             self._init_animation(self.ax)
-            if controller:
+            if self.controller:
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
         self.reset()
@@ -130,7 +146,7 @@ class NaviEnv(gym.Env):
         if self.controller:
             action = 1
         else:
-            action = 1
+            action = 1  # self.rainbow.get_action(self.last_states, training=False)
 
             if action == 0:
                 self.vl = 0.05
