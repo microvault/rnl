@@ -4,6 +4,12 @@
      <img src="https://raw.githubusercontent.com/microvault/microvault/main/docs/_static/img.png" alt="MicroVault">
 </div>
 
+<div align="center">
+     
+## Robot Navigation Learning
+
+</div>
+
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
   <a href="https://twitter.com/Microvault_"><img alt="Twiter" src="https://img.shields.io/badge/microvault-twiter-blue"></a>
@@ -22,6 +28,3 @@
 
 </div>
 
-
-540000 steps
-7:32:42 hours
