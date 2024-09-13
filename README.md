@@ -1,13 +1,7 @@
-# Microvault
+# Robot Navigation Learning
 
 <div align="center">
      <img src="https://raw.githubusercontent.com/microvault/microvault/main/docs/_static/img.png" alt="MicroVault">
-</div>
-
-<div align="center">
-     
-## Robot Navigation Learning
-
 </div>
 
 <p align="center">
