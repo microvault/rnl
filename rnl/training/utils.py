@@ -2,7 +2,7 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
-from microvault.algorithms.rainbow import RainbowDQN
+from rnl.algorithms.rainbow import RainbowDQN
 
 
 def make_vect_envs(env_name, num_envs=1, **env_kwargs):

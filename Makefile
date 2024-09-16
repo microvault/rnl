@@ -1,6 +1,6 @@
-.PHONY: run
-run:
-	@poetry run python -m microvault.training.trainer
+.PHONY: infer
+infer:
+	@poetry run python -m test_model_base
 
 .PHONY: train
 train:
@@ -8,7 +8,7 @@ train:
 
 .PHONY: gen
 gen:
-	@poetry run python -m microvault.environment.generate
+	@poetry run python -m rnl.environment.generate
 
 .PHONY: format
 format:
@@ -34,9 +34,9 @@ install:
 
 .PHONY: build
 build:
-	@sudo docker build -t microvault-docker .
+	@sudo docker build -t rnl-docker .
 
 .PHONY: start
 start:
 	@echo "Starting training ..."
-	@sudo docker run -it --net=host --memory=40g microvault-docker bash -c "make train"
+	@sudo docker run -it --net=host --memory=40g rnl-docker bash -c "make train"

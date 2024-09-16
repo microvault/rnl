@@ -1,5 +1,5 @@
-from microvault.configs.config import EnvConfig, RobotConfig, SensorConfig
-from microvault.training.learn import training
+from rnl.configs.config import EnvConfig, RobotConfig, SensorConfig
+from rnl.training.learn import training, inference
 
 
 def robot(radius, vel_linear, val_angular):
@@ -10,8 +10,10 @@ def sensor(fov, num_rays, min_range, max_range):
     return SensorConfig(fov, num_rays, min_range, max_range)
 
 
-def make(map, mode, timestep, fps, threshold, grid_lenght, physical):
-    return EnvConfig(map, mode, timestep, fps, threshold, grid_lenght, physical)
+def make(map, mode, timestep, fps, threshold, grid_lenght, physical, rgb_array=False):
+    return EnvConfig(
+        map, mode, timestep, fps, threshold, grid_lenght, physical, rgb_array
+    )
 
 
 class Trainer:
@@ -75,6 +77,15 @@ class Trainer:
             n_step,
             memory_size,
             target_score,
+            self.robot_config,
+            self.sensor_config,
+            self.env_config,
+            self.pretrained_model,
+        )
+
+    def run(self):
+
+        inference(
             self.robot_config,
             self.sensor_config,
             self.env_config,

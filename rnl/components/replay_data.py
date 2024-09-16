@@ -2,7 +2,7 @@ import warnings
 
 from torch.utils.data import IterableDataset
 
-from microvault.components.replay_buffer import ReplayBuffer
+from rnl.components.replay_buffer import ReplayBuffer
 
 
 class ReplayDataset(IterableDataset):

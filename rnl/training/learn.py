@@ -1,14 +1,15 @@
-from microvault.algorithms.rainbow import RainbowDQN
-from microvault.components.replay_buffer import (
+from rnl.algorithms.rainbow import RainbowDQN
+from rnl.components.replay_buffer import (
     MultiStepReplayBuffer,
     PrioritizedReplayBuffer,
 )
-from microvault.configs.config import EnvConfig, RobotConfig, SensorConfig
-from microvault.environment.environment_navigation import NaviEnv
-from microvault.hpo.mutation import Mutations
-from microvault.hpo.tournament import TournamentSelection
-from microvault.training.train_off_policy import train_off_policy
-from microvault.training.utils import create_population, make_vect_envs
+import gymnasium as gym
+from rnl.configs.config import EnvConfig, RobotConfig, SensorConfig
+from rnl.environment.environment_navigation import NaviEnv
+from rnl.hpo.mutation import Mutations
+from rnl.hpo.tournament import TournamentSelection
+from rnl.training.train_off_policy import train_off_policy
+from rnl.training.utils import create_population, make_vect_envs
 
 
 def training(
@@ -231,3 +232,19 @@ def training(
         checkpoint=100,
         checkpoint_path="RainbowDQN.pt",
     )
+
+
+def inference(
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    pretrained_model=False,
+):
+
+    env = NaviEnv(robot_config, sensor_config)
+
+    env.reset()
+    env.render()
+
+    state_dim = env.single_observation_space.shape
+    action_dim = env.single_action_space.n

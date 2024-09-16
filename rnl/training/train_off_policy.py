@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader
 from tqdm import trange
 
 import wandb
-from microvault.components.replay_data import ReplayDataset
-from microvault.components.sampler import Sampler
+from rnl.components.replay_data import ReplayDataset
+from rnl.components.sampler import Sampler
 
 
 def train_off_policy(

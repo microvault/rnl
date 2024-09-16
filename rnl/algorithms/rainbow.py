@@ -8,9 +8,9 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
-from microvault.algorithms.algo_utils import chkpt_attribute_to_device, unwrap_optimizer
-from microvault.networks.evolvable_mlp import EvolvableMLP
-from microvault.wrappers.make_evolvable import MakeEvolvable
+from rnl.algorithms.algo_utils import chkpt_attribute_to_device, unwrap_optimizer
+from rnl.networks.evolvable_mlp import EvolvableMLP
+from rnl.wrappers.make_evolvable import MakeEvolvable
 
 
 class RainbowDQN:

@@ -5,18 +5,19 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-from microvault.algorithms.rainbow import RainbowDQN
-from microvault.configs.config import RobotConfig, SensorConfig
-from microvault.engine.collision import Collision
-from microvault.engine.utils import (
+from rnl.algorithms.rainbow import RainbowDQN
+from rnl.configs.config import RobotConfig, SensorConfig
+from rnl.engine.collision import Collision
+from rnl.engine.utils import (
     angle_to_goal,
     distance_to_goal,
     get_reward,
     min_laser,
     normalize,
 )
-from microvault.environment.generate_world import Generator
-from microvault.environment.robot import Robot
+
+from rnl.environment.generate_world import Generator
+from rnl.environment.robot import Robot
 
 
 class NaviEnv(gym.Env):
@@ -81,7 +82,7 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(20)
 
         self.rainbow = RainbowDQN.load(
-            "/Users/nicolasalan/microvault/microvault/checkpoints/model_dqn_5_90000.pt",
+            "/Users/nicolasalan/microvault/rnl/checkpoints/model_dqn_5_90000.pt",
             device="mps",
         )
 
@@ -169,6 +170,8 @@ class NaviEnv(gym.Env):
             elif action == 6:
                 self.vl = 0.05
                 self.vr = -0.3
+
+        self.robot.apply_forces(self.vl, self.vr)
 
         x, y, theta = self.robot.move_robot(
             self.last_position_x,

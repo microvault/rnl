@@ -25,12 +25,12 @@ RUN pip install --upgrade Cython
 RUN pip install --no-binary=h5py h5py
 RUN pip install gymnasium[box2d]
 
-WORKDIR /microvault
+WORKDIR /rnl
 
 RUN pip install agilerl
 
 RUN pip install matplotlib scikit-image numba shapely
 
-COPY ./microvault /microvault
+COPY ./rnl /rnl
 
 RUN export PYTHONPATH=$(pwd)

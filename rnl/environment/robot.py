@@ -3,7 +3,10 @@ from typing import Tuple
 
 import numpy as np
 
-from microvault.engine.collision import Collision
+from rnl.engine.collision import Collision
+
+import pymunk
+from pymunk import Vec2d
 
 
 @dataclass
@@ -17,6 +20,8 @@ class Robot:
         num_rays: int = 20,
         max_range: float = 6.0,
         min_range: float = 1.0,
+        mass: float = 10.0,  # Massa do robô
+        inertia: float = 100.0,
     ):
         self.fov = fov
         self.max_range = max_range
@@ -25,6 +30,28 @@ class Robot:
         self.wheel_base = wheel_base
         self.collision = collision
         self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
+
+        self.space = pymunk.Space()
+
+        self.body = pymunk.Body(mass, inertia)
+        self.body.position = Vec2d(0, 0)
+
+        self.shape = pymunk.Circle(self.body, self.wheel_radius)
+        self.shape.friction = 0.9
+        self.shape.elasticity = 0.5
+
+        self.space.add(self.body, self.shape)
+
+    def apply_forces(self, vl, vr):
+        v = self.wheel_radius * (vl + vr) / 2
+        omega = self.wheel_radius * (vr - vl) / self.wheel_base
+
+        force = v * self.body.mass
+        torque = omega * self.body.moment
+
+        direction = Vec2d(np.cos(self.body.angle), np.sin(self.body.angle))
+        self.body.apply_force_at_local_point(force * direction)
+        self.body.apply_torque(torque)
 
     def move_robot(
         self,
@@ -36,8 +63,10 @@ class Robot:
     ):
         epsilon = 1e-6
 
-        v = vl
-        omega = vr
+        # v = vl
+        # omega = vr
+        v = self.wheel_radius * (vl + vr) / 2
+        omega = self.wheel_radius * (vr - vl) / self.wheel_base
 
         theta_new = last_theta + omega
         theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi

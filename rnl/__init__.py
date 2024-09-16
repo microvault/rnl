@@ -5,6 +5,6 @@
 #     entry_point="microvault.environment.environment_navigation:NaviEnv",
 # )
 
-from microvault.training.interface import Trainer, make, robot, sensor
+from rnl.training.interface import Trainer, make, robot, sensor
 
 __all__ = ["robot", "sensor", "make", "Trainer"]

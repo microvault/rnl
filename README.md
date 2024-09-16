@@ -1,7 +1,7 @@
 # Robot Navigation Learning
 
 <div align="center">
-     <img src="https://raw.githubusercontent.com/microvault/microvault/main/docs/_static/img.png" alt="MicroVault">
+     <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/_static/img.png" alt="MicroVault">
 </div>
 
 <p align="center">
@@ -21,4 +21,3 @@
 **End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
 
 </div>
-

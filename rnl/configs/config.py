@@ -43,6 +43,7 @@ class EnvConfig:
     threshold: float
     grid_lenght: int
     physical: str
+    rgb_array: bool
 
 
 @dataclass

@@ -23,32 +23,10 @@ if __name__ == "__main__":
         threshold=0.05,
         grid_lenght=5,
         physical="normal",
+        rgb_array=True,
     )
 
     # 4.step -> config train robot
     model = vault.Trainer(param_robot, param_sensor, param_env, pretrained_model=False)
     # 5.step -> train robot
-    model.learn(
-        max_timestep=800000,
-        use_mutation=False,
-        freq_evolution=10000,
-        log=False,
-        batch_size=64,
-        lr=0.0001,
-        pop_size=6,
-        hidden_size=[800, 600],
-        no_mut=0.4,
-        arch_mut=0.2,
-        new_layer=0.2,
-        param_mut=0.2,
-        act_mut=0,
-        hp_mut=0.2,
-        mut_strength=0.1,
-        seed=1,
-        num_envs=1,
-        device="mps",
-        learn_step=10,
-        n_step=3,
-        memory_size=1000000,
-        target_score=200.0,
-    )
+    model.run()
