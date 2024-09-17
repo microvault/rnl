@@ -34,24 +34,31 @@ class Robot:
         self.space = pymunk.Space()
 
         self.body = pymunk.Body(mass, inertia)
-        self.body.position = Vec2d(0, 0)
-
+        
+    def init_position_robot(self, x, y):
+        self.body.position = Vec2d(x, y)
+        
+    def setup_physical(self):
         self.shape = pymunk.Circle(self.body, self.wheel_radius)
         self.shape.friction = 0.9
-        self.shape.elasticity = 0.5
-
+        self.shape.elasticity = 0.5      
         self.space.add(self.body, self.shape)
-
+        
     def apply_forces(self, vl, vr):
+        # Cálculo de velocidades linear e angular
         v = self.wheel_radius * (vl + vr) / 2
         omega = self.wheel_radius * (vr - vl) / self.wheel_base
-
+    
+        # Cálculo de força e torque
         force = v * self.body.mass
         torque = omega * self.body.moment
-
+    
+        # Aplica a força na direção do ângulo atual do robô
         direction = Vec2d(np.cos(self.body.angle), np.sin(self.body.angle))
-        self.body.apply_force_at_local_point(force * direction)
-        self.body.torque += torque
+        self.body.apply_force_at_world_point(force * direction, self.body.position)
+        
+        # Aplica o torque para girar o robô
+        self.body.apply_torque(torque)
 
     def move_robot(
         self,
