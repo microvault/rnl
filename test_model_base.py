@@ -1,8 +1,19 @@
+import argparse
+
 import numpy as np
 
 import rnl as vault
 
 if __name__ == "__main__":
+    # Setup argparse
+    parser = argparse.ArgumentParser(description="Train or setup environment.")
+    parser.add_argument(
+        "mode", choices=["train", "run"], help="Mode to run: 'train' or 'run'"
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
+
     # 1.step -> config robot
     param_robot = vault.robot(
         radius=40,  # (centimeters)
@@ -26,7 +37,18 @@ if __name__ == "__main__":
         rgb_array=True,
     )
 
-    # 4.step -> config train robot
-    model = vault.Trainer(param_robot, param_sensor, param_env, pretrained_model=False)
-    # 5.step -> train robot
-    model.run()
+    if args.mode == "train":
+        # 4.step -> config train robot
+        model = vault.Trainer(
+            param_robot, param_sensor, param_env, pretrained_model=False
+        )
+        # 5.step -> train robot
+        model.learn()
+
+    elif args.mode == "run":
+        # 4.step -> config train robot
+        model = vault.Trainer(
+            param_robot, param_sensor, param_env, pretrained_model=False
+        )
+        # 5.step -> train robot
+        model.run()

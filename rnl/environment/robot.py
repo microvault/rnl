@@ -51,7 +51,7 @@ class Robot:
 
         direction = Vec2d(np.cos(self.body.angle), np.sin(self.body.angle))
         self.body.apply_force_at_local_point(force * direction)
-        self.body.apply_torque(torque)
+        self.body.torque += torque
 
     def move_robot(
         self,

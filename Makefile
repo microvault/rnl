@@ -1,10 +1,10 @@
-.PHONY: infer
-infer:
-	@poetry run python -m test_model_base
+.PHONY: run
+run:
+	@poetry run python -m test_model_base run
 
 .PHONY: train
 train:
-	@poetry run python -m train_model_base
+	@poetry run python -m train_model_base train
 
 .PHONY: gen
 gen:

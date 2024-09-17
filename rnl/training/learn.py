@@ -241,7 +241,7 @@ def inference(
     pretrained_model=False,
 ):
 
-    env = NaviEnv(robot_config, sensor_config)
+    env = NaviEnv(robot_config, sensor_config, rgb_array=True, controller=True)
 
     env.reset()
     env.render()

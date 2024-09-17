@@ -33,6 +33,7 @@ class NaviEnv(gym.Env):
         rgb_array: bool = False,
         fps: int = 100,  # 10 frames per second
         mode: str = "normal",
+        controller: bool = False,
     ):
         super().__init__()
         self.action_space = spaces.Discrete(action_size)
@@ -65,7 +66,7 @@ class NaviEnv(gym.Env):
 
         self.segments = []
         # TODO
-        self.controller = False
+        self.controller = controller
         self.cumulated_reward = 0.0
 
         self.target_x = 0
@@ -77,6 +78,8 @@ class NaviEnv(gym.Env):
         self.vl = 0.01
         self.vr = 0.01
         self.init_distance = 0
+
+        self.action = 0
 
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
@@ -119,24 +122,31 @@ class NaviEnv(gym.Env):
 
     def on_key_press(self, event):
         if event.key == "up":
+            self.action = 0
             self.vl = 0.05
             self.vr = 0.0
         elif event.key == "down":
+            self.action = 1
             self.vl = 0.1
             self.vr = 0.0
         elif event.key == "left":
+            self.action = 2
             self.vl = 0.05
             self.vr = 0.15
         elif event.key == "right":
+            self.action = 3
             self.vl = 0.05
             self.vr = -0.15
         elif event.key == "w":
+            self.action = 4
             self.vl = 0.01
             self.vr = 0.0
         elif event.key == "d":
+            self.action = 5
             self.vl = 0.05
             self.vr = 0.3
         elif event.key == "a":
+            self.action = 6
             self.vl = 0.05
             self.vr = -0.3
         elif event.key == " ":
@@ -144,10 +154,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
 
     def step_animation(self, i):
-        if self.controller:
-            action = 1
-        else:
-            action = 1  # self.rainbow.get_action(self.last_states, training=False)
+        if not self.controller:
+            action = (
+                self.action
+            )  # self.rainbow.get_action(self.last_states, training=False)
 
             if action == 0:
                 self.vl = 0.05
@@ -171,6 +181,7 @@ class NaviEnv(gym.Env):
                 self.vl = 0.05
                 self.vr = -0.3
 
+        print("Vl", self.vl, "Vr", self.vr)
         self.robot.apply_forces(self.vl, self.vr)
 
         x, y, theta = self.robot.move_robot(
@@ -205,7 +216,7 @@ class NaviEnv(gym.Env):
         states = np.concatenate(
             (
                 np.array(lidar_measurements, dtype=np.float32),
-                np.array([action], dtype=np.int16),
+                np.array([self.action], dtype=np.int16),
                 np.array([dist], dtype=np.float32),
                 np.array([alpha], dtype=np.float32),
                 np.array([reward], dtype=np.float32),
@@ -223,7 +234,7 @@ class NaviEnv(gym.Env):
         states_normalized = np.concatenate(
             (
                 np.array(lidar_measurements_normalized, dtype=np.float32),
-                np.array([action], dtype=np.int16),
+                np.array([self.action], dtype=np.int16),
                 np.array([dist_normalized], dtype=np.float32),
                 np.array([angle_normalized], dtype=np.float32),
                 np.array([reward_normalized], dtype=np.float32),
