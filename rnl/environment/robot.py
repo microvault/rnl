@@ -14,82 +14,61 @@ class Robot:
     def __init__(
         self,
         collision: Collision,
-        wheel_radius: float = 0.3,
-        wheel_base: float = 0.3,
+        robot_radius: float = 0.033,
+        wheel_base: float = 0.16,
         fov: float = 4 * np.pi,
         num_rays: int = 20,
         max_range: float = 6.0,
         min_range: float = 1.0,
-        mass: float = 10.0,  # Massa do robô
-        inertia: float = 100.0,
+        mass: float = 1.0,
+        inertia: float = 0.3,
     ):
+
         self.fov = fov
         self.max_range = max_range
         self.num_rays = num_rays
-        self.wheel_radius = wheel_radius
+        self.robot_radius = robot_radius
         self.wheel_base = wheel_base
         self.collision = collision
+        self.inertia = inertia
+        self.mass = mass
         self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
 
-        self.space = pymunk.Space()
-
         self.body = pymunk.Body(mass, inertia)
-        
-    def init_position_robot(self, x, y):
-        self.body.position = Vec2d(x, y)
-        
-    def setup_physical(self):
-        self.shape = pymunk.Circle(self.body, self.wheel_radius)
-        self.shape.friction = 0.9
-        self.shape.elasticity = 0.5      
-        self.space.add(self.body, self.shape)
-        
-    def apply_forces(self, vl, vr):
-        # Cálculo de velocidades linear e angular
-        v = self.wheel_radius * (vl + vr) / 2
-        omega = self.wheel_radius * (vr - vl) / self.wheel_base
-    
-        # Cálculo de força e torque
-        force = v * self.body.mass
-        torque = omega * self.body.moment
-    
-        # Aplica a força na direção do ângulo atual do robô
-        direction = Vec2d(np.cos(self.body.angle), np.sin(self.body.angle))
-        self.body.apply_force_at_world_point(force * direction, self.body.position)
-        
-        # Aplica o torque para girar o robô
-        self.body.apply_torque(torque)
 
-    def move_robot(
-        self,
-        last_position_x: float,
-        last_position_y: float,
-        last_theta: float,
-        vl: float,
-        vr: float,
-    ):
-        epsilon = 1e-6
+    @staticmethod
+    def create_space():
+        space = pymunk.Space()
+        space.gravity = (0.0, 0.0)
 
-        # v = vl
-        # omega = vr
-        v = self.wheel_radius * (vl + vr) / 2
-        omega = self.wheel_radius * (vr - vl) / self.wheel_base
+        return space
 
-        theta_new = last_theta + omega
-        theta_new = (theta_new + np.pi) % (2 * np.pi) - np.pi
+    def create_robot(self, space):
+        body = pymunk.Body(self.mass, self.inertia)
+        body.position = (0, 0)
 
-        if abs(omega) < epsilon:
-            x_new = last_position_x + v * np.cos(last_theta)
-            y_new = last_position_y + v * np.sin(last_theta)
-        else:
-            radius = v / omega if omega != 0 else float("inf")
-            cx = last_position_x - radius * np.sin(last_theta)
-            cy = last_position_y + radius * np.cos(last_theta)
-            delta_theta = omega
-            x_new = cx + radius * np.sin(last_theta + delta_theta)
-            y_new = cy - radius * np.cos(last_theta + delta_theta)
+        shape = pymunk.Circle(body, self.robot_radius)
+        shape.friction = 0.4
+        shape.damping = 0.1
 
-        return x_new, y_new, theta_new
+        space.add(body, shape)
+
+        return body
+
+    def move_robot(self, space, robot_body, v_linear, v_angular):
+        angle = robot_body.angle
+
+        direction = Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
+        robot_body.velocity = v_linear * direction
+        robot_body.angular_velocity = v_angular
+
+        space.step(1 / 60)
+
+    def reset_robot(self, robot_body, x, y):
+        robot_body.position = (x, y)
+        robot_body.angle = 0
+        robot_body.velocity = (0, 0)
+        robot_body.angular_velocity = 0
 
     def sensor(
         self, x: float, y: float, segments: list

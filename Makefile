@@ -18,7 +18,7 @@ format:
 
 .PHONY: test
 test:
-	@poetry run pytest -s -x --cov=microvault -vv
+	@poetry run pytest -s -x --cov=rnl -vv
 
 .PHONY: post_test
 post_test:
@@ -26,7 +26,7 @@ post_test:
 
 .PHONY: publish
 publish:
-	@poetry publish --build -u __token__ -p $MICROVAULT_PYPI_TOKEN
+	@poetry publish --build -u __token__ -p $RNL_PYPI_TOKEN
 
 .PHONY: install
 install:
