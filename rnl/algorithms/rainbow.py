@@ -226,7 +226,6 @@ class RainbowDQN:
             self.actor = self.actor.to(self.device)
             self.actor_target = self.actor_target.to(self.device)
 
-        # Put the nets into training mode
         self.actor.train()
         self.actor_target.train()
 
@@ -341,7 +340,7 @@ class RainbowDQN:
         elementwise_loss = -(proj_dist * log_p).sum(1)
         return elementwise_loss
 
-    def learn(self, experiences, n_step=False, per=False):
+    def learn(self, experiences, n_step=False, per=True):
         """Updates agent network parameters to learn from experiences.
 
         :param experiences: List of batched states, actions, rewards, next_states, dones in that order.
@@ -410,65 +409,6 @@ class RainbowDQN:
                 else:
                     elementwise_loss = n_step_elementwise_loss
             loss = torch.mean(elementwise_loss * weights)
-
-        else:
-            if n_step:
-                (
-                    states,
-                    actions,
-                    rewards,
-                    next_states,
-                    dones,
-                    idxs,
-                    n_states,
-                    n_actions,
-                    n_rewards,
-                    n_next_states,
-                    n_dones,
-                ) = experiences
-                if self.accelerator is not None:
-                    states = states.to(self.accelerator.device)
-                    actions = actions.to(self.accelerator.device)
-                    rewards = rewards.to(self.accelerator.device)
-                    next_states = next_states.to(self.accelerator.device)
-                    dones = dones.to(self.accelerator.device)
-                    n_states = n_states.to(self.accelerator.device)
-                    n_actions = n_actions.to(self.accelerator.device)
-                    n_rewards = n_rewards.to(self.accelerator.device)
-                    n_next_states = n_next_states.to(self.accelerator.device)
-                    n_dones = n_dones.to(self.accelerator.device)
-            else:
-                (
-                    states,
-                    actions,
-                    rewards,
-                    next_states,
-                    dones,
-                ) = experiences
-                if self.accelerator is not None:
-                    states = states.to(self.accelerator.device)
-                    actions = actions.to(self.accelerator.device)
-                    rewards = rewards.to(self.accelerator.device)
-                    next_states = next_states.to(self.accelerator.device)
-                    dones = dones.to(self.accelerator.device)
-                idxs = None
-            new_priorities = None
-
-            if self.combined_reward or not n_step:
-                elementwise_loss = self._dqn_loss(
-                    states, actions, rewards, next_states, dones, self.gamma
-                )
-
-            if n_step:
-                n_gamma = self.gamma**self.n_step
-                n_step_elementwise_loss = self._dqn_loss(
-                    n_states, n_actions, n_rewards, n_next_states, n_dones, n_gamma
-                )
-                if self.combined_reward:
-                    elementwise_loss += n_step_elementwise_loss
-                else:
-                    elementwise_loss = n_step_elementwise_loss
-            loss = torch.mean(elementwise_loss)
 
         self.optimizer.zero_grad()
         if self.accelerator is not None:
