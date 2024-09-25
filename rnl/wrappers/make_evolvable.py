@@ -288,31 +288,6 @@ class MakeEvolvable(nn.Module):
 
         return normalization_functions[normalization_name](layer_size)
 
-    def get_conv_layer(
-        self, conv_layer_name, in_channels, out_channels, kernel_size, stride, padding
-    ):
-        """Return convolutional layer for corresponding convolutional layer name.
-
-        :param conv_layer_name: Convolutional layer name
-        :type conv_layer_name: str
-        :param in_channels: Number of input channels to convolutional layer
-        :type in_channels: int
-        :param out_channels: Number of output channels from convolutional layer
-        :type out_channels: int
-        :param kernel_size: Kernel size of convolutional layer
-        :type kernel_size: int or Tuple[int]
-        :param stride: Stride size of convolutional layer
-        :type stride: int or Tuple[int]
-        :param padding: Convolutional layer padding
-        :type padding: int or Tuple[int]
-        """
-
-        convolutional_layers = {"Conv2d": nn.Conv2d, "Conv3d": nn.Conv3d}
-
-        return convolutional_layers[conv_layer_name](
-            in_channels, out_channels, kernel_size, stride, padding
-        )
-
     def detect_architecture(self, network, input_tensor, secondary_input_tensor=None):
         """Detect the architecture of a neural network.
 
@@ -370,43 +345,11 @@ class MakeEvolvable(nn.Module):
                         nn.LayerNorm,
                     ),
                 ):
-                    if len(output.shape) <= 2:
-                        if "norm_layers" not in mlp_layer_info.keys():
-                            mlp_layer_info["norm_layers"] = dict()
-                        mlp_layer_info["norm_layers"][self.lin_counter] = str(
-                            module.__class__.__name__
-                        )
-                    else:
-                        if "norm_layers" not in cnn_layer_info.keys():
-                            cnn_layer_info["norm_layers"] = dict()
-                        cnn_layer_info["norm_layers"][self.conv_counter] = str(
-                            module.__class__.__name__
-                        )
-
-                # Pooling layer detection
-                elif isinstance(
-                    module, (nn.MaxPool2d, nn.MaxPool3d, nn.AvgPool2d, nn.AvgPool3d)
-                ):
-                    if "pooling_layers" not in cnn_layer_info.keys():
-                        cnn_layer_info["pooling_layers"] = dict()  #
-                    cnn_layer_info["pooling_layers"][self.conv_counter] = dict()  #
-                    cnn_layer_info["pooling_layers"][self.conv_counter]["name"] = str(
+                    if "norm_layers" not in mlp_layer_info.keys():
+                        mlp_layer_info["norm_layers"] = dict()
+                    mlp_layer_info["norm_layers"][self.lin_counter] = str(
                         module.__class__.__name__
                     )
-                    cnn_layer_info["pooling_layers"][self.conv_counter][
-                        "kernel"
-                    ] = module.kernel_size
-                    cnn_layer_info["pooling_layers"][self.conv_counter][
-                        "stride"
-                    ] = module.stride
-                    cnn_layer_info["pooling_layers"][self.conv_counter][
-                        "padding"
-                    ] = module.padding
-
-                # Skip nn.Flatten layer as this is added when building the CNN to connect
-                # the convolutional layers with the fully-connected layers
-                elif isinstance(module, nn.Flatten):
-                    pass
 
                 # Detect activation layer (supported currently by AgileRL)
                 elif isinstance(
@@ -425,18 +368,12 @@ class MakeEvolvable(nn.Module):
                         nn.GELU,
                     ),
                 ):
-                    if len(output.shape) <= 2:
-                        if "activation_layers" not in mlp_layer_info.keys():
-                            mlp_layer_info["activation_layers"] = dict()
-                        mlp_layer_info["activation_layers"][self.lin_counter] = str(
-                            module.__class__.__name__
-                        )
-                    else:
-                        if "activation_layers" not in cnn_layer_info.keys():
-                            cnn_layer_info["activation_layers"] = dict()
-                        cnn_layer_info["activation_layers"][self.conv_counter] = str(
-                            module.__class__.__name__
-                        )
+                    if "activation_layers" not in mlp_layer_info.keys():
+                        mlp_layer_info["activation_layers"] = dict()
+                    mlp_layer_info["activation_layers"][self.lin_counter] = str(
+                        module.__class__.__name__
+                    )
+
                 else:
                     raise Exception(
                         f"{module} not currently supported, use an alternative layer."
@@ -602,192 +539,49 @@ class MakeEvolvable(nn.Module):
 
         return nn.Sequential(net_dict)
 
-    def create_cnn(
-        self, input_size, channel_size, kernel_size, stride_size, padding, name
-    ):
-        """Creates and returns convolutional neural network.
-
-        :param input_size: Channel size of first layer
-        :type input_size: int
-        :param channel_size: Output channel sizes for each layer
-        :type channel_size: list[int]
-        :param kernel_size: Kernel sizes
-        :type kernel_size: list[int] or list[Tuple[int]]
-        :param stride_size: Stride sizes
-        :type stride_size: list[int] or list[Tuple[int]]
-        :param padding: Convolutional layer padding
-        :type padding: list[int] or list[Tuple[int]]
-        :param name: Layer name
-        :type name: str
-        """
-
-        net_dict = OrderedDict()
-        # if self.cnn_layer_info["conv_layer_type"] == "Conv3d":
-        #     k_size = [
-        #         (self.input_tensor.shape[-3], k_size[1], k_size[2])
-        #         for k_size in kernel_size
-        #     ]
-        # else:
-
-        net_dict[f"{name}_conv_layer_0"] = self.get_conv_layer(
-            self.cnn_layer_info["conv_layer_type"],
-            in_channels=input_size,
-            out_channels=channel_size[0],
-            kernel_size=kernel_size[0],
-            stride=stride_size[0],
-            padding=padding[0],
-        )
-        if ("norm_layers" in self.cnn_layer_info.keys()) and (
-            0 in self.cnn_layer_info["norm_layers"].keys()
-        ):
-            net_dict[f"{name}_layer_norm_0"] = self.get_normalization(
-                self.cnn_layer_info["norm_layers"][0], channel_size[0]
-            )
-
-        if ("activation_layers" in self.cnn_layer_info.keys()) and (
-            0 in self.cnn_layer_info["activation_layers"].keys()
-        ):
-            net_dict[f"{name}_activation_0"] = self.get_activation(
-                self.cnn_layer_info["activation_layers"][0]
-            )
-
-        if ("pooling_layers" in self.cnn_layer_info.keys()) and (
-            0 in self.cnn_layer_info["pooling_layers"].keys()
-        ):
-            net_dict[f"{name}_pooling_0"] = self.get_pooling(
-                self.cnn_layer_info["pooling_layers"][0]["name"],
-                self.cnn_layer_info["pooling_layers"][0]["kernel"],
-                self.cnn_layer_info["pooling_layers"][0]["stride"],
-                self.cnn_layer_info["pooling_layers"][0]["padding"],
-            )
-
-        if len(channel_size) > 1:
-            for l_no in range(1, len(channel_size)):
-                net_dict[f"{name}_conv_layer_{str(l_no)}"] = self.get_conv_layer(
-                    self.cnn_layer_info["conv_layer_type"],
-                    in_channels=channel_size[l_no - 1],
-                    out_channels=channel_size[l_no],
-                    kernel_size=kernel_size[l_no],
-                    stride=stride_size[l_no],
-                    padding=padding[l_no],
-                )
-                if ("norm_layers" in self.cnn_layer_info.keys()) and (
-                    l_no in self.cnn_layer_info["norm_layers"].keys()
-                ):
-                    net_dict[f"{name}_layer_norm_{str(l_no)}"] = self.get_normalization(
-                        self.cnn_layer_info["norm_layers"][l_no], channel_size[l_no]
-                    )
-
-                if ("activation_layers" in self.cnn_layer_info.keys()) and (
-                    l_no in self.cnn_layer_info["activation_layers"].keys()
-                ):
-                    net_dict[f"{name}_activation_{str(l_no)}"] = self.get_activation(
-                        self.cnn_layer_info["activation_layers"][l_no]
-                    )
-
-                if ("pooling_layers" in self.cnn_layer_info.keys()) and (
-                    l_no in self.cnn_layer_info["pooling_layers"].keys()
-                ):
-                    net_dict[f"{name}_pooling_{str(l_no)}"] = self.get_pooling(
-                        self.cnn_layer_info["pooling_layers"][l_no]["name"],
-                        self.cnn_layer_info["pooling_layers"][l_no]["kernel"],
-                        self.cnn_layer_info["pooling_layers"][l_no]["stride"],
-                        self.cnn_layer_info["pooling_layers"][l_no]["padding"],
-                    )
-
-        return nn.Sequential(net_dict)
-
     def create_nets(self):
         """Creates and returns the feature and value net."""
 
-        # Check if any CNN layers otherwise return just a mlp
-        if self.cnn_layer_info:
-            feature_net = self.create_cnn(
-                self.in_channels,
-                self.channel_size,
-                self.kernel_size,
-                self.stride_size,
-                self.padding,
+        input_size = self.num_inputs
+        if self.rainbow:
+            feature_net = self.create_mlp(
+                input_size=self.num_inputs,
+                output_size=128,
+                hidden_size=[128],
                 name="feature",
+                rainbow_feature_net=True,
+                mlp_activation=self.mlp_activation,
+                mlp_output_activation="ReLU",
             )
-            cnn_output = feature_net(torch.zeros(*self.input_tensor.shape))
-            self.cnn_output_size = cnn_output.shape
-            input_size = (cnn_output).to(self.device).view(1, -1).size(1)
-
-            if self.secondary_input_tensor is not None:
-                input_size += self.extra_critic_dims
-
-            if self.rainbow:
-                value_net = self.create_mlp(
-                    input_size,
-                    output_size=self.num_atoms,
-                    hidden_size=self.hidden_size,
-                    name="value",
-                    noisy=True,
-                    mlp_output_activation=self.mlp_output_activation,
-                    mlp_activation=self.mlp_activation,
-                )
-                advantage_net = self.create_mlp(
-                    input_size,
-                    output_size=self.num_atoms * self.num_outputs,  ####
-                    hidden_size=self.hidden_size,
-                    name="advantage",
-                    noisy=True,
-                    mlp_output_activation=self.mlp_output_activation,
-                    mlp_activation=self.mlp_activation,
-                )
-            else:
-                value_net = self.create_mlp(
-                    input_size,
-                    self.num_outputs,
-                    self.hidden_size,
-                    name="value",
-                    mlp_activation=self.mlp_activation,
-                    mlp_output_activation=self.mlp_output_activation,
-                )
-                advantage_net = None
-
+            value_net = self.create_mlp(
+                input_size=128,
+                output_size=self.num_atoms,
+                hidden_size=self.hidden_size,
+                noisy=True,
+                name="value",
+                mlp_output_activation=self.mlp_output_activation,
+                mlp_activation=self.mlp_activation,
+            )
+            advantage_net = self.create_mlp(
+                input_size=128,
+                output_size=self.num_atoms * self.num_outputs,
+                hidden_size=self.hidden_size,
+                noisy=True,
+                name="advantage",
+                mlp_output_activation=self.mlp_output_activation,
+                mlp_activation=self.mlp_activation,
+            )
         else:
-            input_size = self.num_inputs
-            if self.rainbow:
-                feature_net = self.create_mlp(
-                    input_size=self.num_inputs,
-                    output_size=128,
-                    hidden_size=[128],
-                    name="feature",
-                    rainbow_feature_net=True,
-                    mlp_activation=self.mlp_activation,
-                    mlp_output_activation="ReLU",
-                )
-                value_net = self.create_mlp(
-                    input_size=128,
-                    output_size=self.num_atoms,
-                    hidden_size=self.hidden_size,
-                    noisy=True,
-                    name="value",
-                    mlp_output_activation=self.mlp_output_activation,
-                    mlp_activation=self.mlp_activation,
-                )
-                advantage_net = self.create_mlp(
-                    input_size=128,
-                    output_size=self.num_atoms * self.num_outputs,
-                    hidden_size=self.hidden_size,
-                    noisy=True,
-                    name="advantage",
-                    mlp_output_activation=self.mlp_output_activation,
-                    mlp_activation=self.mlp_activation,
-                )
-            else:
-                value_net = None
-                advantage_net = None
-                feature_net = self.create_mlp(
-                    input_size,
-                    self.num_outputs,
-                    self.hidden_size,
-                    name="feature",
-                    mlp_activation=self.mlp_activation,
-                    mlp_output_activation=self.mlp_output_activation,
-                )
+            value_net = None
+            advantage_net = None
+            feature_net = self.create_mlp(
+                input_size,
+                self.num_outputs,
+                self.hidden_size,
+                name="feature",
+                mlp_activation=self.mlp_activation,
+                mlp_output_activation=self.mlp_output_activation,
+            )
 
         if self.accelerator is None:
             feature_net = feature_net.to(self.device)
