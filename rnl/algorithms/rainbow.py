@@ -340,7 +340,7 @@ class RainbowDQN:
         elementwise_loss = -(proj_dist * log_p).sum(1)
         return elementwise_loss
 
-    def learn(self, experiences, n_step=False, per=True):
+    def learn_dqn(self, experiences, n_step=False, per=True):
         """Updates agent network parameters to learn from experiences.
 
         :param experiences: List of batched states, actions, rewards, next_states, dones in that order.
