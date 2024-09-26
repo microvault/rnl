@@ -42,8 +42,8 @@ class Robot:
         body = pymunk.Body(self.mass, self.inertia)
         body.position = (0, 0)
         shape = pymunk.Circle(body, self.robot_radius)
-        shape.friction = 0.4
-        shape.damping = 0.1
+        shape.friction = friction
+        shape.damping = damping
         space.add(body, shape)
         return body
 
