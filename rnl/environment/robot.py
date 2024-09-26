@@ -35,12 +35,12 @@ class Robot:
         space.gravity = (0.0, 0.0)
         return space
 
-    def create_robot(self, space: pymunk.Space,friction: float = 0.4, damping: float = 0.1) -> pymunk.Body:
+    def create_robot(self, space: pymunk.Space, friction: float = 0.4, damping: float = 0.1, position_x: float = 0.0, position_y: float = 0.0) -> pymunk.Body:
         """
         Create and add the robot to the given pymunk space.
         """
         body = pymunk.Body(self.mass, self.inertia)
-        body.position = (0, 0)
+        body.position = (position_x, position_y)
         shape = pymunk.Circle(body, self.robot_radius)
         shape.friction = friction
         shape.damping = damping
