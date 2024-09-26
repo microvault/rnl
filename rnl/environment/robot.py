@@ -1,4 +1,4 @@
-from pydantic.dataclasses import dataclass
+from dataclasses import dataclass
 from typing import Tuple, List
 import numpy as np
 import pymunk
