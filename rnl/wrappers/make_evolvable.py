@@ -526,7 +526,6 @@ class MakeEvolvable(nn.Module):
             "extra_critic_dims": self.extra_critic_dims,
             "output_vanish": self.output_vanish,
             "init_layers": self.init_layers,
-            "has_conv_layer": self.has_conv_layers,
             "arch": self.arch,
             "mlp_layer_info": self.mlp_layer_info,
             "num_atoms": self.num_atoms,
