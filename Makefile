@@ -1,6 +1,6 @@
 .PHONY: run
 run:
-	@poetry run python -m test_model_base run
+	@poetry run python -m train_model_base run
 
 .PHONY: train
 train:
