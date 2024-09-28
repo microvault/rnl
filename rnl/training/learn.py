@@ -145,6 +145,19 @@ def inference(
     pretrained_model=False,
 ):
 
+    text = [
+        r"+--------------------+",
+        r" ____  _   _ _",
+        r"|  _ \| \ | | |",
+        r"| |_) |  \| | |",
+        r"|  _ <| |\  | |___",
+        r"|_| \_\_| \_|_____|",
+        r"_____________________",
+    ]
+
+    for line in text:
+        print(line)
+
     env = NaviEnv(robot_config, sensor_config, env_config, render_config)
 
     env.reset()
