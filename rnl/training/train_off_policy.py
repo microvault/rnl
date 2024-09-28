@@ -17,9 +17,9 @@ def train_off_policy(
     algo,
     pop,
     memory,
-    INIT_HP=None,
-    MUT_P=None,
-    swap_channels=False,
+    # INIT_HP=None,
+    # MUT_P=None,
+    # swap_channels=False,
     max_steps=1000000,
     evo_steps=10000,
     eval_steps=None,
@@ -145,42 +145,42 @@ def train_off_policy(
                       be saved unless 'checkpoint' is defined."
         )
 
-    if wb:
-        if not hasattr(wandb, "api"):
-            if wandb_api_key is not None:
-                wandb.login(key=wandb_api_key)
-            else:
-                warnings.warn("Must login to wandb with API key.")
+    # if wb:
+    #     if not hasattr(wandb, "api"):
+    #         if wandb_api_key is not None:
+    #             wandb.login(key=wandb_api_key)
+    #         else:
+    #             warnings.warn("Must login to wandb with API key.")
 
-        config_dict = {}
-        if INIT_HP is not None:
-            config_dict.update(INIT_HP)
-        if MUT_P is not None:
-            config_dict.update(MUT_P)
+    #     config_dict = {}
+    #     if INIT_HP is not None:
+    #         config_dict.update(INIT_HP)
+    #     if MUT_P is not None:
+    #         config_dict.update(MUT_P)
 
-        if accelerator is not None:
-            accelerator.wait_for_everyone()
-            if accelerator.is_main_process:
-                wandb.init(
-                    # set the wandb project where this run will be logged
-                    project="AgileRL",
-                    name="{}-EvoHPO-{}-{}".format(
-                        env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
-                    ),
-                    # track hyperparameters and run metadata
-                    config=config_dict,
-                )
-            accelerator.wait_for_everyone()
-        else:
-            wandb.init(
-                # set the wandb project where this run will be logged
-                project="AgileRL",
-                name="{}-EvoHPO-{}-{}".format(
-                    env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
-                ),
-                # track hyperparameters and run metadata
-                config=config_dict,
-            )
+    #     if accelerator is not None:
+    #         accelerator.wait_for_everyone()
+    #         if accelerator.is_main_process:
+    #             wandb.init(
+    #                 # set the wandb project where this run will be logged
+    #                 project="AgileRL",
+    #                 name="{}-EvoHPO-{}-{}".format(
+    #                     env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+    #                 ),
+    #                 # track hyperparameters and run metadata
+    #                 config=config_dict,
+    #             )
+    #         accelerator.wait_for_everyone()
+    #     else:
+    #         wandb.init(
+    #             # set the wandb project where this run will be logged
+    #             project="AgileRL",
+    #             name="{}-EvoHPO-{}-{}".format(
+    #                 env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+    #             ),
+    #             # track hyperparameters and run metadata
+    #             config=config_dict,
+    #         )
 
     if accelerator is not None:
         accel_temp_models_path = f"models/{env_name}"
@@ -265,8 +265,6 @@ def train_off_policy(
                 epsilon = eps_start
 
             for idx_step in range(evo_steps // num_envs):
-                if swap_channels:
-                    state = np.moveaxis(state, [-1], [-3])
 
                 # Get next action from agent
                 if algo in ["DQN"]:
@@ -308,43 +306,24 @@ def train_off_policy(
 
                 # Save experience to replay buffer
                 if n_step_memory is not None:
-                    if swap_channels:
-                        one_step_transition = n_step_memory.save_to_memory_vect_envs(
-                            state,
-                            action,
-                            reward,
-                            np.moveaxis(next_state, [-1], [-3]),
-                            done,
-                        )
-                    else:
-                        one_step_transition = n_step_memory.save_to_memory_vect_envs(
-                            state,
-                            action,
-                            reward,
-                            next_state,
-                            done,
-                        )
+                    one_step_transition = n_step_memory.save_to_memory_vect_envs(
+                        state,
+                        action,
+                        reward,
+                        next_state,
+                        done,
+                    )
                     if one_step_transition:
                         memory.save_to_memory_vect_envs(*one_step_transition)
                 else:
-                    if swap_channels:
-                        memory.save_to_memory(
-                            state,
-                            action,
-                            reward,
-                            np.moveaxis(next_state, [-1], [-3]),
-                            done,
-                            is_vectorised=is_vectorised,
-                        )
-                    else:
-                        memory.save_to_memory(
-                            state,
-                            action,
-                            reward,
-                            next_state,
-                            done,
-                            is_vectorised=is_vectorised,
-                        )
+                    memory.save_to_memory(
+                        state,
+                        action,
+                        reward,
+                        next_state,
+                        done,
+                        is_vectorised=is_vectorised,
+                    )
 
                 if per:
                     fraction = min(
@@ -447,9 +426,7 @@ def train_off_policy(
 
         # Evaluate population
         fitnesses = [
-            agent.test(
-                env, swap_channels=swap_channels, max_steps=eval_steps, loop=eval_loop
-            )
+            agent.test(env, swap_channels=False, max_steps=eval_steps, loop=eval_loop)
             for agent in pop
         ]
         pop_fitnesses.append(fitnesses)
