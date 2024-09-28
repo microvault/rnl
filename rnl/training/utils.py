@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from rnl.algorithms.rainbow import RainbowDQN
+from rnl.configs.config import AgentConfig, TrainerConfig
 
 
 def make_vect_envs(env_name, num_envs=1, **env_kwargs):
@@ -46,7 +47,8 @@ def create_population(
     action_dim,
     one_hot,
     net_config,
-    INIT_HP,
+    agent_config: AgentConfig,
+    trainer_config: TrainerConfig,
     actor_network=None,
     critic_network=None,
     population_size=1,
@@ -88,17 +90,17 @@ def create_population(
             one_hot=one_hot,
             index=idx,
             net_config=net_config,
-            batch_size=INIT_HP["BATCH_SIZE"],
-            lr=INIT_HP["LR"],
-            learn_step=INIT_HP["LEARN_STEP"],
-            gamma=INIT_HP["GAMMA"],
-            tau=INIT_HP["TAU"],
-            beta=INIT_HP["BETA"],
-            prior_eps=INIT_HP["PRIOR_EPS"],
-            num_atoms=INIT_HP["NUM_ATOMS"],
-            v_min=INIT_HP["V_MIN"],
-            v_max=INIT_HP["V_MAX"],
-            n_step=INIT_HP["N_STEP"],
+            batch_size=trainer_config.batch_size,
+            lr=trainer_config.lr,
+            learn_step=trainer_config.learn_step,
+            gamma=agent_config.gamma,
+            tau=agent_config.tau,
+            beta=agent_config.beta,
+            prior_eps=agent_config.prior_eps,
+            num_atoms=agent_config.num_atoms,
+            v_min=agent_config.v_min,
+            v_max=agent_config.v_max,
+            n_step=agent_config.n_step,
             actor_network=actor_network,
             device=device,
             accelerator=accelerator,
