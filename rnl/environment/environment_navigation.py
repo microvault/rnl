@@ -6,12 +6,13 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from rnl.algorithms.rainbow import RainbowDQN
-from rnl.configs.config import RobotConfig, SensorConfig
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
-from rnl.engine.utils import min_laser  # normalize)
+from rnl.engine.utils import min_laser  # normalize
 from rnl.engine.utils import angle_to_goal, distance_to_goal, get_reward
 from rnl.environment.generate_world import Generator
 from rnl.environment.robot import Robot
+from rnl.environment.sensor import SensorRobot
 
 
 class NaviEnv(gym.Env):
@@ -19,51 +20,44 @@ class NaviEnv(gym.Env):
         self,
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
-        state_size: int = 24,
-        action_size: int = 6,
-        max_timestep: int = 1000,  # max step
-        threshold: float = 0.05,  # 0.1 threshold
-        grid_lenght: int = 5,  # TODO: error < 5 -> [5 - 15]
-        rgb_array: bool = False,
-        fps: int = 100,  # 10 frames per second
-        mode: str = "normal",
-        controller: bool = False,
+        env_config: EnvConfig,
+        render_config: RenderConfig,
     ):
         super().__init__()
-        self.action_space = spaces.Discrete(action_size)
+        state_size = sensor_config.num_rays + 4  # (action, distance, angle, reward)
+        self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
 
-        self.generator = Generator(grid_lenght=grid_lenght, mode=mode)
-        self.collision = Collision()
-        self.robot = Robot(
-            self.collision,
-            fov=sensor_config.fov,
-            num_rays=sensor_config.num_rays,
-            max_range=sensor_config.max_range,
-            min_range=sensor_config.min_range,
+        self.generator = Generator(
+            env_config.grid_dimension,
+            env_config.porcentage_obstacles,
+            env_config.random_mode,
         )
+        self.collision = Collision()
+        self.robot = Robot(robot_config)
+        self.sensor = SensorRobot(sensor_config)
 
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
 
         self.last_states = np.zeros(state_size)
 
-        self.rgb_array = rgb_array
+        self.rgb_array = render_config.rgb_array
         self.timestep = 0
-        self.max_timestep = max_timestep
-        self.step_anim = max_timestep
-        self.fps = fps
-        self.threshold = threshold
-        self.grid_lenght = grid_lenght
-        self.xmax = grid_lenght - 0.25
-        self.ymax = grid_lenght - 0.25
+        self.max_timestep = env_config.max_step
+        self.step_anim = env_config.max_step
+        self.fps = render_config.fps
+        self.threshold = robot_config.threshold
+        self.grid_lenght = env_config.grid_dimension
+        self.xmax = env_config.grid_dimension - 0.25
+        self.ymax = env_config.grid_dimension - 0.25
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
 
         self.segments = []
         # TODO
-        self.controller = controller
+        self.controller = render_config.controller
         self.cumulated_reward = 0.0
 
         self.target_x = 0
@@ -87,7 +81,7 @@ class NaviEnv(gym.Env):
             device="mps",
         )
 
-        if rgb_array:
+        if self.rgb_array:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
@@ -180,7 +174,7 @@ class NaviEnv(gym.Env):
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
         x, y = self.body.position.x, self.body.position.y
 
-        intersections, lidar_measurements = self.robot.sensor(
+        intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, segments=self.segments
         )
 
@@ -296,7 +290,7 @@ class NaviEnv(gym.Env):
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
         x, y = self.body.position.x, self.body.position.y
 
-        intersections, lidar_measurements = self.robot.sensor(
+        intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, segments=self.segments
         )
 
@@ -382,7 +376,7 @@ class NaviEnv(gym.Env):
                 break
 
         self.robot.reset_robot(self.body, x, y)
-        intersections, measurement = self.robot.sensor(
+        intersections, measurement = self.sensor.sensor(
             x=self.robot.body.position.x, y=self.robot.body.position.y, segments=all_seg
         )
 

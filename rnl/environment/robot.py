@@ -1,29 +1,32 @@
 from dataclasses import dataclass
-from typing import Tuple, List
+
 import numpy as np
 import pymunk
-from pymunk import Vec2d
+
+from rnl.configs.config import RobotConfig
+
 
 @dataclass
 class Robot:
     """
     A class representing a robot with physical and sensor properties.
     """
-    collision: 'Collision'
-    robot_radius: float = 0.033
-    wheel_base: float = 0.16
-    fov: float = 4 * np.pi
-    num_rays: int = 20
-    max_range: float = 6.0
-    min_range: float = 1.0
-    mass: float = 1.0
-    inertia: float = 0.3
 
-    def __post_init__(self):
+    def __init__(self, robot_config: RobotConfig):
         """
         Initialize additional attributes after dataclass initialization.
         """
-        self.lidar_angle = np.linspace(0, self.fov, self.num_rays)
+        # Constant acceleration due to gravity
+        g = 9.81  # m/s²
+
+        # Calculating the mass of the robot
+        self.mass = robot_config.weight / g  # kg
+        self.robot_radius = robot_config.base_radius
+        self.wheel_base = robot_config.wheel_distance
+
+        # Calculating the moment of inertia of the robot
+        # I = (1/2) * m * r²
+        self.inertia = 0.5 * self.mass * self.robot_radius**2
         self.body = pymunk.Body(self.mass, self.inertia)
 
     @staticmethod
@@ -35,7 +38,14 @@ class Robot:
         space.gravity = (0.0, 0.0)
         return space
 
-    def create_robot(self, space: pymunk.Space, friction: float = 0.4, damping: float = 0.1, position_x: float = 0.0, position_y: float = 0.0) -> pymunk.Body:
+    def create_robot(
+        self,
+        space: pymunk.Space,
+        friction: float = 0.4,
+        damping: float = 0.1,
+        position_x: float = 0.0,
+        position_y: float = 0.0,
+    ) -> pymunk.Body:
         """
         Create and add the robot to the given pymunk space.
         """
@@ -47,11 +57,17 @@ class Robot:
         space.add(body, shape)
         return body
 
-    def move_robot(self, space: pymunk.Space, robot_body: pymunk.Body, v_linear: float, v_angular: float) -> None:
+    def move_robot(
+        self,
+        space: pymunk.Space,
+        robot_body: pymunk.Body,
+        v_linear: float,
+        v_angular: float,
+    ) -> None:
         """
         Move the robot in the space with given linear and angular velocities.
         """
-        direction = Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
+        direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
         robot_body.velocity = v_linear * direction
         robot_body.angular_velocity = v_angular
         space.step(1 / 60)
@@ -64,16 +80,3 @@ class Robot:
         robot_body.angle = 0
         robot_body.velocity = (0, 0)
         robot_body.angular_velocity = 0
-
-    def sensor(self, x: float, y: float, segments: List) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Perform sensor measurements based on the robot's position and environment segments.
-        """
-        seg = self.collision.filter_segments(segments, x, y, 6)
-        intersections = self.collision.lidar_intersection(
-            x, y, self.max_range, self.lidar_angle, seg
-        )
-        measurements = self.collision.lidar_measurement(
-            x, y, self.max_range, self.lidar_angle, seg
-        )
-        return intersections, measurements

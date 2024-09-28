@@ -16,7 +16,7 @@ class Generator:
     def __init__(
         self,
         grid_lenght: int = 5,
-        random: int = 1300,
+        random: float = 0.1,  # 1300
         mode: str = "normal",
     ):
         self.grid_lenght = grid_lenght
