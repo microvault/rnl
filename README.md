@@ -92,8 +92,8 @@ param_sensor = vault.sensor(
 
 # 3.step -> config env
 param_env = vault.make(
-    map_file="None", # map file yaml
-    random_mode="normal",  # hard or normal
+    map_file="None", # map file yaml (Coming soon)
+    random_mode="normal",  # hard or normal (Coming soon)
     timestep=1000,  # max timestep
     grid_dimension=5,  # size grid
     friction=0.4,  # grid friction
@@ -116,7 +116,7 @@ model.learn(
     checkpoint_path="checkpoints",
     hidden_size=[800, 600],
 )
-## OR
+## OR ##
 # 4.step -> config render
 param_render = vault.render(fps=100, controller=True, rgb_array=True)
 
@@ -124,6 +124,7 @@ param_render = vault.render(fps=100, controller=True, rgb_array=True)
 model = vault.Trainer(
     param_robot, param_sensor, param_env, param_render, pretrained_model=False
 )
+
 # 6.step -> run robot
 model.run()
 ```
