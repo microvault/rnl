@@ -181,3 +181,8 @@ Nicolas Alan - **grottimeireles@gmail.com**.
 - [ ] Add random mode (hard or normal)
 - [ ] Create Integration ROS and (Gazebo, webots)
 - [ ] Create Integration with OpenAI o1-preview
+
+
+.. rubric:: References
+
+.. [1] N. Ustaran-Anderegg and M. Pratt, “AgileRL,” software available under Apache-2.0 License at https://github.com/AgileRL/AgileRL.
