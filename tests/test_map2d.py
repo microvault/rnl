@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import pytest
 
-from microvault.engine.map2d import Map2D
+from rnl.engine.map2d import Map2D
 
 
 def test_folder_is_none():

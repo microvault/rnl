@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
-from microvault.components.replaybuffer import ReplayBuffer
+from rnl.components.replaybuffer import ReplayBuffer
 
-config_path = "../microvault/microvault/configs/default.yaml"
+config_path = "../rnl/rnl/configs/default.yaml"
 path = OmegaConf.load(config_path)
 cfg = OmegaConf.to_container(path, resolve=True)
 

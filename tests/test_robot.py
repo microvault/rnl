@@ -1,7 +1,7 @@
 import pytest
 
-from microvault.engine.collision import Collision
-from microvault.environment.robot import Robot
+from rnl.engine.collision import Collision
+from rnl.environment.robot import Robot
 
 
 @pytest.fixture

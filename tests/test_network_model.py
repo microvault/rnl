@@ -2,10 +2,10 @@ import pytest
 from omegaconf import OmegaConf
 from torch import optim
 
-from microvault.engine.sanity import Sanity
-from microvault.models.model import QModel
+from rnl.engine.sanity import Sanity
+from rnl.models.model import QModel
 
-config_path = "../microvault/microvault/configs/default.yaml"
+config_path = "../rnl/rnl/configs/default.yaml"
 path = OmegaConf.load(config_path)
 cfg = OmegaConf.to_container(path, resolve=True)
 
