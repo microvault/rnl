@@ -63,17 +63,17 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  Push:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  # Push:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
 
-      - name: login to ghcr.io
-        run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u rnl --password-stdin
+  #     - name: login to ghcr.io
+  #       run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u rnl --password-stdin
 
-      - name: Build image
-        run: docker build -t ghcr.io/microvault/rnl:latest .
+  #     - name: Build image
+  #       run: docker build -t ghcr.io/microvault/rnl:latest .
 
-      - name: Push image
-        run: docker push ghcr.io/microvault/rnl:latest
+  #     - name: Push image
+  #       run: docker push ghcr.io/microvault/rnl:latest
