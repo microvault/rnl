@@ -100,14 +100,11 @@ param_env = vault.make(
     porcentage_obstacles=0.1
 )
 
-# 4.step -> config render
-param_render = vault.render(fps=100, controller=True, rgb_array=True)
-
-
 # 4.step -> config train robot
 model = vault.Trainer(
     param_robot, param_sensor, param_env, pretrained_model=False
 )
+
 # 5.step -> train robot
 model.learn(
     batch_size=64,
@@ -121,13 +118,6 @@ model.learn(
     hidden_size=[800, 600],
 )
 
-# 5.step -> config train robot
-model = vault.Trainer(
-    param_robot, param_sensor, param_env, param_render, pretrained_model=False
-)
-
-# 6.step -> run robot
-model.run()
 ```
 
 3.	Adding in python (inference):
@@ -184,3 +174,10 @@ This project is licensed under the MIT license - see archive LICENSE for details
 <a name="Contact"></a>
 The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an issue or send an email to:
 Nicolas Alan - **grottimeireles@gmail.com**.
+
+
+## TODO:
+- [ ] Add map file yaml
+- [ ] Add random mode (hard or normal)
+- [ ] Create Integration ROS and (Gazebo, webots)
+- [ ] Create Integration with OpenAI o1-preview
