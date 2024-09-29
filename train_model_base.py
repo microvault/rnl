@@ -14,7 +14,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # 1.step -> config robot
-    # base_radius: float, vel_linear: Tuple, val_angular: Tuple, wheel_distance: float, weight: float, threshold: float
     param_robot = vault.robot(
         base_radius=0.033,  # (centimeters) # TODO: RANDOMIZE
         vel_linear=[0.0, 2.0],  # [min, max] # TODO: RANDOMIZE
@@ -35,7 +34,7 @@ if __name__ == "__main__":
     # 3.step -> config env
     param_env = vault.make(
         map_file="None",  # TODO: RANDOMIZE
-        random_mode="normal",  # hard (muda tudo), normal (mapa fixo)
+        random_mode="normal",  # hard, normal
         timestep=1000,  # TODO: RANDOMIZE
         grid_dimension=5,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
