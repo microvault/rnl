@@ -2,9 +2,9 @@ import numpy as np
 import pytest
 from matplotlib.patches import PathPatch
 
-from microvault.engine.collision import Collision
-from microvault.engine.world_generate import GenerateWorld
-from microvault.environment.generate_world import Generator
+from rnl.engine.collision import Collision
+from rnl.engine.world_generate import GenerateWorld
+from rnl.environment.generate_world import Generator
 
 
 @pytest.fixture

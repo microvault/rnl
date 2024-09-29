@@ -4,7 +4,7 @@ from collections import deque, namedtuple
 import numpy as np
 import torch
 
-from microvault.components.segment_tree import MinSegmentTree, SumSegmentTree
+from rnl.components.segment_tree import MinSegmentTree, SumSegmentTree
 
 
 class ReplayBuffer:

@@ -2,13 +2,13 @@ import gym
 import pytest
 from omegaconf import OmegaConf
 
-from microvault.algorithms.agent import Agent
-from microvault.engine.collision import Collision
-from microvault.environment.generate_world import GenerateWorld, Generator
-from microvault.environment.robot import Robot
-from microvault.models.model import QModel
+from rnl.algorithms.agent import Agent
+from rnl.engine.collision import Collision
+from rnl.environment.generate_world import GenerateWorld, Generator
+from rnl.environment.robot import Robot
+from rnl.models.model import QModel
 
-config_path = "../microvault/microvault/configs/default.yaml"
+config_path = "../rnl/rnl/configs/default.yaml"
 path = OmegaConf.load(config_path)
 cfg = OmegaConf.to_container(path, resolve=True)
 
@@ -57,7 +57,7 @@ def environment_instance():
     )
 
     env = gym.make(
-        "microvault/NaviEnv-v0",
+        "rnl/NaviEnv-v0",
         rgb_array=False,
         robot=robot,
         generator=generate,

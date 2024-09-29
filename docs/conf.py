@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.abspath(".."))
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = "Microvault"
+project = "Rnl"
 copyright = "2024, Nicolas Alan"
 author = "Nicolas Alan"
 release = "0.2.32"

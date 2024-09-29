@@ -7,8 +7,8 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 
-from microvault.engine.collision import Collision
-from microvault.engine.world_generate import GenerateWorld
+from rnl.engine.collision import Collision
+from rnl.engine.world_generate import GenerateWorld
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Generator:
     def __init__(
         self,
         grid_lenght: int = 5,
-        random: int = 1300,
+        random: float = 0.1,  # 1300
         mode: str = "normal",
     ):
         self.grid_lenght = grid_lenght

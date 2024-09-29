@@ -4,11 +4,11 @@ import numpy as np
 import pytest
 from omegaconf import OmegaConf
 
-from microvault.algorithms.agent import Agent
-from microvault.components.replaybuffer import ReplayBuffer
-from microvault.models.model import QModel
+from rnl.algorithms.agent import Agent
+from rnl.components.replaybuffer import ReplayBuffer
+from rnl.models.model import QModel
 
-config_path = "../microvault/microvault/configs/default.yaml"
+config_path = "../rnl/rnl/configs/default.yaml"
 path = OmegaConf.load(config_path)
 cfg = OmegaConf.to_container(path, resolve=True)
 

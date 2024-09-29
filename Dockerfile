@@ -1,36 +1,23 @@
-FROM ubuntu:22.04
+FROM python:3.12-slim
 
-SHELL [ "/bin/bash" , "-c"]
+RUN apt-get update && apt-get install -y build-essential
 
-ENV DEBIAN_FRONTEND=noninteractive
+RUN pip install poetry
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    pkg-config \
-    python3-pip \
-    python3-dev \
-    apt-utils \
-    g++ \
-    git \
-    swig \
-    zlib1g-dev \
-    libhdf5-dev \
-    && rm -rf /var/lib/apt/lists/*
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
-RUN pip install --upgrade pip
+WORKDIR /workdir
 
-RUN pip install --upgrade "setuptools>=44.0.0"
-RUN pip install --upgrade "wheel>=0.37.1"
-RUN pip install --upgrade Cython
-RUN pip install --no-binary=h5py h5py
-RUN pip install gymnasium[box2d]
+COPY rnl ./rnl
+COPY checkpoints ./checkpoints
+COPY tests ./tests
+COPY Makefile ./
+COPY pyproject.toml poetry.lock ./
+COPY train_model_base.py ./
 
-WORKDIR /microvault
+VOLUME . /workdir
 
-RUN pip install agilerl
-
-RUN pip install matplotlib scikit-image numba shapely
-
-COPY ./microvault /microvault
-
-RUN export PYTHONPATH=$(pwd)
+RUN poetry install --without dev && rm -rf $POETRY_CACHE_DIR
