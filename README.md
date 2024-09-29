@@ -67,7 +67,7 @@ make train
 make run
 ```
 
-2.	Adding in python (train):
+2.	Adding in python `train`:
 ```python
 import numpy as np
 import rnl as vault
@@ -120,7 +120,7 @@ model.learn(
 
 ```
 
-3.	Adding in python (inference):
+3.	Adding in python `inference`:
 ```python
 import numpy as np
 import rnl as vault
@@ -168,11 +168,11 @@ model.run()
 
 ## License
 <a name="License"></a>
-This project is licensed under the MIT license - see archive LICENSE for details.
+This project is licensed under the MIT license - see archive [LICENSE](https://github.com/microvault/rnl/blob/main/LICENSE) for details.
 
 ## Contact and Contribution
 <a name="Contact"></a>
-The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an issue or send an email to:
+The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an `issue` or send an `email` to:
 Nicolas Alan - **grottimeireles@gmail.com**.
 
 
