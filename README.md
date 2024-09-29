@@ -24,7 +24,6 @@
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
 - [About the Project](#About)
-- [Dependencies](#Dependencies)
 - [Installation](#Installation)
 - [How to Use](#How-to-Use)
 - [License](#license)
@@ -34,11 +33,6 @@ This project uses Deep Reinforcement Learning (DRL) to train a robot to move in 
 <a name="About"></a>
 
 This project uses RainbowDQN to train a robot to navigate autonomously without needing heavy installations like ROS, Gazebo, or the entire navigation stack. The focus is to create a lightweight and easy-to-use agent that learns to make decisions on its own by interacting with the environment and chooses the best way to navigate safely and stably. Over time, the robot will improve its navigation skills, becoming more efficient.
-
-## Dependencies:
-<a name="Dependencies"></a>
-- Python 3.12.4
-- PyTorch
 
 ## Installation
 <a name="Installation"></a>
