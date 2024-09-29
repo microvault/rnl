@@ -67,7 +67,7 @@ make train
 make run
 ```
 
-2.	Adding in python:
+2.	Adding in python (train):
 ```python
 import numpy as np
 import rnl as vault
@@ -100,6 +100,10 @@ param_env = vault.make(
     porcentage_obstacles=0.1
 )
 
+# 4.step -> config render
+param_render = vault.render(fps=100, controller=True, rgb_array=True)
+
+
 # 4.step -> config train robot
 model = vault.Trainer(
     param_robot, param_sensor, param_env, pretrained_model=False
@@ -116,13 +120,56 @@ model.learn(
     checkpoint_path="checkpoints",
     hidden_size=[800, 600],
 )
-## OR ##
-# 4.step -> config render
-param_render = vault.render(fps=100, controller=True, rgb_array=True)
 
 # 5.step -> config train robot
 model = vault.Trainer(
     param_robot, param_sensor, param_env, param_render, pretrained_model=False
+)
+
+# 6.step -> run robot
+model.run()
+```
+
+3.	Adding in python (inference):
+```python
+import numpy as np
+import rnl as vault
+
+# 1.step -> config robot
+param_robot = vault.robot(
+    base_radius=0.033,  # (cm)
+    vel_linear=[0.0, 2.0],  # [min, max]
+    val_angular=[1.0, 2.0],  # [min, max]
+    wheel_distance=0.16,  # (cm)
+    weight=1.0,  # robot (kg)
+    threshold=0.01,  # distance for obstacle avoidance (cm)
+)
+
+# 2.step -> config sensors [for now only lidar sensor!!]
+param_sensor = vault.sensor(
+    fov=4 * np.pi,
+    num_rays=20,
+    min_range=0.0,
+    max_range=6.0,
+)
+
+# 3.step -> config env
+param_env = vault.make(
+    map_file="None", # map file yaml (Coming soon)
+    random_mode="normal",  # hard or normal (Coming soon)
+    timestep=1000,  # max timestep
+    grid_dimension=5,  # size grid
+    friction=0.4,  # grid friction
+    porcentage_obstacles=0.1
+)
+
+# 4.step -> config render
+param_render = vault.render(fps=100, controller=True, rgb_array=True)
+
+
+# 5.step -> config train robot
+model = vault.Trainer(
+    param_robot, param_sensor, param_env, pretrained_model=False
 )
 
 # 6.step -> run robot
