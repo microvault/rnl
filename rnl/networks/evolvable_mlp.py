@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from microvault.networks.custom_components import NoisyLinear
+from rnl.networks.custom_components import NoisyLinear
 
 
 class EvolvableMLP(nn.Module):

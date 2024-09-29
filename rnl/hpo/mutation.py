@@ -4,7 +4,7 @@ import fastrand
 import numpy as np
 import torch
 
-from microvault.networks.evolvable_mlp import EvolvableMLP
+from rnl.networks.evolvable_mlp import EvolvableMLP
 
 
 class Mutations:

@@ -2,11 +2,11 @@ import warnings
 
 from torch.utils.data import DataLoader
 
-from microvault.components.replay_buffer import (
+from rnl.components.replay_buffer import (
     MultiStepReplayBuffer,
     PrioritizedReplayBuffer,
 )
-from microvault.components.replay_data import ReplayDataset
+from rnl.components.replay_data import ReplayDataset
 
 
 class Sampler:

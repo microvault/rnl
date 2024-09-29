@@ -1,19 +1,19 @@
 [tool.poetry]
-name = "microvault"
+name = "rnl"
 version = "0.2.33"
-description = "Microvault - RL for Navigation"
+description = "RNL - Robot Navigation Learning"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LICENSE"
 readme = "README.md"
-packages = [{ include = "microvault" }]
+packages = [{ include = "rnl" }]
 
 [tool.poetry.urls]
-documentation = "https://microvault.readthedocs.io"
-bugs = "https://github.com/microvault/microvault/issues"
+documentation = "https://rnl.readthedocs.io"
+bugs = "https://github.com/microvault/rnl/issues"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-accelerate = "^0.18.0"
+accelerate = "^0.34.2"
 dill = "^0.3.7"
 fastrand = ">=1.3,<3.0"
 gymnasium = "^0.28.1"
@@ -27,7 +27,7 @@ scikit-image = "*"
 tqdm = "^4.65.0"
 numba = ">=0.59.1,<0.61.0"
 shapely = ">=1.8,<3.0"
-wandb = "0.13.10"
+wandb = "0.18.1"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -1,12 +1,11 @@
-# Microvault
+# Robot Navigation Learning
 
 <div align="center">
-     <img src="https://raw.githubusercontent.com/microvault/microvault/main/docs/_static/img.png" alt="MicroVault">
+     <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/_static/img.png" alt="MicroVault">
 </div>
 
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
-  <a href="https://twitter.com/Microvault_"><img alt="Twiter" src="https://img.shields.io/badge/microvault-twiter-blue"></a>
   <a href="https://pypi.org/project/microvault/"><img alt="PyPI" src="https://img.shields.io/pypi/v/microvault"></a>
   <a href="https://github.com/astral-sh/ruff"><img alt="Ruff" src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json"></a>
   <a href="https://codecov.io/gh/microvault/microvault"><img alt="codecov" src="https://codecov.io/gh/microvault/microvault/graph/badge.svg?token=WRTOBP06AW"></a>
@@ -21,7 +20,3 @@
 **End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
 
 </div>
-
-
-540000 steps
-7:32:42 hours

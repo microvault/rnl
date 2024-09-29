@@ -761,10 +761,10 @@ docs/.next/
 /docs/*.tsbuildinfo
 /docs/next-env.d.ts
 
-/microvault/environment/utils/*.cpp
+/rnl/environment/utils/*.cpp
 
-/microvault/environment/utils/map.py
-/microvault/outputs/
+/rnl/environment/utils/map.py
+/rnl/outputs/
 /outputs
 /wandb/
-/microvault/environment/utils/
+/rnl/environment/utils/
