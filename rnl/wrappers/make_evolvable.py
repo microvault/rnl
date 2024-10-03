@@ -62,10 +62,6 @@ class MakeEvolvable(nn.Module):
         max_hidden_layers=3,
         min_mlp_nodes=64,
         max_mlp_nodes=1024,
-        min_cnn_hidden_layers=1,
-        max_cnn_hidden_layers=6,
-        min_channel_size=32,
-        max_channel_size=256,
         output_vanish=False,
         init_layers=False,
         support=None,
@@ -151,22 +147,16 @@ class MakeEvolvable(nn.Module):
 
         x = self.feature_net(x)
 
-        # add in cnn functionality
         advantage = self.advantage_net(x)
-        if not self.cnn_layer_info:
-            value = self.value_net(x)
-            value = value.view(-1, 1, self.num_atoms)
-            advantage = advantage.view(-1, self.num_outputs, self.num_atoms)
-            x = value + advantage - advantage.mean(1, keepdim=True)
-            x = F.softmax(x, dim=-1)
-        else:
-            value = value.view(batch_size, 1, self.num_atoms)
-            advantage = advantage.view(batch_size, self.num_outputs, self.num_atoms)
+        value = self.value_net(x)
 
-            x = value + advantage - advantage.mean(1, keepdim=True)
-            x = F.softmax(x.view(-1, self.num_atoms), dim=-1).view(
-                -1, self.num_outputs, self.num_atoms
-            )
+        value = value.view(batch_size, 1, self.num_atoms)
+        advantage = advantage.view(batch_size, self.num_outputs, self.num_atoms)
+
+        x = value + advantage - advantage.mean(1, keepdim=True)
+        x = F.softmax(x.view(-1, self.num_atoms), dim=-1).view(
+            -1, self.num_outputs, self.num_atoms
+        )
         x = x.clamp(min=1e-3)
 
         if q:
