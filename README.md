@@ -176,12 +176,4 @@ Nicolas Alan - **grottimeireles@gmail.com**.
 
 
 ## Acknowledgments
-
-```bibtex
-@software{Ustaran-Anderegg_AgileRL,
-  author = {Ustaran-Anderegg, Nicholas and Pratt, Michael},
-  license = {Apache-2.0},
-  title = {{AgileRL}},
-  url = {https://github.com/AgileRL/AgileRL}
-}
-```
+* [AgileRL](https://github.com/AgileRL/AgileRL)
