@@ -197,10 +197,7 @@ class Mutations:
         self.min_learn_step = min_learn_step
         self.max_learn_step = max_learn_step
 
-        if algo in ["MADDPG", "MATD3"]:
-            self.multi_agent = True
-        else:
-            self.multi_agent = False
+        self.multi_agent = False
 
         # Set algorithm dictionary with agent network names for mutation
         # Use custom agent dict, or pre-configured agent from API
@@ -712,291 +709,51 @@ class Mutations:
         :param individual: Individual agent from population
         :type individual: object
         """
-        # Mutate network architecture by adding layers or nodes
-        if self.multi_agent:
-            offspring_actors = [
-                actor.clone()
-                for actor in getattr(individual, self.algo["actor"]["eval"])
-            ]  # List of actors
-            offspring_critics_list = [
-                [critic.clone() for critic in getattr(individual, critics["eval"])]
-                for critics in self.algo["critics"]
-            ]
+        offspring_actor = getattr(individual, self.algo["actor"]["eval"]).clone()
+        offspring_critics = [
+            getattr(individual, critic["eval"]).clone()
+            for critic in self.algo["critics"]
+        ]
 
-            if self.arch == "cnn":
-                mutation_methods = [
-                    "add_mlp_layer",
-                    "remove_mlp_layer",
-                    "add_cnn_layer",
-                    "remove_cnn_layer",
-                    "change_cnn_kernel",
-                    "add_cnn_channel",
-                    "remove_cnn_channel",
-                    "add_mlp_node",
-                    "remove_mlp_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                for offspring_actor in offspring_actors:
-                    actor_mutation = getattr(offspring_actor, mut_method)
-                    actor_mutation()
-                for offspring_critics in offspring_critics_list:
-                    for offspring_critic in offspring_critics:
-                        critic_mutation = getattr(offspring_critic, mut_method)
-                        critic_mutation()
-
-            elif self.arch == "bert":
-                mutation_methods = [
-                    "add_encoder_layer",
-                    "remove_encoder_layer",
-                    "add_decoder_layer",
-                    "remove_decoder_layer",
-                    "add_node",
-                    "remove_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    (1 - self.new_layer_prob) * 0.5,
-                    (1 - self.new_layer_prob) * 0.5,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                if mut_method in [
-                    "add_node",
-                    "remove_node",
-                ]:  # Functionality to account for MATD3
-                    if len(offspring_critics_list) == 1:
-                        for offspring_actor, offspring_critic in zip(
-                            offspring_actors, offspring_critics_list[0]
-                        ):
-                            actor_mutation = getattr(offspring_actor, mut_method)
-                            node_dict = actor_mutation()
-                            critic_mutation = getattr(offspring_critic, mut_method)
-                            critic_mutation(**node_dict)
-                    else:
-                        for (
-                            offspring_actor,
-                            offspring_critic_1,
-                            offspring_critic_2,
-                        ) in zip(offspring_actors, *offspring_critics_list):
-                            actor_mutation = getattr(offspring_actor, mut_method)
-                            node_dict = actor_mutation()
-                            critic_mutation_1 = getattr(offspring_critic_1, mut_method)
-                            critic_mutation_2 = getattr(offspring_critic_2, mut_method)
-                            critic_mutation_1(**node_dict)
-                            critic_mutation_2(**node_dict)
-                else:
-                    for offspring_actor in offspring_actors:
-                        actor_mutation = getattr(offspring_actor, mut_method)
-                        actor_mutation()
-                    for offspring_critics in offspring_critics_list:
-                        for offspring_critic in offspring_critics:
-                            critic_mutation = getattr(offspring_critic, mut_method)
-                            critic_mutation()
-
-            else:  # mlp or gpt
-                mutation_methods = [
-                    "add_mlp_layer",
-                    "remove_mlp_layer",
-                    "add_mlp_node",
-                    "remove_mlp_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 2,
-                    self.new_layer_prob / 2,
-                    (1 - self.new_layer_prob) * 0.5,
-                    (1 - self.new_layer_prob) * 0.5,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                if mut_method in [
-                    "add_mlp_node",
-                    "remove_mlp_node",
-                ]:  # Functionality to account for MATD3
-                    if len(offspring_critics_list) == 1:
-                        for offspring_actor, offspring_critic in zip(
-                            offspring_actors, offspring_critics_list[0]
-                        ):
-                            actor_mutation = getattr(offspring_actor, mut_method)
-                            node_dict = actor_mutation()
-                            critic_mutation = getattr(offspring_critic, mut_method)
-                            critic_mutation(**node_dict)
-                    else:
-                        for (
-                            offspring_actor,
-                            offspring_critic_1,
-                            offspring_critic_2,
-                        ) in zip(offspring_actors, *offspring_critics_list):
-                            actor_mutation = getattr(offspring_actor, mut_method)
-                            node_dict = actor_mutation()
-                            critic_mutation_1 = getattr(offspring_critic_1, mut_method)
-                            critic_mutation_2 = getattr(offspring_critic_2, mut_method)
-                            critic_mutation_1(**node_dict)
-                            critic_mutation_2(**node_dict)
-                else:
-                    for offspring_actor in offspring_actors:
-                        actor_mutation = getattr(offspring_actor, mut_method)
-                        actor_mutation()
-                    for offspring_critics in offspring_critics_list:
-                        for offspring_critic in offspring_critics:
-                            critic_mutation = getattr(offspring_critic, mut_method)
-                            critic_mutation()
-
-            if self.accelerator is None:
-                offspring_actors = [
-                    offspring_actor.to(self.device)
-                    for offspring_actor in offspring_actors
-                ]
-            setattr(individual, self.algo["actor"]["eval"], offspring_actors)
-
-            for offspring_critics, critics in zip(
-                offspring_critics_list, self.algo["critics"]
-            ):
-                if self.accelerator is None:
-                    offspring_critics = [
-                        offspring_critic.to(self.device)
-                        for offspring_critic in offspring_critics
-                    ]
-                setattr(individual, critics["eval"], offspring_critics)
-
+        mutation_methods = [
+            "add_mlp_layer",
+            "remove_mlp_layer",
+            "add_mlp_node",
+            "remove_mlp_node",
+        ]
+        mut_probs = [
+            self.new_layer_prob / 2,
+            self.new_layer_prob / 2,
+            (1 - self.new_layer_prob) * 0.5,
+            (1 - self.new_layer_prob) * 0.5,
+        ]
+        mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
+        if mut_method in ["add_mlp_node", "remove_mlp_node"]:
+            actor_mutation = getattr(offspring_actor, mut_method)
+            node_dict = actor_mutation()
+            for offspring_critic in offspring_critics:
+                critic_mutation = getattr(offspring_critic, mut_method)
+                critic_mutation(**node_dict)
         else:
-            if individual.algo in ["NeuralUCB", "NeuralTS"]:
-                old_actor = getattr(individual, self.algo["actor"]["eval"]).clone()
-                if self.arch == "mlp":
-                    if isinstance(old_actor, EvolvableMLP):
-                        old_exp_layer = old_actor.feature_net.linear_layer_output
-                    else:
-                        old_exp_layer = (
-                            old_actor.feature_net.feature_linear_layer_output
-                        )
-                else:
-                    old_exp_layer = old_actor.value_net.value_linear_layer_output
+            actor_mutation = getattr(offspring_actor, mut_method)
+            actor_mutation()
+            for offspring_critic in offspring_critics:
+                critic_mutation = getattr(offspring_critic, mut_method)
+                critic_mutation()
 
-            offspring_actor = getattr(individual, self.algo["actor"]["eval"]).clone()
-            offspring_critics = [
-                getattr(individual, critic["eval"]).clone()
-                for critic in self.algo["critics"]
-            ]
-
-            if self.arch == "cnn":
-                mutation_methods = [
-                    "add_mlp_layer",
-                    "remove_mlp_layer",
-                    "add_cnn_layer",
-                    "remove_cnn_layer",
-                    "change_cnn_kernel",
-                    "add_cnn_channel",
-                    "remove_cnn_channel",
-                    "add_mlp_node",
-                    "remove_mlp_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                    (1 - self.new_layer_prob) * 0.2,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                actor_mutation = getattr(offspring_actor, mut_method)
-                actor_mutation()
-                for offspring_critic in offspring_critics:
-                    critic_mutation = getattr(offspring_critic, mut_method)
-                    critic_mutation()
-
-            elif self.arch == "bert":
-                mutation_methods = [
-                    "add_encoder_layer",
-                    "remove_encoder_layer",
-                    "add_decoder_layer",
-                    "remove_decoder_layer",
-                    "add_node",
-                    "remove_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    self.new_layer_prob / 4,
-                    (1 - self.new_layer_prob) * 0.5,
-                    (1 - self.new_layer_prob) * 0.5,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                if mut_method in ["add_node", "remove_node"]:
-                    actor_mutation = getattr(offspring_actor, mut_method)
-                    node_dict = actor_mutation()
-                    for offspring_critic in offspring_critics:
-                        critic_mutation = getattr(offspring_critic, mut_method)
-                        critic_mutation(**node_dict)
-                else:
-                    actor_mutation = getattr(offspring_actor, mut_method)
-                    actor_mutation()
-                    for offspring_critic in offspring_critics:
-                        critic_mutation = getattr(offspring_critic, mut_method)
-                        critic_mutation()
-
-            else:  # mlp or gpt
-                mutation_methods = [
-                    "add_mlp_layer",
-                    "remove_mlp_layer",
-                    "add_mlp_node",
-                    "remove_mlp_node",
-                ]
-                mut_probs = [
-                    self.new_layer_prob / 2,
-                    self.new_layer_prob / 2,
-                    (1 - self.new_layer_prob) * 0.5,
-                    (1 - self.new_layer_prob) * 0.5,
-                ]
-                mut_method = self.rng.choice(mutation_methods, size=1, p=mut_probs)[0]
-                if mut_method in ["add_mlp_node", "remove_mlp_node"]:
-                    actor_mutation = getattr(offspring_actor, mut_method)
-                    node_dict = actor_mutation()
-                    for offspring_critic in offspring_critics:
-                        critic_mutation = getattr(offspring_critic, mut_method)
-                        critic_mutation(**node_dict)
-                else:
-                    actor_mutation = getattr(offspring_actor, mut_method)
-                    actor_mutation()
-                    for offspring_critic in offspring_critics:
-                        critic_mutation = getattr(offspring_critic, mut_method)
-                        critic_mutation()
-
+        if self.accelerator is not None:
+            setattr(individual, self.algo["actor"]["eval"], offspring_actor)
+        else:
+            setattr(
+                individual,
+                self.algo["actor"]["eval"],
+                offspring_actor.to(self.device),
+            )
+        for offspring_critic, critic in zip(offspring_critics, self.algo["critics"]):
             if self.accelerator is not None:
-                setattr(individual, self.algo["actor"]["eval"], offspring_actor)
+                setattr(individual, critic["eval"], offspring_critic)
             else:
-                setattr(
-                    individual,
-                    self.algo["actor"]["eval"],
-                    offspring_actor.to(self.device),
-                )
-            for offspring_critic, critic in zip(
-                offspring_critics, self.algo["critics"]
-            ):
-                if self.accelerator is not None:
-                    setattr(individual, critic["eval"], offspring_critic)
-                else:
-                    setattr(
-                        individual, critic["eval"], offspring_critic.to(self.device)
-                    )
-
-            if individual.algo in ["NeuralUCB", "NeuralTS"]:
-                self._reinit_bandit_grads(individual, offspring_actor, old_exp_layer)
+                setattr(individual, critic["eval"], offspring_critic.to(self.device))
 
         self.reinit_opt(individual)  # Reinitialise optimizer
         individual.mut = "arch"
@@ -1084,124 +841,13 @@ class Mutations:
         :param algo: RL algorithm
         :type algo: str
         """
-        # Function to return dictionary with names of agent networks to allow mutation
-        if algo == "DQN":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "optimizer",
-                },
-                "critics": [],
-            }
-        elif algo == "Rainbow DQN":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "optimizer",
-                },
-                "critics": [],
-            }
-        elif algo == "DDPG":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "actor_optimizer",
-                },
-                "critics": [
-                    {
-                        "eval": "critic",
-                        "target": "critic_target",
-                        "optimizer": "critic_optimizer",
-                    }
-                ],
-            }
-        elif algo == "PPO":
-            nets = {
-                "actor": {"eval": "actor", "optimizer": "optimizer"},
-                "critics": [{"eval": "critic"}],
-            }
-        elif algo == "CQN":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "optimizer",
-                },
-                "critics": [],
-            }
-        elif algo == "ILQL":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "optimizer",
-                },
-                "critics": [],
-            }
-        elif algo == "TD3":
-            nets = {
-                "actor": {
-                    "eval": "actor",
-                    "target": "actor_target",
-                    "optimizer": "actor_optimizer",
-                },
-                "critics": [
-                    {
-                        "eval": "critic_1",
-                        "target": "critic_target_1",
-                        "optimizer": "critic_1_optimizer",
-                    },
-                    {
-                        "eval": "critic_2",
-                        "target": "critic_target_2",
-                        "optimizer": "critic_2_optimizer",
-                    },
-                ],
-            }
-
-        elif algo == "MADDPG":
-            nets = {
-                "actor": {
-                    "eval": "actors",
-                    "target": "actor_targets",
-                    "optimizer": "actor_optimizers",
-                },
-                "critics": [
-                    {
-                        "eval": "critics",
-                        "target": "critic_targets",
-                        "optimizer": "critic_optimizers",
-                    }
-                ],
-            }
-
-        elif algo == "MATD3":
-            nets = {
-                "actor": {
-                    "eval": "actors",
-                    "target": "actor_targets",
-                    "optimizer": "actor_optimizers",
-                },
-                "critics": [
-                    {
-                        "eval": "critics_1",
-                        "target": "critic_targets_1",
-                        "optimizer": "critic_1_optimizers",
-                    },
-                    {
-                        "eval": "critics_2",
-                        "target": "critic_targets_2",
-                        "optimizer": "critic_2_optimizers",
-                    },
-                ],
-            }
-        elif algo in ["NeuralUCB", "NeuralTS"]:
-            nets = {
-                "actor": {"eval": "actor", "optimizer": "optimizer"},
-                "critics": [],
-            }
+        nets = {
+            "actor": {
+                "eval": "actor",
+                "target": "actor_target",
+                "optimizer": "optimizer",
+            },
+            "critics": [],
+        }
 
         return nets
