@@ -22,7 +22,7 @@
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
 <details>
-  <summary>**How to Use**</summary>
+  <summary>How to Use</summary>
 
 Installation and usage mode
 
