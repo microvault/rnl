@@ -22,14 +22,16 @@
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
 <details>
-  <summary> How to Use</summary>
+  <summary>**How to Use**</summary>
 
-1. Install:
+Installation and usage mode
+
+* **Install with pip**:
 ```bash
 pip install rnl
 ```
 
-2.	Use `train`:
+*	**Use** `train`:
 ```python
 import numpy as np
 import rnl as vault
@@ -82,7 +84,7 @@ model.learn(
 
 ```
 
-3.	Adding in python `inference`:
+*	**Use** `inference`:
 ```python
 import numpy as np
 import rnl as vault
@@ -128,7 +130,7 @@ model = vault.Trainer(
 model.run()
 ```
 
-4. Or use demo:
+*. **Use** `demo`:
 ```bash
 python train.
 ```
