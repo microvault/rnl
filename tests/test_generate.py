@@ -2,16 +2,13 @@ import numpy as np
 import pytest
 from matplotlib.patches import PathPatch
 
-from rnl.engine.collision import Collision
 from rnl.engine.world_generate import GenerateWorld
 from rnl.environment.generate_world import Generator
 
 
 @pytest.fixture
 def generate_instance():
-    collision = Collision()
-    generator = GenerateWorld()
-    return Generator(collision, generator)
+    return Generator()
 
 
 @pytest.fixture

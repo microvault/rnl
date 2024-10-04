@@ -5,13 +5,13 @@ from rnl.engine.map2d import Map2D
 
 
 def test_folder_is_none():
-    map = Map2D(folder=None, name="nome_do_mapa")
-    assert map.path == None
+    mapa = Map2D(folder=None, name="nome_do_mapa")
+    assert mapa.path is None
 
 
 def test_name_is_none():
-    map = Map2D(folder="./data/map", name=None)
-    assert map.path == "./data/map"
+    mapa = Map2D(folder="./data/map", name=None)
+    assert mapa.path == "./data/map"
 
 
 @pytest.fixture
