@@ -28,9 +28,13 @@ post_test:
 publish:
 	@poetry publish --build -u __token__ -p $RNL_PYPI_TOKEN
 
+.PHONY: install_with_dev
+install_with_dev:
+		@poetry install
+
 .PHONY: install
 install:
-		@poetry install
+	@poetry install --without dev
 
 .PHONY: build
 build:

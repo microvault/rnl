@@ -25,7 +25,7 @@ jobs:
         run: poetry lock --no-update
 
       - name: Install dependencies
-        run: make install
+        run: make install_with_dev
 
       - name: Run tests
         run: make test
@@ -53,7 +53,7 @@ jobs:
         run: poetry lock --no-update
 
       - name: Install dependencies
-        run: make install
+        run: make install_with_dev
 
       - name: Run tests
         run: make test
@@ -83,7 +83,7 @@ jobs:
         run: poetry lock --no-update
 
       - name: Install dependencies
-        run: poetry install
+        run: poetry install_with_dev
 
       - name: Run tests
         run: poetry run pytest

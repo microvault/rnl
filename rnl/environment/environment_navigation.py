@@ -5,7 +5,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-from rnl.algorithms.rainbow import RainbowDQN
+# from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
 from rnl.engine.utils import min_laser  # normalize
@@ -76,10 +76,10 @@ class NaviEnv(gym.Env):
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
 
-        self.rainbow = RainbowDQN.load(
-            "/Users/nicolasalan/microvault/rnl/checkpoints/RainbowDQN_0_120000.pt",
-            device="mps",
-        )
+        # self.rainbow = RainbowDQN.load(
+        #     "/microvault/rnl/checkpoints/model.pt",
+        #     device="mps",
+        # )
 
         if self.rgb_array:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -146,10 +146,7 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
 
     def step_animation(self, i):
-        print("self.last_states", self.last_states)
-        action = self.rainbow.get_action(
-            self.last_states, action_mask=None, training=True
-        )[0]
+        action = 0  # self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
         if not self.controller:
 
             if action == 0:
