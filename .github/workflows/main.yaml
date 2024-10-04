@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: make install
 
-      # - name: Run tests
-      #   run: make test
+      - name: Run tests
+        run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -55,8 +55,8 @@ jobs:
       - name: Install dependencies
         run: make install
 
-      # - name: Run tests
-      #   run: make test
+      - name: Run tests
+        run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -85,8 +85,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      # - name: Run tests
-      #   run: poetry run pytest
+      - name: Run tests
+        run: poetry run pytest
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
