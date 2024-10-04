@@ -130,7 +130,7 @@ model = vault.Trainer(
 model.run()
 ```
 
-*. **Use** `demo`:
+* **Use** `demo`:
 ```bash
 python train.
 ```
