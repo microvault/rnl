@@ -21,45 +21,15 @@
 
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
-- [About the Project](#About)
-- [Installation](#Installation)
-- [How to Use](#How-to-Use)
-- [License](#license)
-- [Contact](#Contact)
+<details>
+  <summary> How to Use</summary>
 
-## About the Project
-<a name="About"></a>
-
-This project uses RainbowDQN to train a robot to navigate autonomously without needing heavy installations like ROS, Gazebo, or the entire navigation stack. The focus is to create a lightweight and easy-to-use agent that learns to make decisions on its own by interacting with the environment and chooses the best way to navigate safely and stably. Over time, the robot will improve its navigation skills, becoming more efficient.
-
-## Installation
-<a name="Installation"></a>
-1. Clone or repository:
+1. Install:
 ```bash
-git clone https://github.com/microvault/rnl.git
-cd rnl
-```
-2. Create a virtual environment (optional, but recommended), and install the dependencies:
-```bash
-curl -sSL https://install.python-poetry.org | python3 -
-poetry install
-```
-3. Activate the virtual environment:
-```bash
-poetry shell
-```
-## How to Use
-<a name="How-to-Use"></a>
-
-You have two options to get started: you can use the `train_model_base.py` file to get started quickly, or you can create your own script from scratch if you prefer more customization.
-
-1. Using the ready script:
-```bash
-make train
-make run
+pip install rnl
 ```
 
-2.	Adding in python `train`:
+2.	Use `train`:
 ```python
 import numpy as np
 import rnl as vault
@@ -158,12 +128,16 @@ model = vault.Trainer(
 model.run()
 ```
 
+4. Or use demo:
+```bash
+python train.
+```
+</details>
+
 ## License
-<a name="License"></a>
 This project is licensed under the MIT license - see archive [LICENSE](https://github.com/microvault/rnl/blob/main/LICENSE) for details.
 
 ## Contact and Contribution
-<a name="Contact"></a>
 The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an `issue` or send an `email` to:
 Nicolas Alan - **grottimeireles@gmail.com**.
 
