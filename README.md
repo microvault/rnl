@@ -132,7 +132,7 @@ model.run()
 
 * **Use** `demo`:
 ```bash
-python train.
+python train.py
 ```
 </details>
 
