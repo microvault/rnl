@@ -5,7 +5,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-# from rnl.algorithms.rainbow import RainbowDQN
+from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
 from rnl.engine.utils import min_laser  # normalize
@@ -76,10 +76,10 @@ class NaviEnv(gym.Env):
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
 
-        # self.rainbow = RainbowDQN.load(
-        #     "/Users/nicolasalan/microvault/rnl/checkpoints/model_dqn_5_90000.pt",
-        #     device="mps",
-        # )
+        self.rainbow = RainbowDQN.load(
+            "/Users/nicolasalan/microvault/rnl/checkpoints/RainbowDQN_0_120000.pt",
+            device="mps",
+        )
 
         if self.rgb_array:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -116,11 +116,11 @@ class NaviEnv(gym.Env):
         if event.key == "up":
             self.action = 0
             self.vl = 0.05 * self.scalar
-            self.vr = 0.0 * self.scalar
+            self.vr = 0.0
         elif event.key == "down":
             self.action = 1
             self.vl = 0.1 * self.scalar
-            self.vr = 0.0 * self.scalar
+            self.vr = 0.0
         elif event.key == "left":
             self.action = 2
             self.vl = 0.05 * self.scalar
@@ -132,7 +132,7 @@ class NaviEnv(gym.Env):
         elif event.key == "w":
             self.action = 4
             self.vl = 0.01 * self.scalar
-            self.vr = 0.0 * self.scalar
+            self.vr = 0.0
         elif event.key == "d":
             self.action = 5
             self.vl = 0.05 * self.scalar
@@ -142,34 +142,37 @@ class NaviEnv(gym.Env):
             self.vl = 0.05 * self.scalar
             self.vr = -0.3 * self.scalar
         elif event.key == " ":
-            self.vl = 0.0 * self.scalar
-            self.vr = 0.0 * self.scalar
+            self.vl = 0.0
+            self.vr = 0.0
 
     def step_animation(self, i):
+        print("self.last_states", self.last_states)
+        action = self.rainbow.get_action(
+            self.last_states, action_mask=None, training=True
+        )[0]
         if not self.controller:
-            action = self.action
 
             if action == 0:
-                self.vl = 0.05
+                self.vl = 0.05 * self.scalar
                 self.vr = 0.0
             elif action == 1:
-                self.vl = 0.1
+                self.vl = 0.1 * self.scalar
                 self.vr = 0.0
             elif action == 2:
-                self.vl = 0.05
-                self.vr = 0.15
+                self.vl = 0.05 * self.scalar
+                self.vr = 0.15 * self.scalar
             elif action == 3:
-                self.vl = 0.05
-                self.vr = -0.15
+                self.vl = 0.05 * self.scalar
+                self.vr = -0.15 * self.scalar
             elif action == 4:
-                self.vl = 0.01
+                self.vl = 0.01 * self.scalar
                 self.vr = 0.0
             elif action == 5:
-                self.vl = 0.05
-                self.vr = 0.3
+                self.vl = 0.05 * self.scalar
+                self.vr = 0.3 * self.scalar
             elif action == 6:
-                self.vl = 0.05
-                self.vr = -0.3
+                self.vl = 0.05 * self.scalar
+                self.vr = -0.3 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
         x, y = self.body.position.x, self.body.position.y
@@ -198,7 +201,7 @@ class NaviEnv(gym.Env):
         states = np.concatenate(
             (
                 np.array(lidar_measurements, dtype=np.float32),
-                np.array([self.action], dtype=np.int16),
+                np.array([action], dtype=np.int16),
                 np.array([dist], dtype=np.float32),
                 np.array([alpha], dtype=np.float32),
                 np.array([reward], dtype=np.float32),
@@ -206,48 +209,19 @@ class NaviEnv(gym.Env):
         )
 
         # TODO: normalize states
-        # lidar_measurements_normalized = [
-        #     normalize(lidar, 0.2, 6) for lidar in lidar_measurements
-        # ]
-        # dist_normalized = normalize(dist, 0.2, self.dist_max)
-        # angle_normalized = normalize(alpha, -np.pi, np.pi)
-        # reward_normalized = normalize(reward, -500, 500)
-
-        # states_normalized = np.concatenate(
-        #     (
-        #         np.array(lidar_measurements_normalized, dtype=np.float32),
-        #         np.array([self.action], dtype=np.int16),
-        #         np.array([dist_normalized], dtype=np.float32),
-        #         np.array([angle_normalized], dtype=np.float32),
-        #         np.array([reward_normalized], dtype=np.float32),
-        #     )
-        # )
-
-        print(
-            "\rReward: {:.2f}\tC. reward: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {:.2f}\tMin lidar: {:.2f}".format(
-                states[23],
-                self.cumulated_reward,
-                states[21],
-                states[22],
-                states[20],
-                np.min(states[:20]),
-            ),
-        )
 
         # print(
-        #     "------------------------------------------------------------------------------------------"
-        # )
-
-        # print(
-        #     "\rNorm Reward: {:.2f}\tNorm  C. reward: {:.2f}\tNorm  Distance: {:.2f}\tNorm Angle: {:.2f}\tNorm  Action: {:.2f}\tNorm  Min lidar: {:.2f}".format(
-        #         states_normalized[23],
+        #     "\rReward: {:.2f}\tC. reward: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {:.2f}\tMin lidar: {:.2f}".format(
+        #         states[23],
         #         self.cumulated_reward,
-        #         states_normalized[21],
-        #         states_normalized[22],
-        #         states_normalized[20],
-        #         np.min(states_normalized[:20]),
+        #         states[21],
+        #         states[22],
+        #         states[20],
+        #         np.min(states[:20]),
         #     ),
         # )
+
+        self.last_states = states
 
         self._plot_anim(
             i,
@@ -321,16 +295,6 @@ class NaviEnv(gym.Env):
             )
         )
 
-        # dist
-        # reward
-        # action
-        # measurement
-        # diff measurement
-        # probability
-
-        # self.last_theta = theta
-        self.last_position_x = x
-        self.last_position_y = y
         self.last_states = states
         self.last_measurement = lidar_measurements
 

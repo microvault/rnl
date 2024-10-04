@@ -6,9 +6,9 @@ run:
 train:
 	@poetry run python -m train_model_base train
 
-.PHONY: gen
-gen:
-	@poetry run python -m rnl.environment.generate
+.PHONY: test_without_coverage
+test_without_coverage:
+	@poetry run pytest -s -x -vv
 
 .PHONY: format
 format:

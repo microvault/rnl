@@ -101,7 +101,7 @@ if __name__ == "__main__":
         )
     else:
         # 4.step -> config render
-        param_render = vault.render(fps=100, controller=True, rgb_array=True)
+        param_render = vault.render(fps=1, controller=False, rgb_array=True)
 
         # 5.step -> config train robot
         model = vault.Trainer(

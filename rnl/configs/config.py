@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
 
-import numpy as np
-
 
 @dataclass
 class EnvConfig:
@@ -17,14 +15,14 @@ class EnvConfig:
 
 @dataclass
 class RenderConfig:
-    fps: int = 100
+    fps: int = 1
     controller: bool = False
     rgb_array: bool = False
 
 
 @dataclass
 class SensorConfig:
-    fov: float = 4 * np.pi
+    fov: float = 12.56637
     num_rays: int = 20
     min_range: float = 6.0
     max_range: float = 1.0

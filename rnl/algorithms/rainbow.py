@@ -180,7 +180,7 @@ class RainbowDQN:
             assert isinstance(self.net_config, dict), "Net config must be a dictionary."
             assert (
                 "arch" in self.net_config.keys()
-            ), "Net config must contain arch: 'mlp' or 'cnn'."
+            ), "Net config must contain arch: 'mlp'."
             if self.net_config["arch"] == "mlp":  # Multi-layer Perceptron
                 assert (
                     "hidden_size" in self.net_config.keys()
@@ -250,9 +250,7 @@ class RainbowDQN:
                 .squeeze()
             )
 
-        if (self.arch == "mlp" and len(state.size()) < 2) or (
-            self.arch == "cnn" and len(state.size()) < 4
-        ):
+        if self.arch == "mlp" and len(state.size()) < 2:
             state = state.unsqueeze(0)
 
         self.actor.train(mode=training)
@@ -438,13 +436,11 @@ class RainbowDQN:
                 self.tau * eval_param.data + (1.0 - self.tau) * target_param.data
             )
 
-    def test(self, env, swap_channels=False, max_steps=None, loop=3):
+    def test(self, env, max_steps=None, loop=3):
         """Returns mean test score of agent in environment with epsilon-greedy policy.
 
         :param env: The environment to be tested in
         :type env: Gym-style environment
-        :param swap_channels: Swap image channels dimension from last to first [H, W, C] -> [C, H, W], defaults to False
-        :type swap_channels: bool, optional
         :param max_steps: Maximum number of testing steps, defaults to None
         :type max_steps: int, optional
         :param loop: Number of testing loops/episodes to complete. The returned score is the mean over these tests. Defaults to 3
@@ -460,8 +456,6 @@ class RainbowDQN:
                 finished = np.zeros(num_envs)
                 step = 0
                 while not np.all(finished):
-                    if swap_channels:
-                        state = np.moveaxis(state, [-1], [-3])
                     action = self.get_action(state, training=False)
                     state, reward, done, trunc, _ = env.step(action)
                     step += 1

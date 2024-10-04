@@ -30,14 +30,6 @@ class MakeEvolvable(nn.Module):
     :type min_mlp_nodes: int, optional
     :param max_mlp_nodes: Maximum number of nodes a layer can have within the fully connected layer, defaults to 1024
     :type max_mlp_nodes: int, optional
-    :param min_cnn_hidden_layers: Minimum number of hidden layers the convolutional layer will shrink down to, defaults to 1
-    :type min_cnn_hidden_layers: int, optional
-    :param max_cnn_hidden_layers: Maximum number of hidden layers the convolutional layer will expand to, defaults to 6
-    :type max_cnn_hidden_layers: int, optional
-    :param min_channel_size: Minimum number of channels a convolutional layer can have, defaults to 32
-    :type min_channel_size: int, optional
-    :param max_channel_size: Maximum number of channels a convolutional layer can have, defaults to 256
-    :type max_channel_size: int, optional
     :param output_vanish: Vanish output by multiplying by 0.1, defaults to False
     :type output_vanish: bool, optional
     :param init_layers: Initialise network layers, defaults to False
@@ -65,7 +57,7 @@ class MakeEvolvable(nn.Module):
         output_vanish=False,
         init_layers=False,
         support=None,
-        rainbow=False,
+        rainbow=True,
         device="cpu",
         accelerator=None,
         **kwargs,
