@@ -30,7 +30,7 @@ publish:
 
 .PHONY: install
 install:
-		@poetry install --without dev
+		@poetry install
 
 .PHONY: build
 build:
