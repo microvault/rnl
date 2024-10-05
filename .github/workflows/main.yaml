@@ -86,7 +86,7 @@ jobs:
         run: make install_with_dev
 
       - name: Run tests
-        run: poetry run pytest
+        run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
