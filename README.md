@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
-  <a href="https://pypi.org/project/microvault/"><img alt="PyPI" src="https://img.shields.io/pypi/v/microvault"></a>
+  <a href="https://pypi.org/project/rnl/"><img alt="PyPI" src="https://img.shields.io/pypi/v/rnl"></a>
   <a href="https://codecov.io/gh/microvault/microvault"><img alt="codecov" src="https://codecov.io/gh/microvault/microvault/graph/badge.svg?token=WRTOBP06AW"></a>
   <a href="https://github.com/microvault/microvault/actions/workflows/main.yaml"><img alt="CI" src="https://github.com/microvault/microvault/actions/workflows/main.yaml/badge.svg"></a>
 <a href="https://codeclimate.com/github/microvault/microvault/maintainability"><img src="https://api.codeclimate.com/v1/badges/f121e3b57214eac38280/maintainability" /></a>
@@ -24,7 +24,7 @@ This project uses Deep Reinforcement Learning (DRL) to train a robot to move in 
 <details>
   <summary>How to Use</summary>
 
-Installation and usage mode
+Installation and usage mode.
 
 * **Install with pip**:
 ```bash
@@ -38,7 +38,7 @@ import rnl as vault
 
 # 1.step -> config robot
 param_robot = vault.robot(
-    base_radius=0.033,  # (cm)
+    base_radius=0.033,  # (m)
     vel_linear=[0.0, 2.0],  # [min, max]
     val_angular=[1.0, 2.0],  # [min, max]
     wheel_distance=0.16,  # (cm)
@@ -91,7 +91,7 @@ import rnl as vault
 
 # 1.step -> config robot
 param_robot = vault.robot(
-    base_radius=0.033,  # (cm)
+    base_radius=0.033,  # (m)
     vel_linear=[0.0, 2.0],  # [min, max]
     val_angular=[1.0, 2.0],  # [min, max]
     wheel_distance=0.16,  # (cm)
