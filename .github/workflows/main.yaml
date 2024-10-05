@@ -83,7 +83,7 @@ jobs:
         run: poetry lock --no-update
 
       - name: Install dependencies
-        run: poetry install_with_dev
+        run: make install_with_dev
 
       - name: Run tests
         run: poetry run pytest
