@@ -36,7 +36,7 @@ if __name__ == "__main__":
         map_file="None",  # TODO: RANDOMIZE
         random_mode="normal",  # hard, normal
         timestep=1000,  # TODO: RANDOMIZE
-        grid_dimension=5,  # TODO: RANDOMIZE
+        grid_dimension=3,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
         porcentage_obstacles=0.1,  # TODO: RANDOMIZE
         max_step=1000,  # TODO: RANDOMIZE
