@@ -4,6 +4,7 @@ import pytest
 
 from rnl.configs.config import RobotConfig, SensorConfig
 from rnl.environment.robot import Robot
+from rnl.environment.sensor import SensorRobot
 
 
 @pytest.fixture
