@@ -119,8 +119,6 @@ def training(
         pop=agent_pop,
         memory=memory,
         n_step_memory=n_step_memory,
-        # INIT_HP=INIT_HP,
-        # swap_channels=False,
         max_steps=trainer_config.max_steps,
         evo_steps=hpo_config.evolution_steps,
         eval_steps=trainer_config.evaluation_steps,
