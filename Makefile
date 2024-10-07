@@ -1,17 +1,17 @@
 .PHONY: run
 run:
-	@poetry run python -m train_model_base run
+	@poetry run python -m train run
 
 .PHONY: train
 train:
-	@poetry run python -m train_model_base train
+	@poetry run python -m train train
 
 .PHONY: test_without_coverage
 test_without_coverage:
 	@poetry run pytest -s -x -vv
 
-.PHONY: format
-format:
+.PHONY: lint
+lint:
 	@black .py*
 	@isort .py*
 	@ruff .py*

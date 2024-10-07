@@ -12,11 +12,10 @@ ENV POETRY_NO_INTERACTION=1 \
 WORKDIR /workdir
 
 COPY rnl ./rnl
-COPY checkpoints ./checkpoints
 COPY tests ./tests
 COPY Makefile ./
 COPY pyproject.toml poetry.lock ./
-COPY train_model_base.py ./
+COPY train.py ./
 
 VOLUME . /workdir
 
