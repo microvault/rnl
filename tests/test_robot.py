@@ -2,8 +2,9 @@ import numpy as np
 import pymunk
 import pytest
 
-from rnl.configs.config import RobotConfig
+from rnl.configs.config import RobotConfig, SensorConfig
 from rnl.environment.robot import Robot
+from rnl.environment.sensor import SensorRobot
 
 
 @pytest.fixture
@@ -65,3 +66,21 @@ def test_reset_robot(robot):
     assert robot_body.angle == pytest.approx(0.0)
     assert robot_body.velocity == (0.0, 0.0)
     assert robot_body.angular_velocity == pytest.approx(0.0)
+
+def test_sensor_robot():
+    sensor_config = SensorConfig()
+    robot = SensorRobot(sensor_config)
+    
+    x, y = 1.0, 1.0
+    segments = [
+        ((0.0, 0.0), (2.0, 0.0)),
+        ((2.0, 0.0), (2.0, 2.0)),
+        ((2.0, 2.0), (0.0, 2.0)),
+        ((0.0, 2.0), (0.0, 0.0))
+    ]
+    
+    intersections, measurements = robot.sensor(x, y, segments)
+    
+    assert isinstance(intersections, np.ndarray)
+    assert isinstance(measurements, np.ndarray)
+    assert intersections.shape == measurements.shape
