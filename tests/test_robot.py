@@ -68,7 +68,8 @@ def test_reset_robot(robot):
     assert robot_body.angular_velocity == pytest.approx(0.0)
 
 def test_sensor_robot():
-    robot = SensorRobot()
+    sensor_config = SensorConfig()
+    robot = SensorRobot(sensor_config)
     
     x, y = 1.0, 1.0
     segments = [
