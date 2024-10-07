@@ -35,6 +35,7 @@ class NaviEnv(gym.Env):
             env_config.porcentage_obstacles,
             env_config.random_mode,
         )
+        self.random_state = env_config.random_mode
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)

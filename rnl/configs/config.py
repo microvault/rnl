@@ -103,3 +103,9 @@ class HPOConfig:
     elite_path: str = "elite"
     tourn_size: int = 2
     elitism: bool = True
+
+
+class DomainRandomizationConfig:
+    weight: List[float] = field(default_factory=lambda: [2, 500])
+    base_radius: List[float] = field(default_factory=lambda: [0.15, 0.75])
+    wheel_distance: List[float] = field(default_factory=lambda: [0.1, 1.5])
