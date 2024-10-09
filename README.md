@@ -123,7 +123,7 @@ param_render = vault.render(fps=100, controller=True, rgb_array=True)
 
 # 5.step -> config train robot
 model = vault.Trainer(
-    param_robot, param_sensor, param_env, pretrained_model=False
+    param_robot, param_sensor, param_env, param_render, pretrained_model=False
 )
 
 # 6.step -> run robot
