@@ -147,9 +147,10 @@ Nicolas Alan - **grottimeireles@gmail.com**.
 ## TODO:
 - [ ] Add map file yaml
 - [ ] Add random mode (hard or normal)
-- [ ] Create Integration ROS and (Gazebo, webots)
-- [ ] Create Integration with OpenAI o1-preview
+- [ ] Create Integration ROS and (Gazebo)
+- [ ] Create Integration with OpenAI
 
 
 ## Acknowledgments
 * [AgileRL](https://github.com/AgileRL/AgileRL)
+* [Gazebo](https://gazebosim.org/home)
