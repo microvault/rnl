@@ -48,7 +48,7 @@ param_robot = vault.robot(
 
 # 2.step -> config sensors [for now only lidar sensor!!]
 param_sensor = vault.sensor(
-    fov=4 * np.pi,
+    fov=2 * np.pi,
     num_rays=20,
     min_range=0.0,
     max_range=6.0,
@@ -101,7 +101,7 @@ param_robot = vault.robot(
 
 # 2.step -> config sensors [for now only lidar sensor!!]
 param_sensor = vault.sensor(
-    fov=4 * np.pi,
+    fov=2 * np.pi,
     num_rays=20,
     min_range=0.0,
     max_range=6.0,
