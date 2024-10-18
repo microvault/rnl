@@ -424,7 +424,7 @@ def train_off_policy(
 
         # Evaluate population
         fitnesses = [
-            agent.test(env, swap_channels=False, max_steps=eval_steps, loop=eval_loop)
+            agent.test(env, max_steps=eval_steps, loop=eval_loop)
             for agent in pop
         ]
         pop_fitnesses.append(fitnesses)
