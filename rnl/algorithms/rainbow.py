@@ -4,7 +4,6 @@ import inspect
 import dill
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
@@ -14,55 +13,7 @@ from rnl.wrappers.make_evolvable import MakeEvolvable
 
 
 class RainbowDQN:
-    """The Rainbow DQN algorithm class. Rainbow DQN paper: https://arxiv.org/abs/1710.02298
-
-    :param state_dim: State observation dimension
-    :type state_dim: list[int]
-    :param action_dim: Action dimension
-    :type action_dim: int
-    :param one_hot: One-hot encoding, used with discrete observation spaces
-    :type one_hot: bool
-    :param index: Index to keep track of object instance during tournament selection and mutation, defaults to 0
-    :type index: int, optional
-    :param net_config: Network configuration, defaults to mlp with hidden size [64,64]
-    :type net_config: dict, optional
-    :param batch_size: Size of batched sample from replay buffer for learning, defaults to 64
-    :type batch_size: int, optional
-    :param lr: Learning rate for optimizer, defaults to 1e-4
-    :type lr: float, optional
-    :param learn_step: Learning frequency, defaults to 5
-    :type learn_step: int, optional
-    :param gamma: Discount factor, defaults to 0.99
-    :type gamma: float, optional
-    :param tau: For soft update of target network parameters, defaults to 1e-3
-    :type tau: float, optional
-    :param beta: Importance sampling coefficient, defaults to 0.4
-    :type beta: float, optional
-    :param prior_eps: Minimum priority for sampling, defaults to 1e-6
-    :type prior_eps: float, optional
-    :param num_atoms: Unit number of support, defaults to 51
-    :type num_atoms: int, optional
-    :param v_min: Minimum value of support, defaults to 0
-    :type v_min: float, optional
-    :param v_max: Maximum value of support, defaults to 200
-    :type v_max: float, optional
-    :param noise_std: Noise standard deviation, defaults to 0.5
-    :type noise_std: float, optional
-    :param n_step: Step number to calculate n-step td error, defaults to 3
-    :type n_step: int, optional
-    :param mut: Most recent mutation to agent, defaults to None
-    :type mut: str, optional
-    :param combined_reward: Boolean flag indicating whether to use combined 1-step and n-step reward, defaults to False
-    :type combined_reward: bool, optional
-    :param actor_network: Custom actor network, defaults to None
-    :type actor_network: nn.Module, optional
-    :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
-    :type device: str, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
-    :param wrap: Wrap models for distributed training upon creation, defaults to True
-    :type wrap: bool, optional
-    """
+    """The Rainbow DQN algorithm class. Rainbow DQN paper: https://arxiv.org/abs/1710.02298"""
 
     def __init__(
         self,
@@ -243,13 +194,6 @@ class RainbowDQN:
         else:
             state = state.to(self.accelerator.device)
 
-        if self.one_hot:
-            state = (
-                nn.functional.one_hot(state.long(), num_classes=self.state_dim[0])
-                .float()
-                .squeeze()
-            )
-
         if self.arch == "mlp" and len(state.size()) < 2:
             state = state.unsqueeze(0)
 
@@ -270,18 +214,6 @@ class RainbowDQN:
         return action
 
     def _dqn_loss(self, states, actions, rewards, next_states, dones, gamma):
-        if self.one_hot:
-            states = (
-                nn.functional.one_hot(states.long(), num_classes=self.state_dim[0])
-                .float()
-                .squeeze()
-            )
-            next_states = (
-                nn.functional.one_hot(next_states.long(), num_classes=self.state_dim[0])
-                .float()
-                .squeeze()
-            )
-
         with torch.no_grad():
 
             # Predict next actions from next_states
@@ -583,13 +515,13 @@ class RainbowDQN:
             "lr",
         ]
         checkpoint = torch.load(path, map_location=self.device, pickle_module=dill)
-        self.net_config = checkpoint["net_config"]
-        if self.net_config is not None:
-            self.arch = checkpoint["net_config"]["arch"]
-            if self.net_config["arch"] == "mlp":
-                network_class = EvolvableMLP
-        else:
-            network_class = MakeEvolvable
+        # self.net_config = checkpoint["net_config"]
+        # if self.net_config is not None:
+        self.arch = checkpoint["net_config"]["arch"]
+        # if self.net_config["arch"] == "mlp":
+        network_class = EvolvableMLP
+        # else:
+        # network_class = MakeEvolvable
         self.actor = network_class(**checkpoint["actor_init_dict"])
         self.actor_target = network_class(**checkpoint["actor_target_init_dict"])
 

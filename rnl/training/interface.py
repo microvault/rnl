@@ -16,13 +16,13 @@ from rnl.training.learn import inference, training
 def robot(
     base_radius: float,
     vel_linear: List,
-    val_angular: List,
+    vel_angular: List,
     wheel_distance: float,
     weight: float,
     threshold: float,
 ):
     return RobotConfig(
-        base_radius, vel_linear, val_angular, wheel_distance, weight, threshold
+        base_radius, vel_linear, vel_angular, wheel_distance, weight, threshold
     )
 
 
@@ -120,7 +120,7 @@ class Trainer:
         tourn_size: int = 2,
         elitism: bool = True,
         hidden_size: list = [800, 600],
-    ):
+    ) -> None:
         agent_config = AgentConfig(
             max_timestep,
             memory_size,
@@ -191,6 +191,8 @@ class Trainer:
             self.render_config,
             self.pretrained_model,
         )
+
+        return None
 
     def run(self):
 

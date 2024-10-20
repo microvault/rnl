@@ -343,7 +343,7 @@ class MakeEvolvable(nn.Module):
         mlp_activation,
         mlp_output_activation,
         noisy=False,
-        rainbow_feature_net=False,
+        rainbow_feature_net=True,
     ):
         """Creates and returns multi-layer perceptron.
 
@@ -438,46 +438,33 @@ class MakeEvolvable(nn.Module):
     def create_nets(self):
         """Creates and returns the feature and value net."""
 
-        input_size = self.num_inputs
-        if self.rainbow:
-            feature_net = self.create_mlp(
-                input_size=self.num_inputs,
-                output_size=128,
-                hidden_size=[128],
-                name="feature",
-                rainbow_feature_net=True,
-                mlp_activation=self.mlp_activation,
-                mlp_output_activation="ReLU",
-            )
-            value_net = self.create_mlp(
-                input_size=128,
-                output_size=self.num_atoms,
-                hidden_size=self.hidden_size,
-                noisy=True,
-                name="value",
-                mlp_output_activation=self.mlp_output_activation,
-                mlp_activation=self.mlp_activation,
-            )
-            advantage_net = self.create_mlp(
-                input_size=128,
-                output_size=self.num_atoms * self.num_outputs,
-                hidden_size=self.hidden_size,
-                noisy=True,
-                name="advantage",
-                mlp_output_activation=self.mlp_output_activation,
-                mlp_activation=self.mlp_activation,
-            )
-        else:
-            value_net = None
-            advantage_net = None
-            feature_net = self.create_mlp(
-                input_size,
-                self.num_outputs,
-                self.hidden_size,
-                name="feature",
-                mlp_activation=self.mlp_activation,
-                mlp_output_activation=self.mlp_output_activation,
-            )
+        feature_net = self.create_mlp(
+            input_size=self.num_inputs,
+            output_size=128,
+            hidden_size=[128],
+            name="feature",
+            rainbow_feature_net=True,
+            mlp_activation=self.mlp_activation,
+            mlp_output_activation="ReLU",
+        )
+        value_net = self.create_mlp(
+            input_size=128,
+            output_size=self.num_atoms,
+            hidden_size=self.hidden_size,
+            noisy=True,
+            name="value",
+            mlp_output_activation=self.mlp_output_activation,
+            mlp_activation=self.mlp_activation,
+        )
+        advantage_net = self.create_mlp(
+            input_size=128,
+            output_size=self.num_atoms * self.num_outputs,
+            hidden_size=self.hidden_size,
+            noisy=True,
+            name="advantage",
+            mlp_output_activation=self.mlp_output_activation,
+            mlp_activation=self.mlp_activation,
+        )
 
         if self.accelerator is None:
             feature_net = feature_net.to(self.device)
@@ -614,13 +601,12 @@ class MakeEvolvable(nn.Module):
 
     def reset_noise(self):
         """Resets noise of value and advantage networks."""
-        if self.rainbow:
-            for layer in self.value_net:
-                if isinstance(layer, NoisyLinear):
-                    layer.reset_noise()
-            for layer in self.advantage_net:
-                if isinstance(layer, NoisyLinear):
-                    layer.reset_noise()
+        for layer in self.value_net:
+            if isinstance(layer, NoisyLinear):
+                layer.reset_noise()
+        for layer in self.advantage_net:
+            if isinstance(layer, NoisyLinear):
+                layer.reset_noise()
 
     def recreate_nets(self, shrink_params=False):
         """Recreates neural networks.

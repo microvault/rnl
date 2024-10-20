@@ -44,76 +44,6 @@ def train_off_policy(
     accelerator=None,
     wandb_api_key=None,
 ):
-    """The general online RL training function. Returns trained population of agents
-    and their fitnesses.
-
-    :param env: The environment to train in. Can be vectorized.
-    :type env: Gym-style environment
-    :param env_name: Environment name
-    :type env_name: str
-    :param algo: RL algorithm name
-    :type algo: str
-    :param pop: Population of agents
-    :type pop: list[object]
-    :param memory: Experience Replay Buffer
-    :type memory: object
-    :param INIT_HP: Dictionary containing initial hyperparameters, defaults to None
-    :type INIT_HP: dict, optional
-    :param MUT_P: Dictionary containing mutation parameters, defaults to None
-    :type MUT_P: dict, optional
-    :param swap_channels: Swap image channels dimension from last to first
-        [H, W, C] -> [C, H, W], defaults to False
-    :type swap_channels: bool, optional
-    :param max_steps: Maximum number of steps in environment, defaults to 1000000
-    :type max_steps: int, optional
-    :param evo_steps: Evolution frequency (steps), defaults to 10000
-    :type evo_steps: int, optional
-    :param eval_steps: Number of evaluation steps per episode. If None, will evaluate until
-        environment terminates or truncates. Defaults to None
-    :type eval_steps: int, optional
-    :param eval_loop: Number of evaluation episodes, defaults to 1
-    :type eval_loop: int, optional
-    :param learning_delay: Steps in environment before starting learning, defaults to 0
-    :type learning_delay: int, optional
-    :param eps_start: Maximum exploration - initial epsilon value, defaults to 1.0
-    :type eps_start: float, optional
-    :param eps_end: Minimum exploration - final epsilon value, defaults to 0.1
-    :type eps_end: float, optional
-    :param eps_decay: Epsilon decay per episode, defaults to 0.995
-    :type eps_decay: float, optional
-    :param target: Target score for early stopping, defaults to None
-    :type target: float, optional
-    :param n_step: Use multi-step experience replay buffer, defaults to False
-    :type n_step: bool, optional
-    :param per: Using prioritized experience replay buffer, defaults to False
-    :type per: bool, optional
-    :param memory: Multi-step Experience Replay Buffer to be used alongside Prioritized
-        ERB, defaults to None
-    :type memory: object, optional
-    :param tournament: Tournament selection object, defaults to None
-    :type tournament: object, optional
-    :param mutation: Mutation object, defaults to None
-    :type mutation: object, optional
-    :param checkpoint: Checkpoint frequency (steps), defaults to None
-    :type checkpoint: int, optional
-    :param checkpoint_path: Location to save checkpoint, defaults to None
-    :type checkpoint_path: str, optional
-    :param overwrite_checkpoints: Overwrite previous checkpoints during training, defaults to False
-    :type overwrite_checkpoints: bool, optional
-    :param save_elite: Boolean flag indicating whether to save elite member at the end
-        of training, defaults to False
-    :type save_elite: bool, optional
-    :param elite_path: Location to save elite agent, defaults to None
-    :type elite_path: str, optional
-    :param wb: Weights & Biases tracking, defaults to False
-    :type wb: bool, optional
-    :param verbose: Display training stats, defaults to True
-    :type verbose: bool, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
-    :param wandb_api_key: API key for Weights & Biases, defaults to None
-    :type wandb_api_key: str, optional
-    """
     assert isinstance(
         algo, str
     ), "'algo' must be the name of the algorithm as a string."
@@ -261,18 +191,15 @@ def train_off_policy(
             if algo in ["DQN", "Rainbow DQN"]:
                 train_actions_hist = [0] * agent.action_dim
 
-            if algo in ["DQN"]:
-                epsilon = eps_start
-
             for idx_step in range(evo_steps // num_envs):
 
                 # Get next action from agent
-                if algo in ["DQN"]:
-                    action = agent.get_action(state, epsilon)
-                    # Decay epsilon for exploration
-                    epsilon = max(eps_end, epsilon * eps_decay)
-                else:
-                    action = agent.get_action(state)
+                # if algo in ["DQN"]:
+                #     action = agent.get_action(state, epsilon)
+                #     # Decay epsilon for exploration
+                #     epsilon = max(eps_end, epsilon * eps_decay)
+                # else:
+                action = agent.get_action(state)
 
                 if algo in ["DQN", "Rainbow DQN"]:
                     for a in action:
@@ -298,8 +225,8 @@ def train_off_policy(
                         agent.scores.append(scores[idx])
                         scores[idx] = 0
                         reset_noise_indices.append(idx)
-                if agent.algo in ["DDPG", "TD3"]:
-                    agent.reset_action_noise(reset_noise_indices)
+                # if agent.algo in ["DDPG", "TD3"]:
+                #     agent.reset_action_noise(reset_noise_indices)
 
                 total_steps += num_envs
                 steps += num_envs
@@ -349,21 +276,21 @@ def train_off_policy(
                                 experiences += n_step_experiences
                             loss, idxs, priorities = agent.learn_dqn(experiences)
                             memory.update_priorities(idxs, priorities)
-                        else:
-                            experiences = sampler.sample(
-                                agent.batch_size,
-                                return_idx=True if n_step_memory is not None else False,
-                            )
-                            if n_step_memory is not None:
-                                n_step_experiences = n_step_sampler.sample(
-                                    experiences[5]
-                                )
-                                experiences += n_step_experiences
-                                loss, *_ = agent.learn(experiences, n_step=n_step)
-                            else:
-                                loss = agent.learn(experiences)
-                                if algo == "Rainbow DQN":
-                                    loss, *_ = loss
+                        # else:
+                        #     experiences = sampler.sample(
+                        #         agent.batch_size,
+                        #         return_idx=True if n_step_memory is not None else False,
+                        #     )
+                        #     if n_step_memory is not None:
+                        #         n_step_experiences = n_step_sampler.sample(
+                        #             experiences[5]
+                        #         )
+                        #         experiences += n_step_experiences
+                        #         loss, *_ = agent.learn(experiences, n_step=n_step)
+                        #     else:
+                        #         loss = agent.learn(experiences)
+                        #         if algo == "Rainbow DQN":
+                        #             loss, *_ = loss
 
                 elif (
                     len(memory) >= agent.batch_size and memory.counter > learning_delay
@@ -382,21 +309,21 @@ def train_off_policy(
                                 experiences, n_step=n_step, per=per
                             )
                             memory.update_priorities(idxs, priorities)
-                        else:
-                            experiences = sampler.sample(
-                                agent.batch_size,
-                                return_idx=True if n_step_memory is not None else False,
-                            )
-                            if n_step_memory is not None:
-                                n_step_experiences = n_step_sampler.sample(
-                                    experiences[5]
-                                )
-                                experiences += n_step_experiences
-                                loss, *_ = agent.learn(experiences, n_step=n_step)
-                            else:
-                                loss = agent.learn(experiences)
-                                if algo == "Rainbow DQN":
-                                    loss, *_ = loss
+                        # else:
+                        #     experiences = sampler.sample(
+                        #         agent.batch_size,
+                        #         return_idx=True if n_step_memory is not None else False,
+                        #     )
+                        #     if n_step_memory is not None:
+                        #         n_step_experiences = n_step_sampler.sample(
+                        #             experiences[5]
+                        #         )
+                        #         experiences += n_step_experiences
+                        #         loss, *_ = agent.learn(experiences, n_step=n_step)
+                        #     else:
+                        #         loss = agent.learn(experiences)
+                        #         if algo == "Rainbow DQN":
+                        #             loss, *_ = loss
 
                 if loss is not None:
                     losses.append(loss)
@@ -418,14 +345,13 @@ def train_off_policy(
                     mean_loss = np.mean(losses)
                 pop_loss[agent_idx].append(mean_loss)
 
-        if algo in ["DQN"]:
-            # Reset epsilon start to final epsilon value of this epoch
-            eps_start = epsilon
+        # if algo in ["DQN"]:
+        #     # Reset epsilon start to final epsilon value of this epoch
+        #     eps_start = epsilon
 
         # Evaluate population
         fitnesses = [
-            agent.test(env, max_steps=eval_steps, loop=eval_loop)
-            for agent in pop
+            agent.test(env, max_steps=eval_steps, loop=eval_loop) for agent in pop
         ]
         pop_fitnesses.append(fitnesses)
         mean_scores = [
@@ -462,21 +388,6 @@ def train_off_policy(
                     for index, loss in enumerate(pop_loss)
                 }
                 wandb_dict.update(actor_loss_dict)
-            elif algo in ["TD3", "DDPG"]:
-                actor_loss_dict = {
-                    f"train/agent_{index}_actor_loss": np.mean(
-                        list(zip(*loss_list))[0][-10:]
-                    )
-                    for index, loss_list in enumerate(pop_loss)
-                }
-                critic_loss_dict = {
-                    f"train/agent_{index}_critic_loss": np.mean(
-                        list(zip(*loss_list))[-1][-10:]
-                    )
-                    for index, loss_list in enumerate(pop_loss)
-                }
-                wandb_dict.update(actor_loss_dict)
-                wandb_dict.update(critic_loss_dict)
 
             if algo in ["DQN", "Rainbow DQN"]:
                 train_actions_hist = [

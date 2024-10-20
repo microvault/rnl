@@ -105,7 +105,15 @@ class HPOConfig:
     elitism: bool = True
 
 
-class DomainRandomizationConfig:
+class RandomizationDomainConfig:
     weight: List[float] = field(default_factory=lambda: [2, 500])
     base_radius: List[float] = field(default_factory=lambda: [0.15, 0.75])
     wheel_distance: List[float] = field(default_factory=lambda: [0.1, 1.5])
+    threshold: List[float] = field(default_factory=lambda: [0.001, 0.1])
+    fov: List[float] = field(default_factory=lambda: [3.14159, 12.56637])
+    num_rays: List[int] = field(default_factory=lambda: [5, 60])
+    range: List[float] = field(default_factory=lambda: [0.1, 40])
+    timestep: List[int] = field(default_factory=lambda: [100, 10000])
+    grid_dimension: List[int] = field(default_factory=lambda: [3, 500])
+    friction: List[float] = field(default_factory=lambda: [0.1, 1.0])
+    porcentage_obstacles: List[float] = field(default_factory=lambda: [0.01, 0.5])

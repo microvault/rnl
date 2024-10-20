@@ -2,10 +2,7 @@ import warnings
 
 from torch.utils.data import DataLoader
 
-from rnl.components.replay_buffer import (
-    MultiStepReplayBuffer,
-    PrioritizedReplayBuffer,
-)
+from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
 from rnl.components.replay_data import ReplayDataset
 
 

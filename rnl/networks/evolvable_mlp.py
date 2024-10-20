@@ -67,7 +67,7 @@ class EvolvableMLP(nn.Module):
         output_vanish=True,
         init_layers=True,
         support=None,
-        rainbow=False,
+        rainbow=True,
         noise_std=0.5,
         device="cpu",
         accelerator=None,
@@ -229,14 +229,11 @@ class EvolvableMLP(nn.Module):
             if self.init_layers:
                 output_layer = self.layer_init(output_layer)
             if output_vanish:
-                if self.rainbow:
-                    output_layer.weight_mu.data.mul_(0.1)
-                    output_layer.bias_mu.data.mul_(0.1)
-                    output_layer.weight_sigma.data.mul_(0.1)
-                    output_layer.bias_sigma.data.mul_(0.1)
-                else:
-                    output_layer.weight.data.mul_(0.1)
-                    output_layer.bias.data.mul_(0.1)
+                output_layer.weight_mu.data.mul_(0.1)
+                output_layer.bias_mu.data.mul_(0.1)
+                output_layer.weight_sigma.data.mul_(0.1)
+                output_layer.bias_sigma.data.mul_(0.1)
+
             net_dict["linear_layer_output"] = output_layer
             if output_activation is not None:
                 net_dict["activation_output"] = self.get_activation(output_activation)
@@ -245,62 +242,48 @@ class EvolvableMLP(nn.Module):
 
     def create_net(self):
         """Creates and returns neural network."""
-        if not self.rainbow:
-            feature_net = self.create_mlp(
-                input_size=self.num_inputs,
-                output_size=self.num_outputs,
-                hidden_size=self.hidden_size,
-                output_vanish=self.output_vanish,
-                output_activation=self.mlp_output_activation,
-            )
-            if self.accelerator is None:
-                feature_net = feature_net.to(self.device)
 
-        value_net, advantage_net = None, None
-
-        if self.rainbow:
-            feature_net = self.create_mlp(
-                input_size=self.num_inputs,
-                output_size=self.hidden_size[0],
-                hidden_size=[self.hidden_size[0]],
-                output_vanish=False,
-                output_activation=self.mlp_activation,
-                rainbow_feature_net=True,
+        feature_net = self.create_mlp(
+            input_size=self.num_inputs,
+            output_size=self.hidden_size[0],
+            hidden_size=[self.hidden_size[0]],
+            output_vanish=False,
+            output_activation=self.mlp_activation,
+            rainbow_feature_net=True,
+        )
+        value_net = self.create_mlp(
+            input_size=self.hidden_size[0],
+            output_size=self.num_atoms,
+            hidden_size=self.hidden_size[1:],
+            output_vanish=self.output_vanish,
+            output_activation=None,
+            noisy=True,
+        )
+        advantage_net = self.create_mlp(
+            input_size=self.hidden_size[0],
+            output_size=self.num_atoms * self.num_outputs,
+            hidden_size=self.hidden_size[1:],
+            output_vanish=self.output_vanish,
+            output_activation=None,
+            noisy=True,
+        )
+        if self.accelerator is None:
+            value_net, advantage_net, feature_net = (
+                value_net.to(self.device),
+                advantage_net.to(self.device),
+                feature_net.to(self.device),
             )
-            value_net = self.create_mlp(
-                input_size=self.hidden_size[0],
-                output_size=self.num_atoms,
-                hidden_size=self.hidden_size[1:],
-                output_vanish=self.output_vanish,
-                output_activation=None,
-                noisy=True,
-            )
-            advantage_net = self.create_mlp(
-                input_size=self.hidden_size[0],
-                output_size=self.num_atoms * self.num_outputs,
-                hidden_size=self.hidden_size[1:],
-                output_vanish=self.output_vanish,
-                output_activation=None,
-                noisy=True,
-            )
-            if self.accelerator is None:
-                value_net, advantage_net, feature_net = (
-                    value_net.to(self.device),
-                    advantage_net.to(self.device),
-                    feature_net.to(self.device),
-                )
 
         return feature_net, value_net, advantage_net
 
     def reset_noise(self):
         """Resets noise of value and advantage networks."""
-        if self.rainbow:
-            for layer in self.value_net:
-                if isinstance(layer, NoisyLinear):
-                    layer.reset_noise()
-            for layer in self.advantage_net:
-                if isinstance(layer, NoisyLinear):
-                    layer.reset_noise()
+        for layer in self.value_net:
+            if isinstance(layer, NoisyLinear):
+                layer.reset_noise()
+        for layer in self.advantage_net:
+            if isinstance(layer, NoisyLinear):
+                layer.reset_noise()
 
     def forward(self, x, q=True, log=False):
         """Returns output of neural network.
@@ -321,21 +304,20 @@ class EvolvableMLP(nn.Module):
             x = x.to(torch.float32)
         x = self.feature_net(x)
 
-        if self.rainbow:
-            value = self.value_net(x)
-            advantage = self.advantage_net(x)
-            value = value.view(-1, 1, self.num_atoms)
-            advantage = advantage.view(-1, self.num_outputs, self.num_atoms)
-            x = value + advantage - advantage.mean(1, keepdim=True)
-            if log:
-                x = F.log_softmax(x, dim=2)
-                return x
-            else:
-                x = F.softmax(x, dim=2)
+        value = self.value_net(x)
+        advantage = self.advantage_net(x)
+        value = value.view(-1, 1, self.num_atoms)
+        advantage = advantage.view(-1, self.num_outputs, self.num_atoms)
+        x = value + advantage - advantage.mean(1, keepdim=True)
+        if log:
+            x = F.log_softmax(x, dim=2)
+            return x
+        else:
+            x = F.softmax(x, dim=2)
 
-            # Output at this point is (batch_size, actions, num_support)
-            if q:
-                x = torch.sum(x * self.support.expand_as(x), dim=2)
+        # Output at this point is (batch_size, actions, num_support)
+        if q:
+            x = torch.sum(x * self.support.expand_as(x), dim=2)
 
         return x
 
@@ -430,28 +412,16 @@ class EvolvableMLP(nn.Module):
     def recreate_nets(self, shrink_params=False):
         """Recreates neural networks."""
         new_feature_net, new_value_net, new_advantage_net = self.create_net()
-        if shrink_params:
-            new_feature_net = self.shrink_preserve_parameters(
-                old_net=self.feature_net, new_net=new_feature_net
-            )
-            if self.rainbow:
-                new_value_net = self.shrink_preserve_parameters(
-                    old_net=self.value_net, new_net=new_value_net
-                )
-                new_advantage_net = self.shrink_preserve_parameters(
-                    old_net=self.advantage_net, new_net=new_advantage_net
-                )
-        else:
-            new_feature_net = self.preserve_parameters(
-                old_net=self.feature_net, new_net=new_feature_net
-            )
-            if self.rainbow:
-                new_value_net = self.preserve_parameters(
-                    old_net=self.value_net, new_net=new_value_net
-                )
-                new_advantage_net = self.preserve_parameters(
-                    old_net=self.advantage_net, new_net=new_advantage_net
-                )
+        new_feature_net = self.shrink_preserve_parameters(
+            old_net=self.feature_net, new_net=new_feature_net
+        )
+        new_value_net = self.shrink_preserve_parameters(
+            old_net=self.value_net, new_net=new_value_net
+        )
+        new_advantage_net = self.shrink_preserve_parameters(
+            old_net=self.advantage_net, new_net=new_advantage_net
+        )
+
         self.feature_net, self.value_net, self.advantage_net = (
             new_feature_net,
             new_value_net,

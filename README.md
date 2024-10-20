@@ -40,7 +40,7 @@ import rnl as vault
 param_robot = vault.robot(
     base_radius=0.033,  # (m)
     vel_linear=[0.0, 2.0],  # [min, max]
-    val_angular=[1.0, 2.0],  # [min, max]
+    vel_angular=[1.0, 2.0],  # [min, max]
     wheel_distance=0.16,  # (cm)
     weight=1.0,  # robot (kg)
     threshold=0.01,  # distance for obstacle avoidance (cm)
@@ -93,7 +93,7 @@ import rnl as vault
 param_robot = vault.robot(
     base_radius=0.033,  # (m)
     vel_linear=[0.0, 2.0],  # [min, max]
-    val_angular=[1.0, 2.0],  # [min, max]
+    vel_angular=[1.0, 2.0],  # [min, max]
     wheel_distance=0.16,  # (cm)
     weight=1.0,  # robot (kg)
     threshold=0.01,  # distance for obstacle avoidance (cm)
