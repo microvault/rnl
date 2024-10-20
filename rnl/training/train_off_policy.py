@@ -193,12 +193,6 @@ def train_off_policy(
 
             for idx_step in range(evo_steps // num_envs):
 
-                # Get next action from agent
-                # if algo in ["DQN"]:
-                #     action = agent.get_action(state, epsilon)
-                #     # Decay epsilon for exploration
-                #     epsilon = max(eps_end, epsilon * eps_decay)
-                # else:
                 action = agent.get_action(state)
 
                 if algo in ["DQN", "Rainbow DQN"]:
@@ -225,8 +219,6 @@ def train_off_policy(
                         agent.scores.append(scores[idx])
                         scores[idx] = 0
                         reset_noise_indices.append(idx)
-                # if agent.algo in ["DDPG", "TD3"]:
-                #     agent.reset_action_noise(reset_noise_indices)
 
                 total_steps += num_envs
                 steps += num_envs
@@ -276,21 +268,6 @@ def train_off_policy(
                                 experiences += n_step_experiences
                             loss, idxs, priorities = agent.learn_dqn(experiences)
                             memory.update_priorities(idxs, priorities)
-                        # else:
-                        #     experiences = sampler.sample(
-                        #         agent.batch_size,
-                        #         return_idx=True if n_step_memory is not None else False,
-                        #     )
-                        #     if n_step_memory is not None:
-                        #         n_step_experiences = n_step_sampler.sample(
-                        #             experiences[5]
-                        #         )
-                        #         experiences += n_step_experiences
-                        #         loss, *_ = agent.learn(experiences, n_step=n_step)
-                        #     else:
-                        #         loss = agent.learn(experiences)
-                        #         if algo == "Rainbow DQN":
-                        #             loss, *_ = loss
 
                 elif (
                     len(memory) >= agent.batch_size and memory.counter > learning_delay
@@ -305,25 +282,10 @@ def train_off_policy(
                                     experiences[6]
                                 )
                                 experiences += n_step_experiences
-                            loss, idxs, priorities = agent.learn(
+                            loss, idxs, priorities = agent.learn_dqn(
                                 experiences, n_step=n_step, per=per
                             )
                             memory.update_priorities(idxs, priorities)
-                        # else:
-                        #     experiences = sampler.sample(
-                        #         agent.batch_size,
-                        #         return_idx=True if n_step_memory is not None else False,
-                        #     )
-                        #     if n_step_memory is not None:
-                        #         n_step_experiences = n_step_sampler.sample(
-                        #             experiences[5]
-                        #         )
-                        #         experiences += n_step_experiences
-                        #         loss, *_ = agent.learn(experiences, n_step=n_step)
-                        #     else:
-                        #         loss = agent.learn(experiences)
-                        #         if algo == "Rainbow DQN":
-                        #             loss, *_ = loss
 
                 if loss is not None:
                     losses.append(loss)
