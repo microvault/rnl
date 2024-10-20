@@ -1,6 +1,7 @@
 import functools
 import os
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
@@ -128,47 +129,109 @@ class Map2D:
 
         return new_map_grid
 
-    def plot_initial_environment2d(self, plot=True) -> None:
+    def initial_environment2d(
+        self,
+        plot=True,
+        kernel_size=(3, 3),
+        morph_iterations=1,
+        approx_epsilon_factor=0.030,
+        contour_retrieval_mode=cv2.RETR_TREE,
+        contour_approx_method=cv2.CHAIN_APPROX_SIMPLE,
+    ):
+
         new_map_grid = self._grid_map()
 
-        print(new_map_grid.shape)
+        print(f"Shape do new_map_grid: {new_map_grid.shape}")
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+
+        if idx.size == 0:
+            return
 
         min_idx = np.min(idx)
         max_idx = np.max(idx)
 
         subgrid = new_map_grid[:, min_idx : max_idx + 1]
 
-        plt.imshow(subgrid, cmap="gray", interpolation="nearest")
-        plt.axis("off")
+        subgrid_uint8 = (subgrid * 255).astype(np.uint8)
+
+        kernel = np.ones(kernel_size, np.uint8)
+
+        eroded = cv2.erode(subgrid_uint8, kernel, iterations=morph_iterations)
+        dilated = cv2.dilate(eroded, kernel, iterations=morph_iterations)
+
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+            dilated, connectivity=8
+        )
+
+        if num_labels <= 1:
+            return
+
+        largest_component = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
+
+        mask = np.zeros_like(dilated)
+        mask[labels == largest_component] = 255
+
+        mask_closed = cv2.morphologyEx(
+            mask, cv2.MORPH_CLOSE, kernel, iterations=morph_iterations
+        )
+
+        contours, hierarchy = cv2.findContours(
+            mask_closed, contour_retrieval_mode, contour_approx_method
+        )
+
+        if not contours:
+            return
+
+        contour_mask = np.zeros_like(mask_closed)
+
+        for i, contour in enumerate(contours):
+            epsilon = approx_epsilon_factor * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+
+            if hierarchy[0][i][3] == -1:
+                cv2.fillPoly(contour_mask, [approx], 255)
+            else:
+                cv2.fillPoly(contour_mask, [approx], 0)
+
+        kernel_smooth = np.ones((1, 1), np.uint8)
+        contour_mask = cv2.morphologyEx(contour_mask, cv2.MORPH_OPEN, kernel_smooth)
+        print(contour_mask)
 
         if plot:
+
+            plt.figure(figsize=(6, 6))
+            plt.imshow(contour_mask, cmap="gray")
+            plt.axis("off")
             plt.show()
+
+        return contour_mask
 
     def plot_initial_environment3d(self, plot=True) -> None:
         """generate environment from map"""
 
-        new_map_grid = self._grid_map()
+        self.initial_environment2d(plot=False)
 
-        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
+    #     # new_map_grid = self._grid_map()
 
-        min_idx = int(np.min(idx))
-        max_idx = int(np.max(idx))
+    #     idx = np.where(map_grid.sum(axis=0) > 0)[0]
 
-        # print(new_map_grid)
+    #     min_idx = int(np.min(idx))
+    #     max_idx = int(np.max(idx))
 
-        # all_edges = []
+    # print(new_map_grid)
 
-        # for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
-        #     for j in range(min_idx, max_idx):
-        #         if new_map_grid[i, j] == 1:
-        #             polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
-        #             poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
+    # all_edges = []
 
-        #             vert = poly.get_xy()
-        #             edges = [
-        #                 (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
-        #             ]
+    # for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
+    #     for j in range(min_idx, max_idx):
+    #         if new_map_grid[i, j] == 1:
+    #             polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
+    #             poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
 
-        #             all_edges.extend(edges)
+    #             vert = poly.get_xy()
+    #             edges = [
+    #                 (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
+    #             ]
+
+    #             all_edges.extend(edges)
