@@ -43,4 +43,17 @@ build:
 .PHONY: start
 start:
 	@echo "Starting training ..."
-	@sudo docker run -it --net=host --memory=40g rnl-docker bash -c "make train"
+	@sudo docker run -it --net=host -v rnl:/workdir/rnl  rnl-docker
+
+POETRY=poetry
+BLACK=$(POETRY) run black
+ISORT=$(POETRY) run isort
+RUFF=$(POETRY) run ruff
+
+SRC_DIR=./
+
+.PHONY: lint
+lint:
+	$(ISORT) $(SRC_DIR)
+	$(BLACK) $(SRC_DIR)
+	$(RUFF) check $(SRC_DIR)

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rnl"
-version = "0.3.1"
+version = "0.3.3"
 description = "RNL - Robot Navigation Learning"
 authors = ["Nicolasalan <grottimeireles@gmail.com>"]
 license = "LICENSE"
