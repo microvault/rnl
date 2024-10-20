@@ -1,23 +1,17 @@
 import argparse
+import multiprocessing as mp
 
 import numpy as np
 
 import rnl as vault
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Train or setup environment.")
-    parser.add_argument(
-        "mode", choices=["train", "run"], help="Mode to run: 'train' or 'run'"
-    )
 
-    # Parse arguments
-    args = parser.parse_args()
-
+def main(arg):
     # 1.step -> config robot
     param_robot = vault.robot(
         base_radius=0.033,  # (centimeters) # TODO: RANDOMIZE
         vel_linear=[0.0, 2.0],  # [min, max] # TODO: RANDOMIZE
-        val_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
+        vel_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
         weight=1.0,  # (kilograms) # TODO: RANDOMIZE
         threshold=0.01,  # (centimeters) # TODO: RANDOMIZE
@@ -67,7 +61,7 @@ if __name__ == "__main__":
             lr=0.0001,
             seed=1,
             num_envs=2,
-            device="mps",
+            device="cpu",
             learn_step=10,
             target_score=200,
             max_steps=1000000,
@@ -75,7 +69,7 @@ if __name__ == "__main__":
             evaluation_loop=1,
             learning_delay=0,
             n_step_memory=1,
-            checkpoint=100,
+            checkpoint=1000,
             checkpoint_path="checkpoints",
             overwrite_checkpoints=False,
             use_wandb=False,
@@ -109,3 +103,15 @@ if __name__ == "__main__":
         )
         # 6.step -> run robot
         model.run()
+
+
+if __name__ == "__main__":
+    mp.set_start_method("spawn")
+    parser = argparse.ArgumentParser(description="Train or setup environment.")
+    parser.add_argument(
+        "mode", choices=["train", "run"], help="Mode to run: 'train' or 'run'"
+    )
+
+    # Parse arguments
+    args = parser.parse_args()
+    main(args)
