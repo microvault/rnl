@@ -29,7 +29,7 @@ def train_off_policy(
     eps_end=0.1,
     eps_decay=0.995,
     target=None,
-    n_step=False,
+    n_step=True,
     per=False,
     n_step_memory=None,
     tournament=None,
@@ -282,9 +282,7 @@ def train_off_policy(
                                     experiences[6]
                                 )
                                 experiences += n_step_experiences
-                            loss, idxs, priorities = agent.learn_dqn(
-                                experiences, n_step=n_step, per=per
-                            )
+                            loss, idxs, priorities = agent.learn_dqn(experiences)
                             memory.update_priorities(idxs, priorities)
 
                 if loss is not None:
