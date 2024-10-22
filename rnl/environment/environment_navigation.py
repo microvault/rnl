@@ -3,6 +3,7 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
 # from rnl.algorithms.rainbow import RainbowDQN
@@ -44,7 +45,23 @@ class NaviEnv(gym.Env):
         self.body = self.robot.create_robot(self.space)
 
         self.last_states = np.zeros(state_size)
-
+        
+        self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
+        self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
+        self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
+        self.scaler_reward = StandardScaler()
+        
+        max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
+        self.scaler_lidar.fit(np.array([[min_lidar] * sensor_config.num_rays, [max_lidar] * sensor_config.num_rays]))
+        
+        max_dist, min_dist = 12.0, 1.0
+        self.scaler_dist.fit(np.array([[min_dist], [max_lidar]]))
+        
+        max_alpha, min_alpha = 0.0, 6.4
+        self.scaler_alpha.fit(np.array([[min_alpha], [max_alpha]]))
+        
+        self.scaler_reward.fit(np.array([[-1], [1]]))
+         
         self.rgb_array = render_config.rgb_array
         self.timestep = 0
         self.max_timestep = env_config.max_step
@@ -207,6 +224,28 @@ class NaviEnv(gym.Env):
         )
 
         # TODO: normalize states
+        lidar_norm = self.scaler_lidar.transform(lidar_measurements).flatten()
+        dist_norm = self.scaler_dist.transform(dist).flatten()
+        alpha_norm = self.scaler_alpha.transform(alpha).flatten()
+        reward_norm = self.scaler_reward.transform(reward).flatten()
+        
+        action_one_hot = np.eye(7)[action]
+        
+        print("Lidar bruto: ", lidar_measurements)
+        print("Lidar norm: ", lidar_norm)
+        print("--------------")
+        print("Dist bruto: ", dist)
+        print("Dist norm: ", dist_norm)
+        print("--------------")
+        print("Alpha bruto: ", alpha)
+        print("Alpha norm: ", alpha_norm)
+        print("--------------")
+        print("Reward bruto: ", reward)
+        print("Reward norm: ", reward_norm)
+        print("--------------")
+        print("Action bruto: ", action)
+        print("Action norm: ", action_one_hot)
+        print("--------------")
 
         # print(
         #     "\rReward: {:.2f}\tC. reward: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {:.2f}\tMin lidar: {:.2f}".format(
