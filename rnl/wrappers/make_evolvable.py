@@ -342,7 +342,7 @@ class MakeEvolvable(nn.Module):
         name,
         mlp_activation,
         mlp_output_activation,
-        noisy=False,
+        noisy=True,
         rainbow_feature_net=True,
     ):
         """Creates and returns multi-layer perceptron.

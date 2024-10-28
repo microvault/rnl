@@ -17,9 +17,6 @@ def train_off_policy(
     algo,
     pop,
     memory,
-    # INIT_HP=None,
-    # MUT_P=None,
-    # swap_channels=False,
     max_steps=1000000,
     evo_steps=10000,
     eval_steps=None,
@@ -304,10 +301,6 @@ def train_off_policy(
                 else:
                     mean_loss = np.mean(losses)
                 pop_loss[agent_idx].append(mean_loss)
-
-        # if algo in ["DQN"]:
-        #     # Reset epsilon start to final epsilon value of this epoch
-        #     eps_start = epsilon
 
         # Evaluate population
         fitnesses = [
