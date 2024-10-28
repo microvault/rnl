@@ -36,6 +36,7 @@ class RobotConfig:
     wheel_distance: float = 0.16
     weight: float = 1.0
     threshold: float = 0.01
+    path_model: str "./"
 
 
 @dataclass
