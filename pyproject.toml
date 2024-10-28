@@ -27,6 +27,7 @@ numba = ">=0.59.1,<0.61.0"
 shapely = ">=1.8,<3.0"
 wandb = "0.18.3"
 opencv-python = "^4.10.0.84"
+scikit-learn = "^1.5.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

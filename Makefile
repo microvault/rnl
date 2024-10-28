@@ -8,17 +8,11 @@ train:
 
 .PHONY: test_without_coverage
 test_without_coverage:
-	@poetry run pytest -s -x -vv
-
-.PHONY: lint
-lint:
-	@black .py*
-	@isort .py*
-	@ruff .py*
+	@poetry run pytest -s -x -vv -p no:warnings
 
 .PHONY: test
 test:
-	@poetry run pytest -s -x --cov=rnl -vv
+	@poetry run pytest -s -x --cov=rnl -vv -p no:warnings
 
 .PHONY: post_test
 post_test:
