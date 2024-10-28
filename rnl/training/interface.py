@@ -20,9 +20,10 @@ def robot(
     wheel_distance: float,
     weight: float,
     threshold: float,
+    path_model: str
 ):
     return RobotConfig(
-        base_radius, vel_linear, vel_angular, wheel_distance, weight, threshold
+        base_radius, vel_linear, vel_angular, wheel_distance, weight, threshold, path_model
     )
 
 
