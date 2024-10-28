@@ -15,6 +15,7 @@ from rnl.engine.utils import angle_to_goal, distance_to_goal, get_reward
 from rnl.environment.generate_world import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
+from rnl.engine.randomizer import Randomization
 
 
 class NaviEnv(gym.Env):
@@ -44,6 +45,8 @@ class NaviEnv(gym.Env):
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
         self.dataset = ScaleDataset()
+        # TODO
+        self.randomizer = Randomization()
 
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
