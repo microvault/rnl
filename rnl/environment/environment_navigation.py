@@ -46,7 +46,14 @@ class NaviEnv(gym.Env):
         self.sensor = SensorRobot(sensor_config)
         self.dataset = ScaleDataset()
         # TODO
-        self.randomizer = Randomization()
+        self.randomization = Randomization(
+            robot_config=robot_config,
+            sensor_config=sensor_config,
+            env_config=env_config,
+            seed=42,
+            theta=0.15,
+            sigma=0.2
+        )
 
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
