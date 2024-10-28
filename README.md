@@ -143,14 +143,6 @@ This project is licensed under the MIT license - see archive [LICENSE](https://g
 The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an `issue` or send an `email` to:
 Nicolas Alan - **grottimeireles@gmail.com**.
 
-
-## TODO:
-- [ ] Add map file yaml
-- [ ] Add random mode (hard or normal)
-- [ ] Create Integration ROS and (Gazebo)
-- [ ] Create Integration with OpenAI
-
-
 ## Acknowledgments
 * [AgileRL](https://github.com/AgileRL/AgileRL)
 * [Gazebo](https://gazebosim.org/home)
