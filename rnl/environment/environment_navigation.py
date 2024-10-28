@@ -6,7 +6,7 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 
-# from rnl.algorithms.rainbow import RainbowDQN
+from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.scale_dataset import ScaleDataset
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
@@ -24,8 +24,10 @@ class NaviEnv(gym.Env):
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
+        pretrained_model: bool
     ):
         super().__init__()
+        self.pretrained_model = pretrained_model
         state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
         self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
@@ -84,7 +86,6 @@ class NaviEnv(gym.Env):
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
 
         self.segments = []
-        # TODO
         self.controller = render_config.controller
         self.cumulated_reward = 0.0
 
@@ -103,11 +104,12 @@ class NaviEnv(gym.Env):
 
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
-
-        # self.rainbow = RainbowDQN.load(
-        #     "/Users/nicolasalan/microvault/rnl/rnl/environment/RainbowDQN.pt",
-        #     device="cpu",
-        # )
+        
+        if self.pretrained_model:
+            self.rainbow = RainbowDQN.load(
+                robot_config.path_model,
+                device="cpu",
+            )
 
         if self.rgb_array:
             self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -174,10 +176,9 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
 
     def step_animation(self, i):
-        # action = 0
-        # print("Input: ", self.last_states)
-        # action = self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
-        # print("Output: ", action)
+        if self.pretrained_model:
+            self.action = self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
+
         if not self.controller:
 
             if self.action == 0:
