@@ -24,7 +24,7 @@ class NaviEnv(gym.Env):
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        pretrained_model: bool
+        pretrained_model: bool = False
     ):
         super().__init__()
         self.pretrained_model = pretrained_model
