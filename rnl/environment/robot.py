@@ -72,11 +72,13 @@ class Robot:
         robot_body.angular_velocity = v_angular
         space.step(1 / 60)
 
-    def reset_robot(self, robot_body: pymunk.Body, x: float, y: float) -> None:
+    def reset_robot(
+        self, robot_body: pymunk.Body, x: float, y: float, angle: float
+    ) -> None:
         """
         Reset the robot's position and velocity.
         """
         robot_body.position = (x, y)
-        robot_body.angle = 0
+        robot_body.angle = angle
         robot_body.velocity = (0, 0)
         robot_body.angular_velocity = 0

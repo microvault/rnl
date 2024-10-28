@@ -67,7 +67,7 @@ class TrainerConfig:
     lr: float = 0.0001
     seed: int = 1
     num_envs: int = 1
-    device: str = "mps"
+    device: str = "cpu"
     learn_step: int = 10
     target_score: float = 200.0
     max_steps: int = 1000000

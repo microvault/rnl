@@ -37,13 +37,14 @@ class Collision:
         self,
         robot_x: float,
         robot_y: float,
+        robot_theta: float,
         lidar_range: float,
         lidar_angles: np.ndarray,
         segments: List,
     ):
         try:
             return lidar_intersections(
-                robot_x, robot_y, lidar_range, lidar_angles, segments
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
             )
         except Exception as e:
             print(f"{RED_BOLD}Error in lidar_intersection: {e}{RESET}")
@@ -53,13 +54,14 @@ class Collision:
         self,
         robot_x: float,
         robot_y: float,
+        robot_theta: float,
         lidar_range: float,
         lidar_angles: np.ndarray,
         segments: List,
     ):
         try:
             return lidar_measurements(
-                robot_x, robot_y, lidar_range, lidar_angles, segments
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
             )
         except Exception as e:
             print(f"{RED_BOLD}Error in lidar_measurement: {e}{RESET}")
@@ -332,6 +334,7 @@ lru_cache(maxsize=5)
 def lidar_intersections(
     robot_x: float,
     robot_y: float,
+    robot_theta: float,
     lidar_range: float,
     lidar_angles: np.ndarray,
     segments: List,
@@ -339,7 +342,9 @@ def lidar_intersections(
 
     intersections = []
     for i, angle in enumerate(lidar_angles):
-        lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, angle)
+        adjusted_angle = angle + robot_theta
+
+        lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)
 
         lidar_segment_transformed = [np.array(segmento) for segmento in lidar_segment]
 
@@ -379,15 +384,19 @@ def position_intersection(
 def lidar_measurements(
     robot_x: float,
     robot_y: float,
+    robot_theta: float,
     lidar_range: float,
     lidar_angles: np.ndarray,
     segments: List,
 ):
-
     measurements = []
     for i, angle in enumerate(lidar_angles):
-        lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, angle)
-        lidar_segment_transformed = [np.array(segmento) for segmento in lidar_segment]
+        # Adjust the angle by adding the robot's orientation
+        adjusted_angle = angle + robot_theta
+
+        # Compute the LiDAR segment using the adjusted angle
+        lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)
+        lidar_segment_transformed = [np.array(segment) for segment in lidar_segment]
 
         intersected = intersect_segment_with_polygon(
             lidar_segment_transformed, segments
@@ -398,7 +407,6 @@ def lidar_measurements(
 
             if intercept:
                 measurements.append(ranges)
-
             else:
                 measurements.append(0.2)
         else:

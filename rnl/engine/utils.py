@@ -32,7 +32,7 @@ def angle_to_goal(
 
 def min_laser(measurement: np.ndarray, threshold: float = 0.1):
     laser = np.min(measurement)
-    if laser < threshold:
+    if laser <= threshold:
         return True, laser
     else:
         return False, laser
@@ -51,7 +51,7 @@ def get_reward(
     else:
         alpha_norm = 0
 
-    if distance < 0.4:
+    if distance < 0.2:
         return 500.0, np.bool_(True)
     elif collision:
         return -500.0, np.bool_(True)

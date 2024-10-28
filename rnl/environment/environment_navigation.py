@@ -3,10 +3,11 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from mpl_toolkits.mplot3d import Axes3D, art3d
+from sklearn.preprocessing import MinMaxScaler
 
 # from rnl.algorithms.rainbow import RainbowDQN
+from rnl.components.scale_dataset import ScaleDataset
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
 from rnl.engine.utils import min_laser  # normalize
@@ -25,7 +26,7 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
     ):
         super().__init__()
-        state_size = sensor_config.num_rays + 4  # (action, distance, angle, reward)
+        state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
         self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
@@ -40,28 +41,37 @@ class NaviEnv(gym.Env):
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
+        self.dataset = ScaleDataset()
 
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
 
         self.last_states = np.zeros(state_size)
-        
+
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
-        self.scaler_reward = StandardScaler()
-        
+        self.scaler_reward = MinMaxScaler(feature_range=(0, 1))
+
         max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
-        self.scaler_lidar.fit(np.array([[min_lidar] * sensor_config.num_rays, [max_lidar] * sensor_config.num_rays]))
-        
+        self.scaler_lidar.fit(
+            np.array(
+                [
+                    [min_lidar] * sensor_config.num_rays,
+                    [max_lidar] * sensor_config.num_rays,
+                ]
+            )
+        )
+
         max_dist, min_dist = 12.0, 1.0
-        self.scaler_dist.fit(np.array([[min_dist], [max_lidar]]))
-        
+        self.scaler_dist.fit(np.array([[min_dist], [max_dist]]))
+
         max_alpha, min_alpha = 0.0, 6.4
         self.scaler_alpha.fit(np.array([[min_alpha], [max_alpha]]))
-        
-        self.scaler_reward.fit(np.array([[-1], [1]]))
-         
+
+        max_reward, min_reward = 500.0, -500.0
+        self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
+
         self.rgb_array = render_config.rgb_array
         self.timestep = 0
         self.max_timestep = env_config.max_step
@@ -78,8 +88,8 @@ class NaviEnv(gym.Env):
         self.controller = render_config.controller
         self.cumulated_reward = 0.0
 
-        self.target_x = 0
-        self.target_y = 0
+        self.target_x: float = 0.0
+        self.target_y: float = 0.0
         self.last_position_x = 0
         self.last_position_y = 0
         self.last_theta = 0
@@ -95,8 +105,8 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(20)
 
         # self.rainbow = RainbowDQN.load(
-        #     "/microvault/rnl/checkpoints/model.pt",
-        #     device="mps",
+        #     "/Users/nicolasalan/microvault/rnl/rnl/environment/RainbowDQN.pt",
+        #     device="cpu",
         # )
 
         if self.rgb_array:
@@ -118,7 +128,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="o",
-                markersize=1.0,
+                markersize=2.0,
                 color="orange",
             )[0]
 
@@ -164,36 +174,43 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
 
     def step_animation(self, i):
-        action = 0  # self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
+        # action = 0
+        # print("Input: ", self.last_states)
+        # action = self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
+        # print("Output: ", action)
         if not self.controller:
 
-            if action == 0:
+            if self.action == 0:
                 self.vl = 0.05 * self.scalar
                 self.vr = 0.0
-            elif action == 1:
+            elif self.action == 1:
                 self.vl = 0.1 * self.scalar
                 self.vr = 0.0
-            elif action == 2:
+            elif self.action == 2:
                 self.vl = 0.05 * self.scalar
                 self.vr = 0.15 * self.scalar
-            elif action == 3:
+            elif self.action == 3:
                 self.vl = 0.05 * self.scalar
                 self.vr = -0.15 * self.scalar
-            elif action == 4:
+            elif self.action == 4:
                 self.vl = 0.01 * self.scalar
                 self.vr = 0.0
-            elif action == 5:
+            elif self.action == 5:
                 self.vl = 0.05 * self.scalar
                 self.vr = 0.3 * self.scalar
-            elif action == 6:
+            elif self.action == 6:
                 self.vl = 0.05 * self.scalar
                 self.vr = -0.3 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
-        x, y = self.body.position.x, self.body.position.y
+        x, y, theta = (
+            self.body.position.x,
+            self.body.position.y,
+            self.body.position.angle,
+        )
 
         intersections, lidar_measurements = self.sensor.sensor(
-            x=x, y=y, segments=self.segments
+            x=x, y=y, theta=theta, segments=self.segments
         )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
@@ -213,50 +230,37 @@ class NaviEnv(gym.Env):
             lidar_measurements, dist, collision, alpha, diff_to_init
         )
 
+        lidar_norm = self.scaler_lidar.transform(
+            np.array(lidar_measurements).reshape(1, -1)
+        ).flatten()
+        dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
+        alpha_norm = self.scaler_alpha.transform(
+            np.array(alpha).reshape(1, -1)
+        ).flatten()
+        reward_norm = self.scaler_reward.transform(
+            np.array(reward).reshape(1, -1)
+        ).flatten()
+
+        action_one_hot = np.eye(7)[self.action]
+
         states = np.concatenate(
             (
-                np.array(lidar_measurements, dtype=np.float32),
-                np.array([action], dtype=np.int16),
-                np.array([dist], dtype=np.float32),
-                np.array([alpha], dtype=np.float32),
-                np.array([reward], dtype=np.float32),
+                np.array(lidar_norm, dtype=np.float32),
+                np.array(action_one_hot, dtype=np.int16),
+                np.array(dist_norm, dtype=np.float32),
+                np.array(alpha_norm, dtype=np.float32),
+                np.array(reward_norm, dtype=np.float32),
             )
         )
 
-        # TODO: normalize states
-        lidar_norm = self.scaler_lidar.transform(lidar_measurements).flatten()
-        dist_norm = self.scaler_dist.transform(dist).flatten()
-        alpha_norm = self.scaler_alpha.transform(alpha).flatten()
-        reward_norm = self.scaler_reward.transform(reward).flatten()
-        
-        action_one_hot = np.eye(7)[action]
-        
-        print("Lidar bruto: ", lidar_measurements)
-        print("Lidar norm: ", lidar_norm)
-        print("--------------")
-        print("Dist bruto: ", dist)
-        print("Dist norm: ", dist_norm)
-        print("--------------")
-        print("Alpha bruto: ", alpha)
-        print("Alpha norm: ", alpha_norm)
-        print("--------------")
-        print("Reward bruto: ", reward)
-        print("Reward norm: ", reward_norm)
-        print("--------------")
-        print("Action bruto: ", action)
-        print("Action norm: ", action_one_hot)
-        print("--------------")
-
-        # print(
-        #     "\rReward: {:.2f}\tC. reward: {:.2f}\tDistance: {:.2f}\tAngle: {:.2f}\tAction: {:.2f}\tMin lidar: {:.2f}".format(
-        #         states[23],
-        #         self.cumulated_reward,
-        #         states[21],
-        #         states[22],
-        #         states[20],
-        #         np.min(states[:20]),
-        #     ),
+        # self.dataset.store_step(
+        #     state=self.last_states,
+        #     action=action,
+        #     reward=reward,
+        #     next_state=states  # Assuming 'states' is the next state
         # )
+        #
+        print("States: ", states)
 
         self.last_states = states
 
@@ -272,6 +276,7 @@ class NaviEnv(gym.Env):
         truncated = self.timestep >= self.max_timestep
 
         if done or truncated:
+            self.dataset.save_dataset()
             self._stop()
 
     def step(self, action):
@@ -299,10 +304,14 @@ class NaviEnv(gym.Env):
             self.vr = -0.3 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
-        x, y = self.body.position.x, self.body.position.y
+        x, y, theta = (
+            self.body.position.x,
+            self.body.position.y,
+            self.body.position.angle,
+        )
 
         intersections, lidar_measurements = self.sensor.sensor(
-            x=x, y=y, segments=self.segments
+            x=x, y=y, theta=theta, segments=self.segments
         )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
@@ -322,13 +331,26 @@ class NaviEnv(gym.Env):
             lidar_measurements, dist, collision, alpha, diff_to_init
         )
 
+        lidar_norm = self.scaler_lidar.transform(
+            np.array(lidar_measurements).reshape(1, -1)
+        ).flatten()
+        dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
+        alpha_norm = self.scaler_alpha.transform(
+            np.array(alpha).reshape(1, -1)
+        ).flatten()
+        reward_norm = self.scaler_reward.transform(
+            np.array(reward).reshape(1, -1)
+        ).flatten()
+
+        action_one_hot = np.eye(7)[action]
+
         states = np.concatenate(
             (
-                np.array(lidar_measurements, dtype=np.float32),
-                np.array([action], dtype=np.int16),
-                np.array([dist], dtype=np.float32),
-                np.array([alpha], dtype=np.float32),
-                np.array([reward], dtype=np.float32),
+                np.array(lidar_norm, dtype=np.float32),
+                np.array(action_one_hot, dtype=np.int16),
+                np.array(dist_norm, dtype=np.float32),
+                np.array(alpha_norm, dtype=np.float32),
+                np.array(reward_norm, dtype=np.float32),
             )
         )
 
@@ -347,9 +369,6 @@ class NaviEnv(gym.Env):
 
         self.timestep = 0
 
-        self.vr = 0.05
-        self.vl = 0.0
-
         self.cumulated_reward = 0.0
 
         new_map_path, exterior, interior, all_seg = self.generator.world()
@@ -367,7 +386,7 @@ class NaviEnv(gym.Env):
             self.target_y = np.random.uniform(0, self.ymax)
             x = np.random.uniform(0, self.xmax)
             y = np.random.uniform(0, self.ymax)
-            # theta = np.random.uniform(0, 2 * np.pi)
+            theta = np.random.uniform(0, 2 * np.pi)
 
             if self.collision.check_collision(
                 exterior, interior, x, y
@@ -376,9 +395,12 @@ class NaviEnv(gym.Env):
             ):
                 break
 
-        self.robot.reset_robot(self.body, x, y)
+        self.robot.reset_robot(self.body, x, y, theta)
         intersections, measurement = self.sensor.sensor(
-            x=self.robot.body.position.x, y=self.robot.body.position.y, segments=all_seg
+            x=self.robot.body.position.x,
+            y=self.robot.body.position.y,
+            theta=self.body.position.angle,
+            segments=all_seg,
         )
 
         self.last_measurement = measurement
@@ -410,13 +432,29 @@ class NaviEnv(gym.Env):
             self.target_y,
         )
 
+        lidar_norm = self.scaler_lidar.transform(
+            np.array(measurement).reshape(1, -1)
+        ).flatten()
+        dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
+        alpha_norm = self.scaler_alpha.transform(
+            np.array(alpha).reshape(1, -1)
+        ).flatten()
+        reward_norm = self.scaler_reward.transform(
+            np.array(0.0).reshape(1, -1)
+        ).flatten()
+
+        # random action 0 to 6
+        action = np.random.randint(0, 7)
+
+        action_one_hot = np.eye(7)[action]
+
         self.last_states = np.concatenate(
             (
-                np.array(measurement, dtype=np.float32),  # measurement
-                np.array([0], dtype=np.float32),  # velocity
-                np.array([dist], dtype=np.float32),  # distance
-                np.array([alpha], dtype=np.float32),  # angle
-                np.array([0], dtype=np.float32),  # reward
+                np.array(lidar_norm, dtype=np.float32),
+                np.array(action_one_hot, dtype=np.int16),
+                np.array(dist_norm, dtype=np.float32),
+                np.array(alpha_norm, dtype=np.float32),
+                np.array(reward_norm, dtype=np.float32),
             )
         )
 
@@ -493,6 +531,10 @@ class NaviEnv(gym.Env):
         self.label.set_color("#666666")
 
         self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
+
+    def get_reward_function(self):
+
+        return self.reward_function
 
     @staticmethod
     def _get_label(timestep: int) -> str:

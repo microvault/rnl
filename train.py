@@ -14,12 +14,12 @@ def main(arg):
         vel_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
         weight=1.0,  # (kilograms) # TODO: RANDOMIZE
-        threshold=0.01,  # (centimeters) # TODO: RANDOMIZE
+        threshold=0.05,  # (centimeters) # TODO: RANDOMIZE
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=4 * np.pi,  # TODO: RANDOMIZE
+        fov=2 * np.pi,  # TODO: RANDOMIZE
         num_rays=20,  # TODO: RANDOMIZE
         min_range=0.0,  # TODO: RANDOMIZE
         max_range=6.0,  # TODO: RANDOMIZE
@@ -30,7 +30,7 @@ def main(arg):
         map_file="None",  # TODO: RANDOMIZE
         random_mode="normal",  # hard, normal
         timestep=1000,  # TODO: RANDOMIZE
-        grid_dimension=3,  # TODO: RANDOMIZE
+        grid_dimension=10,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
         porcentage_obstacles=0.1,  # TODO: RANDOMIZE
         max_step=1000,  # TODO: RANDOMIZE
@@ -60,8 +60,8 @@ def main(arg):
             batch_size=64,
             lr=0.0001,
             seed=1,
-            num_envs=2,
-            device="cpu",
+            num_envs=6,
+            device="mps",
             learn_step=10,
             target_score=200,
             max_steps=1000000,
@@ -77,14 +77,14 @@ def main(arg):
             accelerator=False,
             use_mutation=True,
             freq_evolution=10000,
-            population_size=6,
+            population_size=4,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
             param_mutation=0.2,
             active_mutation=0.0,
             hp_mutation=0.2,
-            hp_mutation_selection=["lr", "batch_size"],
+            hp_mutation_selection=["lr", "batch_size", "learn_step"],
             mutation_strength=0.1,
             evolution_steps=10000,
             save_elite=False,
@@ -95,7 +95,7 @@ def main(arg):
         )
     else:
         # 4.step -> config render
-        param_render = vault.render(fps=1, controller=False, rgb_array=True)
+        param_render = vault.render(fps=1, controller=True, rgb_array=True)
 
         # 5.step -> config train robot
         model = vault.Trainer(

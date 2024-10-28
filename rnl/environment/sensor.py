@@ -15,16 +15,16 @@ class SensorRobot:
         self.lidar_angle = np.linspace(0, sensor_config.fov, sensor_config.num_rays)
 
     def sensor(
-        self, x: float, y: float, segments: List
+        self, x: float, y: float, theta: float, segments: List
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perform sensor measurements based on the robot's position and environment segments.
         """
         seg = self.collision.filter_segments(segments, x, y, 6)
         intersections = self.collision.lidar_intersection(
-            x, y, self.max_range, self.lidar_angle, seg
+            x, y, theta, self.max_range, self.lidar_angle, seg
         )
         measurements = self.collision.lidar_measurement(
-            x, y, self.max_range, self.lidar_angle, seg
+            x, y, theta, self.max_range, self.lidar_angle, seg
         )
         return intersections, measurements

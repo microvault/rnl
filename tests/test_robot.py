@@ -59,7 +59,7 @@ def test_reset_robot(robot):
     robot_body.velocity = (2.0, 3.0)
     robot_body.angular_velocity = 1.0
 
-    robot.reset_robot(robot_body, x=1.0, y=1.0)
+    robot.reset_robot(robot_body, x=1.0, y=1.0, angle=0.0)
 
     assert robot_body.position.x == pytest.approx(1.0)
     assert robot_body.position.y == pytest.approx(1.0)
@@ -72,7 +72,7 @@ def test_sensor_robot():
     sensor_config = SensorConfig()
     robot = SensorRobot(sensor_config)
 
-    x, y = 1.0, 1.0
+    x, y, theta = 1.0, 1.0, 0.0
     segments = [
         (0.0, 6.0, 1.0, 6.0),
         (1.0, 6.0, 2.0, 6.0),
@@ -136,4 +136,4 @@ def test_sensor_robot():
         (4.5, 5.0, 4.5, 5.0),
     ]
 
-    intersections, measurements = robot.sensor(x, y, segments)
+    intersections, measurements = robot.sensor(x, y, theta, segments)
