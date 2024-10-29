@@ -26,7 +26,7 @@ def unwrap_optimizer(optimizer, network, lr):
         return optimizer
 
 
-def chkpt_attribute_to_device(chkpt_dict, """Place checkpoint attributes on device. Used when loading saved agents.
+def chkpt_attribute_to_device(chkpt_dict, device):
     """
     Moves checkpoint attributes to the specified device. Useful for loading saved agents on CPU or GPU.
 
