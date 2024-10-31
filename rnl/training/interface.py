@@ -42,14 +42,14 @@ def make(
     max_step: int = 1000,
 ):
     return EnvConfig(
-        map_file,
-        random_mode,
-        timestep,
-        grid_dimension,
-        friction,
-        randomization_interval,
-        porcentage_obstacles,
-        max_step,
+        map_file=map_file,
+        random_mode=random_mode,
+        timestep=timestep,
+        grid_dimension=grid_dimension,
+        friction=friction,
+        porcentage_obstacles=porcentage_obstacles,
+        randomization_interval=randomization_interval,
+        max_step=max_step,
     )
 
 
