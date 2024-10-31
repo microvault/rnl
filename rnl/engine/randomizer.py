@@ -1,68 +1,62 @@
 import copy
 import random
 import numpy as np
-from rnl.components.noise import OUNoise
 
-class Randomization:
+class DomainRandomization:
     def __init__(
         self,
-        robot_config,
-        sensor_config,
-        env_config,
-        seed=42,
-        theta=0.15,
-        sigma=0.2
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
+        env_config: EnvConfig,
+        robot_config_mins: dict,
+        robot_config_maxs: dict,
+        sensor_config_mins: dict,
+        sensor_config_maxs: dict,
+        env_config_mins: dict,
+        env_config_maxs: dict,
     ):
-        self.configs = {
-            'robot_config': robot_config,
-            'sensor_config': sensor_config,
-            'env_config': env_config,
-        }
-        self.noises = {}
-        self.seed = seed
-        self.theta = theta
-        self.sigma = sigma
-        self._initialize_noises()
+        self.robot_config = robot_config
+        self.sensor_config = sensor_config
+        self.env_config = env_config
+        self.robot_config_mins = robot_config_mins
+        self.robot_config_maxs = robot_config_maxs
+        self.sensor_config_mins = sensor_config_mins
+        self.sensor_config_maxs = sensor_config_maxs
+        self.env_config_mins = env_config_mins
+        self.env_config_maxs = env_config_maxs
 
-    def _initialize_noises(self):
-        for config_name, config in self.configs.items():
-            self.noises[config_name] = {}
-            for attr, value in vars(config).items():
-                min_attr = f"{attr}_min"
-                max_attr = f"{attr}_max"
-                if hasattr(config, min_attr) and hasattr(config, max_attr):
-                    if isinstance(value, (int, float)):
-                        size = 1
-                    elif isinstance(value, (list, np.ndarray)):
-                        size = len(value)
-                    else:
-                        continue  # Ignora atributos que não são numéricos ou listas
-                    noise = OUNoise(size=size, seed=self.seed, theta=self.theta, sigma=self.sigma)
-                    self.noises[config_name][attr] = noise
+    def randomize_config(self, config, min_values, max_values):
+        randomized_config = copy.deepcopy(config)
+        for field_name in config.__dataclass_fields__:
+            value = getattr(config, field_name)
+            min_value = min_values[field_name]
+            max_value = max_values[field_name]
+            if isinstance(value, (float, int)):
+                # Randomize within min and max
+                new_value = random.uniform(min_value, max_value)
+                setattr(randomized_config, field_name, type(value)(new_value))
+            elif isinstance(value, list):
+                # Randomize each element in the list
+                new_value = []
+                for idx, v in enumerate(value):
+                    v_min = min_value[idx]
+                    v_max = max_value[idx]
+                    rand_val = random.uniform(v_min, v_max)
+                    new_value.append(type(v)(rand_val))
+                setattr(randomized_config, field_name, new_value)
+            else:
+                # For other types, keep the original value
+                setattr(randomized_config, field_name, value)
+        return randomized_config
 
-    def randomize(self):
-        for config_name, config in self.configs.items():
-            for attr, noise in self.noises[config_name].items():
-                sampled_noise = noise.sample()
-                current_value = getattr(config, attr)
-                min_value = getattr(config, f"{attr}_min")
-                max_value = getattr(config, f"{attr}_max")
-                
-                if isinstance(current_value, list):
-                    noise_value = sampled_noise.tolist()
-                    new_values = [max(min_val, min(val + n, max_val)) 
-                                  for val, n, min_val, max_val in zip(current_value, noise_value, 
-                                                                     getattr(config, f"{attr}_min"), 
-                                                                     getattr(config, f"{attr}_max"))]
-                    setattr(config, attr, new_values)
-                elif isinstance(current_value, (int, float, np.number)):
-                    noise_value = sampled_noise[0]
-                    new_value = current_value + noise_value
-                    new_value = max(min_value, min(new_value, max_value))
-                    setattr(config, attr, new_value)
-                    
-    def reset(self):
-        """Redefinir todos os processos de ruído para seus estados iniciais."""
-        for config_name, noise_attrs in self.noises.items():
-            for attr, noise in noise_attrs.items():
-                noise.reset()
+    def get_randomized_configs(self):
+        randomized_robot_config = self.randomize_config(
+            self.robot_config, self.robot_config_mins, self.robot_config_maxs
+        )
+        randomized_sensor_config = self.randomize_config(
+            self.sensor_config, self.sensor_config_mins, self.sensor_config_maxs
+        )
+        randomized_env_config = self.randomize_config(
+            self.env_config, self.env_config_mins, self.env_config_maxs
+        )
+        return randomized_robot_config, randomized_sensor_config, randomized_env_config
