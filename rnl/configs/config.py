@@ -11,8 +11,7 @@ class EnvConfig:
     friction: float = 0.4
     porcentage_obstacles: float = 0.1
     randomization_interval: int = 100
-    max_step: int = 1000
-    pretrained_model: bool = False
+    max_step: int = 1000 
 
 
 @dataclass
