@@ -24,7 +24,8 @@ class NaviEnv(gym.Env):
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
         env_config: EnvConfig,
-        render_config: RenderConfig
+        render_config: RenderConfig,
+        pretrained_model: bool
     ):
         super().__init__()
         state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
@@ -82,7 +83,7 @@ class NaviEnv(gym.Env):
         self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
 
         # -- Environmental parameters -- #
-        self.pretrained_model = env_config.pretrained_model
+        self.pretrained_model = pretrained_model
         self.random_state = env_config.random_mode
         self.data_collection = render_config.data_collection
         self.rgb_array = render_config.rgb_array
