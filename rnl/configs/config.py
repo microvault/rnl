@@ -10,7 +10,9 @@ class EnvConfig:
     grid_dimension: int = 5
     friction: float = 0.4
     porcentage_obstacles: float = 0.1
+    randomization_interval: int = 100
     max_step: int = 1000
+    pretrained_model: bool = False
 
 
 @dataclass
@@ -18,6 +20,7 @@ class RenderConfig:
     fps: int = 1
     controller: bool = False
     rgb_array: bool = False
+    data_collection: bool = False
 
 
 @dataclass
