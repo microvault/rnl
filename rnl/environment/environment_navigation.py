@@ -24,10 +24,7 @@ class NaviEnv(gym.Env):
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
         env_config: EnvConfig,
-        render_config: RenderConfig,
-        randomization_interval: int = 10
-        data_collection: bool = False,
-        pretrained_model: bool = False
+        render_config: RenderConfig
     ):
         super().__init__()
         state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
@@ -85,9 +82,9 @@ class NaviEnv(gym.Env):
         self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
 
         # -- Environmental parameters -- #
-        self.pretrained_model = pretrained_model
+        self.pretrained_model = env_config.pretrained_model
         self.random_state = env_config.random_mode
-        self.data_collection = data_collection
+        self.data_collection = render_config.data_collection
         self.rgb_array = render_config.rgb_array
         self.max_timestep = env_config.max_step
         self.step_anim = env_config.max_step
@@ -114,7 +111,7 @@ class NaviEnv(gym.Env):
         self.init_distance = 0
         self.action = 0
         self.scalar = 10
-        self.randomization_interval = randomization_interval
+        self.randomization_interval = env_config.randomization_interval
         self.num_interval = 0
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
