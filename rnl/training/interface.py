@@ -38,6 +38,7 @@ def make(
     grid_dimension: int,
     friction: float,
     porcentage_obstacles: float,
+    random_interval: int,
     max_step: int = 1000,
 ):
     return EnvConfig(
@@ -51,8 +52,8 @@ def make(
     )
 
 
-def render(fps: int, controller: bool, rgb_array: bool):
-    return RenderConfig(fps, controller, rgb_array)
+def render(fps: int, controller: bool, rgb_array: bool, data_colletion: bool):
+    return RenderConfig(fps, controller, rgb_array, data_colletion)
 
 
 class Trainer:
