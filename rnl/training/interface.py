@@ -38,7 +38,7 @@ def make(
     grid_dimension: int,
     friction: float,
     porcentage_obstacles: float,
-    random_interval: int,
+    randomization_interval: int,
     max_step: int = 1000,
 ):
     return EnvConfig(
@@ -47,6 +47,7 @@ def make(
         timestep,
         grid_dimension,
         friction,
+        randomization_interval,
         porcentage_obstacles,
         max_step,
     )
