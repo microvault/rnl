@@ -25,10 +25,11 @@ class NaviEnv(gym.Env):
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
+        randomization_interval: int = 10
+        data_collection: bool = False,
         pretrained_model: bool = False
     ):
         super().__init__()
-        self.pretrained_model = pretrained_model
         state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
         self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
@@ -40,12 +41,12 @@ class NaviEnv(gym.Env):
             env_config.porcentage_obstacles,
             env_config.random_mode,
         )
-        self.random_state = env_config.random_mode
+        
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
         self.dataset = ScaleDataset()
-        # TODO
+        
         self.randomization = Randomization(
             robot_config=robot_config,
             sensor_config=sensor_config,
@@ -54,12 +55,11 @@ class NaviEnv(gym.Env):
             theta=0.15,
             sigma=0.2
         )
-
+        
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
 
-        self.last_states = np.zeros(state_size)
-
+        # -- Normalization -- #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
@@ -84,8 +84,11 @@ class NaviEnv(gym.Env):
         max_reward, min_reward = 500.0, -500.0
         self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
 
+        # -- Environmental parameters -- #
+        self.pretrained_model = pretrained_model
+        self.random_state = env_config.random_mode
+        self.data_collection = data_collection
         self.rgb_array = render_config.rgb_array
-        self.timestep = 0
         self.max_timestep = env_config.max_step
         self.step_anim = env_config.max_step
         self.fps = render_config.fps
@@ -94,11 +97,12 @@ class NaviEnv(gym.Env):
         self.xmax = env_config.grid_dimension - 0.25
         self.ymax = env_config.grid_dimension - 0.25
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
-
-        self.segments = []
         self.controller = render_config.controller
+        
+        # -- Local Variables -- #
+        self.segments = []
         self.cumulated_reward = 0.0
-
+        self.timestep = 0
         self.target_x: float = 0.0
         self.target_y: float = 0.0
         self.last_position_x = 0
@@ -108,12 +112,13 @@ class NaviEnv(gym.Env):
         self.vl = 0.01
         self.vr = 0.01
         self.init_distance = 0
-
         self.action = 0
         self.scalar = 10
-
+        self.randomization_interval = randomization_interval
+        self.num_interval = 0
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
+        self.last_states = np.zeros(state_size)
         
         if self.pretrained_model:
             self.rainbow = RainbowDQN.load(
@@ -264,14 +269,13 @@ class NaviEnv(gym.Env):
             )
         )
 
-        # self.dataset.store_step(
-        #     state=self.last_states,
-        #     action=action,
-        #     reward=reward,
-        #     next_state=states  # Assuming 'states' is the next state
-        # )
-        #
-        print("States: ", states)
+        if self.data_collection:
+            self.dataset.store_step(
+                state=self.last_states,
+                action=action,
+                reward=reward,
+                next_state=states
+            )
 
         self.last_states = states
 
@@ -377,6 +381,11 @@ class NaviEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
+        
+        self.num_interval += 1
+        
+        if self.num_interval == self.randomization_interval:
+            print("Randomizer")
 
         self.timestep = 0
 
