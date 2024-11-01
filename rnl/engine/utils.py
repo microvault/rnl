@@ -73,5 +73,11 @@ def r3(x):
 
 
 @njit
-def normalize(value, min_value, max_value):
-    return (value - min_value) / (max_value - min_value)
+def uniform_random(min_val, max_val):
+    return np.random.uniform(min_val, max_val)
+
+@njit
+def uniform_random_int(min_val, max_val):
+    return np.random.randint(min_val, max_val + 1)
+    
+    
