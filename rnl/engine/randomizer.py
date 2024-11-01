@@ -5,58 +5,33 @@ import numpy as np
 class DomainRandomization:
     def __init__(
         self,
-        robot_config: RobotConfig,
-        sensor_config: SensorConfig,
-        env_config: EnvConfig,
-        robot_config_mins: dict,
-        robot_config_maxs: dict,
-        sensor_config_mins: dict,
-        sensor_config_maxs: dict,
-        env_config_mins: dict,
-        env_config_maxs: dict,
+        window_size: int = 100,
     ):
-        self.robot_config = robot_config
-        self.sensor_config = sensor_config
-        self.env_config = env_config
-        self.robot_config_mins = robot_config_mins
-        self.robot_config_maxs = robot_config_maxs
-        self.sensor_config_mins = sensor_config_mins
-        self.sensor_config_maxs = sensor_config_maxs
-        self.env_config_mins = env_config_mins
-        self.env_config_maxs = env_config_maxs
+        self.window_size = window_size
 
-    def randomize_config(self, config, min_values, max_values):
-        randomized_config = copy.deepcopy(config)
-        for field_name in config.__dataclass_fields__:
-            value = getattr(config, field_name)
-            min_value = min_values[field_name]
-            max_value = max_values[field_name]
-            if isinstance(value, (float, int)):
-                # Randomize within min and max
-                new_value = random.uniform(min_value, max_value)
-                setattr(randomized_config, field_name, type(value)(new_value))
-            elif isinstance(value, list):
-                # Randomize each element in the list
-                new_value = []
-                for idx, v in enumerate(value):
-                    v_min = min_value[idx]
-                    v_max = max_value[idx]
-                    rand_val = random.uniform(v_min, v_max)
-                    new_value.append(type(v)(rand_val))
-                setattr(randomized_config, field_name, new_value)
-            else:
-                # For other types, keep the original value
-                setattr(randomized_config, field_name, value)
-        return randomized_config
-
-    def get_randomized_configs(self):
-        randomized_robot_config = self.randomize_config(
-            self.robot_config, self.robot_config_mins, self.robot_config_maxs
-        )
-        randomized_sensor_config = self.randomize_config(
-            self.sensor_config, self.sensor_config_mins, self.sensor_config_maxs
-        )
-        randomized_env_config = self.randomize_config(
-            self.env_config, self.env_config_mins, self.env_config_maxs
-        )
-        return randomized_robot_config, randomized_sensor_config, randomized_env_config
+    def adjust_initial_distance(self,reward_history, current_fraction, min_fraction, max_fraction, threshold=0.01, adjustment=0.05):
+        """
+        Adjusts the initial distance fraction between the robot and the goal based on the agent's performance.
+        
+        reward_history: list of rewards per episode.
+        current_fraction: current fraction of the maximum distance.
+        min_fraction: minimum allowed fraction.
+        max_fraction: maximum allowed fraction.
+        threshold: minimum difference in average to consider improvement.
+        adjustment: value to increase or decrease the fraction.
+        """
+        if len(reward_history) < 2 * self.window_size:
+            return current_fraction
+        recent_avg_reward = np.mean(reward_history[-self.window_size:])
+        previous_avg_reward = np.mean(reward_history[-2*self.window_size:-self.window_size])
+        improvement = recent_avg_reward - previous_avg_reward
+        if improvement > threshold:
+            # Agent is improving, increase the distance fraction
+            new_fraction = min(current_fraction + adjustment, max_fraction)
+        elif improvement < -threshold:
+            # Performance worsened, decrease the distance fraction
+            new_fraction = max(current_fraction - adjustment, min_fraction)
+        else:
+            # Stable performance, keep the current fraction
+            new_fraction = current_fraction
+        return new_fraction
