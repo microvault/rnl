@@ -4,18 +4,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
+from omegaconf import OmegaConf
 from sklearn.preprocessing import MinMaxScaler
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.scale_dataset import ScaleDataset
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
-from rnl.engine.utils import min_laser  # normalize
-from rnl.engine.utils import angle_to_goal, distance_to_goal, get_reward
+from rnl.engine.utils import (
+    angle_to_goal,
+    distance_to_goal,
+    get_reward,
+    min_laser,
+    uniform_random_int,
+)
 from rnl.environment.generate_world import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
-from rnl.engine.randomizer import Randomization
 
 
 class NaviEnv(gym.Env):
@@ -25,35 +30,22 @@ class NaviEnv(gym.Env):
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        pretrained_model: bool
+        pretrained_model: bool,
     ):
         super().__init__()
-        state_size = sensor_config.num_rays + 10  # (action, distance, angle, reward)
+
+        state_size = sensor_config.num_rays + 9  # (action, distance, angle)
         self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
+        self.param = OmegaConf.load("./rnl/configs/limits.yaml")
 
-        self.generator = Generator(
-            env_config.grid_dimension,
-            env_config.porcentage_obstacles,
-            env_config.random_mode,
-        )
-        
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
         self.dataset = ScaleDataset()
-        
-        self.randomization = Randomization(
-            robot_config=robot_config,
-            sensor_config=sensor_config,
-            env_config=env_config,
-            seed=42,
-            theta=0.15,
-            sigma=0.2
-        )
-        
+
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(self.space)
 
@@ -82,13 +74,18 @@ class NaviEnv(gym.Env):
         max_reward, min_reward = 500.0, -500.0
         self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
 
+        self.generator = Generator(
+            env_config.porcentage_obstacles,
+            env_config.random_mode,
+        )
+
         # -- Environmental parameters -- #
         self.pretrained_model = pretrained_model
         self.random_state = env_config.random_mode
         self.data_collection = render_config.data_collection
         self.rgb_array = render_config.rgb_array
-        self.max_timestep = env_config.max_step
-        self.step_anim = env_config.max_step
+        self.max_timestep = env_config.timestep
+        self.step_anim = env_config.timestep
         self.fps = render_config.fps
         self.threshold = robot_config.threshold
         self.grid_lenght = env_config.grid_dimension
@@ -96,7 +93,7 @@ class NaviEnv(gym.Env):
         self.ymax = env_config.grid_dimension - 0.25
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
         self.controller = render_config.controller
-        
+
         # -- Local Variables -- #
         self.segments = []
         self.cumulated_reward = 0.0
@@ -112,12 +109,12 @@ class NaviEnv(gym.Env):
         self.init_distance = 0
         self.action = 0
         self.scalar = 10
-        self.randomization_interval = env_config.randomization_interval
-        self.num_interval = 0
+        self.randomization_frequency = env_config.randomization_interval
+        self.epoch = 0
         self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
         self.measurement = np.zeros(20)
         self.last_states = np.zeros(state_size)
-        
+
         if self.pretrained_model:
             self.rainbow = RainbowDQN.load(
                 robot_config.path_model,
@@ -190,7 +187,9 @@ class NaviEnv(gym.Env):
 
     def step_animation(self, i):
         if self.pretrained_model:
-            self.action = self.rainbow.get_action(self.last_states, action_mask=None, training=True)[0]
+            self.action = self.rainbow.get_action(
+                self.last_states, action_mask=None, training=True
+            )[0]
 
         if not self.controller:
 
@@ -251,9 +250,10 @@ class NaviEnv(gym.Env):
         alpha_norm = self.scaler_alpha.transform(
             np.array(alpha).reshape(1, -1)
         ).flatten()
-        reward_norm = self.scaler_reward.transform(
-            np.array(reward).reshape(1, -1)
-        ).flatten()
+
+        # reward_norm = self.scaler_reward.transform(
+        #     np.array(reward).reshape(1, -1)
+        # ).flatten()
 
         action_one_hot = np.eye(7)[self.action]
 
@@ -263,16 +263,17 @@ class NaviEnv(gym.Env):
                 np.array(action_one_hot, dtype=np.int16),
                 np.array(dist_norm, dtype=np.float32),
                 np.array(alpha_norm, dtype=np.float32),
-                np.array(reward_norm, dtype=np.float32),
             )
         )
+
+        self.cumulated_reward += reward
 
         if self.data_collection:
             self.dataset.store_step(
                 state=self.last_states,
-                action=action,
+                action=self.action,
                 reward=reward,
-                next_state=states
+                next_state=states,
             )
 
         self.last_states = states
@@ -284,6 +285,8 @@ class NaviEnv(gym.Env):
             y,
             self.target_x,
             self.target_y,
+            self.cumulated_reward,
+            self.epoch,
         )
 
         truncated = self.timestep >= self.max_timestep
@@ -379,17 +382,19 @@ class NaviEnv(gym.Env):
 
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
-        
-        self.num_interval += 1
-        
-        if self.num_interval == self.randomization_interval:
-            print("Randomizer")
+
+        self.epoch += 1
+
+        if self.epoch % self.randomization_frequency == 0:
+            self.randomization()
 
         self.timestep = 0
 
         self.cumulated_reward = 0.0
 
-        new_map_path, exterior, interior, all_seg = self.generator.world()
+        new_map_path, exterior, interior, all_seg = self.generator.world(
+            self.grid_lenght
+        )
         self.segments = all_seg
 
         if self.rgb_array:
@@ -431,6 +436,8 @@ class NaviEnv(gym.Env):
                 self.robot.body.position.y,
                 self.target_x,
                 self.target_y,
+                self.cumulated_reward,
+                self.epoch,
             )
 
         dist = distance_to_goal(
@@ -511,7 +518,7 @@ class NaviEnv(gym.Env):
 
         # ------ Create wordld ------ #
 
-        path, _, _, _ = self.generator.world()
+        path, _, _, _ = self.generator.world(self.grid_lenght)
 
         ax.add_patch(path)
 
@@ -541,7 +548,7 @@ class NaviEnv(gym.Env):
             0,
             0,
             0.05,
-            self._get_label(0),
+            self._get_label(0, 0, 0),
         )
 
         self.label.set_fontsize(14)
@@ -555,7 +562,7 @@ class NaviEnv(gym.Env):
         return self.reward_function
 
     @staticmethod
-    def _get_label(timestep: int) -> str:
+    def _get_label(timestep: int, score: float, episode: int) -> str:
         """
         Generates a label for the environment.
 
@@ -567,20 +574,24 @@ class NaviEnv(gym.Env):
         """
         line1 = "Environment\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
+        line3 = "Score:".ljust(14) + f"{score:4.0f}\n"
+        line4 = "Episode:".ljust(14) + f"{episode:4.0f}\n"
 
-        return line1 + line2
+        return line1 + line2 + line3 + line4
 
     def _plot_anim(
         self,
         i: int,
         intersections: np.ndarray,
-        x: np.ndarray,
-        y: np.ndarray,
-        target_x: np.ndarray,
-        target_y: np.ndarray,
+        x: float,
+        y: float,
+        target_x: float,
+        target_y: float,
+        score: float,
+        episode: int,
     ) -> None:
 
-        self.label.set_text(self._get_label(i))
+        self.label.set_text(self._get_label(i, score, episode))
 
         if hasattr(self, "laser_scatters"):
             for scatter in self.laser_scatters:
@@ -605,4 +616,10 @@ class NaviEnv(gym.Env):
             [target_x],
             [target_y],
             [0],
+        )
+
+    def randomization(self):
+        self.grid_lenght = uniform_random_int(
+            self.param.environment.min_grid_dimension,
+            self.param.environment.max_grid_dimension,
         )

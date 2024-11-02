@@ -15,11 +15,9 @@ from rnl.engine.world_generate import GenerateWorld
 class Generator:
     def __init__(
         self,
-        grid_lenght: int = 5,
         random: float = 0.1,  # 1300
         mode: str = "normal",
     ):
-        self.grid_lenght = grid_lenght
         self.random = random
         self.collision = Collision()
         self.generate = GenerateWorld()
@@ -74,7 +72,7 @@ class Generator:
 
         return new_map
 
-    def world(self) -> Tuple[PathPatch, List, List, List]:
+    def world(self, grid_lenght) -> Tuple[PathPatch, List, List, List]:
         """
         Generates a maze world.
 
@@ -85,7 +83,7 @@ class Generator:
         - List: List of LineString segments representing the maze segments.
         """
         m = self.generate.generate_maze(
-            map_size=self.grid_lenght,
+            map_size=grid_lenght,
             decimation=0.0,
             min_blocks=5,
             num_cells_togo=1300,

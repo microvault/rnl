@@ -11,7 +11,22 @@ class EnvConfig:
     friction: float = 0.4
     porcentage_obstacles: float = 0.1
     randomization_interval: int = 100
-    max_step: int = 1000 
+
+
+@dataclass
+class MinMaxEnv:
+    min_timestep: int = 500
+    max_timestep: int = 3000
+    min_step: int = 500
+    max_step: int = 3000
+    min_grid_dimension: int = 3
+    max_grid_dimension: int = 10
+    min_friction: float = 0.1
+    max_friction: float = 0.9
+    min_porcentage_obstacles: float = 0.1
+    max_porcentage_obstacles: float = 0.9
+    min_randomization_interval: int = 10
+    max_randomization_interval: int = 100
 
 
 @dataclass
@@ -31,6 +46,18 @@ class SensorConfig:
 
 
 @dataclass
+class MinMaxSensor:
+    min_fov: float = 0.5
+    max_fov: float = 6.28319
+    min_num_rays: int = 5
+    max_num_rays: int = 30
+    min_min_range: float = 0.5
+    max_min_range: float = 5.0
+    min_max_range: float = 0.5
+    max_max_range: float = 2.0
+
+
+@dataclass
 class RobotConfig:
     base_radius: float = 0.033
     vel_linear: List[float] = field(default_factory=lambda: [0.0, 1.0])
@@ -39,6 +66,22 @@ class RobotConfig:
     weight: float = 1.0
     threshold: float = 0.01
     path_model: str = "./"
+
+
+@dataclass
+class MinMaxRobot:
+    min_base_radius: float = 0.01
+    max_base_radius: float = 0.1
+    min_vel_linear: list = field(default_factory=lambda: [0.0, 0.5])
+    max_vel_linear: list = field(default_factory=lambda: [0.5, 2.0])
+    min_vel_angular: list = field(default_factory=lambda: [-1.0, -0.5])
+    max_vel_angular: list = field(default_factory=lambda: [0.5, 1.0])
+    min_wheel_distance: float = 0.1
+    max_wheel_distance: float = 0.3
+    min_weight: float = 0.5
+    max_weight: float = 2.0
+    min_threshold: float = 0.1
+    max_threshold: float = 0.5
 
 
 @dataclass

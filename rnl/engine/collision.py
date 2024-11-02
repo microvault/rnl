@@ -11,7 +11,7 @@ RESET = "\033[0m"
 class Collision:
 
     def check_collision(
-        self, exterior: list, interiors: list, xp: np.ndarray, yp: np.ndarray
+        self, exterior: list, interiors: list, xp: float, yp: float
     ) -> bool:
         try:
             return is_circle_in_polygon(exterior, interiors, xp, yp)

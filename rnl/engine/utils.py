@@ -40,7 +40,7 @@ def min_laser(measurement: np.ndarray, threshold: float = 0.1):
 
 def get_reward(
     measurement, distance, collision, alpha, distance_init
-) -> Tuple[np.float64, np.bool_]:
+) -> Tuple[float, bool]:
 
     reward = 0.0
 
@@ -52,16 +52,16 @@ def get_reward(
         alpha_norm = 0
 
     if distance < 0.2:
-        return 500.0, np.bool_(True)
+        return 500.0, True
     elif collision:
-        return -500.0, np.bool_(True)
+        return -500.0, True
     else:
         obstacle = r3(min(measurement))
         if distance < 0.4:
             obstacle = 0
 
         reward = distance_init + abs(alpha_norm) - abs(distance) - obstacle
-        return np.float32(reward), np.bool_(False)
+        return reward, False
 
 
 @njit
@@ -76,8 +76,7 @@ def r3(x):
 def uniform_random(min_val, max_val):
     return np.random.uniform(min_val, max_val)
 
+
 @njit
 def uniform_random_int(min_val, max_val):
     return np.random.randint(min_val, max_val + 1)
-    
-    

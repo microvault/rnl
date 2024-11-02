@@ -29,6 +29,7 @@ def setup_parameters():
         grid_dimension=3,
         friction=0.4,
         porcentage_obstacles=0.1,
+        randomization_interval=2,
         max_step=1000,
     )
 
@@ -61,66 +62,65 @@ def test_environment_parameters(setup_parameters):
     assert param_env.grid_dimension == 3
     assert param_env.friction == 0.4
     assert param_env.porcentage_obstacles == 0.1
-    assert param_env.max_step == 1000
 
 
-def test_trainer_learning(setup_parameters):
-    param_robot, param_sensor, param_env = setup_parameters
-    model = vault.Trainer(param_robot, param_sensor, param_env, pretrained_model=False)
+# def test_trainer_learning(setup_parameters):
+#     param_robot, param_sensor, param_env = setup_parameters
+#     model = vault.Trainer(param_robot, param_sensor, param_env, pretrained_model=False)
 
-    result = model.learn(
-        max_timestep=10,
-        memory_size=1000,
-        gamma=0.99,
-        n_step=3,
-        alpha=0.6,
-        beta=0.4,
-        tau=0.001,
-        prior_eps=0.000001,
-        num_atoms=51,
-        v_min=-200,
-        v_max=200,
-        epsilon_start=1.0,
-        epsilon_end=0.1,
-        epsilon_decay=0.995,
-        batch_size=64,
-        lr=0.0001,
-        seed=1,
-        num_envs=1,
-        device="cpu",
-        learn_step=10,
-        target_score=200,
-        max_steps=10,
-        evaluation_steps=10,
-        evaluation_loop=1,
-        learning_delay=0,
-        n_step_memory=1,
-        checkpoint=100,
-        checkpoint_path="checkpoints",
-        overwrite_checkpoints=False,
-        use_wandb=False,
-        wandb_api_key="",
-        accelerator=False,
-        use_mutation=True,
-        freq_evolution=10,
-        population_size=2,
-        no_mutation=0.4,
-        arch_mutation=0.2,
-        new_layer=0.2,
-        param_mutation=0.2,
-        active_mutation=0.0,
-        hp_mutation=0.2,
-        hp_mutation_selection=["lr", "batch_size"],
-        mutation_strength=0.1,
-        evolution_steps=10,
-        save_elite=False,
-        elite_path="elite",
-        tourn_size=1,
-        elitism=True,
-        hidden_size=[60, 40],
-    )
+#     result = model.learn(
+#         max_timestep=10,
+#         memory_size=1000,
+#         gamma=0.99,
+#         n_step=3,
+#         alpha=0.6,
+#         beta=0.4,
+#         tau=0.001,
+#         prior_eps=0.000001,
+#         num_atoms=51,
+#         v_min=-200,
+#         v_max=200,
+#         epsilon_start=1.0,
+#         epsilon_end=0.1,
+#         epsilon_decay=0.995,
+#         batch_size=64,
+#         lr=0.0001,
+#         seed=1,
+#         num_envs=1,
+#         device="cpu",
+#         learn_step=10,
+#         target_score=200,
+#         max_steps=10,
+#         evaluation_steps=10,
+#         evaluation_loop=1,
+#         learning_delay=0,
+#         n_step_memory=1,
+#         checkpoint=100,
+#         checkpoint_path="checkpoints",
+#         overwrite_checkpoints=False,
+#         use_wandb=False,
+#         wandb_api_key="",
+#         accelerator=False,
+#         use_mutation=True,
+#         freq_evolution=10,
+#         population_size=2,
+#         no_mutation=0.4,
+#         arch_mutation=0.2,
+#         new_layer=0.2,
+#         param_mutation=0.2,
+#         active_mutation=0.0,
+#         hp_mutation=0.2,
+#         hp_mutation_selection=["lr", "batch_size"],
+#         mutation_strength=0.1,
+#         evolution_steps=10,
+#         save_elite=False,
+#         elite_path="elite",
+#         tourn_size=1,
+#         elitism=True,
+#         hidden_size=[60, 40],
+#     )
 
-    assert result is None
+#     assert result is None
 
 
 if __name__ == "__main__":

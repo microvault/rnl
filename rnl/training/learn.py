@@ -35,7 +35,7 @@ def training(
         sensor_config=sensor_config,
         env_config=env_config,
         render_config=render_config,
-        pretrained_model=pretrained_model
+        pretrained_model=pretrained_model,
     )
 
     net_config = {
@@ -157,7 +157,9 @@ def inference(
     for line in text:
         print(line)
 
-    env = NaviEnv(robot_config, sensor_config, env_config, render_config)
+    env = NaviEnv(
+        robot_config, sensor_config, env_config, render_config, pretrained_model=False
+    )
 
     env.reset()
     env.render()

@@ -17,6 +17,7 @@ def env():
         sensor_config=sensor_config,
         env_config=env_config,
         render_config=render_config,
+        pretrained_model=False,
     )
 
 

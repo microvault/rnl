@@ -29,5 +29,5 @@ def test_generate_shape_border(generate_instance):
 
 
 def test_world_output_type(generate_instance):
-    new_map_path, exter, inter, seg = generate_instance.world()
+    new_map_path, exter, inter, seg = generate_instance.world(3)
     assert isinstance(new_map_path, PathPatch)

@@ -15,6 +15,7 @@ def main(arg):
         wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
         weight=1.0,  # (kilograms) # TODO: RANDOMIZE
         threshold=0.05,  # (centimeters) # TODO: RANDOMIZE
+        path_model="./",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -33,6 +34,7 @@ def main(arg):
         grid_dimension=10,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
         porcentage_obstacles=0.1,  # TODO: RANDOMIZE
+        randomization_interval=2,
         max_step=1000,  # TODO: RANDOMIZE
     )
 
@@ -95,7 +97,9 @@ def main(arg):
         )
     else:
         # 4.step -> config render
-        param_render = vault.render(fps=1, controller=True, rgb_array=True)
+        param_render = vault.render(
+            fps=1, controller=True, rgb_array=True, data_colletion=False
+        )
 
         # 5.step -> config train robot
         model = vault.Trainer(
