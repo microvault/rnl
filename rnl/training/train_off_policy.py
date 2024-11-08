@@ -6,7 +6,7 @@ import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import trange
 
-import wandb
+# import wandb
 from rnl.components.replay_data import ReplayDataset
 from rnl.components.sampler import Sampler
 
@@ -316,49 +316,49 @@ def train_off_policy(
             for episode_scores in pop_episode_scores
         ]
 
-        if wb:
-            wandb_dict = {
-                "global_step": (
-                    total_steps * accelerator.state.num_processes
-                    if accelerator is not None and accelerator.is_main_process
-                    else total_steps
-                ),
-                "train/mean_score": np.mean(
-                    [
-                        mean_score
-                        for mean_score in mean_scores
-                        if not isinstance(mean_score, str)
-                    ]
-                ),
-                "eval/mean_fitness": np.mean(fitnesses),
-                "eval/best_fitness": np.max(fitnesses),
-            }
+        # if wb:
+        #     wandb_dict = {
+        #         "global_step": (
+        #             total_steps * accelerator.state.num_processes
+        #             if accelerator is not None and accelerator.is_main_process
+        #             else total_steps
+        #         ),
+        #         "train/mean_score": np.mean(
+        #             [
+        #                 mean_score
+        #                 for mean_score in mean_scores
+        #                 if not isinstance(mean_score, str)
+        #             ]
+        #         ),
+        #         "eval/mean_fitness": np.mean(fitnesses),
+        #         "eval/best_fitness": np.max(fitnesses),
+        #     }
 
-            # Create the loss dictionaries
-            if algo in ["RainbowDQN", "DQN"]:
-                actor_loss_dict = {
-                    f"train/agent_{index}_actor_loss": np.mean(loss[-10:])
-                    for index, loss in enumerate(pop_loss)
-                }
-                wandb_dict.update(actor_loss_dict)
+        #     # Create the loss dictionaries
+        #     if algo in ["RainbowDQN", "DQN"]:
+        #         actor_loss_dict = {
+        #             f"train/agent_{index}_actor_loss": np.mean(loss[-10:])
+        #             for index, loss in enumerate(pop_loss)
+        #         }
+        #         wandb_dict.update(actor_loss_dict)
 
-            if algo in ["DQN", "Rainbow DQN"]:
-                train_actions_hist = [
-                    freq / sum(train_actions_hist) for freq in train_actions_hist
-                ]
-                train_actions_dict = {
-                    f"train/action_{index}": action
-                    for index, action in enumerate(train_actions_hist)
-                }
-                wandb_dict.update(train_actions_dict)
+        #     if algo in ["DQN", "Rainbow DQN"]:
+        #         train_actions_hist = [
+        #             freq / sum(train_actions_hist) for freq in train_actions_hist
+        #         ]
+        #         train_actions_dict = {
+        #             f"train/action_{index}": action
+        #             for index, action in enumerate(train_actions_hist)
+        #         }
+        #         wandb_dict.update(train_actions_dict)
 
-            if accelerator is not None:
-                accelerator.wait_for_everyone()
-                if accelerator.is_main_process:
-                    wandb.log(wandb_dict)
-                accelerator.wait_for_everyone()
-            else:
-                wandb.log(wandb_dict)
+        #     if accelerator is not None:
+        #         accelerator.wait_for_everyone()
+        #         if accelerator.is_main_process:
+        #             wandb.log(wandb_dict)
+        #         accelerator.wait_for_everyone()
+        #     else:
+        #         wandb.log(wandb_dict)
 
         # Update step counter
         for agent in pop:
@@ -372,8 +372,8 @@ def train_off_policy(
                 )
                 and len(pop[0].steps) >= 100
             ):
-                if wb:
-                    wandb.finish()
+                # if wb:
+                #     wandb.finish()
                 return pop, pop_fitnesses
 
         # Tournament selection and population mutation
@@ -466,14 +466,14 @@ def train_off_policy(
                     print("Saved checkpoint.")
                 checkpoint_count += 1
 
-    if wb:
-        if accelerator is not None:
-            accelerator.wait_for_everyone()
-            if accelerator.is_main_process:
-                wandb.finish()
-            accelerator.wait_for_everyone()
-        else:
-            wandb.finish()
+    # if wb:
+    #     if accelerator is not None:
+    #         accelerator.wait_for_everyone()
+    #         if accelerator.is_main_process:
+    #             wandb.finish()
+    #         accelerator.wait_for_everyone()
+    #     else:
+    #         wandb.finish()
 
     pbar.close()
     return pop, pop_fitnesses
