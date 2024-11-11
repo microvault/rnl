@@ -3,10 +3,10 @@ import warnings
 from datetime import datetime
 
 import numpy as np
+import wandb
 from torch.utils.data import DataLoader
 from tqdm import trange
 
-import wandb
 from rnl.components.replay_data import ReplayDataset
 from rnl.components.sampler import Sampler
 
