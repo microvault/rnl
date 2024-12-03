@@ -146,3 +146,6 @@ Nicolas Alan - **grottimeireles@gmail.com**.
 ## Acknowledgments
 * [AgileRL](https://github.com/AgileRL/AgileRL)
 * [Gazebo](https://gazebosim.org/home)
+* [Pytorch](https://pytorch.org/)
+* [OpenAI](https://openai.com/)
+* [ROS](https://www.ros.org/)
