@@ -131,7 +131,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="x",
-                markersize=3.0,
+                markersize=6.0,  # 3.0
                 color="red",
             )[0]
 
@@ -140,7 +140,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="o",
-                markersize=2.0,
+                markersize=6.0,  # 2.0
                 color="orange",
             )[0]
 
@@ -229,9 +229,9 @@ class NaviEnv(gym.Env):
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
 
         alpha = angle_to_goal(
-            self.robot.body.position.x,
-            self.robot.body.position.y,
-            self.robot.body.position.angle,
+            self.body.position.x,  # self.robot.body.position.x,
+            self.body.position.y,  # self.robot.body.position.y,
+            self.body.position.angle,  # self.robot.body.position.angle,
             self.target_x,
             self.target_y,
         )
@@ -333,9 +333,9 @@ class NaviEnv(gym.Env):
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
 
         alpha = angle_to_goal(
-            self.robot.body.position.x,
-            self.robot.body.position.y,
-            self.robot.body.position.angle,
+            self.body.position.x,
+            self.body.position.y,
+            self.body.position.angle,
             self.target_x,
             self.target_y,
         )
@@ -384,8 +384,8 @@ class NaviEnv(gym.Env):
 
         self.epoch += 1
 
-        if self.epoch % self.randomization_frequency == 0:
-            self.randomization()
+        # if self.epoch % self.randomization_frequency == 0:
+        #     self.randomization()
 
         self.timestep = 0
 
@@ -419,8 +419,8 @@ class NaviEnv(gym.Env):
 
         self.robot.reset_robot(self.body, x, y, theta)
         intersections, measurement = self.sensor.sensor(
-            x=self.robot.body.position.x,
-            y=self.robot.body.position.y,
+            x=self.body.position.x,
+            y=self.body.position.y,
             theta=self.body.position.angle,
             segments=all_seg,
         )
@@ -431,8 +431,8 @@ class NaviEnv(gym.Env):
             self._plot_anim(
                 0,
                 intersections,
-                self.robot.body.position.x,
-                self.robot.body.position.y,
+                self.body.position.x,
+                self.body.position.y,
                 self.target_x,
                 self.target_y,
                 self.cumulated_reward,
@@ -440,8 +440,8 @@ class NaviEnv(gym.Env):
             )
 
         dist = distance_to_goal(
-            self.robot.body.position.x,
-            self.robot.body.position.y,
+            self.body.position.x,
+            self.body.position.y,
             self.target_x,
             self.target_y,
         )
@@ -449,9 +449,9 @@ class NaviEnv(gym.Env):
         self.init_distance = dist
 
         alpha = angle_to_goal(
-            self.robot.body.position.x,
-            self.robot.body.position.y,
-            self.robot.body.position.angle,
+            self.body.position.x,
+            self.body.position.y,
+            self.body.position.angle,
             self.target_x,
             self.target_y,
         )
@@ -538,9 +538,9 @@ class NaviEnv(gym.Env):
         ax.set_axis_off()
 
         # Set camera
-        ax.elev = 20
-        ax.azim = -155
-        ax.dist = 1
+        ax.elev = 40
+        ax.azim = -255
+        ax.dist = 12
 
         self.label = self.ax.text(
             0,
@@ -553,11 +553,13 @@ class NaviEnv(gym.Env):
         self.label.set_fontweight("normal")
         self.label.set_color("#666666")
 
-        self.fig.subplots_adjust(left=0, right=1, bottom=0.1, top=1)
+        self.fig.subplots_adjust(
+            left=0.05, right=0.95, bottom=0.20, top=0.95
+        )  # left=0.05, right=0.95, bottom=0.05, top=0.95
 
-    def get_reward_function(self):
+    # def get_reward_function(self):
 
-        return self.reward_function
+    #     return self.reward_function
 
     @staticmethod
     def _get_label(timestep: int, score: float, episode: int) -> str:
@@ -600,8 +602,8 @@ class NaviEnv(gym.Env):
         for angle, intersection in zip(self.lidar_angle, intersections):
             if intersection is not None:
                 scatter = plt.scatter(
-                    intersection[0], intersection[1], color="g", s=0.5
-                )
+                    intersection[0], intersection[1], color="g", s=3.0
+                )  # 0.5
                 self.laser_scatters.append(scatter)
 
         self.agents.set_data_3d(
