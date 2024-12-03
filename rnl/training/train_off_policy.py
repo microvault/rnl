@@ -6,6 +6,8 @@ import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import trange
 
+from rnl.components.replay_buffer import MultiStepReplayBuffer
+
 # import wandb
 from rnl.components.replay_data import ReplayDataset
 from rnl.components.sampler import Sampler
@@ -27,8 +29,8 @@ def train_off_policy(
     eps_decay=0.995,
     target=None,
     n_step=True,
-    per=False,
-    n_step_memory=None,
+    per=True,
+    n_step_memory: MultiStepReplayBuffer = None,
     tournament=None,
     mutation=None,
     checkpoint=None,
@@ -115,13 +117,8 @@ def train_off_policy(
             if not os.path.exists(accel_temp_models_path):
                 os.makedirs(accel_temp_models_path)
 
-    # Detect if environment is vectorised
-    if hasattr(env, "num_envs"):
-        num_envs = env.num_envs
-        is_vectorised = True
-    else:
-        is_vectorised = False
-        num_envs = 1
+    num_envs = env.num_envs
+    is_vectorised = True
 
     save_path = (
         checkpoint_path.split(".pt")[0]
@@ -141,10 +138,7 @@ def train_off_policy(
         )
     else:
         sampler = Sampler(distributed=False, per=per, memory=memory)
-        if n_step_memory is not None:
-            n_step_sampler = Sampler(
-                distributed=False, n_step=True, memory=n_step_memory
-            )
+        n_step_sampler = Sampler(distributed=False, n_step=True, memory=n_step_memory)
 
     if accelerator is not None:
         print(f"\nDistributed training on {accelerator.device}...")
@@ -221,35 +215,25 @@ def train_off_policy(
                 steps += num_envs
 
                 # Save experience to replay buffer
-                if n_step_memory is not None:
-                    one_step_transition = n_step_memory.save_to_memory_vect_envs(
-                        state,
-                        action,
-                        reward,
-                        next_state,
-                        done,
-                    )
-                    if one_step_transition:
-                        memory.save_to_memory_vect_envs(*one_step_transition)
-                else:
-                    memory.save_to_memory(
-                        state,
-                        action,
-                        reward,
-                        next_state,
-                        done,
-                        is_vectorised=is_vectorised,
-                    )
+                one_step_transition = n_step_memory.save_to_memory_vect_envs(
+                    state,
+                    action,
+                    reward,
+                    next_state,
+                    done,
+                )
+                if one_step_transition:
+                    memory.save_to_memory_vect_envs(*one_step_transition)
 
-                if per:
-                    fraction = min(
-                        ((agent.steps[-1] + idx_step + 1) * num_envs / max_steps), 1.0
-                    )
-                    agent.beta += fraction * (1.0 - agent.beta)
+                fraction = min(
+                    ((agent.steps[-1] + idx_step + 1) * num_envs / max_steps), 1.0
+                )
+                agent.beta += fraction * (1.0 - agent.beta)
 
                 # Learn according to learning frequency
                 # Handle learn_step > num_envs
                 if agent.learn_step > num_envs:
+                    print("learn_step > num_envs")
                     learn_step = agent.learn_step // num_envs
                     if (
                         idx_step % learn_step == 0
