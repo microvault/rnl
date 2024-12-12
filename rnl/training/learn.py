@@ -69,7 +69,6 @@ def training(
         algo="RainbowDQN",  # Algorithm
         state_dim=state_dim,  # State dimension
         action_dim=action_dim,  # Action dimension
-        one_hot=False,  # One-hot encoding
         net_config=net_config,  # Network configuration
         agent_config=agent_config,  # Agent configuration
         trainer_config=trainer_config,  # Trainer configuration
@@ -115,8 +114,6 @@ def training(
 
     trained_pop, pop_fitnesses = train_off_policy(
         env=env,
-        env_name="NaviEnv-v0",
-        algo="Rainbow DQN",
         pop=agent_pop,
         memory=memory,
         n_step_memory=n_step_memory,
@@ -128,6 +125,9 @@ def training(
         target=trainer_config.target_score,
         n_step=True,
         per=True,
+        eps_start=1.0,
+        eps_end=0.1,
+        eps_decay=0.995,
         tournament=tournament,
         mutation=mutations,
         wb=False,

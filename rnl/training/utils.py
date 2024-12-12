@@ -45,7 +45,6 @@ def create_population(
     algo,
     state_dim,
     action_dim,
-    one_hot,
     net_config,
     agent_config: AgentConfig,
     trainer_config: TrainerConfig,
@@ -64,8 +63,6 @@ def create_population(
     :type state_dim: int
     :param action_dim: Action dimension
     :type action_dim: int
-    :param one_hot: One-hot encoding
-    :type one_hot: bool
     :param INIT_HP: Initial hyperparameters
     :type INIT_HP: dict
     :param actor_network: Custom actor network, defaults to None
@@ -87,7 +84,6 @@ def create_population(
         agent = RainbowDQN(
             state_dim=state_dim,
             action_dim=action_dim,
-            one_hot=one_hot,
             index=idx,
             net_config=net_config,
             batch_size=trainer_config.batch_size,

@@ -1,78 +1,53 @@
 import os
-import warnings
+import pdb
+
+# import warnings
 from datetime import datetime
+from typing import List
 
 import numpy as np
+from gymnasium.vector import AsyncVectorEnv
 from torch.utils.data import DataLoader
 from tqdm import trange
 
-from rnl.components.replay_buffer import MultiStepReplayBuffer
+from rnl.algorithms.rainbow import RainbowDQN
+from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
 
 # import wandb
 from rnl.components.replay_data import ReplayDataset
 from rnl.components.sampler import Sampler
+from rnl.hpo.mutation import Mutations
+from rnl.hpo.tournament import TournamentSelection
 
 
 def train_off_policy(
-    env,
-    env_name,
-    algo,
-    pop,
-    memory,
-    max_steps=1000000,
-    evo_steps=10000,
-    eval_steps=None,
-    eval_loop=1,
-    learning_delay=0,
-    eps_start=1.0,
-    eps_end=0.1,
-    eps_decay=0.995,
-    target=None,
-    n_step=True,
-    per=True,
-    n_step_memory: MultiStepReplayBuffer = None,
-    tournament=None,
-    mutation=None,
-    checkpoint=None,
-    checkpoint_path=None,
-    overwrite_checkpoints=False,
-    save_elite=False,
+    env: AsyncVectorEnv,
+    pop: List[RainbowDQN],
+    memory: PrioritizedReplayBuffer,
+    max_steps: int,  # 1000000
+    evo_steps: int,  # 10000
+    eval_steps,  # None
+    eval_loop: int,  # 1
+    learning_delay,  # 0
+    eps_start: float,  # 1.0
+    eps_end: float,  # 0.1
+    eps_decay: float,  # 0.995
+    target: int,  # 100
+    n_step: bool,
+    per: bool,
+    n_step_memory: MultiStepReplayBuffer,
+    tournament: TournamentSelection,
+    mutation: Mutations,
+    checkpoint: int = 10,
+    checkpoint_path: str = None,
+    overwrite_checkpoints: bool = False,
+    save_elite: bool = False,
     elite_path=None,
-    wb=False,
-    verbose=True,
+    wb: bool = False,
+    verbose: bool = True,
     accelerator=None,
     wandb_api_key=None,
 ):
-    assert isinstance(
-        algo, str
-    ), "'algo' must be the name of the algorithm as a string."
-    assert isinstance(max_steps, int), "Number of steps must be an integer."
-    assert isinstance(evo_steps, int), "Evolution frequency must be an integer."
-    assert isinstance(eps_start, float), "Starting epsilon must be a float."
-    assert isinstance(eps_end, float), "Final value of epsilone must be a float."
-    assert isinstance(eps_decay, float), "Epsilon decay rate must be a float."
-    if target is not None:
-        assert isinstance(
-            target, (float, int)
-        ), "Target score must be a float or an integer."
-    assert isinstance(n_step, bool), "'n_step' must be a boolean."
-    assert isinstance(per, bool), "'per' must be a boolean."
-    if checkpoint is not None:
-        assert isinstance(checkpoint, int), "Checkpoint must be an integer."
-    assert isinstance(
-        wb, bool
-    ), "'wb' must be a boolean flag, indicating whether to record run with W&B"
-    assert isinstance(verbose, bool), "Verbose must be a boolean."
-    if save_elite is False and elite_path is not None:
-        warnings.warn(
-            "'save_elite' set to False but 'elite_path' has been defined, elite will not\
-                      be saved unless 'save_elite' is set to True."
-        )
-    if checkpoint is None and checkpoint_path is not None:
-        warnings.warn(
-            "'checkpoint' set to None but 'checkpoint_path' has been defined, checkpoint will not\
-                      be saved unless 'checkpoint' is defined."
-        )
 
     # if wb:
     #     if not hasattr(wandb, "api"):
@@ -94,7 +69,7 @@ def train_off_policy(
     #                 # set the wandb project where this run will be logged
     #                 project="AgileRL",
     #                 name="{}-EvoHPO-{}-{}".format(
-    #                     env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+    #                     "rnl", algo, datetime.now().strftime("%m%d%Y%H%M%S")
     #                 ),
     #                 # track hyperparameters and run metadata
     #                 config=config_dict,
@@ -105,26 +80,25 @@ def train_off_policy(
     #             # set the wandb project where this run will be logged
     #             project="AgileRL",
     #             name="{}-EvoHPO-{}-{}".format(
-    #                 env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+    #                 "rnl", algo, datetime.now().strftime("%m%d%Y%H%M%S")
     #             ),
     #             # track hyperparameters and run metadata
     #             config=config_dict,
     #         )
 
     if accelerator is not None:
-        accel_temp_models_path = f"models/{env_name}"
+        accel_temp_models_path = "models/rnl"
         if accelerator.is_main_process:
             if not os.path.exists(accel_temp_models_path):
                 os.makedirs(accel_temp_models_path)
 
     num_envs = env.num_envs
-    is_vectorised = True
 
     save_path = (
         checkpoint_path.split(".pt")[0]
         if checkpoint_path is not None
         else "{}-EvoHPO-{}-{}".format(
-            env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+            "rnl", "rainbow", datetime.now().strftime("%m%d%Y%H%M%S")
         )
     )
 
@@ -173,35 +147,26 @@ def train_off_policy(
         if accelerator is not None:
             accelerator.wait_for_everyone()
         pop_episode_scores = []
-        for agent_idx, agent in enumerate(pop):  # Loop through population
-            state = env.reset()[0]  # Reset environment at start of episode
+        for agent_idx, agent in enumerate(pop):
+            state = env.reset()[0]
             scores = np.zeros(num_envs)
             completed_episode_scores, losses = [], []
             steps = 0
 
-            if algo in ["DQN", "Rainbow DQN"]:
-                train_actions_hist = [0] * agent.action_dim
+            train_actions_hist = [0] * agent.action_dim
 
             for idx_step in range(evo_steps // num_envs):
 
                 action = agent.get_action(state)
 
-                if algo in ["DQN", "Rainbow DQN"]:
-                    for a in action:
-                        if not isinstance(a, int):
-                            a = int(a)
-                        train_actions_hist[a] += 1
-
-                if not is_vectorised:
-                    action = action[0]
+                for a in action:
+                    if not isinstance(a, int):
+                        a = int(a)
+                    train_actions_hist[a] += 1
 
                 # Act in environment
                 next_state, reward, done, trunc, _ = env.step(action)
                 scores += np.array(reward)
-
-                if not is_vectorised:
-                    done = [done]
-                    trunc = [trunc]
 
                 reset_noise_indices = []
                 for idx, (d, t) in enumerate(zip(done, trunc)):
@@ -215,7 +180,7 @@ def train_off_policy(
                 steps += num_envs
 
                 # Save experience to replay buffer
-                one_step_transition = n_step_memory.save_to_memory_vect_envs(
+                one_step_transition = n_step_memory.save_to_step_memory_vect_envs(
                     state,
                     action,
                     reward,
@@ -231,24 +196,19 @@ def train_off_policy(
                 agent.beta += fraction * (1.0 - agent.beta)
 
                 # Learn according to learning frequency
-                # Handle learn_step > num_envs
                 if agent.learn_step > num_envs:
-                    print("learn_step > num_envs")
                     learn_step = agent.learn_step // num_envs
                     if (
                         idx_step % learn_step == 0
                         and len(memory) >= agent.batch_size
                         and memory.counter > learning_delay
                     ):
-                        if per:
-                            experiences = sampler.sample(agent.batch_size, agent.beta)
-                            if n_step_memory is not None:
-                                n_step_experiences = n_step_sampler.sample(
-                                    experiences[6]
-                                )
-                                experiences += n_step_experiences
-                            loss, idxs, priorities = agent.learn_dqn(experiences)
-                            memory.update_priorities(idxs, priorities)
+                        experiences = sampler.sample(agent.batch_size, agent.beta)
+                        if n_step_memory is not None:
+                            n_step_experiences = n_step_sampler.sample(experiences[6])
+                            experiences += n_step_experiences
+                        loss, idxs, priorities = agent.learn_dqn(experiences)
+                        memory.update_priorities(idxs, priorities)
 
                 elif (
                     len(memory) >= agent.batch_size and memory.counter > learning_delay
@@ -256,20 +216,19 @@ def train_off_policy(
                     for _ in range(num_envs // agent.learn_step):
                         # Sample replay buffer
                         # Learn according to agent's RL algorithm
-                        if per:
-                            experiences = sampler.sample(agent.batch_size, agent.beta)
-                            if n_step_memory is not None:
-                                n_step_experiences = n_step_sampler.sample(
-                                    experiences[6]
-                                )
-                                experiences += n_step_experiences
-                            loss, idxs, priorities = agent.learn_dqn(experiences)
-                            memory.update_priorities(idxs, priorities)
+                        experiences = sampler.sample(agent.batch_size, agent.beta)
+                        if n_step_memory is not None:
+                            n_step_experiences = n_step_sampler.sample(experiences[6])
+                            experiences += n_step_experiences
+                        loss, idxs, priorities = agent.learn_dqn(experiences)
+                        memory.update_priorities(idxs, priorities)
 
                 if loss is not None:
                     losses.append(loss)
 
                 state = next_state
+
+                # pdb.set_trace()
 
             agent.steps[-1] += steps
             pbar.update(evo_steps // len(pop))
@@ -372,13 +331,13 @@ def train_off_policy(
                     pop = mutation.mutation(pop)
                     for pop_i, model in enumerate(pop):
                         model.save_checkpoint(
-                            f"{accel_temp_models_path}/{algo}_{pop_i}.pt"
+                            f"{accel_temp_models_path}/rainbow_{pop_i}.pt"
                         )
                 accelerator.wait_for_everyone()
                 if not accelerator.is_main_process:
                     for pop_i, model in enumerate(pop):
                         model.load_checkpoint(
-                            f"{accel_temp_models_path}/{algo}_{pop_i}.pt"
+                            f"{accel_temp_models_path}/rainbow_{pop_i}.pt"
                         )
                 accelerator.wait_for_everyone()
                 for model in pop:
@@ -391,7 +350,7 @@ def train_off_policy(
                 elite_save_path = (
                     elite_path.split(".pt")[0]
                     if elite_path is not None
-                    else f"{env_name}-elite_{algo}"
+                    else "rnl-elite_rainbow"
                 )
                 elite.save_checkpoint(f"{elite_save_path}.pt")
 
