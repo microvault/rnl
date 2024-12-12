@@ -89,15 +89,6 @@ class ReplayBuffer:
 
         return tuple(transition.values())
 
-    def save_to_memory_single_env(self, *args):
-        """Saves experience to memory.
-
-        :param *args: Variable length argument list. Contains transition elements in consistent order,
-            e.g. state, action, reward, next_state, done
-        """
-        self._add(*args)
-        self.counter += 1
-
     def save_to_memory_vect_envs(self, *args):
         """Saves multiple experiences to memory.
 
@@ -107,20 +98,6 @@ class ReplayBuffer:
         for transition in zip(*args):
             self._add(*transition)
             self.counter += 1
-
-    def save_to_memory(self, *args, is_vectorised=False):
-        """Applies appropriate save_to_memory function depending on whether
-        the environment is vectorised or not.
-
-        :param *args: Variable length argument list. Contains batched or unbatched transition elements in consistent order,
-            e.g. states, actions, rewards, next_states, dones
-        :param is_vectorised: Boolean flag indicating if the environment has been vectorised
-        :type is_vectorised: bool
-        """
-        if is_vectorised:
-            self.save_to_memory_vect_envs(*args)
-        else:
-            self.save_to_memory_single_env(*args)
 
 
 class MultiStepReplayBuffer(ReplayBuffer):
@@ -168,28 +145,7 @@ class MultiStepReplayBuffer(ReplayBuffer):
         self.n_step = n_step
         self.gamma = gamma
 
-    def save_to_memory_single_env(self, *args):
-        """Saves experience to memory.
-
-        :param *args: Variable length argument list. Contains transition elements in consistent order,
-            e.g. state, action, reward, next_state, done
-        """
-        self.args_deque.append(args)
-        transition = self.experience(*args)
-        self.n_step_buffers[0].append(transition)
-
-        # single step transition is not ready
-        if len(self.n_step_buffers[0]) < self.n_step:
-            return ()
-
-        # make a n-step transition
-        args = self._get_n_step_info(self.n_step_buffers[0], self.gamma)
-        self._add(*args)
-        self.counter += 1
-
-        return self.args_deque[0]
-
-    def save_to_memory_vect_envs(self, *args):
+    def save_to_step_memory_vect_envs(self, *args):
         """Saves multiple experiences to memory.
 
         :param *args: Variable length argument list. Contains transition elements in consistent order,
