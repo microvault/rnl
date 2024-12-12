@@ -4,6 +4,7 @@ import inspect
 import dill
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
@@ -19,7 +20,6 @@ class RainbowDQN:
         self,
         state_dim,
         action_dim,
-        one_hot,
         index=0,
         net_config={"arch": "mlp", "hidden_size": [64, 64]},
         batch_size=64,
@@ -47,9 +47,6 @@ class RainbowDQN:
         assert isinstance(
             action_dim, (int, np.integer)
         ), "Action dimension must be an integer."
-        assert isinstance(
-            one_hot, bool
-        ), "One-hot encoding flag must be boolean value True or False."
         assert isinstance(index, int), "Agent index must be an integer."
         assert isinstance(batch_size, int), "Batch size must be an integer."
         assert batch_size >= 1, "Batch size must be greater than or equal to one."
@@ -96,7 +93,6 @@ class RainbowDQN:
         self.algo = "Rainbow DQN"
         self.state_dim = state_dim
         self.action_dim = action_dim
-        self.one_hot = one_hot
         self.net_config = net_config
         self.batch_size = batch_size
         self.lr = lr
@@ -194,6 +190,12 @@ class RainbowDQN:
         else:
             state = state.to(self.accelerator.device)
 
+        state = (
+            nn.functional.one_hot(state.long(), num_classes=self.state_dim[0])
+            .float()
+            .squeeze()
+        )
+
         if self.arch == "mlp" and len(state.size()) < 2:
             state = state.unsqueeze(0)
 
@@ -214,6 +216,18 @@ class RainbowDQN:
         return action
 
     def _dqn_loss(self, states, actions, rewards, next_states, dones, gamma):
+
+        states = (
+            nn.functional.one_hot(states.long(), num_classes=self.state_dim[0])
+            .float()
+            .squeeze()
+        )
+        next_states = (
+            nn.functional.one_hot(next_states.long(), num_classes=self.state_dim[0])
+            .float()
+            .squeeze()
+        )
+
         with torch.no_grad():
 
             # Predict next actions from next_states
