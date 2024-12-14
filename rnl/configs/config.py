@@ -115,7 +115,7 @@ class TrainerConfig:
     num_envs: int = 1
     device: str = "cpu"
     learn_step: int = 10
-    target_score: float = 200.0
+    target_score: int = 200
     max_steps: int = 1000000
     evaluation_steps: int = 10000
     evaluation_loop: int = 1
@@ -126,7 +126,6 @@ class TrainerConfig:
     overwrite_checkpoints: bool = False
     use_wandb: bool = False
     wandb_api_key: str = ""
-    accelerator: bool = False
 
 
 @dataclass

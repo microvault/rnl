@@ -1,9 +1,6 @@
-import warnings
-
-from torch.utils.data import DataLoader
+from typing import List, Optional, Union
 
 from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
-from rnl.components.replay_data import ReplayDataset
 
 
 class Sampler:
@@ -11,53 +8,44 @@ class Sampler:
 
     def __init__(
         self,
-        distributed=False,
-        per=False,
-        n_step=False,
-        memory=None,
-        dataset=None,
-        dataloader=None,
+        per: bool,
+        n_step: bool,
+        memory: Union["PrioritizedReplayBuffer", "MultiStepReplayBuffer"],
     ):
-        assert (memory is not None) or (
-            (dataset is not None) and (dataloader is not None)
-        ), "Sampler needs to be initialized with either 'memory' or ('dataset' AND 'dataloader')."
-
-        self.distributed = distributed
         self.per = per
         self.n_step = n_step
         self.memory = memory
-        self.dataset = dataset
-        self.dataloader = dataloader
 
-        if self.distributed:
-            if not isinstance(self.dataset, ReplayDataset):
-                warnings.warn("Dataset is not an agilerl ReplayDataset.")
-            if not isinstance(self.dataloader, DataLoader):
-                warnings.warn("Dataset is not a torch DataLoader object.")
-            self.sample = self.sample_distributed
-
-        elif self.per:
-            if not isinstance(self.memory, PrioritizedReplayBuffer):
-                warnings.warn("Memory is not an agilerl PrioritizedReplayBuffer.")
-            self.sample = self.sample_per
-
-        elif self.n_step:
-            if not isinstance(self.memory, MultiStepReplayBuffer):
-                warnings.warn("Memory is not an agilerl MultiStepReplayBuffer.")
-            self.sample = self.sample_n_step
-
+    def sample(
+        self,
+        batch_size: Optional[int] = None,
+        beta: Optional[float] = None,
+        idxs: Optional[List[int]] = None,
+    ):
+        if batch_size is None:
+            if self.n_step:
+                if idxs is None:
+                    raise ValueError("Para sampling N-step, 'idxs' deve ser fornecido.")
+                return self._sample_n_step(idxs)
+            else:
+                raise ValueError("Batch size deve ser fornecido se não for N-step.")
         else:
-            self.sample = self.sample_standard
+            if self.per:
+                if beta is None:
+                    raise ValueError("Para sampling PER, 'beta' deve ser fornecido.")
+                return self._sample_per(batch_size, beta)
+            else:
+                return self._sample_standard(batch_size)
 
-    def sample_standard(self, batch_size, return_idx=False):
+    def _sample_standard(self, batch_size: int, return_idx: bool = False):
         return self.memory.sample(batch_size, return_idx)
 
-    def sample_distributed(self, batch_size, return_idx=None):
-        self.dataset.batch_size = batch_size
-        return next(iter(self.dataloader))
+    def _sample_per(self, batch_size: int, beta: float):
+        # Use isinstance para checar o tipo do buffer
+        if isinstance(self.memory, PrioritizedReplayBuffer):
+            return self.memory.sample_per(batch_size, beta)
+        else:
+            raise TypeError("Memory não é uma instância de PrioritizedReplayBuffer.")
 
-    def sample_per(self, batch_size, beta):
-        return self.memory.sample(batch_size, beta)
-
-    def sample_n_step(self, idxs):
+    def _sample_n_step(self, idxs: List[int]):
         return self.memory.sample_from_indices(idxs)

@@ -4,7 +4,6 @@ import inspect
 import dill
 import numpy as np
 import torch
-import torch.nn as nn
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
@@ -190,13 +189,7 @@ class RainbowDQN:
         else:
             state = state.to(self.accelerator.device)
 
-        state = (
-            nn.functional.one_hot(state.long(), num_classes=self.state_dim[0])
-            .float()
-            .squeeze()
-        )
-
-        if self.arch == "mlp" and len(state.size()) < 2:
+        if len(state.size()) < 2:
             state = state.unsqueeze(0)
 
         self.actor.train(mode=training)
@@ -216,17 +209,6 @@ class RainbowDQN:
         return action
 
     def _dqn_loss(self, states, actions, rewards, next_states, dones, gamma):
-
-        states = (
-            nn.functional.one_hot(states.long(), num_classes=self.state_dim[0])
-            .float()
-            .squeeze()
-        )
-        next_states = (
-            nn.functional.one_hot(next_states.long(), num_classes=self.state_dim[0])
-            .float()
-            .squeeze()
-        )
 
         with torch.no_grad():
 

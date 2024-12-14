@@ -271,7 +271,7 @@ class PrioritizedReplayBuffer(MultiStepReplayBuffer):
         self.min_tree[self.tree_ptr] = self.max_priority**self.alpha
         self.tree_ptr = (self.tree_ptr + 1) % self.memory_size
 
-    def sample(self, batch_size, beta=0.4):
+    def sample_per(self, batch_size, beta=0.4):
         """Returns sample of experiences from memory.
 
         :param batch_size: Number of samples to return

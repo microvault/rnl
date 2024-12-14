@@ -110,7 +110,6 @@ class Trainer:
         overwrite_checkpoints: bool = False,
         use_wandb: bool = False,
         wandb_api_key: str = "",
-        accelerator: bool = False,
         use_mutation: bool = True,
         freq_evolution: int = 10000,
         population_size: int = 6,
@@ -164,7 +163,6 @@ class Trainer:
             overwrite_checkpoints,
             use_wandb,
             wandb_api_key,
-            accelerator,
         )
 
         hpo_config = HPOConfig(

@@ -133,6 +133,11 @@ def training(
         wb=False,
         checkpoint=100,
         checkpoint_path="RainbowDQN.pt",
+        save_elite=True,
+        elite_path=None,
+        overwrite_checkpoints=False,
+        verbose=True,
+        wandb_api_key=None,
     )
 
 
