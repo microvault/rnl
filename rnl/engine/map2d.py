@@ -129,12 +129,33 @@ class Map2D:
 
         return new_map_grid
 
+    def plot_simple_map(self, width=10, height=10, filename="image1.png"):
+        """Plota o mapa apenas com o conteúdo e salva a imagem.
+
+        Args:
+            width (int): Largura da imagem em polegadas.
+            height (int): Altura da imagem em polegadas.
+            filename (str): Nome do arquivo para salvar a imagem.
+        """
+        grid_map = self._grid_map()  # Obtenha o mapa filtrado
+
+        # Definir o tamanho da figura
+        plt.figure(figsize=(width, height))
+        plt.imshow(grid_map, cmap="gray", origin="lower")
+        plt.axis("off")  # Remove os eixos, títulos e rótulos
+
+        # Salvar a imagem
+        plt.savefig(filename, bbox_inches="tight", pad_inches=0)
+        plt.show()
+
+        print(f"Imagem salva como {filename}")
+
     def initial_environment2d(
         self,
         plot=True,
         kernel_size=(3, 3),
         morph_iterations=1,
-        approx_epsilon_factor=0.030,
+        approx_epsilon_factor=0.01,
         contour_retrieval_mode=cv2.RETR_TREE,
         contour_approx_method=cv2.CHAIN_APPROX_SIMPLE,
     ):
@@ -200,17 +221,20 @@ class Map2D:
 
         if plot:
 
-            plt.figure(figsize=(6, 6))
+            plt.figure(figsize=(10, 10))  # 6, 6
             plt.imshow(contour_mask, cmap="gray")
             plt.axis("off")
+
+            # Salvar a imagem
+            plt.savefig("image4.png", bbox_inches="tight", pad_inches=0)
             plt.show()
 
         return contour_mask
 
-    def plot_initial_environment3d(self, plot=True) -> None:
+    def plot_initial_environment3d(self, plot=False) -> None:
         """generate environment from map"""
 
-        self.initial_environment2d(plot=False)
+        self.initial_environment2d(plot)
 
     #     # new_map_grid = self._grid_map()
 
@@ -235,3 +259,9 @@ class Map2D:
     #             ]
 
     #             all_edges.extend(edges)
+
+
+# if __name__ == "__main__":
+#     map2d = Map2D("/Users/nicolasalan/microvault/rnl/data/map", "map")
+#     map2d.plot_initial_environment3d()
+    # map2d.plot_simple_map()

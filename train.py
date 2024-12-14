@@ -9,19 +9,19 @@ import rnl as vault
 def main(arg):
     # 1.step -> config robot
     param_robot = vault.robot(
-        base_radius=0.033,  # (centimeters) # TODO: RANDOMIZE
+        base_radius=20.0,  # (centimeters) # TODO: RANDOMIZE
         vel_linear=[0.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         vel_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
-        weight=1.0,  # (kilograms) # TODO: RANDOMIZE
+        weight=1000.0,  # (kilograms) # TODO: RANDOMIZE
         threshold=0.05,  # (centimeters) # TODO: RANDOMIZE
         path_model="./",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=2 * np.pi,  # TODO: RANDOMIZE
-        num_rays=20,  # TODO: RANDOMIZE
+        fov=4 * np.pi,  # TODO: RANDOMIZE
+        num_rays=40,  # TODO: RANDOMIZE
         min_range=0.0,  # TODO: RANDOMIZE
         max_range=6.0,  # TODO: RANDOMIZE
     )
@@ -31,7 +31,7 @@ def main(arg):
         map_file="None",  # TODO: RANDOMIZE
         random_mode="normal",  # hard, normal
         timestep=1000,  # TODO: RANDOMIZE
-        grid_dimension=10,  # TODO: RANDOMIZE
+        grid_dimension=5,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
         porcentage_obstacles=0.1,  # TODO: RANDOMIZE
         randomization_interval=2,
@@ -43,12 +43,13 @@ def main(arg):
         model = vault.Trainer(
             param_robot, param_sensor, param_env, pretrained_model=False
         )
+
         # 5.step -> train robot
         model.learn(
-            max_timestep=800000,
-            memory_size=1000000,
+            max_timestep=100,  # 800000
+            memory_size=1000,
             gamma=0.99,
-            n_step=3,
+            n_step=1,
             alpha=0.6,
             beta=0.4,
             tau=0.001,
@@ -59,27 +60,26 @@ def main(arg):
             epsilon_start=1.0,
             epsilon_end=0.1,
             epsilon_decay=0.995,
-            batch_size=64,
+            batch_size=4,
             lr=0.0001,
             seed=1,
-            num_envs=6,
+            num_envs=2,
             device="mps",
             learn_step=10,
             target_score=200,
-            max_steps=1000000,
-            evaluation_steps=10000,
+            max_steps=100,
+            evaluation_steps=100,
             evaluation_loop=1,
             learning_delay=0,
             n_step_memory=1,
-            checkpoint=1000,
+            checkpoint=100,
             checkpoint_path="checkpoints",
             overwrite_checkpoints=False,
             use_wandb=False,
             wandb_api_key="",
-            accelerator=False,
             use_mutation=True,
-            freq_evolution=10000,
-            population_size=4,
+            freq_evolution=100,
+            population_size=2,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
@@ -88,13 +88,14 @@ def main(arg):
             hp_mutation=0.2,
             hp_mutation_selection=["lr", "batch_size", "learn_step"],
             mutation_strength=0.1,
-            evolution_steps=10000,
+            evolution_steps=100,
             save_elite=False,
             elite_path="elite",
             tourn_size=2,
             elitism=True,
-            hidden_size=[800, 600],
+            hidden_size=[60, 40],
         )
+
     else:
         # 4.step -> config render
         param_render = vault.render(

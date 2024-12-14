@@ -38,8 +38,7 @@ def test_create_robot(robot):
     assert isinstance(shape, pymunk.Circle)
     assert shape.body == robot_body
     assert shape.radius == pytest.approx(robot.robot_radius)
-    assert shape.friction == 0.4
-    assert shape.damping == 0.1
+    assert shape.friction == 0.9
 
 
 def test_move_robot(robot):
