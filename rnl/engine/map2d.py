@@ -264,4 +264,4 @@ class Map2D:
 # if __name__ == "__main__":
 #     map2d = Map2D("/Users/nicolasalan/microvault/rnl/data/map", "map")
 #     map2d.plot_initial_environment3d()
-    # map2d.plot_simple_map()
+# map2d.plot_simple_map()

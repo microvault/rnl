@@ -40,8 +40,6 @@ class MakeEvolvable(nn.Module):
     :type rainbow: bool, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
     :type device: str, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
     """
 
     def __init__(
@@ -59,7 +57,6 @@ class MakeEvolvable(nn.Module):
         support=None,
         rainbow=True,
         device="cpu",
-        accelerator=None,
         **kwargs,
     ):
         super().__init__()
@@ -82,7 +79,6 @@ class MakeEvolvable(nn.Module):
         self.max_mlp_nodes = max_mlp_nodes
         self.output_vanish = output_vanish
         self.device = device
-        self.accelerator = accelerator
 
         #### Rainbow attributes
         self.rainbow = rainbow  #### add in as a doc string
@@ -129,8 +125,7 @@ class MakeEvolvable(nn.Module):
         if not isinstance(x, torch.Tensor):
             x = torch.FloatTensor(np.array(x))
 
-        if self.accelerator is None:
-            x = x.to(self.device)
+        x = x.to(self.device)
 
         if x.dtype != torch.float32:
             x = x.type(torch.float32)
@@ -466,16 +461,13 @@ class MakeEvolvable(nn.Module):
             mlp_activation=self.mlp_activation,
         )
 
-        if self.accelerator is None:
-            feature_net = feature_net.to(self.device)
-            value_net = (
-                value_net.to(self.device) if value_net is not None else value_net
-            )
-            advantage_net = (
-                advantage_net.to(self.device)
-                if advantage_net is not None
-                else advantage_net
-            )
+        feature_net = feature_net.to(self.device)
+        value_net = value_net.to(self.device) if value_net is not None else value_net
+        advantage_net = (
+            advantage_net.to(self.device)
+            if advantage_net is not None
+            else advantage_net
+        )
         return feature_net, value_net, advantage_net
 
     @property
@@ -491,7 +483,6 @@ class MakeEvolvable(nn.Module):
             "mlp_activation": self.mlp_activation,
             "mlp_output_activation": self.mlp_output_activation,
             "device": self.device,
-            "accelerator": self.accelerator,
             "extra_critic_dims": self.extra_critic_dims,
             "output_vanish": self.output_vanish,
             "init_layers": self.init_layers,

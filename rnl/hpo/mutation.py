@@ -52,8 +52,6 @@ class Mutations:
     :type rand_seed: int, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
     :type device: str, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
     """
 
     def __init__(
@@ -79,7 +77,6 @@ class Mutations:
         mutate_elite=True,
         rand_seed=None,
         device="cpu",
-        accelerator=None,
     ):
         assert isinstance(
             algo, (str, dict)
@@ -188,7 +185,6 @@ class Mutations:
         self.mutation_sd = mutation_sd  # Mutation strength
         self.mutate_elite = mutate_elite
         self.device = device
-        self.accelerator = accelerator
         self.agent_ids = agent_ids
         self.min_batch_size = min_batch_size
         self.max_batch_size = max_batch_size
@@ -283,10 +279,7 @@ class Mutations:
                 for ind_target, offspring_actor in zip(ind_targets, offspring_actors):
                     ind_target.load_state_dict(offspring_actor.state_dict())
 
-                if self.accelerator is None:
-                    ind_targets = [
-                        ind_target.to(self.device) for ind_target in ind_targets
-                    ]
+                ind_targets = [ind_target.to(self.device) for ind_target in ind_targets]
                 setattr(individual, self.algo["actor"]["target"], ind_targets)
 
                 # If algorithm has critics, reinitialize their respective target networks
@@ -303,10 +296,9 @@ class Mutations:
                     ):
                         ind_target.load_state_dict(offspring_critic.state_dict())
 
-                    if self.accelerator is None:
-                        ind_targets = [
-                            ind_target.to(self.device) for ind_target in ind_targets
-                        ]
+                    ind_targets = [
+                        ind_target.to(self.device) for ind_target in ind_targets
+                    ]
                     setattr(individual, critics_list["target"], ind_targets)
             else:
                 if "target" in self.algo["actor"].keys():
@@ -316,14 +308,12 @@ class Mutations:
                     # mutation in architecture of value network
                     ind_target = type(offspring_actor)(**offspring_actor.init_dict)
                     ind_target.load_state_dict(offspring_actor.state_dict())
-                    if self.accelerator is not None:
-                        setattr(individual, self.algo["actor"]["target"], ind_target)
-                    else:
-                        setattr(
-                            individual,
-                            self.algo["actor"]["target"],
-                            ind_target.to(self.device),
-                        )
+
+                    setattr(
+                        individual,
+                        self.algo["actor"]["target"],
+                        ind_target.to(self.device),
+                    )
 
                     # If algorithm has critics, reinitialize their respective target networks
                     # too
@@ -333,12 +323,9 @@ class Mutations:
                             **offspring_critic.init_dict
                         )
                         ind_target.load_state_dict(offspring_critic.state_dict())
-                        if self.accelerator is not None:
-                            setattr(individual, critic["target"], ind_target)
-                        else:
-                            setattr(
-                                individual, critic["target"], ind_target.to(self.device)
-                            )
+                        setattr(
+                            individual, critic["target"], ind_target.to(self.device)
+                        )
 
             mutated_population.append(individual)
 
@@ -432,23 +419,17 @@ class Mutations:
         offspring_actor = self._permutate_activation(
             offspring_actor
         )  # Mutate activation function
-        if self.accelerator is not None:
-            setattr(individual, self.algo["actor"]["eval"], offspring_actor)
-        else:
-            setattr(
-                individual,
-                self.algo["actor"]["eval"],
-                offspring_actor.to(self.device),
-            )
+        setattr(
+            individual,
+            self.algo["actor"]["eval"],
+            offspring_actor.to(self.device),
+        )
 
         # If algorithm has critics, mutate their activations too
         for critic in self.algo["critics"]:
             offspring_critic = getattr(individual, critic["eval"])
             offspring_critic = self._permutate_activation(offspring_critic)
-            if self.accelerator is not None:
-                setattr(individual, critic["eval"], offspring_critic)
-            else:
-                setattr(individual, critic["eval"], offspring_critic.to(self.device))
+            setattr(individual, critic["eval"], offspring_critic.to(self.device))
 
         self.reinit_opt(individual)  # Reinitialise optimizer
         individual.mut = "act"
@@ -471,8 +452,7 @@ class Mutations:
         new_network.load_state_dict(network.state_dict())
         network = new_network
 
-        if self.accelerator is None:
-            network = network.to(self.device)
+        network = network.to(self.device)
 
         return network
 
@@ -487,14 +467,11 @@ class Mutations:
         offspring_actor = self.classic_parameter_mutation(
             offspring_actor
         )  # Network parameter mutation function
-        if self.accelerator is not None:
-            setattr(individual, self.algo["actor"]["eval"], offspring_actor)
-        else:
-            setattr(
-                individual,
-                self.algo["actor"]["eval"],
-                offspring_actor.to(self.device),
-            )
+        setattr(
+            individual,
+            self.algo["actor"]["eval"],
+            offspring_actor.to(self.device),
+        )
         self.reinit_opt(individual)  # Reinitialise optimizer
         individual.mut = "param"
         return individual
@@ -560,8 +537,7 @@ class Mutations:
                     W[ind_dim1, ind_dim2].item(), 1000000
                 )
 
-        if self.accelerator is None:
-            network = network.to(self.device)
+        network = network.to(self.device)
 
         return network
 
@@ -603,19 +579,13 @@ class Mutations:
                 critic_mutation = getattr(offspring_critic, mut_method)
                 critic_mutation()
 
-        if self.accelerator is not None:
-            setattr(individual, self.algo["actor"]["eval"], offspring_actor)
-        else:
-            setattr(
-                individual,
-                self.algo["actor"]["eval"],
-                offspring_actor.to(self.device),
-            )
+        setattr(
+            individual,
+            self.algo["actor"]["eval"],
+            offspring_actor.to(self.device),
+        )
         for offspring_critic, critic in zip(offspring_critics, self.algo["critics"]):
-            if self.accelerator is not None:
-                setattr(individual, critic["eval"], offspring_critic)
-            else:
-                setattr(individual, critic["eval"], offspring_critic.to(self.device))
+            setattr(individual, critic["eval"], offspring_critic.to(self.device))
 
         self.reinit_opt(individual)  # Reinitialise optimizer
         individual.mut = "arch"
@@ -688,11 +658,7 @@ class Mutations:
                 new_sigma_inv[i, i] = individual.lamb
 
         individual.exp_layer = exp_layer
-        individual.sigma_inv = torch.from_numpy(new_sigma_inv).to(
-            individual.device
-            if individual.accelerator is None
-            else individual.accelerator.device
-        )
+        individual.sigma_inv = torch.from_numpy(new_sigma_inv).to(individual.device)
 
     def get_algo_nets(self, algo):
         """Returns dictionary with agent network names.

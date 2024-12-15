@@ -100,7 +100,6 @@ def test_environment_parameters(setup_parameters):
 #         overwrite_checkpoints=False,
 #         use_wandb=False,
 #         wandb_api_key="",
-#         accelerator=False,
 #         use_mutation=True,
 #         freq_evolution=10,
 #         population_size=2,

@@ -7,7 +7,7 @@ import torch
 import torch.optim as optim
 from torch.nn.utils import clip_grad_norm_
 
-from rnl.algorithms.algo_utils import chkpt_attribute_to_device, unwrap_optimizer
+from rnl.algorithms.algo_utils import chkpt_attribute_to_device
 from rnl.networks.evolvable_mlp import EvolvableMLP
 from rnl.wrappers.make_evolvable import MakeEvolvable
 
@@ -37,7 +37,6 @@ class RainbowDQN:
         combined_reward=True,
         actor_network=None,
         device="cpu",
-        accelerator=None,
         wrap=True,
     ):
         assert isinstance(
@@ -107,7 +106,6 @@ class RainbowDQN:
         self.mut = mut
         self.actor_network = actor_network
         self.device = device
-        self.accelerator = accelerator
         self.index = index
         self.scores = []
         self.fitness = []
@@ -117,10 +115,7 @@ class RainbowDQN:
 
         self.support = torch.linspace(self.v_min, self.v_max, self.num_atoms)
         self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
-        if self.accelerator is None:
-            self.support = self.support.to(self.device)
-        else:
-            self.support = self.support.to(self.accelerator.device)
+        self.support = self.support.to(self.device)
 
         if self.actor_network is None:
             assert isinstance(self.net_config, dict), "Net config must be a dictionary."
@@ -152,7 +147,6 @@ class RainbowDQN:
                     rainbow=True,
                     noise_std=noise_std,
                     device=self.device,
-                    accelerator=self.accelerator,
                     **self.net_config,
                 )
 
@@ -165,12 +159,8 @@ class RainbowDQN:
             self.net_config["arch"] if self.net_config is not None else self.actor.arch
         )
 
-        if self.accelerator is not None:
-            if wrap:
-                self.wrap_models()
-        else:
-            self.actor = self.actor.to(self.device)
-            self.actor_target = self.actor_target.to(self.device)
+        self.actor = self.actor.to(self.device)
+        self.actor_target = self.actor_target.to(self.device)
 
         self.actor.train()
         self.actor_target.train()
@@ -184,10 +174,7 @@ class RainbowDQN:
         :type action_mask: numpy.ndarray, optional
         """
         state = torch.from_numpy(state).float()
-        if self.accelerator is None:
-            state = state.to(self.device)
-        else:
-            state = state.to(self.accelerator.device)
+        state = state.to(self.device)
 
         if len(state.size()) < 2:
             state = state.unsqueeze(0)
@@ -245,12 +232,8 @@ class RainbowDQN:
                 .expand(self.batch_size, self.num_atoms)
             )
             proj_dist = torch.zeros(target_q_dist.size())
-            if self.accelerator is None:
-                offset = offset.to(self.device)
-                proj_dist = proj_dist.to(self.device)
-            else:
-                offset = offset.to(self.accelerator.device)
-                proj_dist = proj_dist.to(self.accelerator.device)
+            offset = offset.to(self.device)
+            proj_dist = proj_dist.to(self.device)
             proj_dist.view(-1).index_add_(
                 0, (L + offset).view(-1), (target_q_dist * (u.float() - b)).view(-1)
             )
@@ -291,18 +274,6 @@ class RainbowDQN:
             n_next_states,
             n_dones,
         ) = experiences
-        if self.accelerator is not None:
-            states = states.to(self.accelerator.device)
-            actions = actions.to(self.accelerator.device)
-            rewards = rewards.to(self.accelerator.device)
-            next_states = next_states.to(self.accelerator.device)
-            dones = dones.to(self.accelerator.device)
-            weights = weights.to(self.accelerator.device)
-            n_states = n_states.to(self.accelerator.device)
-            n_actions = n_actions.to(self.accelerator.device)
-            n_rewards = n_rewards.to(self.accelerator.device)
-            n_next_states = n_next_states.to(self.accelerator.device)
-            n_dones = n_dones.to(self.accelerator.device)
 
         elementwise_loss = self._dqn_loss(
             states, actions, rewards, next_states, dones, self.gamma
@@ -319,10 +290,7 @@ class RainbowDQN:
         loss = torch.mean(elementwise_loss * weights)
 
         self.optimizer.zero_grad()
-        if self.accelerator is not None:
-            self.accelerator.backward(loss)
-        else:
-            loss.backward()
+        loss.backward()
         clip_grad_norm_(self.actor.parameters(), 10.0)
         self.optimizer.step()
 
@@ -395,23 +363,9 @@ class RainbowDQN:
         optimizer = optim.Adam(actor.parameters(), lr=clone.lr)
         optimizer.load_state_dict(self.optimizer.state_dict())
 
-        if self.accelerator is not None:
-            if wrap:
-                (
-                    clone.actor,
-                    clone.actor_target,
-                    clone.optimizer,
-                ) = self.accelerator.prepare(actor, actor_target, optimizer)
-            else:
-                clone.actor, clone.actor_target, clone.optimizer = (
-                    actor,
-                    actor_target,
-                    optimizer,
-                )
-        else:
-            clone.actor = actor.to(self.device)
-            clone.actor_target = actor_target.to(self.device)
-            clone.optimizer = optimizer
+        clone.actor = actor.to(self.device)
+        clone.actor_target = actor_target.to(self.device)
+        clone.optimizer = optimizer
 
         for attribute in self.inspect_attributes().keys():
             if hasattr(self, attribute) and hasattr(clone, attribute):
@@ -458,18 +412,6 @@ class RainbowDQN:
             attributes = {k: v for k, v in attributes if k not in guarded_attributes}
 
         return attributes
-
-    def wrap_models(self):
-        if self.accelerator is not None:
-            self.actor, self.actor_target, self.optimizer = self.accelerator.prepare(
-                self.actor, self.actor_target, self.optimizer
-            )
-
-    def unwrap_models(self):
-        if self.accelerator is not None:
-            self.actor = self.accelerator.unwrap_model(self.actor)
-            self.actor_target = self.accelerator.unwrap_model(self.actor_target)
-            self.optimizer = unwrap_optimizer(self.optimizer, self.actor, self.lr)
 
     def save_checkpoint(self, path):
         """Saves a checkpoint of agent properties and network weights to path.
@@ -532,15 +474,13 @@ class RainbowDQN:
                 setattr(self, attribute, checkpoint[attribute])
 
     @classmethod
-    def load(cls, path, device="cpu", accelerator=None):
+    def load(cls, path, device="cpu"):
         """Creates agent with properties and network weights loaded from path.
 
         :param path: Location to load checkpoint from
         :type path: string
         :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
         :type device: str, optional
-        :param accelerator: Accelerator for distributed computing, defaults to None
-        :type accelerator: accelerate.Accelerator(), optional
         """
         checkpoint = torch.load(path, map_location=device, pickle_module=dill)
         checkpoint["actor_init_dict"]["device"] = device
@@ -563,7 +503,6 @@ class RainbowDQN:
         )
 
         checkpoint["device"] = device
-        checkpoint["accelerator"] = accelerator
         checkpoint = chkpt_attribute_to_device(checkpoint, device)
 
         constructor_params = inspect.signature(cls.__init__).parameters.keys()
@@ -586,9 +525,6 @@ class RainbowDQN:
         agent.actor.load_state_dict(actor_state_dict)
         agent.actor_target.load_state_dict(actor_target_state_dict)
         agent.optimizer.load_state_dict(optimizer_state_dict)
-
-        if accelerator is not None:
-            agent.wrap_models()
 
         for attribute in agent.inspect_attributes().keys():
             setattr(agent, attribute, checkpoint[attribute])

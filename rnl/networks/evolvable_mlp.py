@@ -47,8 +47,6 @@ class EvolvableMLP(nn.Module):
     :type noise_std: float, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
     :type device: str, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
     """
 
     def __init__(
@@ -70,7 +68,6 @@ class EvolvableMLP(nn.Module):
         rainbow=True,
         noise_std=0.5,
         device="cpu",
-        accelerator=None,
         arch="mlp",
     ):
         super().__init__()
@@ -110,7 +107,6 @@ class EvolvableMLP(nn.Module):
         self.support = support
         self.rainbow = rainbow
         self.device = device
-        self.accelerator = accelerator
         self.noise_std = noise_std
         self._net_config = {
             "arch": self.arch,
@@ -267,12 +263,11 @@ class EvolvableMLP(nn.Module):
             output_activation=None,
             noisy=True,
         )
-        if self.accelerator is None:
-            value_net, advantage_net, feature_net = (
-                value_net.to(self.device),
-                advantage_net.to(self.device),
-                feature_net.to(self.device),
-            )
+        value_net, advantage_net, feature_net = (
+            value_net.to(self.device),
+            advantage_net.to(self.device),
+            feature_net.to(self.device),
+        )
 
         return feature_net, value_net, advantage_net
 
@@ -297,8 +292,7 @@ class EvolvableMLP(nn.Module):
         """
         if not isinstance(x, torch.Tensor):
             x = torch.FloatTensor(np.array(x))
-            if self.accelerator is None:
-                x = x.to(self.device)
+            x = x.to(self.device)
 
         if x.dtype != torch.float32:
             x = x.to(torch.float32)
@@ -342,7 +336,6 @@ class EvolvableMLP(nn.Module):
             "rainbow": self.rainbow,
             "noise_std": self.noise_std,
             "device": self.device,
-            "accelerator": self.accelerator,
         }
         return init_dict
 

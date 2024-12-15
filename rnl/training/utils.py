@@ -53,7 +53,6 @@ def create_population(
     population_size=1,
     num_envs=1,
     device="cpu",
-    accelerator=None,
 ):
     """Returns population of identical agents.
 
@@ -75,8 +74,6 @@ def create_population(
     :type num_envs: int, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
     :type device: str, optional
-    :param accelerator: Accelerator for distributed computing, defaults to None
-    :type accelerator: accelerate.Accelerator(), optional
     """
     population = []
 
@@ -99,7 +96,6 @@ def create_population(
             n_step=agent_config.n_step,
             actor_network=actor_network,
             device=device,
-            accelerator=accelerator,
         )
         population.append(agent)
 

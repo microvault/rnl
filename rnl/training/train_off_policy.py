@@ -58,20 +58,6 @@ def train_off_policy(
     #     if MUT_P is not None:
     #         config_dict.update(MUT_P)
 
-    #     if accelerator is not None:
-    #         accelerator.wait_for_everyone()
-    #         if accelerator.is_main_process:
-    #             wandb.init(
-    #                 # set the wandb project where this run will be logged
-    #                 project="AgileRL",
-    #                 name="{}-EvoHPO-{}-{}".format(
-    #                     "rnl", algo, datetime.now().strftime("%m%d%Y%H%M%S")
-    #                 ),
-    #                 # track hyperparameters and run metadata
-    #                 config=config_dict,
-    #             )
-    #         accelerator.wait_for_everyone()
-    #     else:
     #         wandb.init(
     #             # set the wandb project where this run will be logged
     #             project="AgileRL",
@@ -234,11 +220,7 @@ def train_off_policy(
 
         # if wb:
         #     wandb_dict = {
-        #         "global_step": (
-        #             total_steps * accelerator.state.num_processes
-        #             if accelerator is not None and accelerator.is_main_process
-        #             else total_steps
-        #         ),
+        #         "global_step": total_steps,
         #         "train/mean_score": np.mean(
         #             [
         #                 mean_score
@@ -268,13 +250,7 @@ def train_off_policy(
         #         }
         #         wandb_dict.update(train_actions_dict)
 
-        #     if accelerator is not None:
-        #         accelerator.wait_for_everyone()
-        #         if accelerator.is_main_process:
-        #             wandb.log(wandb_dict)
-        #         accelerator.wait_for_everyone()
-        #     else:
-        #         wandb.log(wandb_dict)
+        #     wandb.log(wandb_dict)
 
         # Update step counter
         for agent in pop:
@@ -342,13 +318,7 @@ def train_off_policy(
                 checkpoint_count += 1
 
     # if wb:
-    #     if accelerator is not None:
-    #         accelerator.wait_for_everyone()
-    #         if accelerator.is_main_process:
-    #             wandb.finish()
-    #         accelerator.wait_for_everyone()
-    #     else:
-    #         wandb.finish()
+    #     wandb.finish()
 
     pbar.close()
     return pop, pop_fitnesses
