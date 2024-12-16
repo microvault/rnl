@@ -14,7 +14,9 @@ class TournamentSelection:
     :type eval_loop: int
     """
 
-    def __init__(self, tournament_size: int, elitism: bool, population_size: int, eval_loop: int):
+    def __init__(
+        self, tournament_size: int, elitism: bool, population_size: int, eval_loop: int
+    ):
         assert tournament_size > 0, "Tournament size must be greater than zero."
         assert isinstance(elitism, bool), "Elitism must be boolean value True or False."
         assert population_size > 0, "Population size must be greater than zero."

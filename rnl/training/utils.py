@@ -2,12 +2,25 @@ import gymnasium as gym
 import numpy as np
 
 from rnl.algorithms.rainbow import RainbowDQN
-from rnl.configs.config import AgentConfig, TrainerConfig
+from rnl.configs.config import (
+    AgentConfig,
+    EnvConfig,
+    RenderConfig,
+    RobotConfig,
+    SensorConfig,
+    TrainerConfig,
+)
 from rnl.environment.environment_navigation import NaviEnv
-from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
 
 
-def make_vect_envs(num_envs: int, robot_config: RobotConfig, sensor_config: SensorConfig, env_config: EnvConfig, render_config: RenderConfig, pretrained_model: bool):
+def make_vect_envs(
+    num_envs: int,
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    render_config: RenderConfig,
+    pretrained_model: bool,
+):
     """Returns async-vectorized gym environments with custom parameters.
 
     :param env_name: Gym environment name or custom environment class
@@ -19,7 +32,9 @@ def make_vect_envs(num_envs: int, robot_config: RobotConfig, sensor_config: Sens
     """
 
     def make_env():
-        return NaviEnv(robot_config, sensor_config, env_config, render_config, pretrained_model)
+        return NaviEnv(
+            robot_config, sensor_config, env_config, render_config, pretrained_model
+        )
 
     return gym.vector.AsyncVectorEnv([make_env for _ in range(num_envs)])
 
@@ -72,6 +87,7 @@ def create_population(
         population.append(agent)
 
     return population
+
 
 def print_hyperparams(pop):
     """Prints current hyperparameters of agents in a population and their fitnesses.
