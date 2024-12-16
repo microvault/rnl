@@ -3,9 +3,11 @@ import numpy as np
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import AgentConfig, TrainerConfig
+from rnl.environment.environment_navigation import NaviEnv
+from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
 
 
-def make_vect_envs(env_name, num_envs: int, **env_kwargs):
+def make_vect_envs(num_envs: int, robot_config: RobotConfig, sensor_config: SensorConfig, env_config: EnvConfig, render_config: RenderConfig, pretrained_model: bool):
     """Returns async-vectorized gym environments with custom parameters.
 
     :param env_name: Gym environment name or custom environment class
@@ -17,10 +19,7 @@ def make_vect_envs(env_name, num_envs: int, **env_kwargs):
     """
 
     def make_env():
-        if isinstance(env_name, str):
-            return gym.make(env_name, **env_kwargs)
-        else:
-            return env_name(**env_kwargs)
+        return NaviEnv(robot_config, sensor_config, env_config, render_config, pretrained_model)
 
     return gym.vector.AsyncVectorEnv([make_env for _ in range(num_envs)])
 
@@ -41,8 +40,6 @@ def create_population(
     :type state_dim: int
     :param action_dim: Action dimension
     :type action_dim: int
-    :param INIT_HP: Initial hyperparameters
-    :type INIT_HP: dict
     :param population_size: Number of agents in population, defaults to 1
     :type population_size: int, optional
     :param num_envs: Number of vectorized environments, defaults to 1

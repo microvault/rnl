@@ -41,11 +41,9 @@ class Sampler:
         return self.memory.sample(batch_size, return_idx)
 
     def _sample_per(self, batch_size: int, beta: float):
-        # Use isinstance para checar o tipo do buffer
         if isinstance(self.memory, PrioritizedReplayBuffer):
             return self.memory.sample_per(batch_size, beta)
-        else:
-            raise TypeError("Memory não é uma instância de PrioritizedReplayBuffer.")
 
     def _sample_n_step(self, idxs: List[int]):
-        return self.memory.sample_from_indices(idxs)
+        if isinstance(self.memory, MultiStepReplayBuffer):
+            return self.memory.sample_from_indices(idxs)

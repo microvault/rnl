@@ -2,7 +2,7 @@
 
 # import warnings
 from datetime import datetime
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 from gymnasium.vector import AsyncVectorEnv
@@ -15,7 +15,7 @@ from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedRepla
 from rnl.components.sampler import Sampler
 from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
-
+import pdb
 
 def train_off_policy(
     env: AsyncVectorEnv,
@@ -34,11 +34,10 @@ def train_off_policy(
     tournament: TournamentSelection,
     mutation: Mutations,
     checkpoint: int,
-    checkpoint_path: Optional["str"] = None,
-    overwrite_checkpoints: bool = False,
-    save_elite: bool = False,
-    wb: bool = False,
-    wandb_api_key=None,
+    checkpoint_path: str,
+    overwrite_checkpoints: bool,
+    wb: bool,
+    wandb_api_key: str,
 ):
 
     # if wb:
@@ -133,6 +132,8 @@ def train_off_policy(
                     next_state,
                     done,
                 )
+
+
                 if one_step_transition:
                     memory.save_to_memory_vect_envs(*one_step_transition)
 
@@ -269,6 +270,7 @@ def train_off_policy(
 
         elite_save_path = "rnl-elite_rainbow"
         elite.save_checkpoint(f"{elite_save_path}.pt")
+
 
         fitness = ["%.2f" % fitness for fitness in fitnesses]
         avg_fitness = ["%.2f" % np.mean(agent.fitness[-5:]) for agent in pop]

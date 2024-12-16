@@ -1133,7 +1133,7 @@ test = ["pytest (>=7.4)", "pytest-cov (>=4.1)"]
 [[package]]
 name = "llvmlite"
 version = "0.43.0"
-description = "lightweight wrapper around basic LLVM functionality"
+description = "lightweightper around basic LLVM functionality"
 optional = false
 python-versions = ">=3.9"
 files = [

@@ -11,43 +11,7 @@ from rnl.networks.custom_components import NoisyLinear
 
 
 class EvolvableMLP(nn.Module):
-    """The Evolvable Multi-layer Perceptron class.
-
-    :param num_inputs: Input layer dimension
-    :type num_inputs: int
-    :param num_outputs: Output layer dimension
-    :type num_outputs: int
-    :param hidden_size: Hidden layer(s) size
-    :type hidden_size: list[int]
-    :param num_atoms: Number of atoms for Rainbow DQN, defaults to 51
-    :type num_atoms: int, optional
-    :param mlp_activation: Activation layer, defaults to 'relu'
-    :type mlp_activation: str, optional
-    :param mlp_output_activation: Output activation layer, defaults to None
-    :type mlp_output_activation: str, optional
-    :param min_hidden_layers: Minimum number of hidden layers the network will shrink down to, defaults to 1
-    :type min_hidden_layers: int, optional
-    :param max_hidden_layers: Maximum number of hidden layers the network will expand to, defaults to 3
-    :type max_hidden_layers: int, optional
-    :param min_mlp_nodes: Minimum number of nodes a layer can have within the network, defaults to 64
-    :type min_mlp_nodes: int, optional
-    :param max_mlp_nodes: Maximum number of nodes a layer can have within the network, defaults to 500
-    :type max_mlp_nodes: int, optional
-    :param layer_norm: Normalization between layers, defaults to True
-    :type layer_norm: bool, optional
-    :param output_vanish: Vanish output by multiplying by 0.1, defaults to True
-    :type output_vanish: bool, optional
-    :param init_layers: Initialise network layers, defaults to True
-    :type init_layers: bool, optional
-    :param support: Atoms support tensor, defaults to None
-    :type support: torch.Tensor(), optional
-    :param rainbow: Using Rainbow DQN, defaults to False
-    :type rainbow: bool, optional
-    :param noise_std: Noise standard deviation, defaults to 0.5
-    :type noise_std: float, optional
-    :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
-    :type device: str, optional
-    """
+    """The Evolvable Multi-layer Perceptron class"""
 
     def __init__(
         self,
@@ -56,20 +20,16 @@ class EvolvableMLP(nn.Module):
         hidden_size: List[int],
         num_atoms: int,
         mlp_activation: str,
-        mlp_output_activation=None,
-        min_hidden_layers=1,
-        max_hidden_layers=3,
-        min_mlp_nodes=64,
-        max_mlp_nodes=500,
-        layer_norm=True,
-        output_vanish=True,
-        init_layers=True,
-        support=None,
-        noise_std=0.5,
-        device="cpu",
-        arch="mlp",
-    ):
-        super().__init__()
+        mlp_output_activation: str,
+        min_hidden_layers: int,
+        max_hidden_layers: int,
+        min_mlp_nodes: int,
+        max_mlp_nodes: int,
+        support: torch.Tensor,
+        noise_std: float,
+        device: str,
+    ) -> None:
+        super(EvolvableMLP, self).__init__()
 
         assert (
             num_inputs > 0
@@ -89,7 +49,6 @@ class EvolvableMLP(nn.Module):
             min_mlp_nodes < max_mlp_nodes
         ), "'min_mlp_nodes' must be less than 'max_mlp_nodes."
 
-        self.arch = arch
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.mlp_activation = mlp_activation
@@ -98,16 +57,12 @@ class EvolvableMLP(nn.Module):
         self.max_hidden_layers = max_hidden_layers
         self.min_mlp_nodes = min_mlp_nodes
         self.max_mlp_nodes = max_mlp_nodes
-        self.layer_norm = layer_norm
-        self.output_vanish = output_vanish
-        self.init_layers = init_layers
         self.hidden_size = hidden_size
         self.num_atoms = num_atoms
         self.support = support
         self.device = device
         self.noise_std = noise_std
         self._net_config = {
-            "arch": self.arch,
             "hidden_size": self.hidden_size,
             "mlp_activation": self.mlp_activation,
             "mlp_output_activation": self.mlp_output_activation,
@@ -183,10 +138,8 @@ class EvolvableMLP(nn.Module):
             )
         else:
             net_dict["linear_layer_0"] = nn.Linear(input_size, hidden_size[0])
-        if self.init_layers:
-            net_dict["linear_layer_0"] = self.layer_init(net_dict["linear_layer_0"])
-        if self.layer_norm:
-            net_dict["layer_norm_0"] = nn.LayerNorm(hidden_size[0])
+        net_dict["linear_layer_0"] = self.layer_init(net_dict["linear_layer_0"])
+        net_dict["layer_norm_0"] = nn.LayerNorm(hidden_size[0])
         net_dict["activation_0"] = self.get_activation(
             self.mlp_output_activation
             if (len(hidden_size) == 1 and rainbow_feature_net)
@@ -202,14 +155,12 @@ class EvolvableMLP(nn.Module):
                     net_dict[f"linear_layer_{str(l_no)}"] = nn.Linear(
                         hidden_size[l_no - 1], hidden_size[l_no]
                     )
-                if self.init_layers:
-                    net_dict[f"linear_layer_{str(l_no)}"] = self.layer_init(
-                        net_dict[f"linear_layer_{str(l_no)}"]
-                    )
-                if self.layer_norm:
-                    net_dict[f"layer_norm_{str(l_no)}"] = nn.LayerNorm(
-                        hidden_size[l_no]
-                    )
+                net_dict[f"linear_layer_{str(l_no)}"] = self.layer_init(
+                    net_dict[f"linear_layer_{str(l_no)}"]
+                )
+                net_dict[f"layer_norm_{str(l_no)}"] = nn.LayerNorm(
+                    hidden_size[l_no]
+                )
                 net_dict[f"activation_{str(l_no)}"] = self.get_activation(
                     self.mlp_activation
                     if not rainbow_feature_net
@@ -220,8 +171,7 @@ class EvolvableMLP(nn.Module):
                 output_layer = NoisyLinear(hidden_size[-1], output_size, self.noise_std)
             else:
                 output_layer = nn.Linear(hidden_size[-1], output_size)
-            if self.init_layers:
-                output_layer = self.layer_init(output_layer)
+            output_layer = self.layer_init(output_layer)
             if output_vanish:
                 output_layer.weight_mu.data.mul_(0.1)
                 output_layer.bias_mu.data.mul_(0.1)
@@ -249,7 +199,7 @@ class EvolvableMLP(nn.Module):
             input_size=self.hidden_size[0],
             output_size=self.num_atoms,
             hidden_size=self.hidden_size[1:],
-            output_vanish=self.output_vanish,
+            output_vanish=True,
             output_activation=None,
             noisy=True,
         )
@@ -257,7 +207,7 @@ class EvolvableMLP(nn.Module):
             input_size=self.hidden_size[0],
             output_size=self.num_atoms * self.num_outputs,
             hidden_size=self.hidden_size[1:],
-            output_vanish=self.output_vanish,
+            output_vanish=True,
             output_activation=None,
             noisy=True,
         )
@@ -315,7 +265,6 @@ class EvolvableMLP(nn.Module):
 
     @property
     def init_dict(self):
-        """Returns model information in dictionary."""
         init_dict = {
             "num_inputs": self.num_inputs,
             "num_outputs": self.num_outputs,
@@ -327,9 +276,6 @@ class EvolvableMLP(nn.Module):
             "max_hidden_layers": self.max_hidden_layers,
             "min_mlp_nodes": self.min_mlp_nodes,
             "max_mlp_nodes": self.max_mlp_nodes,
-            "layer_norm": self.layer_norm,
-            "init_layers": self.init_layers,
-            "output_vanish": self.output_vanish,
             "support": self.support,
             "noise_std": self.noise_std,
             "device": self.device,
@@ -420,7 +366,22 @@ class EvolvableMLP(nn.Module):
 
     def clone(self):
         """Returns clone of neural net with identical parameters."""
-        clone = EvolvableMLP(**copy.deepcopy(self.init_dict))
+        init_dict = {
+            "num_inputs": self.num_inputs,
+            "num_outputs": self.num_outputs,
+            "hidden_size": self.hidden_size,
+            "num_atoms": self.num_atoms,
+            "mlp_activation": self.mlp_activation,
+            "mlp_output_activation": self.mlp_output_activation,
+            "min_hidden_layers": self.min_hidden_layers,
+            "max_hidden_layers": self.max_hidden_layers,
+            "min_mlp_nodes": self.min_mlp_nodes,
+            "max_mlp_nodes": self.max_mlp_nodes,
+            "support": self.support,
+            "noise_std": self.noise_std,
+            "device": self.device,
+        }
+        clone = EvolvableMLP(**copy.deepcopy(init_dict))
         clone.load_state_dict(self.state_dict())
         return clone
 

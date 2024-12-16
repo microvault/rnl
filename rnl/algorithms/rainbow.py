@@ -9,7 +9,6 @@ from torch.nn.utils import clip_grad_norm_
 
 from rnl.algorithms.algo_utils import chkpt_attribute_to_device
 from rnl.networks.evolvable_mlp import EvolvableMLP
-from rnl.wrappers.make_evolvable import MakeEvolvable
 
 
 class RainbowDQN:
@@ -35,12 +34,6 @@ class RainbowDQN:
         n_step: int,
         device: str,
     ):
-        assert isinstance(
-            state_dim, (list, tuple)
-        ), "State dimension must be a list or tuple."
-        assert isinstance(
-            action_dim, (int, np.integer)
-        ), "Action dimension must be an integer."
         assert isinstance(index, int), "Agent index must be an integer."
         assert isinstance(batch_size, int), "Batch size must be an integer."
         assert batch_size >= 1, "Batch size must be greater than or equal to one."
@@ -106,46 +99,20 @@ class RainbowDQN:
         self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
         self.support = self.support.to(self.device)
 
-        assert isinstance(self.net_config, dict), "Net config must be a dictionary."
-        assert (
-            "arch" in self.net_config.keys()
-        ), "Net config must contain arch: 'mlp'."
-        if self.net_config["arch"] == "mlp":  # Multi-layer Perceptron
-            assert (
-                "hidden_size" in self.net_config.keys()
-            ), "Net config must contain hidden_size: int."
-            assert isinstance(
-                self.net_config["hidden_size"], list
-            ), "Net config hidden_size must be a list."
-            assert (
-                len(self.net_config["hidden_size"]) > 0
-            ), "Net config hidden_size must contain at least one element."
-
-            if "mlp_output_activation" not in self.net_config.keys():
-                self.net_config["mlp_output_activation"] = "ReLU"
-
-            self.actor = EvolvableMLP(
-                num_inputs=state_dim[0],
-                num_outputs=action_dim,
-                output_vanish=True,
-                init_layers=False,
-                layer_norm=True,
-                num_atoms=self.num_atoms,
-                support=self.support,
-                rainbow=True,
-                noise_std=noise_std,
-                device=self.device,
-                **self.net_config,
-            )
+        self.actor = EvolvableMLP(
+            num_inputs=state_dim,
+            num_outputs=action_dim,
+            num_atoms=self.num_atoms,
+            support=self.support,
+            noise_std=noise_std,
+            device=self.device,
+            **self.net_config,
+        )
 
         # Create the target network by copying the actor network
         self.actor_target = copy.deepcopy(self.actor)
         self.actor_target.load_state_dict(self.actor.state_dict())
         self.optimizer = optim.Adam(self.actor.parameters(), lr=self.lr)
-
-        self.arch = (
-            self.net_config["arch"] if self.net_config is not None else self.actor.arch
-        )
 
         self.actor = self.actor.to(self.device)
         self.actor_target = self.actor_target.to(self.device)
@@ -333,14 +300,13 @@ class RainbowDQN:
         self.fitness.append(mean_fit)
         return mean_fit
 
-    def clone(self, index=None, wrap=True):
+    def clone(self, index=None):
         """Returns cloned agent identical to self.
 
         :param index: Index to keep track of agent for tournament selection and mutation, defaults to None
         :type index: int, optional
         """
         input_args = self.inspect_attributes(input_args_only=True)
-        input_args["wrap"] = wrap
         clone = type(self)(**input_args)
 
         actor = self.actor.clone()
@@ -440,11 +406,8 @@ class RainbowDQN:
         checkpoint = torch.load(path, map_location=self.device, pickle_module=dill)
         # self.net_config = checkpoint["net_config"]
         # if self.net_config is not None:
-        self.arch = checkpoint["net_config"]["arch"]
-        # if self.net_config["arch"] == "mlp":
         network_class = EvolvableMLP
         # else:
-        # network_class = MakeEvolvable
         self.actor = network_class(**checkpoint["actor_init_dict"])
         self.actor_target = network_class(**checkpoint["actor_target_init_dict"])
 
@@ -495,16 +458,9 @@ class RainbowDQN:
             k: v for k, v in checkpoint.items() if k in constructor_params
         }
 
-        if checkpoint["net_config"] is not None:
-            agent = cls(**class_init_dict)
-            agent.arch = checkpoint["net_config"]["arch"]
-            if agent.arch == "mlp":
-                agent.actor = EvolvableMLP(**actor_init_dict)
-                agent.actor_target = EvolvableMLP(**actor_target_init_dict)
-        else:
-            class_init_dict["actor_network"] = MakeEvolvable(**actor_init_dict)
-            agent = cls(**class_init_dict)
-            agent.actor_target = MakeEvolvable(**actor_target_init_dict)
+        agent = cls(**class_init_dict)
+        agent.actor = EvolvableMLP(**actor_init_dict)
+        agent.actor_target = EvolvableMLP(**actor_target_init_dict)
 
         agent.optimizer = optim.Adam(agent.actor.parameters(), lr=agent.lr)
         agent.actor.load_state_dict(actor_state_dict)

@@ -14,7 +14,7 @@ class TournamentSelection:
     :type eval_loop: int
     """
 
-    def __init__(self, tournament_size, elitism, population_size, eval_loop):
+    def __init__(self, tournament_size: int, elitism: bool, population_size: int, eval_loop: int):
         assert tournament_size > 0, "Tournament size must be greater than zero."
         assert isinstance(elitism, bool), "Elitism must be boolean value True or False."
         assert population_size > 0, "Population size must be greater than zero."
@@ -51,17 +51,14 @@ class TournamentSelection:
         elite, rank, max_id = self._elitism(population)
 
         new_population = []
-        if self.elitism:  # keep top agent in population
-            new_population.append(elite.clone(wrap=False))
-            selection_size = self.population_size - 1
-        else:
-            selection_size = self.population_size
+        new_population.append(elite.clone())
+        selection_size = self.population_size - 1
 
         # select parents of next gen using tournament selection
         for idx in range(selection_size):
             max_id += 1
             actor_parent = population[self._tournament(rank)]
-            new_individual = actor_parent.clone(max_id, wrap=False)
+            new_individual = actor_parent.clone(max_id)
             new_population.append(new_individual)
 
         return elite, new_population

@@ -6,7 +6,7 @@ import numpy as np
 
 class OUNoise:
 
-    def __init__(self, size, seed, mu=0.0, theta=0.15, sigma=0.2):
+    def __init__(self, size: int, seed: int, mu: float, theta: float, sigma: float):
         self.mu = mu * np.ones(size)
         self.theta = theta
         self.sigma = sigma
@@ -20,6 +20,6 @@ class OUNoise:
         x = self.state
         dx = self.theta * (self.mu - x) + self.sigma * np.array(
             [random.random() for i in range(len(x))]
-        )  # atualizar o estado interno
+        )
         self.state = x + dx
         return self.state

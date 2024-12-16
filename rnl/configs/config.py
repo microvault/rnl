@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
-
+import torch
 
 @dataclass
 class EnvConfig:
@@ -87,6 +87,17 @@ class MinMaxRobot:
 @dataclass
 class NetworkConfig:
     hidden_size: List[int] = field(default_factory=lambda: [800, 600])
+    std_init_noisy_linear: float = 0.5
+    mlp_activation: str = "ReLU"
+    mlp_output_activation: str = "ReLU"
+    min_hidden_layers: int = 2
+    max_hidden_layers: int = 3
+    min_mlp_nodes: int = 64
+    max_mlp_nodes: int= 500
+    layer_norm: bool = True
+    output_vanish: bool = True
+    init_layers: bool = True
+    noise_std: float = 0.5
 
 
 @dataclass

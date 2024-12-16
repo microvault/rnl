@@ -50,7 +50,7 @@ class Mutations:
 
     def __init__(
         self,
-        no_mutation,
+        no_mutation: float,
         architecture,
         new_layer_prob,
         parameters,

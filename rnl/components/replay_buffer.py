@@ -1,6 +1,6 @@
 import random
 from collections import deque, namedtuple
-
+from typing import List
 import numpy as np
 import torch
 
@@ -19,7 +19,7 @@ class ReplayBuffer:
     :type device: str, optional
     """
 
-    def __init__(self, memory_size, field_names, device=None):
+    def __init__(self, memory_size: int, field_names: List[str], device: str):
         assert memory_size > 0, "Mmeory size must be greater than zero."
         assert len(field_names) > 0, "Field names must contain at least one field name."
 
@@ -70,7 +70,7 @@ class ReplayBuffer:
             transition[field] = ts
         return transition
 
-    def sample(self, batch_size, return_idx=False):
+    def sample(self, batch_size: int, return_idx: bool):
         """Returns sample of experiences from memory.
 
         :param batch_size: Number of samples to return
@@ -81,6 +81,7 @@ class ReplayBuffer:
         if return_idx:
             idxs = np.random.choice(len(self.memory), size=batch_size, replace=False)
             experiences = list(map(lambda i: self.memory[i], idxs))
+            print("experiences type replay: ", type(experiences))
             transition = self._process_transition(experiences)
             transition["idxs"] = idxs
         else:
@@ -120,12 +121,12 @@ class MultiStepReplayBuffer(ReplayBuffer):
 
     def __init__(
         self,
-        memory_size,
-        field_names,
-        num_envs,
-        n_step=3,
-        gamma=0.99,
-        device=None,
+        memory_size: int,
+        field_names: List[str],
+        num_envs: int,
+        n_step: int,
+        gamma: float,
+        device: str,
     ):
         super().__init__(memory_size, field_names, device)
         assert (
@@ -168,7 +169,7 @@ class MultiStepReplayBuffer(ReplayBuffer):
 
             return self.args_deque[0]
 
-    def sample_from_indices(self, idxs):
+    def sample_from_indices(self, idxs: List[int]):
         """Returns sample of experiences from memory using provided indices.
 
         :param idxs: Indices to sample
@@ -178,7 +179,7 @@ class MultiStepReplayBuffer(ReplayBuffer):
         transition = self._process_transition(experiences)
         return tuple(transition.values())
 
-    def _get_n_step_info(self, n_step_buffer, gamma):
+    def _get_n_step_info(self, n_step_buffer: deque, gamma: float):
         """Returns n step reward, next_state, and done, as well as other saved transition elements, in order."""
         # info of the last transition
         # t = [n_step_buffer[0]]
@@ -245,13 +246,13 @@ class PrioritizedReplayBuffer(MultiStepReplayBuffer):
 
     def __init__(
         self,
-        memory_size,
-        field_names,
-        num_envs,
-        alpha=0.6,
-        n_step=1,
-        gamma=0.99,
-        device=None,
+        memory_size: int,
+        field_names: List[str],
+        num_envs: int,
+        alpha: float,
+        n_step: int,
+        gamma: float,
+        device: str,
     ):
         super().__init__(memory_size, field_names, num_envs, n_step, gamma, device)
         self.max_priority, self.tree_ptr = 1.0, 0
@@ -271,7 +272,7 @@ class PrioritizedReplayBuffer(MultiStepReplayBuffer):
         self.min_tree[self.tree_ptr] = self.max_priority**self.alpha
         self.tree_ptr = (self.tree_ptr + 1) % self.memory_size
 
-    def sample_per(self, batch_size, beta=0.4):
+    def sample_per(self, batch_size: int, beta: float):
         """Returns sample of experiences from memory.
 
         :param batch_size: Number of samples to return

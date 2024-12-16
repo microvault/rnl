@@ -1,4 +1,4 @@
-def chkpt_attribute_to_device(chkpt_dict, device):
+def chkpt_attribute_to_device(chkpt_dict: dict, device: str):
     """
     Moves checkpoint attributes to the specified device. Useful for loading saved agents on CPU or GPU.
 

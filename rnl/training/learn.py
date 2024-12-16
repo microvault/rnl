@@ -14,7 +14,7 @@ from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
 from rnl.training.train_off_policy import train_off_policy
 from rnl.training.utils import create_population, make_vect_envs
-import pdb
+
 
 def training(
     agent_config: AgentConfig,
@@ -29,7 +29,6 @@ def training(
 ):
 
     env = make_vect_envs(
-        env_name=NaviEnv,
         num_envs=trainer_config.num_envs,
         robot_config=robot_config,
         sensor_config=sensor_config,
@@ -39,8 +38,13 @@ def training(
     )
 
     net_config = {
-        "arch": "mlp",
-        "hidden_size": network_config.hidden_size,  # Network hidden size
+        "hidden_size": network_config.hidden_size,
+        "mlp_activation": network_config.mlp_activation,
+        "mlp_output_activation": network_config.mlp_output_activation,
+        "min_hidden_layers": network_config.min_hidden_layers,
+        "max_hidden_layers": network_config.max_hidden_layers,
+        "min_mlp_nodes": network_config.min_mlp_nodes,
+        "max_mlp_nodes": network_config.max_mlp_nodes,
     }
 
     state_dim = env.single_observation_space.shape
@@ -52,6 +56,7 @@ def training(
         field_names=field_names,
         num_envs=trainer_config.num_envs,
         alpha=agent_config.alpha,
+        n_step=agent_config.n_step,
         gamma=agent_config.gamma,
         device=trainer_config.device,
     )
@@ -65,7 +70,6 @@ def training(
         device=trainer_config.device,
     )
 
-    # pdb.set_trace()
 
     agent_pop = create_population(
         state_dim=int(state_dim[0]),  # State dimension
@@ -122,19 +126,18 @@ def training(
         eval_loop=trainer_config.evaluation_loop,
         learning_delay=trainer_config.learning_delay,
         target=trainer_config.target_score,
-        eps_start=trainer_config.epsilon_start,
-        eps_end=trainer_config.epsilon_end,
-        eps_decay=trainer_config.epsilon_decay,
+        eps_start=agent_config.epsilon_start,
+        eps_end=agent_config.epsilon_end,
+        eps_decay=agent_config.epsilon_decay,
         tournament=tournament,
         mutation=mutations,
         wb=False,
         checkpoint=100,
         checkpoint_path="RainbowDQN.pt",
-        save_elite=True,
         overwrite_checkpoints=False,
-        verbose=True,
-        wandb_api_key=None,
+        wandb_api_key="",
     )
+
 def inference(
     robot_config: RobotConfig,
     sensor_config: SensorConfig,
