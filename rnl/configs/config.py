@@ -105,6 +105,7 @@ class AgentConfig:
     epsilon_start: float = 1.0
     epsilon_end: float = 0.1
     epsilon_decay: float = 0.995
+    noise_std: float = 0.5
 
 
 @dataclass

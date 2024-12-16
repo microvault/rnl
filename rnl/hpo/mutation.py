@@ -10,8 +10,6 @@ from rnl.networks.evolvable_mlp import EvolvableMLP
 class Mutations:
     """The Mutations class for evolutionary hyperparameter optimization.
 
-    :param algo: RL algorithm. Use str e.g. 'DQN' if using AgileRL algos, or provide a dict with names of agent networks
-    :type algo: str or dict
     :param no_mutation: Relative probability of no mutation
     :type no_mutation: float
     :param architecture: Relative probability of architecture mutation
@@ -44,10 +42,6 @@ class Mutations:
     :type max_batch_size: int, optional
     :param agents_id: List of agent ID's for multi-agent algorithms
     :type agents_id: list[str]
-    :param arch: Network architecture type. 'mlp' or 'cnn', defaults to 'mlp'
-    :type arch: str, optional
-    :param mutate_elite: Mutate elite member of population, defaults to True
-    :type mutate_elite: bool, optional
     :param rand_seed: Random seed for repeatability, defaults to None
     :type rand_seed: int, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
@@ -56,7 +50,6 @@ class Mutations:
 
     def __init__(
         self,
-        algo,
         no_mutation,
         architecture,
         new_layer_prob,
@@ -73,14 +66,9 @@ class Mutations:
         min_batch_size=8,
         max_batch_size=1024,
         agent_ids=None,
-        arch="mlp",
-        mutate_elite=True,
         rand_seed=None,
         device="cpu",
     ):
-        assert isinstance(
-            algo, (str, dict)
-        ), "Algo must be string e.g. 'DQN' or a dictionary with agent network names."
         assert isinstance(
             no_mutation, (float, int)
         ), "Probability of no mutation must be a float or integer."
@@ -158,9 +146,6 @@ class Mutations:
         assert (
             max_batch_size >= 1
         ), "Maximum batch size must be greater than or equal to one."
-        assert isinstance(
-            mutate_elite, bool
-        ), "Mutate elite must be boolean value True or False."
         assert (
             isinstance(rand_seed, int) or rand_seed is None
         ), "Random seed must be an integer or None."
@@ -169,8 +154,6 @@ class Mutations:
 
         # Random seed for repeatability
         self.rng = np.random.RandomState(rand_seed)
-
-        self.arch = arch  # Network architecture type
 
         # Relative probabilities of mutation
         self.no_mut = no_mutation  # No mutation
@@ -183,7 +166,6 @@ class Mutations:
         self.activation_selection = activation_selection  # Learning HPs to choose from
         self.rl_hp_selection = rl_hp_selection  # Learning HPs to choose from
         self.mutation_sd = mutation_sd  # Mutation strength
-        self.mutate_elite = mutate_elite
         self.device = device
         self.agent_ids = agent_ids
         self.min_batch_size = min_batch_size
@@ -193,14 +175,9 @@ class Mutations:
         self.min_learn_step = min_learn_step
         self.max_learn_step = max_learn_step
 
-        self.multi_agent = False
-
         # Set algorithm dictionary with agent network names for mutation
         # Use custom agent dict, or pre-configured agent from API
-        if isinstance(algo, dict):
-            self.algo = algo
-        else:
-            self.algo = self.get_algo_nets(algo)
+        self.algo = self.get_algo_nets()
 
     def no_mutation(self, individual):
         """Returns individual from population without mutation.
@@ -208,7 +185,7 @@ class Mutations:
         :param individual: Individual agent from population
         :type individual: object
         """
-        individual.mut = "None"  # No mutation
+        individual.mut = "None"
         return individual
 
     # Generic mutation function - gather mutation options and select from these
@@ -258,74 +235,36 @@ class Mutations:
 
         # If not mutating elite member of population (first in list from tournament selection),
         # set this as the first mutation choice
-        if not self.mutate_elite:
-            mutation_choice[0] = self.no_mutation
-
         mutated_population = []
         for mutation, individual in zip(mutation_choice, population):
             # Call mutation function for each individual
             individual = mutation(individual)
 
-            if self.multi_agent:
-                offspring_actors = getattr(individual, self.algo["actor"]["eval"])
+            if "target" in self.algo["actor"].keys():
+                offspring_actor = getattr(individual, self.algo["actor"]["eval"])
 
                 # Reinitialise target network with frozen weights due to potential
                 # mutation in architecture of value network
-                ind_targets = [
-                    type(offspring_actor)(**offspring_actor.init_dict)
-                    for offspring_actor in offspring_actors
-                ]
+                ind_target = type(offspring_actor)(**offspring_actor.init_dict)
+                ind_target.load_state_dict(offspring_actor.state_dict())
 
-                for ind_target, offspring_actor in zip(ind_targets, offspring_actors):
-                    ind_target.load_state_dict(offspring_actor.state_dict())
-
-                ind_targets = [ind_target.to(self.device) for ind_target in ind_targets]
-                setattr(individual, self.algo["actor"]["target"], ind_targets)
+                setattr(
+                    individual,
+                    self.algo["actor"]["target"],
+                    ind_target.to(self.device),
+                )
 
                 # If algorithm has critics, reinitialize their respective target networks
                 # too
-                for critics_list in self.algo["critics"]:
-                    offspring_critics = getattr(individual, critics_list["eval"])
-                    ind_targets = [
-                        type(offspring_critic)(**offspring_critic.init_dict)
-                        for offspring_critic in offspring_critics
-                    ]
-
-                    for ind_target, offspring_critic in zip(
-                        ind_targets, offspring_critics
-                    ):
-                        ind_target.load_state_dict(offspring_critic.state_dict())
-
-                    ind_targets = [
-                        ind_target.to(self.device) for ind_target in ind_targets
-                    ]
-                    setattr(individual, critics_list["target"], ind_targets)
-            else:
-                if "target" in self.algo["actor"].keys():
-                    offspring_actor = getattr(individual, self.algo["actor"]["eval"])
-
-                    # Reinitialise target network with frozen weights due to potential
-                    # mutation in architecture of value network
-                    ind_target = type(offspring_actor)(**offspring_actor.init_dict)
-                    ind_target.load_state_dict(offspring_actor.state_dict())
-
-                    setattr(
-                        individual,
-                        self.algo["actor"]["target"],
-                        ind_target.to(self.device),
+                for critic in self.algo["critics"]:
+                    offspring_critic = getattr(individual, critic["eval"])
+                    ind_target = type(offspring_critic)(
+                        **offspring_critic.init_dict
                     )
-
-                    # If algorithm has critics, reinitialize their respective target networks
-                    # too
-                    for critic in self.algo["critics"]:
-                        offspring_critic = getattr(individual, critic["eval"])
-                        ind_target = type(offspring_critic)(
-                            **offspring_critic.init_dict
-                        )
-                        ind_target.load_state_dict(offspring_critic.state_dict())
-                        setattr(
-                            individual, critic["target"], ind_target.to(self.device)
-                        )
+                    ind_target.load_state_dict(offspring_critic.state_dict())
+                    setattr(
+                        individual, critic["target"], ind_target.to(self.device)
+                    )
 
             mutated_population.append(individual)
 
@@ -379,12 +318,7 @@ class Mutations:
             lr_multiplication_options = [1.2, 0.8]  # Grow or shrink
             lr_probs = [0.5, 0.5]  # Equal probability
             lr_mult = self.rng.choice(lr_multiplication_options, size=1, p=lr_probs)[0]
-            if individual.algo in ["DDPG", "TD3", "MADDPG", "MATD3"]:
-                lr_choice = self.rng.choice(
-                    ["lr_actor", "lr_critic"], size=1, p=lr_probs
-                )[0]
-            else:
-                lr_choice = "lr"
+            lr_choice = "lr"
             setattr(
                 individual,
                 lr_choice,
@@ -660,12 +594,8 @@ class Mutations:
         individual.exp_layer = exp_layer
         individual.sigma_inv = torch.from_numpy(new_sigma_inv).to(individual.device)
 
-    def get_algo_nets(self, algo):
-        """Returns dictionary with agent network names.
-
-        :param algo: RL algorithm
-        :type algo: str
-        """
+    def get_algo_nets(self):
+        """Returns dictionary with agent network names"""
         nets = {
             "actor": {
                 "eval": "actor",

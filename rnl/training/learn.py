@@ -14,7 +14,7 @@ from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
 from rnl.training.train_off_policy import train_off_policy
 from rnl.training.utils import create_population, make_vect_envs
-
+import pdb
 
 def training(
     agent_config: AgentConfig,
@@ -65,9 +65,10 @@ def training(
         device=trainer_config.device,
     )
 
+    # pdb.set_trace()
+
     agent_pop = create_population(
-        algo="RainbowDQN",  # Algorithm
-        state_dim=state_dim,  # State dimension
+        state_dim=int(state_dim[0]),  # State dimension
         action_dim=action_dim,  # Action dimension
         net_config=net_config,  # Network configuration
         agent_config=agent_config,  # Agent configuration
@@ -85,7 +86,6 @@ def training(
     )
 
     mutations = Mutations(
-        algo="Rainbow DQN",  # Algorithm
         no_mutation=hpo_config.no_mutation,  # No mutation
         architecture=hpo_config.arch_mutation,  # Architecture mutation
         new_layer_prob=hpo_config.new_layer,  # New layer mutation
@@ -94,7 +94,6 @@ def training(
         rl_hp=hpo_config.hp_mutation,  # Learning HP mutation
         rl_hp_selection=hpo_config.hp_mutation_selection,  # Learning HPs to choose from
         mutation_sd=hpo_config.mutation_strength,  # Mutation strength
-        arch="mlp",  # Network architecture
         rand_seed=trainer_config.seed,  # Random seed
         device=trainer_config.device,
     )
@@ -123,24 +122,19 @@ def training(
         eval_loop=trainer_config.evaluation_loop,
         learning_delay=trainer_config.learning_delay,
         target=trainer_config.target_score,
-        n_step=True,
-        per=True,
-        eps_start=1.0,
-        eps_end=0.1,
-        eps_decay=0.995,
+        eps_start=trainer_config.epsilon_start,
+        eps_end=trainer_config.epsilon_end,
+        eps_decay=trainer_config.epsilon_decay,
         tournament=tournament,
         mutation=mutations,
         wb=False,
         checkpoint=100,
         checkpoint_path="RainbowDQN.pt",
         save_elite=True,
-        elite_path=None,
         overwrite_checkpoints=False,
         verbose=True,
         wandb_api_key=None,
     )
-
-
 def inference(
     robot_config: RobotConfig,
     sensor_config: SensorConfig,

@@ -16,7 +16,7 @@ class NoisyLinear(nn.Module):
     :type std_init: float, optional
     """
 
-    def __init__(self, in_features, out_features, std_init=0.5):
+    def __init__(self, in_features: int, out_features: int, std_init: float):
         super().__init__()
 
         self.in_features = in_features

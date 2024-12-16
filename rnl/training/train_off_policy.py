@@ -1,4 +1,4 @@
-import pdb
+
 
 # import warnings
 from datetime import datetime
@@ -30,8 +30,6 @@ def train_off_policy(
     eps_end: float,
     eps_decay: float,
     target: int,
-    n_step: bool,
-    per: bool,
     n_step_memory: MultiStepReplayBuffer,
     tournament: TournamentSelection,
     mutation: Mutations,
@@ -39,9 +37,7 @@ def train_off_policy(
     checkpoint_path: Optional["str"] = None,
     overwrite_checkpoints: bool = False,
     save_elite: bool = False,
-    elite_path=None,
     wb: bool = False,
-    verbose: bool = True,
     wandb_api_key=None,
 ):
 
@@ -216,7 +212,6 @@ def train_off_policy(
             for episode_scores in pop_episode_scores
         ]
 
-        pdb.set_trace()
 
         # if wb:
         #     wandb_dict = {
@@ -269,53 +264,45 @@ def train_off_policy(
                 return pop, pop_fitnesses
 
         # Tournament selection and population mutation
-        if tournament and mutation is not None:
-            elite, pop = tournament.select(pop)
-            pop = mutation.mutation(pop)
+        elite, pop = tournament.select(pop)
+        pop = mutation.mutation(pop)
 
-            if save_elite:
-                elite_save_path = (
-                    elite_path.split(".pt")[0]
-                    if elite_path is not None
-                    else "rnl-elite_rainbow"
-                )
-                elite.save_checkpoint(f"{elite_save_path}.pt")
+        elite_save_path = "rnl-elite_rainbow"
+        elite.save_checkpoint(f"{elite_save_path}.pt")
 
-        if verbose:
-            fitness = ["%.2f" % fitness for fitness in fitnesses]
-            avg_fitness = ["%.2f" % np.mean(agent.fitness[-5:]) for agent in pop]
-            avg_score = ["%.2f" % np.mean(agent.scores[-10:]) for agent in pop]
-            agents = [agent.index for agent in pop]
-            num_steps = [agent.steps[-1] for agent in pop]
-            muts = [agent.mut for agent in pop]
-            pbar.update(0)
+        fitness = ["%.2f" % fitness for fitness in fitnesses]
+        avg_fitness = ["%.2f" % np.mean(agent.fitness[-5:]) for agent in pop]
+        avg_score = ["%.2f" % np.mean(agent.scores[-10:]) for agent in pop]
+        agents = [agent.index for agent in pop]
+        num_steps = [agent.steps[-1] for agent in pop]
+        pbar.update(0)
 
-            print(
-                f"""
-                --- Global Steps {total_steps} ---
-                Fitness:\t\t{fitness}
-                Score:\t\t{mean_scores}
-                5 fitness avgs:\t{avg_fitness}
-                10 score avgs:\t{avg_score}
-                Agents:\t\t{agents}
-                Steps:\t\t{num_steps}
-                Mutations:\t\t{muts}
-                """,
-                end="\r",
-            )
+        print(
+            f"""
+            --- Global Steps {total_steps} ---
+            Fitness:\t\t{fitness}
+            Score:\t\t{mean_scores}
+            5 fitness avgs:\t{avg_fitness}
+            10 score avgs:\t{avg_score}
+            Agents:\t\t{agents}
+            Steps:\t\t{num_steps}
+            """,
+            end="\r",
+        )
+
+        # pdb.set_trace()
 
         # Save model checkpoint
-        if checkpoint is not None:
-            if pop[0].steps[-1] // checkpoint > checkpoint_count:
-                for i, agent in enumerate(pop):
-                    current_checkpoint_path = (
-                        f"{save_path}_{i}.pt"
-                        if overwrite_checkpoints
-                        else f"{save_path}_{i}_{agent.steps[-1]}.pt"
-                    )
-                    agent.save_checkpoint(current_checkpoint_path)
-                print("Saved checkpoint.")
-                checkpoint_count += 1
+        if pop[0].steps[-1] // checkpoint > checkpoint_count:
+            for i, agent in enumerate(pop):
+                current_checkpoint_path = (
+                    f"{save_path}_{i}.pt"
+                    if overwrite_checkpoints
+                    else f"{save_path}_{i}_{agent.steps[-1]}.pt"
+                )
+                agent.save_checkpoint(current_checkpoint_path)
+            print("Saved checkpoint.")
+            checkpoint_count += 1
 
     # if wb:
     #     wandb.finish()

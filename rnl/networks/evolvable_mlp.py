@@ -54,8 +54,8 @@ class EvolvableMLP(nn.Module):
         num_inputs: int,
         num_outputs: int,
         hidden_size: List[int],
-        num_atoms=51,
-        mlp_activation="ReLU",
+        num_atoms: int,
+        mlp_activation: str,
         mlp_output_activation=None,
         min_hidden_layers=1,
         max_hidden_layers=3,
@@ -65,7 +65,6 @@ class EvolvableMLP(nn.Module):
         output_vanish=True,
         init_layers=True,
         support=None,
-        rainbow=True,
         noise_std=0.5,
         device="cpu",
         arch="mlp",
@@ -105,7 +104,6 @@ class EvolvableMLP(nn.Module):
         self.hidden_size = hidden_size
         self.num_atoms = num_atoms
         self.support = support
-        self.rainbow = rainbow
         self.device = device
         self.noise_std = noise_std
         self._net_config = {
@@ -333,7 +331,6 @@ class EvolvableMLP(nn.Module):
             "init_layers": self.init_layers,
             "output_vanish": self.output_vanish,
             "support": self.support,
-            "rainbow": self.rainbow,
             "noise_std": self.noise_std,
             "device": self.device,
         }

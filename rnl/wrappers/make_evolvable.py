@@ -36,8 +36,6 @@ class MakeEvolvable(nn.Module):
     :type init_layers: bool, optional
     :param support: Atoms support tensor, defaults to None
     :type support: torch.Tensor(), optional
-    :param rainbow: Using Rainbow DQN, defaults to False
-    :type rainbow: bool, optional
     :param device: Device for accelerated computing, 'cpu' or 'cuda', defaults to 'cpu'
     :type device: str, optional
     """
@@ -55,7 +53,6 @@ class MakeEvolvable(nn.Module):
         output_vanish=False,
         init_layers=False,
         support=None,
-        rainbow=True,
         device="cpu",
         **kwargs,
     ):
@@ -80,8 +77,6 @@ class MakeEvolvable(nn.Module):
         self.output_vanish = output_vanish
         self.device = device
 
-        #### Rainbow attributes
-        self.rainbow = rainbow  #### add in as a doc string
         self.num_atoms = num_atoms
         self.support = support
 
@@ -337,7 +332,6 @@ class MakeEvolvable(nn.Module):
         name,
         mlp_activation,
         mlp_output_activation,
-        noisy=True,
         rainbow_feature_net=True,
     ):
         """Creates and returns multi-layer perceptron.
@@ -358,10 +352,7 @@ class MakeEvolvable(nn.Module):
         """
 
         net_dict = OrderedDict()
-        if noisy:
-            net_dict[f"{name}_linear_layer_0"] = NoisyLinear(input_size, hidden_size[0])
-        else:
-            net_dict[f"{name}_linear_layer_0"] = nn.Linear(input_size, hidden_size[0])
+        net_dict[f"{name}_linear_layer_0"] = NoisyLinear(input_size, hidden_size[0])
 
         if self.init_layers:
             net_dict[f"{name}_linear_layer_0"] = self.layer_init(
@@ -386,14 +377,9 @@ class MakeEvolvable(nn.Module):
 
         if len(hidden_size) > 1:
             for l_no in range(1, len(hidden_size)):
-                if noisy:
-                    net_dict[f"{name}_linear_layer_{str(l_no)}"] = NoisyLinear(
-                        hidden_size[l_no - 1], hidden_size[l_no]
-                    )
-                else:
-                    net_dict[f"{name}_linear_layer_{str(l_no)}"] = nn.Linear(
-                        hidden_size[l_no - 1], hidden_size[l_no]
-                    )
+                net_dict[f"{name}_linear_layer_{str(l_no)}"] = NoisyLinear(
+                    hidden_size[l_no - 1], hidden_size[l_no]
+                )
                 if self.init_layers:
                     net_dict[f"{name}_linear_layer_{str(l_no)}"] = self.layer_init(
                         net_dict[f"{name}_linear_layer_{str(l_no)}"]
@@ -411,10 +397,7 @@ class MakeEvolvable(nn.Module):
                         else mlp_output_activation
                     )
         if not rainbow_feature_net:
-            if noisy:
-                output_layer = NoisyLinear(hidden_size[-1], output_size)
-            else:
-                output_layer = nn.Linear(hidden_size[-1], output_size)
+            output_layer = NoisyLinear(hidden_size[-1], output_size)
             if self.init_layers:
                 output_layer = self.layer_init(output_layer)
 
@@ -446,7 +429,6 @@ class MakeEvolvable(nn.Module):
             input_size=128,
             output_size=self.num_atoms,
             hidden_size=self.hidden_size,
-            noisy=True,
             name="value",
             mlp_output_activation=self.mlp_output_activation,
             mlp_activation=self.mlp_activation,
@@ -455,7 +437,6 @@ class MakeEvolvable(nn.Module):
             input_size=128,
             output_size=self.num_atoms * self.num_outputs,
             hidden_size=self.hidden_size,
-            noisy=True,
             name="advantage",
             mlp_output_activation=self.mlp_output_activation,
             mlp_activation=self.mlp_activation,
@@ -489,7 +470,6 @@ class MakeEvolvable(nn.Module):
             "arch": self.arch,
             "mlp_layer_info": self.mlp_layer_info,
             "num_atoms": self.num_atoms,
-            "rainbow": self.rainbow,
             "support": self.support,
         }
 

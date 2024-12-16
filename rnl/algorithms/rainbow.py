@@ -17,27 +17,23 @@ class RainbowDQN:
 
     def __init__(
         self,
-        state_dim,
-        action_dim,
-        index=0,
-        net_config={"arch": "mlp", "hidden_size": [64, 64]},
-        batch_size=64,
-        lr=1e-4,
-        learn_step=5,
-        gamma=0.99,
-        tau=1e-3,
-        beta=0.4,
-        prior_eps=1e-6,
-        num_atoms=51,
-        v_min=-10,
-        v_max=10,
-        noise_std=0.5,
-        n_step=3,
-        mut=None,
-        combined_reward=True,
-        actor_network=None,
-        device="cpu",
-        wrap=True,
+        state_dim: int,
+        action_dim: int,
+        index: int,
+        net_config: dict,
+        batch_size: int,
+        lr: float,
+        learn_step: int,
+        gamma: float,
+        tau: float,
+        beta: float,
+        prior_eps: float,
+        num_atoms: int,
+        v_min: int,
+        v_max: int,
+        noise_std: float,
+        n_step: int,
+        device: str,
     ):
         assert isinstance(
             state_dim, (list, tuple)
@@ -72,9 +68,6 @@ class RainbowDQN:
         ), "Maximum value of support must be greater than or equal to minimum value."
         assert isinstance(n_step, int), "Step number must be an integer."
         assert n_step >= 1, "Step number must be greater than or equal to one."
-        assert isinstance(
-            wrap, bool
-        ), "Wrap models flag must be boolean value True or False."
         if net_config is not None:
             if "hidden_size" in net_config.keys():
                 assert (
@@ -88,7 +81,6 @@ class RainbowDQN:
             else:
                 net_config["min_hidden_layers"] = 2
 
-        self.algo = "Rainbow DQN"
         self.state_dim = state_dim
         self.action_dim = action_dim
         self.net_config = net_config
@@ -103,52 +95,48 @@ class RainbowDQN:
         self.v_min = v_min
         self.v_max = v_max
         self.n_step = n_step
-        self.mut = mut
-        self.actor_network = actor_network
         self.device = device
         self.index = index
         self.scores = []
         self.fitness = []
         self.steps = [0]
-        self.combined_reward = combined_reward
         self.noise_std = noise_std
 
         self.support = torch.linspace(self.v_min, self.v_max, self.num_atoms)
         self.delta_z = (self.v_max - self.v_min) / (self.num_atoms - 1)
         self.support = self.support.to(self.device)
 
-        if self.actor_network is None:
-            assert isinstance(self.net_config, dict), "Net config must be a dictionary."
+        assert isinstance(self.net_config, dict), "Net config must be a dictionary."
+        assert (
+            "arch" in self.net_config.keys()
+        ), "Net config must contain arch: 'mlp'."
+        if self.net_config["arch"] == "mlp":  # Multi-layer Perceptron
             assert (
-                "arch" in self.net_config.keys()
-            ), "Net config must contain arch: 'mlp'."
-            if self.net_config["arch"] == "mlp":  # Multi-layer Perceptron
-                assert (
-                    "hidden_size" in self.net_config.keys()
-                ), "Net config must contain hidden_size: int."
-                assert isinstance(
-                    self.net_config["hidden_size"], list
-                ), "Net config hidden_size must be a list."
-                assert (
-                    len(self.net_config["hidden_size"]) > 0
-                ), "Net config hidden_size must contain at least one element."
+                "hidden_size" in self.net_config.keys()
+            ), "Net config must contain hidden_size: int."
+            assert isinstance(
+                self.net_config["hidden_size"], list
+            ), "Net config hidden_size must be a list."
+            assert (
+                len(self.net_config["hidden_size"]) > 0
+            ), "Net config hidden_size must contain at least one element."
 
-                if "mlp_output_activation" not in self.net_config.keys():
-                    self.net_config["mlp_output_activation"] = "ReLU"
+            if "mlp_output_activation" not in self.net_config.keys():
+                self.net_config["mlp_output_activation"] = "ReLU"
 
-                self.actor = EvolvableMLP(
-                    num_inputs=state_dim[0],
-                    num_outputs=action_dim,
-                    output_vanish=True,
-                    init_layers=False,
-                    layer_norm=True,
-                    num_atoms=self.num_atoms,
-                    support=self.support,
-                    rainbow=True,
-                    noise_std=noise_std,
-                    device=self.device,
-                    **self.net_config,
-                )
+            self.actor = EvolvableMLP(
+                num_inputs=state_dim[0],
+                num_outputs=action_dim,
+                output_vanish=True,
+                init_layers=False,
+                layer_norm=True,
+                num_atoms=self.num_atoms,
+                support=self.support,
+                rainbow=True,
+                noise_std=noise_std,
+                device=self.device,
+                **self.net_config,
+            )
 
         # Create the target network by copying the actor network
         self.actor_target = copy.deepcopy(self.actor)
@@ -283,10 +271,7 @@ class RainbowDQN:
         n_step_elementwise_loss = self._dqn_loss(
             n_states, n_actions, n_rewards, n_next_states, n_dones, n_gamma
         )
-        if self.combined_reward:
-            elementwise_loss += n_step_elementwise_loss
-        else:
-            elementwise_loss = n_step_elementwise_loss
+        elementwise_loss = n_step_elementwise_loss
         loss = torch.mean(elementwise_loss * weights)
 
         self.optimizer.zero_grad()
