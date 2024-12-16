@@ -46,7 +46,7 @@ def main(arg):
 
         # 5.step -> train robot
         model.learn(
-            max_timestep=100,  # 800000
+            max_timestep=1000,  # 800000
             memory_size=1000,
             gamma=0.99,
             n_step=1,
@@ -63,23 +63,23 @@ def main(arg):
             batch_size=4,
             lr=0.0001,
             seed=1,
-            num_envs=2,
+            num_envs=4,
             device="mps",
             learn_step=10,
             target_score=200,
-            max_steps=100,
+            max_steps=1000,
             evaluation_steps=100,
             evaluation_loop=1,
-            learning_delay=0,
-            n_step_memory=1,
-            checkpoint=100,
+            learning_delay=2,
+            n_step_memory=4,
+            checkpoint=100000,
             checkpoint_path="checkpoints",
             overwrite_checkpoints=False,
             use_wandb=False,
             wandb_api_key="",
             use_mutation=True,
             freq_evolution=100,
-            population_size=2,
+            population_size=4,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
@@ -88,12 +88,13 @@ def main(arg):
             hp_mutation=0.2,
             hp_mutation_selection=["lr", "batch_size", "learn_step"],
             mutation_strength=0.1,
-            evolution_steps=100,
+            evolution_steps=1000,
             save_elite=False,
             elite_path="elite",
             tourn_size=2,
             elitism=True,
             hidden_size=[60, 40],
+            save=False,
         )
 
     else:

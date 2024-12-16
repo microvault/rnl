@@ -251,10 +251,6 @@ class NaviEnv(gym.Env):
             np.array(alpha).reshape(1, -1)
         ).flatten()
 
-        # reward_norm = self.scaler_reward.transform(
-        #     np.array(reward).reshape(1, -1)
-        # ).flatten()
-
         action_one_hot = np.eye(7)[self.action]
 
         states = np.concatenate(
@@ -354,9 +350,6 @@ class NaviEnv(gym.Env):
         alpha_norm = self.scaler_alpha.transform(
             np.array(alpha).reshape(1, -1)
         ).flatten()
-        # reward_norm = self.scaler_reward.transform(
-        #     np.array(reward).reshape(1, -1)
-        # ).flatten()
 
         action_one_hot = np.eye(7)[action]
 

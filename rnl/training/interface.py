@@ -127,6 +127,7 @@ class Trainer:
         tourn_size: int = 2,
         elitism: bool = True,
         hidden_size: list = [800, 600],
+        save: bool = False,
     ) -> None:
         agent_config = AgentConfig(
             max_timestep,

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from typing import List
-import torch
 
 @dataclass
 class EnvConfig:

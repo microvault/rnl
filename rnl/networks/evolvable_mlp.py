@@ -115,8 +115,8 @@ class EvolvableMLP(nn.Module):
         if hasattr(layer, "bias"):
             torch.nn.init.constant_(layer.bias, bias_const)
         elif hasattr(layer, "bias_mu") and hasattr(layer, "bias_sigma"):
-            torch.nn.init.constant(layer.bias_mu, bias_const)
-            torch.nn.init.constant(layer.bias_sigma, bias_const)
+            torch.nn.init.constant_(layer.bias_mu, bias_const)
+            torch.nn.init.constant_(layer.bias_sigma, bias_const)
 
         return layer
 

@@ -1,7 +1,4 @@
-
-
-# import warnings
-from datetime import datetime
+# from datetime import datetime
 from typing import List
 
 import numpy as np
@@ -11,11 +8,9 @@ from tqdm import trange
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
 
-# import wandb
 from rnl.components.sampler import Sampler
 from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
-import pdb
 
 def train_off_policy(
     env: AsyncVectorEnv,
@@ -65,13 +60,13 @@ def train_off_policy(
 
     num_envs = env.num_envs
 
-    save_path = (
-        checkpoint_path.split(".pt")[0]
-        if checkpoint_path is not None
-        else "{}-EvoHPO-{}-{}".format(
-            "rnl", "rainbow", datetime.now().strftime("%m%d%Y%H%M%S")
-        )
-    )
+    # save_path = (
+    #     checkpoint_path.split(".pt")[0]
+    #     if checkpoint_path is not None
+    #     else "{}-EvoHPO-{}-{}".format(
+    #         "rnl", "rainbow", datetime.now().strftime("%m%d%Y%H%M%S")
+    #     )
+    # )
 
     sampler = Sampler(per=True, n_step=False, memory=memory)
     n_step_sampler = Sampler(per=False, n_step=True, memory=n_step_memory)
@@ -85,7 +80,7 @@ def train_off_policy(
     pop_fitnesses = []
     total_steps = 0
     loss = None
-    checkpoint_count = 0
+    # checkpoint_count = 0
 
     # RL training loop
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
@@ -115,7 +110,6 @@ def train_off_policy(
                 reset_noise_indices = []
                 for idx, (d, t) in enumerate(zip(done, trunc)):
                     if d or t:
-                        print(f"Episode {idx} completed with score {scores[idx]}")
                         completed_episode_scores.append(scores[idx])
                         agent.scores.append(scores[idx])
                         scores[idx] = 0
@@ -133,9 +127,7 @@ def train_off_policy(
                     done,
                 )
 
-
-                if one_step_transition:
-                    memory.save_to_memory_vect_envs(*one_step_transition)
+                memory.save_to_memory_vect_envs(*one_step_transition)
 
                 fraction = min(
                     ((agent.steps[-1] + idx_step + 1) * num_envs / max_steps), 1.0
@@ -205,11 +197,7 @@ def train_off_policy(
         ]
         pop_fitnesses.append(fitnesses)
         mean_scores = [
-            (
-                np.mean(episode_scores)
-                if len(episode_scores) > 0
-                else "0 completed episodes"
-            )
+            (float(np.mean(episode_scores)) if len(episode_scores) > 0 else "0 completed episodes")
             for episode_scores in pop_episode_scores
         ]
 
@@ -268,13 +256,13 @@ def train_off_policy(
         elite, pop = tournament.select(pop)
         pop = mutation.mutation(pop)
 
-        elite_save_path = "rnl-elite_rainbow"
-        elite.save_checkpoint(f"{elite_save_path}.pt")
+        # elite_save_path = "rnl-elite_rainbow"
+        # elite.save_checkpoint(f"{elite_save_path}.pt")
 
 
         fitness = ["%.2f" % fitness for fitness in fitnesses]
-        avg_fitness = ["%.2f" % np.mean(agent.fitness[-5:]) for agent in pop]
-        avg_score = ["%.2f" % np.mean(agent.scores[-10:]) for agent in pop]
+        avg_fitness = ["%.2f" % safe_mean(agent.fitness[-5:]) for agent in pop]
+        avg_score = ["%.2f" % safe_mean(agent.scores[-10:]) for agent in pop]
         agents = [agent.index for agent in pop]
         num_steps = [agent.steps[-1] for agent in pop]
         pbar.update(0)
@@ -295,19 +283,24 @@ def train_off_policy(
         # pdb.set_trace()
 
         # Save model checkpoint
-        if pop[0].steps[-1] // checkpoint > checkpoint_count:
-            for i, agent in enumerate(pop):
-                current_checkpoint_path = (
-                    f"{save_path}_{i}.pt"
-                    if overwrite_checkpoints
-                    else f"{save_path}_{i}_{agent.steps[-1]}.pt"
-                )
-                agent.save_checkpoint(current_checkpoint_path)
-            print("Saved checkpoint.")
-            checkpoint_count += 1
+        # if pop[0].steps[-1] // checkpoint > checkpoint_count:
+        #     for i, agent in enumerate(pop):
+        #         current_checkpoint_path = (
+        #             f"{save_path}_{i}.pt"
+        #             if overwrite_checkpoints
+        #             else f"{save_path}_{i}_{agent.steps[-1]}.pt"
+        #         )
+        #         agent.save_checkpoint(current_checkpoint_path)
+        #     print("Saved checkpoint.")
+        #     checkpoint_count += 1
 
     # if wb:
     #     wandb.finish()
 
     pbar.close()
     return pop, pop_fitnesses
+
+def safe_mean(values, default=0.00):
+    if len(values) == 0:
+        return default
+    return np.mean(values)
