@@ -40,8 +40,8 @@ class RenderConfig:
 class SensorConfig:
     fov: float = 360.0
     num_rays: int = 20
-    min_range: float = 6.0
-    max_range: float = 1.0
+    min_range: float = 1.0
+    max_range: float = 6.0
 
 
 @dataclass

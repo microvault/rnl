@@ -19,7 +19,7 @@ class Collision:
             print(f"{RED_BOLD}Error in check_collision: {e}{RESET}")
             raise
 
-    def filter_segments(self, segs: List, x: float, y: float, max_range: int):
+    def filter_segments(self, segs: List, x: float, y: float, max_range: float):
         try:
             return filter_list_segment(segs, x, y, max_range)
         except Exception as e:
@@ -69,7 +69,7 @@ class Collision:
 
 
 @njit
-def filter_list_segment(segs: List, x: float, y: float, max_range: int) -> List:
+def filter_list_segment(segs: List, x: float, y: float, max_range: float) -> List:
     """
     Filters line segments based on proximity to a given point.
 
@@ -103,7 +103,7 @@ def filter_list_segment(segs: List, x: float, y: float, max_range: int) -> List:
 
 
 @njit
-def is_distance_within_range(distance: np.ndarray, lidar_range: int) -> bool:
+def is_distance_within_range(distance: np.ndarray, lidar_range: float) -> bool:
     """
     Determines if a distance is within the range of the lidar sensor.
 
@@ -327,10 +327,7 @@ def calculate_temp_vector(
     return t, u
 
 
-# TODO: refactor
 lru_cache(maxsize=5)
-
-
 def lidar_intersections(
     robot_x: float,
     robot_y: float,
@@ -342,7 +339,7 @@ def lidar_intersections(
 
     intersections = []
     for i, angle in enumerate(lidar_angles):
-        adjusted_angle = angle + robot_theta - np.pi
+        adjusted_angle = angle + robot_theta
 
         lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)
 
@@ -379,8 +376,6 @@ def position_intersection(
 
     return True, tuple(inter_point_rounded)
 
-
-# TODO: refactor
 def lidar_measurements(
     robot_x: float,
     robot_y: float,
@@ -392,7 +387,7 @@ def lidar_measurements(
     measurements = []
     for i, angle in enumerate(lidar_angles):
         # Adjust the angle by adding the robot's orientation
-        adjusted_angle = angle + robot_theta - np.pi
+        adjusted_angle = angle + robot_theta
 
         # Compute the LiDAR segment using the adjusted angle
         lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)

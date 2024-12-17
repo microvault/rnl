@@ -159,6 +159,19 @@ def inference(
     for line in text:
         print(line)
 
+    # config_dict = {
+    #     "Robot Config": robot_config.__dict__,
+    #     "Sensor Config": sensor_config.__dict__,
+    #     "Env Config": env_config.__dict__,
+    #     "Render Config": render_config.__dict__,
+    # }
+
+    # for config_name, config_values in config_dict.items():
+    #     print(f"\n#------ {config_name} ----#")
+    #     max_key_length = max(len(key) for key in config_values.keys())
+    #     for key, value in config_values.items():
+    #         print(f"{key.ljust(max_key_length)} : {value}")
+
     env = NaviEnv(
         robot_config, sensor_config, env_config, render_config, pretrained_model=False
     )

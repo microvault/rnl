@@ -15,13 +15,11 @@ def angle_to_goal(
     o_t = np.array([np.cos(theta), np.sin(theta)])
     g_t = np.array([goal_x - x, goal_y - y])
 
-    # Ângulo alpha
     cross_product = np.cross(o_t, g_t)
     dot_product = np.dot(o_t, g_t)
 
     alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
 
-    # Cálculo de alpha_norm
     if alpha <= 0.0:
         alpha = 0.1
     elif alpha >= 3.2:
@@ -30,7 +28,7 @@ def angle_to_goal(
     return alpha
 
 
-def min_laser(measurement: np.ndarray, threshold: float = 0.1):
+def min_laser(measurement: np.ndarray, threshold: float):
     laser = np.min(measurement)
     if laser <= threshold:
         return True, laser

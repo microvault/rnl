@@ -26,7 +26,7 @@ class Robot:
 
         # Calculating the moment of inertia of the robot
         # I = (1/2) * m * r²
-        self.moment_of_inertia = 0.5
+        self.moment_of_inertia = 0.5 * self.mass * (self.robot_radius ** 2)
 
     @staticmethod
     def create_space() -> pymunk.Space:
@@ -67,9 +67,9 @@ class Robot:
         """
         Move the robot in the space with given linear and angular velocities.
         """
-        # direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
-        # robot_body.velocity = v_linear * direction
-        # robot_body.angular_velocity = v_angular
+        direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
+        robot_body.velocity = v_linear * direction
+        robot_body.angular_velocity = v_angular
         # space.step(1 / 60)
         # Direção atual do robô
         direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
@@ -103,7 +103,7 @@ class Robot:
         robot_body.torque += torque
 
         # Atualiza o espaço
-        space.step(1 / 60)
+        # space.step(1 / 60)
 
     def reset_robot(
         self, robot_body: pymunk.Body, x: float, y: float, angle: float

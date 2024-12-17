@@ -40,17 +40,16 @@ def sensor(fov: float, num_rays: int, min_range: float, max_range: float):
 def make(
     map_file: str,
     random_mode: str,
-    timestep: int,
+    max_timestep: int,
     grid_dimension: int,
     friction: float,
     porcentage_obstacles: float,
     randomization_interval: int,
-    max_step: int = 1000,
 ):
     return EnvConfig(
         map_file=map_file,
         random_mode=random_mode,
-        timestep=timestep,
+        timestep=max_timestep,
         grid_dimension=grid_dimension,
         friction=friction,
         porcentage_obstacles=porcentage_obstacles,

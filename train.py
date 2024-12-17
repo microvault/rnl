@@ -1,8 +1,5 @@
 import argparse
 import multiprocessing as mp
-
-import numpy as np
-
 import rnl as vault
 
 
@@ -13,7 +10,7 @@ def main(arg):
         vel_linear=[0.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         vel_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
         wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
-        weight=1000.0,  # (kilograms) # TODO: RANDOMIZE
+        weight=1.0,  # (kilograms) # TODO: RANDOMIZE
         threshold=0.05,  # (centimeters) # TODO: RANDOMIZE
         path_model="./",
     )
@@ -21,21 +18,20 @@ def main(arg):
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=180,  # TODO: RANDOMIZE
-        num_rays=40,  # TODO: RANDOMIZE
-        min_range=0.0,  # TODO: RANDOMIZE
-        max_range=6.0,  # TODO: RANDOMIZE
+        num_rays=20,  # TODO: RANDOMIZE
+        min_range=1.0,  # TODO: RANDOMIZE
+        max_range=5.0,  # TODO: RANDOMIZE
     )
 
     # 3.step -> config env
     param_env = vault.make(
         map_file="None",  # TODO: RANDOMIZE
         random_mode="normal",  # hard, normal
-        timestep=1000,  # TODO: RANDOMIZE
+        max_timestep=1000,  # TODO: RANDOMIZE
         grid_dimension=5,  # TODO: RANDOMIZE
         friction=0.4,  # TODO: RANDOMIZE
         porcentage_obstacles=0.1,  # TODO: RANDOMIZE
         randomization_interval=2,
-        max_step=1000,  # TODO: RANDOMIZE
     )
 
     if args.mode == "train":
