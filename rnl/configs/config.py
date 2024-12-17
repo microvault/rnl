@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
 
+
 @dataclass
 class EnvConfig:
     map_file: str = "rnl/data/map/map.pgm"
@@ -92,7 +93,7 @@ class NetworkConfig:
     min_hidden_layers: int = 2
     max_hidden_layers: int = 3
     min_mlp_nodes: int = 64
-    max_mlp_nodes: int= 500
+    max_mlp_nodes: int = 500
     layer_norm: bool = True
     output_vanish: bool = True
     init_layers: bool = True

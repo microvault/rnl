@@ -15,6 +15,7 @@ from rnl.engine.utils import (
     distance_to_goal,
     get_reward,
     min_laser,
+    uniform_random,
     uniform_random_int,
 )
 from rnl.environment.generate_world import Generator
@@ -32,8 +33,10 @@ class NaviEnv(gym.Env):
         pretrained_model: bool,
     ):
         super().__init__()
-        self.max_num_rays = 180  # Número máximo de leituras do LIDAR
-        state_size = self.max_num_rays + 9  # 9 = action_one_hot(7) + dist(1) + alpha(1) -> (action, distance, angle)
+        self.max_num_rays = 180
+        state_size = (
+            self.max_num_rays + 9
+        )  # action_one_hot(7) + dist(1) + alpha(1) -> (action, distance, angle)
         self.action_space = spaces.Discrete(6)  # action
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
@@ -43,9 +46,9 @@ class NaviEnv(gym.Env):
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
-
+        self.friction = env_config.friction
         self.space = self.robot.create_space()
-        self.body = self.robot.create_robot(self.space)
+        self.body = self.robot.create_robot(space=self.space, friction=self.friction)
 
         # -- Normalization -- #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
@@ -63,10 +66,13 @@ class NaviEnv(gym.Env):
             )
         )
 
-        max_dist, min_dist = 12.0, 1.0
+        self.xmax = env_config.grid_dimension - 0.25
+        self.ymax = env_config.grid_dimension - 0.25
+        self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
+        max_dist, min_dist = self.dist_max, 1.0
         self.scaler_dist.fit(np.array([[min_dist], [max_dist]]))
 
-        max_alpha, min_alpha = 0.0, 6.4
+        max_alpha, min_alpha = 6.4, 0.0
         self.scaler_alpha.fit(np.array([[min_alpha], [max_alpha]]))
 
         max_reward, min_reward = 500.0, -500.0
@@ -88,9 +94,7 @@ class NaviEnv(gym.Env):
         self.fps = render_config.fps
         self.threshold = robot_config.threshold
         self.grid_lenght = env_config.grid_dimension
-        self.xmax = env_config.grid_dimension - 0.25
-        self.ymax = env_config.grid_dimension - 0.25
-        self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
+
         self.controller = render_config.controller
 
         # -- Local Variables -- #
@@ -110,11 +114,11 @@ class NaviEnv(gym.Env):
         self.scalar = 10
         self.randomization_frequency = env_config.randomization_interval
         self.epoch = 0
-        self.current_num_rays = sensor_config.num_rays  # Valor inicial (pode ser randomizado no reset)
-        self.lidar_angle = np.linspace(0, 2 * np.pi, self.current_num_rays)
-        # self.lidar_angle = np.linspace(0, 2 * np.pi, 20)
-        self.measurement = np.zeros(self.current_num_rays)
+        self.current_rays = sensor_config.num_rays
+        self.lidar_angle = np.linspace(0, 2 * np.pi, self.current_rays)
+        self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
+        self.random_mode = env_config.random_mode
 
         if self.pretrained_model:
             self.rainbow = RainbowDQN.load(
@@ -132,7 +136,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="x",
-                markersize=6.0,  # 3.0
+                markersize=6.0,
                 color="red",
             )[0]
 
@@ -141,7 +145,7 @@ class NaviEnv(gym.Env):
                 np.random.uniform(0, self.ymax),
                 0,
                 marker="o",
-                markersize=6.0,  # 2.0
+                markersize=6.0,
                 color="orange",
             )[0]
 
@@ -244,9 +248,10 @@ class NaviEnv(gym.Env):
             lidar_measurements, dist, collision, alpha, diff_to_init
         )
 
-        current_rays = len(lidar_measurements)
+        # TODO
+        self.current_rays = len(lidar_measurements)
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
-        padded_lidar[:current_rays] = lidar_measurements[:current_rays]
+        padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
 
         lidar_norm = self.scaler_lidar.transform(padded_lidar.reshape(1, -1)).flatten()
         dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
@@ -288,7 +293,7 @@ class NaviEnv(gym.Env):
             self.epoch,
         )
 
-        self.space.step(1/60)
+        self.space.step(1 / 60)
 
         truncated = self.timestep >= self.max_timestep
 
@@ -377,7 +382,7 @@ class NaviEnv(gym.Env):
 
         truncated = self.timestep >= self.max_timestep
 
-        self.space.step(1/60)
+        self.space.step(1 / 60)
 
         return states, reward, done, truncated, {}
 
@@ -386,8 +391,8 @@ class NaviEnv(gym.Env):
 
         self.epoch += 1
 
-        # if self.epoch % self.randomization_frequency == 0:
-        #     self.randomization()
+        if self.epoch % self.randomization_frequency == 0:
+            self.randomization()
 
         self.timestep = 0
 
@@ -425,7 +430,7 @@ class NaviEnv(gym.Env):
             y=self.body.position.y,
             theta=self.body.position.angle,
             segments=all_seg,
-            max_range=self.max_lidar
+            max_range=self.max_lidar,
         )
 
         self.last_measurement = measurement
@@ -459,9 +464,9 @@ class NaviEnv(gym.Env):
             self.target_y,
         )
 
-        current_rays = len(measurement)
+        self.current_rays = len(measurement)
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
-        padded_lidar[:current_rays] = measurement[:current_rays]
+        padded_lidar[: self.current_rays] = measurement[: self.current_rays]
 
         lidar_norm = self.scaler_lidar.transform(padded_lidar.reshape(1, -1)).flatten()
         dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
@@ -485,7 +490,7 @@ class NaviEnv(gym.Env):
         info = {}
         return self.last_states, info
 
-    def render(self, mode='human'):
+    def render(self, mode="human"):
         self.ani = animation.FuncAnimation(
             self.fig,
             self.step_animation,
@@ -554,13 +559,7 @@ class NaviEnv(gym.Env):
         self.label.set_fontweight("normal")
         self.label.set_color("#666666")
 
-        self.fig.subplots_adjust(
-            left=0.05, right=0.95, bottom=0.20, top=0.95
-        )  # left=0.05, right=0.95, bottom=0.05, top=0.95
-
-    # def get_reward_function(self):
-
-    #     return self.reward_function
+        self.fig.subplots_adjust(left=0.05, right=0.95, bottom=0.20, top=0.95)
 
     @staticmethod
     def _get_label(timestep: int, score: float, episode: int) -> str:
@@ -620,7 +619,15 @@ class NaviEnv(gym.Env):
         )
 
     def randomization(self):
-        self.grid_lenght = uniform_random_int(
-            self.param.environment.min_grid_dimension,
-            self.param.environment.max_grid_dimension,
-        )
+        if self.random_mode == "hard":
+            self.grid_lenght = uniform_random_int(
+                self.param.environment.min_grid_dimension,
+                self.param.environment.max_grid_dimension,
+            )
+            new_fov = uniform_random(
+                self.param.sensor.min_fov, self.param.sensor.max_fov
+            )
+            new_num_rays = uniform_random_int(
+                self.param.sensor.min_num_rays, self.param.sensor.max_num_rays
+            )
+            self.sensor.random_sensor(new_fov, new_num_rays)

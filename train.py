@@ -1,36 +1,37 @@
 import argparse
 import multiprocessing as mp
+
 import rnl as vault
 
 
 def main(arg):
     # 1.step -> config robot
     param_robot = vault.robot(
-        base_radius=20.0,  # (centimeters) # TODO: RANDOMIZE
-        vel_linear=[0.0, 2.0],  # [min, max] # TODO: RANDOMIZE
-        vel_angular=[1.0, 2.0],  # [min, max] # TODO: RANDOMIZE
-        wheel_distance=0.16,  # (centimeters) # TODO: RANDOMIZE
-        weight=1.0,  # (kilograms) # TODO: RANDOMIZE
-        threshold=0.05,  # (centimeters) # TODO: RANDOMIZE
+        base_radius=20.0,  # (centimeters)
+        vel_linear=[0.0, 2.0],  # [min, max]
+        vel_angular=[1.0, 2.0],  # [min, max]
+        wheel_distance=0.16,  # (centimeters)
+        weight=1.0,  # (kilograms)
+        threshold=0.05,  # (centimeters)
         path_model="./",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=180,  # TODO: RANDOMIZE
-        num_rays=20,  # TODO: RANDOMIZE
-        min_range=1.0,  # TODO: RANDOMIZE
-        max_range=5.0,  # TODO: RANDOMIZE
+        fov=180,
+        num_rays=20,
+        min_range=1.0,
+        max_range=5.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        map_file="None",  # TODO: RANDOMIZE
+        map_file="None",
         random_mode="normal",  # hard, normal
-        max_timestep=1000,  # TODO: RANDOMIZE
-        grid_dimension=5,  # TODO: RANDOMIZE
-        friction=0.4,  # TODO: RANDOMIZE
-        porcentage_obstacles=0.1,  # TODO: RANDOMIZE
+        max_timestep=1000,
+        grid_dimension=5,
+        friction=0.4,
+        porcentage_obstacles=0.1,
         randomization_interval=2,
     )
 

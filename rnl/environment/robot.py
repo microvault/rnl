@@ -26,7 +26,7 @@ class Robot:
 
         # Calculating the moment of inertia of the robot
         # I = (1/2) * m * r²
-        self.moment_of_inertia = 0.5 * self.mass * (self.robot_radius ** 2)
+        self.moment_of_inertia = 0.5 * self.mass * (self.robot_radius**2)
 
     @staticmethod
     def create_space() -> pymunk.Space:
@@ -40,7 +40,7 @@ class Robot:
     def create_robot(
         self,
         space: pymunk.Space,
-        friction: float = 0.9,
+        friction: float = 0.2,
         damping: float = 0.9,
         position_x: float = 0.0,
         position_y: float = 0.0,
@@ -53,7 +53,7 @@ class Robot:
         body.damping = damping
         shape = pymunk.Circle(body, self.robot_radius)
         shape.friction = friction
-        # shape.damping = damping
+        shape.damping = damping
         space.add(body, shape)
         return body
 

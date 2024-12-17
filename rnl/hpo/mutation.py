@@ -258,13 +258,9 @@ class Mutations:
                 # too
                 for critic in self.algo["critics"]:
                     offspring_critic = getattr(individual, critic["eval"])
-                    ind_target = type(offspring_critic)(
-                        **offspring_critic.init_dict
-                    )
+                    ind_target = type(offspring_critic)(**offspring_critic.init_dict)
                     ind_target.load_state_dict(offspring_critic.state_dict())
-                    setattr(
-                        individual, critic["target"], ind_target.to(self.device)
-                    )
+                    setattr(individual, critic["target"], ind_target.to(self.device))
 
             mutated_population.append(individual)
 

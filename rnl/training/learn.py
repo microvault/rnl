@@ -70,7 +70,6 @@ def training(
         device=trainer_config.device,
     )
 
-
     agent_pop = create_population(
         state_dim=int(state_dim[0]),  # State dimension
         action_dim=action_dim,  # Action dimension
@@ -137,6 +136,7 @@ def training(
         overwrite_checkpoints=False,
         wandb_api_key="",
     )
+
 
 def inference(
     robot_config: RobotConfig,

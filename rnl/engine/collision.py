@@ -328,6 +328,8 @@ def calculate_temp_vector(
 
 
 lru_cache(maxsize=5)
+
+
 def lidar_intersections(
     robot_x: float,
     robot_y: float,
@@ -375,6 +377,7 @@ def position_intersection(
     inter_point_rounded = [round(coord, 3) for coord in inter_point]
 
     return True, tuple(inter_point_rounded)
+
 
 def lidar_measurements(
     robot_x: float,

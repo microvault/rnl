@@ -158,9 +158,7 @@ class EvolvableMLP(nn.Module):
                 net_dict[f"linear_layer_{str(l_no)}"] = self.layer_init(
                     net_dict[f"linear_layer_{str(l_no)}"]
                 )
-                net_dict[f"layer_norm_{str(l_no)}"] = nn.LayerNorm(
-                    hidden_size[l_no]
-                )
+                net_dict[f"layer_norm_{str(l_no)}"] = nn.LayerNorm(hidden_size[l_no])
                 net_dict[f"activation_{str(l_no)}"] = self.get_activation(
                     self.mlp_activation
                     if not rainbow_feature_net

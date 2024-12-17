@@ -7,10 +7,10 @@ from tqdm import trange
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
-
 from rnl.components.sampler import Sampler
 from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
+
 
 def train_off_policy(
     env: AsyncVectorEnv,
@@ -197,10 +197,13 @@ def train_off_policy(
         ]
         pop_fitnesses.append(fitnesses)
         mean_scores = [
-            (float(np.mean(episode_scores)) if len(episode_scores) > 0 else "0 completed episodes")
+            (
+                float(np.mean(episode_scores))
+                if len(episode_scores) > 0
+                else "0 completed episodes"
+            )
             for episode_scores in pop_episode_scores
         ]
-
 
         # if wb:
         #     wandb_dict = {
@@ -259,7 +262,6 @@ def train_off_policy(
         # elite_save_path = "rnl-elite_rainbow"
         # elite.save_checkpoint(f"{elite_save_path}.pt")
 
-
         fitness = ["%.2f" % fitness for fitness in fitnesses]
         avg_fitness = ["%.2f" % safe_mean(agent.fitness[-5:]) for agent in pop]
         avg_score = ["%.2f" % safe_mean(agent.scores[-10:]) for agent in pop]
@@ -299,6 +301,7 @@ def train_off_policy(
 
     pbar.close()
     return pop, pop_fitnesses
+
 
 def safe_mean(values, default=0.00):
     if len(values) == 0:
