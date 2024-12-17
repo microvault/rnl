@@ -342,7 +342,7 @@ def lidar_intersections(
 
     intersections = []
     for i, angle in enumerate(lidar_angles):
-        adjusted_angle = angle + robot_theta
+        adjusted_angle = angle + robot_theta - np.pi
 
         lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)
 
@@ -392,7 +392,7 @@ def lidar_measurements(
     measurements = []
     for i, angle in enumerate(lidar_angles):
         # Adjust the angle by adding the robot's orientation
-        adjusted_angle = angle + robot_theta
+        adjusted_angle = angle + robot_theta - np.pi
 
         # Compute the LiDAR segment using the adjusted angle
         lidar_segment = lidar_to_segment(robot_x, robot_y, lidar_range, adjusted_angle)

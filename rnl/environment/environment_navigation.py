@@ -215,11 +215,13 @@ class NaviEnv(gym.Env):
                 self.vl = 0.05 * self.scalar
                 self.vr = -0.3 * self.scalar
 
+        self.space.step(1/60)
+
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
         x, y, theta = (
             self.body.position.x,
             self.body.position.y,
-            self.body.position.angle,
+            self.body.angle,
         )
 
         intersections, lidar_measurements = self.sensor.sensor(
@@ -315,11 +317,13 @@ class NaviEnv(gym.Env):
             self.vl = 0.05 * self.scalar
             self.vr = -0.3 * self.scalar
 
+        self.space.step(1/60)
+
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
         x, y, theta = (
             self.body.position.x,
             self.body.position.y,
-            self.body.position.angle,
+            self.body.angle,
         )
 
         intersections, lidar_measurements = self.sensor.sensor(

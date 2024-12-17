@@ -12,7 +12,8 @@ class SensorRobot:
     def __init__(self, sensor_config: SensorConfig):
         self.collision = Collision()
         self.max_range = sensor_config.max_range
-        self.lidar_angle = np.linspace(0, sensor_config.fov, sensor_config.num_rays)
+        half_fov = np.radians(sensor_config.fov) / 2
+        self.lidar_angle = np.linspace(-half_fov, half_fov, sensor_config.num_rays)
 
     def sensor(
         self, x: float, y: float, theta: float, segments: List

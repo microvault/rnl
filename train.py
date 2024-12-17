@@ -20,7 +20,7 @@ def main(arg):
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=4 * np.pi,  # TODO: RANDOMIZE
+        fov=180,  # TODO: RANDOMIZE
         num_rays=40,  # TODO: RANDOMIZE
         min_range=0.0,  # TODO: RANDOMIZE
         max_range=6.0,  # TODO: RANDOMIZE
