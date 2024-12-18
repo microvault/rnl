@@ -4,7 +4,8 @@ from typing import List
 
 @dataclass
 class EnvConfig:
-    map_file: str = "rnl/data/map/map.pgm"
+    folder_map: str = "rnl/data/map/map"
+    name_map: str = "map"
     random_mode: str = "normal"
     timestep: int = 1000
     grid_dimension: int = 5

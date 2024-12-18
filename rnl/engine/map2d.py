@@ -6,14 +6,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
 from yaml import SafeLoader, load
-
+from typing import Tuple
 
 class Map2D:
     def __init__(
         self,
-        folder=None,
-        name=None,
-        silent=False,
+        folder: str,
+        name: str,
+        silent: bool,
     ):
         self.path = folder
 
@@ -152,17 +152,15 @@ class Map2D:
 
     def initial_environment2d(
         self,
-        plot=True,
-        kernel_size=(3, 3),
-        morph_iterations=1,
-        approx_epsilon_factor=0.01,
+        plot: bool=False,
+        kernel_size: Tuple=(3, 3),
+        morph_iterations: int=1,
+        approx_epsilon_factor: float = 0.01,
         contour_retrieval_mode=cv2.RETR_TREE,
         contour_approx_method=cv2.CHAIN_APPROX_SIMPLE,
     ):
 
         new_map_grid = self._grid_map()
-
-        print(f"Shape do new_map_grid: {new_map_grid.shape}")
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
 
@@ -217,7 +215,6 @@ class Map2D:
 
         kernel_smooth = np.ones((1, 1), np.uint8)
         contour_mask = cv2.morphologyEx(contour_mask, cv2.MORPH_OPEN, kernel_smooth)
-        print(contour_mask)
 
         if plot:
 
@@ -226,17 +223,18 @@ class Map2D:
             plt.axis("off")
 
             # Salvar a imagem
-            plt.savefig("image4.png", bbox_inches="tight", pad_inches=0)
+            # plt.savefig("image4.png", bbox_inches="tight", pad_inches=0)
             plt.show()
 
         return contour_mask
 
-    def plot_initial_environment3d(self, plot=False) -> None:
-        """generate environment from map"""
+    # def plot_initial_environment3d(self, plot=False) -> None:
+    #     """generate environment from map"""
 
-        self.initial_environment2d(plot)
+    #     contour_mask = self.initial_environment2d(plot)
 
-    #     # new_map_grid = self._grid_map()
+
+    #     new_map_grid = self._grid_map()
 
     #     idx = np.where(map_grid.sum(axis=0) > 0)[0]
 
@@ -262,6 +260,6 @@ class Map2D:
 
 
 # if __name__ == "__main__":
-#     map2d = Map2D("/Users/nicolasalan/microvault/rnl/data/map", "map")
-#     map2d.plot_initial_environment3d()
-# map2d.plot_simple_map()
+#     map2d = Map2D("/Users/nicolasalan/microvault/rnl/data/map3", "map3")
+#     map2d.plot_initial_environment3d(plot=False)
+#     # map2d.plot_simple_map()

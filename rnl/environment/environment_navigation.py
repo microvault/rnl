@@ -10,6 +10,7 @@ from sklearn.preprocessing import MinMaxScaler
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collision import Collision
+from rnl.engine.randomizer import DomainRandomization
 from rnl.engine.utils import (
     angle_to_goal,
     distance_to_goal,
@@ -43,6 +44,7 @@ class NaviEnv(gym.Env):
         )
         self.param = OmegaConf.load("./rnl/configs/limits.yaml")
 
+        self.random_target_progress = DomainRandomization(window_size=100)
         self.collision = Collision()
         self.robot = Robot(robot_config)
         self.sensor = SensorRobot(sensor_config)
@@ -66,6 +68,8 @@ class NaviEnv(gym.Env):
             )
         )
 
+        self.reward_history = []
+
         self.xmax = env_config.grid_dimension - 0.25
         self.ymax = env_config.grid_dimension - 0.25
         self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
@@ -78,10 +82,28 @@ class NaviEnv(gym.Env):
         max_reward, min_reward = 500.0, -500.0
         self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
 
-        self.generator = Generator(
-            env_config.porcentage_obstacles,
-            env_config.random_mode,
-        )
+        self.grid_lenght = env_config.grid_dimension
+
+        if env_config.folder_map != "None":
+            self.generator = Generator(
+                random=env_config.porcentage_obstacles,
+                mode=env_config.random_mode,
+                folder=env_config.folder_map,
+                name=env_config.name_map,
+            )
+            self.new_map_path, self.exterior, self.interior, self.segments = self.generator.world(
+                self.grid_lenght
+            )
+            self.initial_map = True
+        else:
+            self.generator = Generator(
+                random=env_config.porcentage_obstacles,
+                mode=env_config.random_mode,
+                folder="None",
+                name="None",
+            )
+            self.initial_map = False
+            self.segments = []
 
         # -- Environmental parameters -- #
         self.max_lidar = sensor_config.max_range
@@ -93,12 +115,14 @@ class NaviEnv(gym.Env):
         self.step_anim = env_config.timestep
         self.fps = render_config.fps
         self.threshold = robot_config.threshold
-        self.grid_lenght = env_config.grid_dimension
-
         self.controller = render_config.controller
+        self.current_fraction = 0.5
+        self.min_fraction = 0.2
+        self.max_fraction = 0.8
+        self.threshold = 0.01
+        self.adjustment = 0.05
 
         # -- Local Variables -- #
-        self.segments = []
         self.cumulated_reward = 0.0
         self.timestep = 0
         self.target_x: float = 0.0
@@ -272,6 +296,8 @@ class NaviEnv(gym.Env):
 
         self.cumulated_reward += reward
 
+        self.reward_history.append(reward)
+
         # if self.data_collection:
         #     self.dataset.store_step(
         #         state=self.last_states,
@@ -389,6 +415,17 @@ class NaviEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
+        # initial_distance = self.current_fraction * self.dist_max
+
+        self.current_fraction = self.random_target_progress.adjust_initial_distance(
+                reward_history=self.reward_history,
+                current_fraction=self.current_fraction,
+                min_fraction=self.min_fraction,
+                max_fraction=self.max_fraction,
+                threshold=self.threshold,
+                adjustment=self.adjustment
+            )
+
         self.epoch += 1
 
         if self.epoch % self.randomization_frequency == 0:
@@ -398,17 +435,18 @@ class NaviEnv(gym.Env):
 
         self.cumulated_reward = 0.0
 
-        new_map_path, exterior, interior, all_seg = self.generator.world(
-            self.grid_lenght
-        )
-        self.segments = all_seg
+        if not self.initial_map:
+            self.new_map_path, self.exterior, self.interior, self.segments = self.generator.world(
+                self.grid_lenght
+            )
+        # self.segments = self.all_seg
 
         if self.rgb_array:
             for patch in self.ax.patches:
                 patch.remove()
 
-            self.ax.add_patch(new_map_path)
-            art3d.pathpatch_2d_to_3d(new_map_path, z=0, zdir="z")
+            self.ax.add_patch(self.new_map_path)
+            art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
         while True:
             self.target_x = np.random.uniform(0, self.xmax)
@@ -418,9 +456,9 @@ class NaviEnv(gym.Env):
             theta = np.random.uniform(0, 2 * np.pi)
 
             if self.collision.check_collision(
-                exterior, interior, x, y
+                self.exterior, self.interior, x, y
             ) and self.collision.check_collision(
-                exterior, interior, self.target_x, self.target_y
+                self.exterior, self.interior, self.target_x, self.target_y
             ):
                 break
 
@@ -429,7 +467,7 @@ class NaviEnv(gym.Env):
             x=self.body.position.x,
             y=self.body.position.y,
             theta=self.body.position.angle,
-            segments=all_seg,
+            segments=self.segments,
             max_range=self.max_lidar,
         )
 
@@ -522,11 +560,13 @@ class NaviEnv(gym.Env):
 
         # ------ Create wordld ------ #
 
-        path, _, _, _ = self.generator.world(self.grid_lenght)
+        if not self.initial_map:
+            self.new_map_path, _, _, _ = self.generator.world(self.grid_lenght)
 
-        ax.add_patch(path)
 
-        art3d.pathpatch_2d_to_3d(path, z=0, zdir="z")
+        ax.add_patch(self.new_map_path)
+
+        art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
         ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))

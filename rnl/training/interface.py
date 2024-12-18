@@ -38,7 +38,8 @@ def sensor(fov: float, num_rays: int, min_range: float, max_range: float):
 
 
 def make(
-    map_file: str,
+    folder_map: str,
+    name_map:str,
     random_mode: str,
     max_timestep: int,
     grid_dimension: int,
@@ -47,7 +48,8 @@ def make(
     randomization_interval: int,
 ):
     return EnvConfig(
-        map_file=map_file,
+        folder_map=folder_map,
+        name_map=name_map,
         random_mode=random_mode,
         timestep=max_timestep,
         grid_dimension=grid_dimension,

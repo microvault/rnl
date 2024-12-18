@@ -9,18 +9,23 @@ from skimage import measure
 
 from rnl.engine.collision import Collision
 from rnl.engine.world_generate import GenerateWorld
+from rnl.engine.map2d import Map2D
 
 
 @dataclass
 class Generator:
     def __init__(
         self,
-        random: float = 0.1,  # 1300
-        mode: str = "normal",
+        random: float,  # 1300
+        mode: str,
+        folder: str,
+        name: str,
     ):
         self.random = random
         self.collision = Collision()
         self.generate = GenerateWorld()
+        if folder != "None":
+            self.map2d = Map2D(folder=folder, name=name, silent=False)
 
     @staticmethod
     def _map_border(m: np.ndarray) -> np.ndarray:
@@ -82,12 +87,18 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        m = self.generate.generate_maze(
-            map_size=grid_lenght,
-            decimation=0.0,
-            min_blocks=5,
-            num_cells_togo=1300,
-        )
+        m = np.empty((0, 0))
+
+        if self.map2d is not None:
+            m = np.array(self.map2d.initial_environment2d())
+
+        else:
+            m = self.generate.generate_maze(
+                map_size=grid_lenght,
+                decimation=0.0,
+                min_blocks=5,
+                num_cells_togo=1300,
+            )
 
         border = self._map_border(m)
         map_grid = 1 - border

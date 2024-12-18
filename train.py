@@ -26,7 +26,8 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        map_file="None",
+        folder_map="/Users/nicolasalan/microvault/rnl/data/map",
+        name_map="map",
         random_mode="normal",  # hard, normal
         max_timestep=1000,
         grid_dimension=5,
@@ -60,7 +61,7 @@ def main(arg):
             batch_size=4,
             lr=0.0001,
             seed=1,
-            num_envs=4,
+            num_envs=6,
             device="mps",
             learn_step=10,
             target_score=200,
