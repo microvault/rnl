@@ -22,6 +22,7 @@ from rnl.engine.utils import (
 from rnl.environment.generate_world import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
+from shapely.geometry import Point
 
 
 class NaviEnv(gym.Env):
@@ -45,9 +46,9 @@ class NaviEnv(gym.Env):
         self.param = OmegaConf.load("./rnl/configs/limits.yaml")
 
         self.random_target_progress = DomainRandomization(window_size=100)
-        self.collision = Collision()
+        # self.collision = Collision()
         self.robot = Robot(robot_config)
-        self.sensor = SensorRobot(sensor_config)
+
         self.friction = env_config.friction
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space, friction=self.friction)
@@ -91,9 +92,10 @@ class NaviEnv(gym.Env):
                 folder=env_config.folder_map,
                 name=env_config.name_map,
             )
-            self.new_map_path, self.exterior, self.interior, self.segments = self.generator.world(
+            self.new_map_path, self.exterior, self.interior, self.segments,self.m, self.poly = self.generator.world(
                 self.grid_lenght
             )
+            self.sensor = SensorRobot(sensor_config, self.segments)
             self.initial_map = True
         else:
             self.generator = Generator(
@@ -135,7 +137,7 @@ class NaviEnv(gym.Env):
         self.vr = 0.01
         self.init_distance = 0
         self.action = 0
-        self.scalar = 10
+        self.scalar = 1000
         self.randomization_frequency = env_config.randomization_interval
         self.epoch = 0
         self.current_rays = sensor_config.num_rays
@@ -151,7 +153,7 @@ class NaviEnv(gym.Env):
             )
 
         if self.rgb_array:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6), subplot_kw={'projection': '3d'})
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
@@ -177,6 +179,7 @@ class NaviEnv(gym.Env):
 
             self._init_animation(self.ax)
             if self.controller:
+                print("Use the arrow keys to control the robot.")
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
         self.reset()
@@ -293,6 +296,8 @@ class NaviEnv(gym.Env):
                 np.array(alpha_norm, dtype=np.float32),
             )
         )
+
+
 
         self.cumulated_reward += reward
 
@@ -435,11 +440,12 @@ class NaviEnv(gym.Env):
 
         self.cumulated_reward = 0.0
 
-        if not self.initial_map:
-            self.new_map_path, self.exterior, self.interior, self.segments = self.generator.world(
-                self.grid_lenght
-            )
-        # self.segments = self.all_seg
+        # if not self.initial_map:
+        self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
+            self.grid_lenght
+        )
+
+        minx, miny, maxx, maxy = self.poly.bounds
 
         if self.rgb_array:
             for patch in self.ax.patches:
@@ -448,19 +454,22 @@ class NaviEnv(gym.Env):
             self.ax.add_patch(self.new_map_path)
             art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
-        while True:
-            self.target_x = np.random.uniform(0, self.xmax)
-            self.target_y = np.random.uniform(0, self.ymax)
-            x = np.random.uniform(0, self.xmax)
-            y = np.random.uniform(0, self.ymax)
-            theta = np.random.uniform(0, 2 * np.pi)
+        # while True:
+        self.target_x, self.target_y = self.random_point_in_poly(self.poly, minx, miny, maxx, maxy)
+        x, y = self.random_point_in_poly(self.poly, minx, miny, maxx, maxy)
 
-            if self.collision.check_collision(
-                self.exterior, self.interior, x, y
-            ) and self.collision.check_collision(
-                self.exterior, self.interior, self.target_x, self.target_y
-            ):
-                break
+        # self.target_x = np.random.uniform(0, self.xmax)
+        # self.target_y = np.random.uniform(0, self.ymax)
+        # x = np.random.uniform(0, self.xmax)
+        # y = np.random.uniform(0, self.ymax)
+        theta = np.random.uniform(0, 2 * np.pi)
+
+        # if self.collision.check_collision(
+        #     self.exterior, self.interior, x, y
+        # ) and self.collision.check_collision(
+        #     self.exterior, self.interior, self.target_x, self.target_y
+        # ):
+        #     break
 
         self.robot.reset_robot(self.body, x, y, theta)
         intersections, measurement = self.sensor.sensor(
@@ -555,13 +564,21 @@ class NaviEnv(gym.Env):
         Returns:
         None
         """
-        ax.set_xlim(0, self.grid_lenght)
-        ax.set_ylim(0, self.grid_lenght)
-
         # ------ Create wordld ------ #
 
-        if not self.initial_map:
-            self.new_map_path, _, _, _ = self.generator.world(self.grid_lenght)
+        # if not self.initial_map:
+        self.new_map_path, _, _, _, m, poly = self.generator.world(self.grid_lenght)
+
+        minx, miny, maxx, maxy = poly.bounds
+        center_x = (minx + maxx) / 2.0
+        center_y = (miny + maxy) / 2.0
+
+        width = maxx - minx
+        height = maxy - miny
+
+        # Ajustar os limites para que o centro seja o do polígono
+        ax.set_xlim(center_x - width/2, center_x + width/2)
+        ax.set_ylim(center_y - height/2, center_y + height/2)
 
 
         ax.add_patch(self.new_map_path)
@@ -586,7 +603,7 @@ class NaviEnv(gym.Env):
         # Set camera
         ax.elev = 40
         ax.azim = -255
-        ax.dist = 12
+        ax.dist = 200
 
         self.label = self.ax.text(
             0,
@@ -671,3 +688,11 @@ class NaviEnv(gym.Env):
                 self.param.sensor.min_num_rays, self.param.sensor.max_num_rays
             )
             self.sensor.random_sensor(new_fov, new_num_rays)
+
+    def random_point_in_poly(self, poly, minx, miny, maxx, maxy, max_tries=1000):
+        for _ in range(max_tries):
+            x = np.random.uniform(minx, maxx)
+            y = np.random.uniform(miny, maxy)
+            if poly.contains(Point(x, y)):
+                return x, y
+        return (minx, miny)

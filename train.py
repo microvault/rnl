@@ -1,6 +1,5 @@
 import argparse
 import multiprocessing as mp
-
 import rnl as vault
 
 
@@ -21,7 +20,7 @@ def main(arg):
         fov=180,
         num_rays=20,
         min_range=1.0,
-        max_range=5.0,
+        max_range=500.0,
     )
 
     # 3.step -> config env
@@ -44,7 +43,7 @@ def main(arg):
 
         # 5.step -> train robot
         model.learn(
-            max_timestep=1000,  # 800000
+            max_timestep=1000,
             memory_size=1000,
             gamma=0.99,
             n_step=1,
