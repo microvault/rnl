@@ -7,7 +7,7 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 from numba import njit
-from rnl.engine.collision import Collision
+# from rnl.engine.collision import Collision
 from rnl.engine.world_generate import GenerateWorld
 from rnl.engine.map2d import Map2D
 
@@ -26,6 +26,9 @@ class Generator:
         self.generate = GenerateWorld()
         if folder != "None":
             self.map2d = Map2D(folder=folder, name=name, silent=False)
+            self.use_map = True
+        else:
+            self.use_map = False
 
 
         self.debug = True
@@ -92,7 +95,7 @@ class Generator:
         """
         m = np.empty((0, 0))
 
-        if self.map2d is not None:
+        if self.use_map:
             contour_mask = self.map2d.initial_environment2d(plot=False)
             if contour_mask is None:
                 raise ValueError("Failed to generate the contour mask.")
@@ -167,20 +170,15 @@ class Generator:
 
             return path_patch, ext_segments, int_segments, segment, contour_mask, poly
 
-
         else:
-            m = self.generate.generate_maze(
+            contour_mask = self.generate.generate_maze(
                 map_size=grid_lenght,
                 decimation=0.0,
                 min_blocks=5,
                 num_cells_togo=1300,
             )
 
-            if m is None or m.size == 0:
-                raise ValueError("The mask 'm' is empty or was not generated correctly.")
-
-
-            border = self._map_border(m)
+            border = self._map_border(contour_mask)
             map_grid = 1 - border
 
             contours = measure.find_contours(map_grid, 0.5)
@@ -248,7 +246,7 @@ class Generator:
                 path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
             )
 
-            return path_patch, ext_segments, int_segments, segment, m
+            return path_patch, ext_segments, int_segments, segment, contour_mask, poly
 
 @njit
 def convert_to_segments(polygon):

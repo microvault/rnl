@@ -9,8 +9,8 @@ from sklearn.preprocessing import MinMaxScaler
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
-from rnl.engine.collision import Collision
-from rnl.engine.randomizer import DomainRandomization
+# from rnl.engine.collision import Collision
+from rnl.engine.randomizer import TargetPosition
 from rnl.engine.utils import (
     angle_to_goal,
     distance_to_goal,
@@ -45,13 +45,20 @@ class NaviEnv(gym.Env):
         )
         self.param = OmegaConf.load("./rnl/configs/limits.yaml")
 
-        self.random_target_progress = DomainRandomization(window_size=100)
+        # self.random_target_progress = DomainRandomization(window_size=100)
         # self.collision = Collision()
         self.robot = Robot(robot_config)
 
         self.friction = env_config.friction
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space, friction=self.friction)
+        self.target_position = TargetPosition(
+            window_size=100,
+            min_fraction=0.2,
+            max_fraction=0.8,
+            threshold=0.01,
+            adjustment=0.05
+        )
 
         # -- Normalization -- #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
@@ -92,7 +99,7 @@ class NaviEnv(gym.Env):
                 folder=env_config.folder_map,
                 name=env_config.name_map,
             )
-            self.new_map_path, self.exterior, self.interior, self.segments,self.m, self.poly = self.generator.world(
+            self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
                 self.grid_lenght
             )
             self.sensor = SensorRobot(sensor_config, self.segments)
@@ -106,6 +113,7 @@ class NaviEnv(gym.Env):
             )
             self.initial_map = False
             self.segments = []
+            self.sensor = SensorRobot(sensor_config, map_segments=None)
 
         # -- Environmental parameters -- #
         self.max_lidar = sensor_config.max_range
@@ -137,7 +145,7 @@ class NaviEnv(gym.Env):
         self.vr = 0.01
         self.init_distance = 0
         self.action = 0
-        self.scalar = 1000
+        self.scalar = 10# 1000
         self.randomization_frequency = env_config.randomization_interval
         self.epoch = 0
         self.current_rays = sensor_config.num_rays
@@ -421,15 +429,24 @@ class NaviEnv(gym.Env):
         super().reset(seed=seed)
 
         # initial_distance = self.current_fraction * self.dist_max
+        #
+        self.current_fraction = self.target_position.adjust_initial_distance(
+            reward_history=self.reward_history,
+            current_fraction=self.current_fraction
+        )
 
-        self.current_fraction = self.random_target_progress.adjust_initial_distance(
-                reward_history=self.reward_history,
-                current_fraction=self.current_fraction,
-                min_fraction=self.min_fraction,
-                max_fraction=self.max_fraction,
-                threshold=self.threshold,
-                adjustment=self.adjustment
-            )
+        # self.current_fraction = self.random_target_progress.adjust_initial_distance(
+        #         reward_history=self.reward_history,
+        #         current_fraction=self.current_fraction,
+        #         min_fraction=self.min_fraction,
+        #         max_fraction=self.max_fraction,
+        #         threshold=self.threshold,
+        #         adjustment=self.adjustment
+        #     )
+        initial_distance = self.current_fraction * self.dist_max
+
+        print(f"Initial distance: {initial_distance}")
+
 
         self.epoch += 1
 
@@ -440,10 +457,10 @@ class NaviEnv(gym.Env):
 
         self.cumulated_reward = 0.0
 
-        # if not self.initial_map:
-        self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
-            self.grid_lenght
-        )
+        if not self.initial_map:
+            self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
+                self.grid_lenght
+            )
 
         minx, miny, maxx, maxy = self.poly.bounds
 
@@ -566,20 +583,22 @@ class NaviEnv(gym.Env):
         """
         # ------ Create wordld ------ #
 
-        # if not self.initial_map:
-        self.new_map_path, _, _, _, m, poly = self.generator.world(self.grid_lenght)
+        if not self.initial_map:
+            self.new_map_path, _, _, _, m, poly = self.generator.world(self.grid_lenght)
+            ax.set_xlim(0, self.grid_lenght)
+            ax.set_ylim(0, self.grid_lenght)
 
-        minx, miny, maxx, maxy = poly.bounds
-        center_x = (minx + maxx) / 2.0
-        center_y = (miny + maxy) / 2.0
+        else:
+            minx, miny, maxx, maxy = self.poly.bounds
+            center_x = (minx + maxx) / 2.0
+            center_y = (miny + maxy) / 2.0
 
-        width = maxx - minx
-        height = maxy - miny
+            width = maxx - minx
+            height = maxy - miny
 
-        # Ajustar os limites para que o centro seja o do polígono
-        ax.set_xlim(center_x - width/2, center_x + width/2)
-        ax.set_ylim(center_y - height/2, center_y + height/2)
-
+            # Ajustar os limites para que o centro seja o do polígono
+            ax.set_xlim(center_x - width/2, center_x + width/2)
+            ax.set_ylim(center_y - height/2, center_y + height/2)
 
         ax.add_patch(self.new_map_path)
 

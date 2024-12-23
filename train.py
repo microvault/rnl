@@ -25,8 +25,8 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="/Users/nicolasalan/microvault/rnl/data/map",
-        name_map="map",
+        folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
+        name_map="None",
         random_mode="normal",  # hard, normal
         max_timestep=1000,
         grid_dimension=5,
