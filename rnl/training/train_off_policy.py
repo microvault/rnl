@@ -1,6 +1,7 @@
-# from datetime import datetime
+from datetime import datetime
 from typing import List
-
+import wandb
+import warnings
 import numpy as np
 from gymnasium.vector import AsyncVectorEnv
 from tqdm import trange
@@ -13,6 +14,7 @@ from rnl.hpo.tournament import TournamentSelection
 
 
 def train_off_policy(
+    config: dict,
     env: AsyncVectorEnv,
     pop: List[RainbowDQN],
     memory: PrioritizedReplayBuffer,
@@ -35,38 +37,28 @@ def train_off_policy(
     wandb_api_key: str,
 ):
 
-    # if wb:
-    #     if not hasattr(wandb, "api"):
-    #         if wandb_api_key is not None:
-    #             wandb.login(key=wandb_api_key)
-    #         else:
-    #             warnings.warn("Must login to wandb with API key.")
+    if wb:
+        if not hasattr(wandb, "api"):
+            if wandb_api_key is not None:
+                wandb.login(key=wandb_api_key)
+            else:
+                warnings.warn("Must login to wandb with API key.")
 
-    #     config_dict = {}
-    #     if INIT_HP is not None:
-    #         config_dict.update(INIT_HP)
-    #     if MUT_P is not None:
-    #         config_dict.update(MUT_P)
-
-    #         wandb.init(
-    #             # set the wandb project where this run will be logged
-    #             project="AgileRL",
-    #             name="{}-EvoHPO-{}-{}".format(
-    #                 "rnl", algo, datetime.now().strftime("%m%d%Y%H%M%S")
-    #             ),
-    #             # track hyperparameters and run metadata
-    #             config=config_dict,
-    #         )
+        wandb.init(
+            project="rnl",
+            name="train-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
+            ),
+            config=config,
+        )
 
     num_envs = env.num_envs
 
-    # save_path = (
-    #     checkpoint_path.split(".pt")[0]
-    #     if checkpoint_path is not None
-    #     else "{}-EvoHPO-{}-{}".format(
-    #         "rnl", "rainbow", datetime.now().strftime("%m%d%Y%H%M%S")
-    #     )
-    # )
+    save_path = (
+        checkpoint_path.split(".pt")[0]
+        if checkpoint_path is not None
+        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
+        )
+    )
 
     sampler = Sampler(per=True, n_step=False, memory=memory)
     n_step_sampler = Sampler(per=False, n_step=True, memory=n_step_memory)
@@ -80,7 +72,7 @@ def train_off_policy(
     pop_fitnesses = []
     total_steps = 0
     loss = None
-    # checkpoint_count = 0
+    checkpoint_count = 0
 
     # RL training loop
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
@@ -97,7 +89,6 @@ def train_off_policy(
 
                 action = agent.get_action(state)
 
-                # STUDY THIS
                 for a in action:
                     if not isinstance(a, int):
                         a = int(a)
@@ -171,7 +162,7 @@ def train_off_policy(
 
                         if n_step_memory is not None:
                             n_step_experiences = n_step_sampler._sample_n_step(
-                                idxs=experiences[5]
+                                idxs=experiences[6]
                             )
                             experiences += n_step_experiences
                         loss, idxs, priorities = agent.learn_dqn(experiences)
@@ -205,39 +196,39 @@ def train_off_policy(
             for episode_scores in pop_episode_scores
         ]
 
-        # if wb:
-        #     wandb_dict = {
-        #         "global_step": total_steps,
-        #         "train/mean_score": np.mean(
-        #             [
-        #                 mean_score
-        #                 for mean_score in mean_scores
-        #                 if not isinstance(mean_score, str)
-        #             ]
-        #         ),
-        #         "eval/mean_fitness": np.mean(fitnesses),
-        #         "eval/best_fitness": np.max(fitnesses),
-        #     }
+        if wb:
+            wandb_dict = {
+                "global_step": total_steps,
+                "train/mean_score": np.mean(
+                    [
+                        mean_score
+                        for mean_score in mean_scores
+                        if not isinstance(mean_score, str)
+                    ]
+                ),
+                "eval/mean_fitness": np.mean(fitnesses),
+                "eval/best_fitness": np.max(fitnesses),
+            }
 
-        #     # Create the loss dictionaries
-        #     if algo in ["RainbowDQN", "DQN"]:
-        #         actor_loss_dict = {
-        #             f"train/agent_{index}_actor_loss": np.mean(loss[-10:])
-        #             for index, loss in enumerate(pop_loss)
-        #         }
-        #         wandb_dict.update(actor_loss_dict)
+            # Create the loss dictionaries
+            # if algo in ["RainbowDQN", "DQN"]:
+            actor_loss_dict = {
+                f"train/agent_{index}_actor_loss": np.mean(loss[-10:])
+                for index, loss in enumerate(pop_loss)
+            }
+            wandb_dict.update(actor_loss_dict)
 
-        #     if algo in ["DQN", "Rainbow DQN"]:
-        #         train_actions_hist = [
-        #             freq / sum(train_actions_hist) for freq in train_actions_hist
-        #         ]
-        #         train_actions_dict = {
-        #             f"train/action_{index}": action
-        #             for index, action in enumerate(train_actions_hist)
-        #         }
-        #         wandb_dict.update(train_actions_dict)
+            # if algo in ["DQN", "Rainbow DQN"]:
+            #     train_actions_hist = [
+            #         freq / sum(train_actions_hist) for freq in train_actions_hist
+            #     ]
+            #     train_actions_dict = {
+            #         f"train/action_{index}": action
+            #         for index, action in enumerate(train_actions_hist)
+            #     }
+            #     wandb_dict.update(train_actions_dict)
 
-        #     wandb.log(wandb_dict)
+            wandb.log(wandb_dict)
 
         # Update step counter
         for agent in pop:
@@ -251,16 +242,16 @@ def train_off_policy(
                 )
                 and len(pop[0].steps) >= 100
             ):
-                # if wb:
-                #     wandb.finish()
+                if wb:
+                    wandb.finish()
                 return pop, pop_fitnesses
 
         # Tournament selection and population mutation
         elite, pop = tournament.select(pop)
         pop = mutation.mutation(pop)
 
-        # elite_save_path = "rnl-elite_rainbow"
-        # elite.save_checkpoint(f"{elite_save_path}.pt")
+        elite_save_path = "checkpoints/rnl-elite_rainbow"
+        elite.save_checkpoint(f"{elite_save_path}.pt")
 
         fitness = ["%.2f" % fitness for fitness in fitnesses]
         avg_fitness = ["%.2f" % safe_mean(agent.fitness[-5:]) for agent in pop]
@@ -282,22 +273,20 @@ def train_off_policy(
             end="\r",
         )
 
-        # pdb.set_trace()
-
         # Save model checkpoint
-        # if pop[0].steps[-1] // checkpoint > checkpoint_count:
-        #     for i, agent in enumerate(pop):
-        #         current_checkpoint_path = (
-        #             f"{save_path}_{i}.pt"
-        #             if overwrite_checkpoints
-        #             else f"{save_path}_{i}_{agent.steps[-1]}.pt"
-        #         )
-        #         agent.save_checkpoint(current_checkpoint_path)
-        #     print("Saved checkpoint.")
-        #     checkpoint_count += 1
+        if pop[0].steps[-1] // checkpoint > checkpoint_count:
+            for i, agent in enumerate(pop):
+                current_checkpoint_path = (
+                    f"{save_path}_{i}.pt"
+                    if overwrite_checkpoints
+                    else f"{save_path}_{i}_{agent.steps[-1]}.pt"
+                )
+                agent.save_checkpoint(current_checkpoint_path)
+            print("Saved checkpoint.")
+            checkpoint_count += 1
 
-    # if wb:
-    #     wandb.finish()
+    if wb:
+        wandb.finish()
 
     pbar.close()
     return pop, pop_fitnesses

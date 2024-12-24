@@ -9,7 +9,6 @@ from sklearn.preprocessing import MinMaxScaler
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
-# from rnl.engine.collision import Collision
 from rnl.engine.randomizer import TargetPosition
 from rnl.engine.utils import (
     angle_to_goal,
@@ -44,20 +43,17 @@ class NaviEnv(gym.Env):
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
         self.param = OmegaConf.load("./rnl/configs/limits.yaml")
-
-        # self.random_target_progress = DomainRandomization(window_size=100)
-        # self.collision = Collision()
         self.robot = Robot(robot_config)
-
         self.friction = env_config.friction
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space, friction=self.friction)
         self.target_position = TargetPosition(
-            window_size=100,
+            window_size=1000,
             min_fraction=0.2,
             max_fraction=0.8,
             threshold=0.01,
-            adjustment=0.05
+            adjustment=0.05,
+            episodes_interval=100
         )
 
         # -- Normalization -- #
@@ -232,7 +228,6 @@ class NaviEnv(gym.Env):
             )[0]
 
         if not self.controller:
-
             if self.action == 0:
                 self.vl = 0.05 * self.scalar
                 self.vr = 0.0
@@ -283,7 +278,6 @@ class NaviEnv(gym.Env):
             lidar_measurements, dist, collision, alpha, diff_to_init
         )
 
-        # TODO
         self.current_rays = len(lidar_measurements)
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
@@ -305,22 +299,9 @@ class NaviEnv(gym.Env):
             )
         )
 
-
-
         self.cumulated_reward += reward
-
         self.reward_history.append(reward)
-
-        # if self.data_collection:
-        #     self.dataset.store_step(
-        #         state=self.last_states,
-        #         action=self.action,
-        #         reward=reward,
-        #         next_state=states,
-        #     )
-
         self.last_states = states
-
         self._plot_anim(
             i,
             intersections,
@@ -336,8 +317,10 @@ class NaviEnv(gym.Env):
 
         truncated = self.timestep >= self.max_timestep
 
+        if not self.poly.contains(Point(x, y)):
+            done = True
+
         if done or truncated:
-            # self.dataset.save_dataset()
             self._stop()
 
     def step(self, action):
@@ -421,6 +404,9 @@ class NaviEnv(gym.Env):
 
         truncated = self.timestep >= self.max_timestep
 
+        if not self.poly.contains(Point(x, y)):
+            done = True
+
         self.space.step(1 / 60)
 
         return states, reward, done, truncated, {}
@@ -428,27 +414,14 @@ class NaviEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
 
-        # initial_distance = self.current_fraction * self.dist_max
-        #
+        self.epoch += 1
         self.current_fraction = self.target_position.adjust_initial_distance(
             reward_history=self.reward_history,
-            current_fraction=self.current_fraction
+            current_fraction=self.current_fraction,
+            epoch=self.epoch
         )
 
-        # self.current_fraction = self.random_target_progress.adjust_initial_distance(
-        #         reward_history=self.reward_history,
-        #         current_fraction=self.current_fraction,
-        #         min_fraction=self.min_fraction,
-        #         max_fraction=self.max_fraction,
-        #         threshold=self.threshold,
-        #         adjustment=self.adjustment
-        #     )
         initial_distance = self.current_fraction * self.dist_max
-
-        print(f"Initial distance: {initial_distance}")
-
-
-        self.epoch += 1
 
         if self.epoch % self.randomization_frequency == 0:
             self.randomization()
@@ -471,22 +444,19 @@ class NaviEnv(gym.Env):
             self.ax.add_patch(self.new_map_path)
             art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
-        # while True:
-        self.target_x, self.target_y = self.random_point_in_poly(self.poly, minx, miny, maxx, maxy)
         x, y = self.random_point_in_poly(self.poly, minx, miny, maxx, maxy)
 
-        # self.target_x = np.random.uniform(0, self.xmax)
-        # self.target_y = np.random.uniform(0, self.ymax)
-        # x = np.random.uniform(0, self.xmax)
-        # y = np.random.uniform(0, self.ymax)
+        self.target_x, self.target_y = self.random_point_in_poly_target(
+            poly=self.poly,
+            minx=minx,
+            miny=miny,
+            maxx=maxx,
+            maxy=maxy,
+            center_x=x,
+            center_y=y,
+            distance=initial_distance
+        )
         theta = np.random.uniform(0, 2 * np.pi)
-
-        # if self.collision.check_collision(
-        #     self.exterior, self.interior, x, y
-        # ) and self.collision.check_collision(
-        #     self.exterior, self.interior, self.target_x, self.target_y
-        # ):
-        #     break
 
         self.robot.reset_robot(self.body, x, y, theta)
         intersections, measurement = self.sensor.sensor(
@@ -679,7 +649,7 @@ class NaviEnv(gym.Env):
             if intersection is not None:
                 scatter = plt.scatter(
                     intersection[0], intersection[1], color="g", s=3.0
-                )  # 0.5
+                )
                 self.laser_scatters.append(scatter)
 
         self.agents.set_data_3d(
@@ -715,3 +685,12 @@ class NaviEnv(gym.Env):
             if poly.contains(Point(x, y)):
                 return x, y
         return (minx, miny)
+
+    def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, max_tries=1000):
+        for _ in range(max_tries):
+            x = np.random.uniform(minx, maxx)
+            y = np.random.uniform(miny, maxy)
+            if poly.contains(Point(x, y)):
+                if np.sqrt((x - center_x)**2 + (y - center_y)**2) <= distance:
+                    return x, y
+        return (center_x, center_y)

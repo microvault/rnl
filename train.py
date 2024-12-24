@@ -18,21 +18,21 @@ def main(arg):
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=180,
-        num_rays=20,
+        num_rays=40,
         min_range=1.0,
-        max_range=500.0,
+        max_range=20.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
         folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
         name_map="None",
-        random_mode="normal",  # hard, normal
+        random_mode="hard",  # hard, normal
         max_timestep=1000,
         grid_dimension=5,
         friction=0.4,
         porcentage_obstacles=0.1,
-        randomization_interval=2,
+        randomization_interval=100,
     )
 
     if args.mode == "train":
@@ -43,10 +43,10 @@ def main(arg):
 
         # 5.step -> train robot
         model.learn(
-            max_timestep=1000,
-            memory_size=1000,
+            max_timestep=800000,
+            memory_size=1000000,
             gamma=0.99,
-            n_step=1,
+            n_step=3,
             alpha=0.6,
             beta=0.4,
             tau=0.001,
@@ -57,25 +57,25 @@ def main(arg):
             epsilon_start=1.0,
             epsilon_end=0.1,
             epsilon_decay=0.995,
-            batch_size=4,
+            batch_size=64,
             lr=0.0001,
             seed=1,
-            num_envs=6,
-            device="mps",
+            num_envs=16,
+            device="cpu",
             learn_step=10,
             target_score=200,
-            max_steps=1000,
-            evaluation_steps=100,
+            max_steps=1000000,
+            evaluation_steps=10000,
             evaluation_loop=1,
             learning_delay=2,
-            n_step_memory=4,
+            n_step_memory=3,
             checkpoint=100000,
             checkpoint_path="checkpoints",
             overwrite_checkpoints=False,
             use_wandb=False,
             wandb_api_key="",
             use_mutation=True,
-            freq_evolution=100,
+            freq_evolution=10000,
             population_size=4,
             no_mutation=0.4,
             arch_mutation=0.2,
@@ -85,14 +85,18 @@ def main(arg):
             hp_mutation=0.2,
             hp_mutation_selection=["lr", "batch_size", "learn_step"],
             mutation_strength=0.1,
-            evolution_steps=1000,
+            evolution_steps=10000,
             save_elite=False,
             elite_path="elite",
             tourn_size=2,
             elitism=True,
-            hidden_size=[60, 40],
-            save=False,
+            hidden_size=[800, 600],
+            save=True,
+            wb=True,
+            api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c"
+
         )
+
 
     else:
         # 4.step -> config render

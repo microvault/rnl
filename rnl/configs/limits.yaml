@@ -2,7 +2,7 @@ sensor:
   min_fov: 10
   max_fov: 180
   min_num_rays: 10
-  max_num_rays: 60
+  max_num_rays: 40
   min_min_range: 0.5
   max_min_range: 3.0
   min_max_range: 3.0

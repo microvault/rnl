@@ -25,7 +25,12 @@ def training(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    pretrained_model,
+    pretrained_model: bool,
+    wb: bool,
+    api_key: str,
+    checkpoint_path: str,
+    checkpoint: int,
+    overwrite_checkpoints: bool,
 ):
 
     env = make_vect_envs(
@@ -115,6 +120,7 @@ def training(
             print(f"{key.ljust(max_key_length)} : {value}")
 
     trained_pop, pop_fitnesses = train_off_policy(
+        config=config_dict,
         env=env,
         pop=agent_pop,
         memory=memory,
@@ -130,11 +136,11 @@ def training(
         eps_decay=agent_config.epsilon_decay,
         tournament=tournament,
         mutation=mutations,
-        wb=False,
-        checkpoint=100,
-        checkpoint_path="RainbowDQN.pt",
-        overwrite_checkpoints=False,
-        wandb_api_key="",
+        wb=wb,
+        checkpoint=checkpoint,
+        checkpoint_path=checkpoint_path,
+        overwrite_checkpoints=overwrite_checkpoints,
+        wandb_api_key=api_key,
     )
 
 
@@ -159,18 +165,18 @@ def inference(
     for line in text:
         print(line)
 
-    # config_dict = {
-    #     "Robot Config": robot_config.__dict__,
-    #     "Sensor Config": sensor_config.__dict__,
-    #     "Env Config": env_config.__dict__,
-    #     "Render Config": render_config.__dict__,
-    # }
+    config_dict = {
+        "Robot Config": robot_config.__dict__,
+        "Sensor Config": sensor_config.__dict__,
+        "Env Config": env_config.__dict__,
+        "Render Config": render_config.__dict__,
+    }
 
-    # for config_name, config_values in config_dict.items():
-    #     print(f"\n#------ {config_name} ----#")
-    #     max_key_length = max(len(key) for key in config_values.keys())
-    #     for key, value in config_values.items():
-    #         print(f"{key.ljust(max_key_length)} : {value}")
+    for config_name, config_values in config_dict.items():
+        print(f"\n#------ {config_name} ----#")
+        max_key_length = max(len(key) for key in config_values.keys())
+        for key, value in config_values.items():
+            print(f"{key.ljust(max_key_length)} : {value}")
 
     env = NaviEnv(
         robot_config, sensor_config, env_config, render_config, pretrained_model=False

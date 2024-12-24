@@ -769,3 +769,4 @@ docs/.next/
 /wandb/
 /rnl/environment/utils/
 data/json
+checkpoints/
