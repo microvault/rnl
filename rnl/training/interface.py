@@ -39,7 +39,7 @@ def sensor(fov: float, num_rays: int, min_range: float, max_range: float):
 
 def make(
     folder_map: str,
-    name_map:str,
+    name_map: str,
     random_mode: str,
     max_timestep: int,
     grid_dimension: int,
@@ -204,7 +204,7 @@ class Trainer:
             api_key,
             checkpoint_path,
             checkpoint,
-            overwrite_checkpoints
+            overwrite_checkpoints,
         )
 
         return None

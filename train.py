@@ -1,5 +1,6 @@
 import argparse
 import multiprocessing as mp
+
 import rnl as vault
 
 
@@ -25,7 +26,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
+        folder_map="None",  # "/Users/nicolasalan/microvault/rnl/data/map",
         name_map="None",
         random_mode="hard",  # hard, normal
         max_timestep=1000,
@@ -93,10 +94,8 @@ def main(arg):
             hidden_size=[800, 600],
             save=True,
             wb=True,
-            api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c"
-
+            api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c",
         )
-
 
     else:
         # 4.step -> config render

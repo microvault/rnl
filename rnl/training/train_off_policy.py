@@ -1,8 +1,9 @@
+import warnings
 from datetime import datetime
 from typing import List
-import wandb
-import warnings
+
 import numpy as np
+import wandb
 from gymnasium.vector import AsyncVectorEnv
 from tqdm import trange
 
@@ -46,8 +47,7 @@ def train_off_policy(
 
         wandb.init(
             project="rnl",
-            name="train-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
-            ),
+            name="train-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")),
             config=config,
         )
 
@@ -56,8 +56,7 @@ def train_off_policy(
     save_path = (
         checkpoint_path.split(".pt")[0]
         if checkpoint_path is not None
-        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
-        )
+        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S"))
     )
 
     sampler = Sampler(per=True, n_step=False, memory=memory)
