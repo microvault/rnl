@@ -72,8 +72,6 @@ def main(arg):
             checkpoint=100000,
             checkpoint_path="checkpoints",
             overwrite_checkpoints=False,
-            use_wandb=False,
-            wandb_api_key="",
             use_mutation=True,
             freq_evolution=10000,
             population_size=4,
@@ -92,8 +90,8 @@ def main(arg):
             elitism=True,
             hidden_size=[800, 600],
             save=True,
-            wb=True,
-            api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c"
+            use_wandb=True,
+            wandb_api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c"
 
         )
 

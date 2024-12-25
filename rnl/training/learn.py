@@ -26,11 +26,6 @@ def training(
     env_config: EnvConfig,
     render_config: RenderConfig,
     pretrained_model: bool,
-    wb: bool,
-    api_key: str,
-    checkpoint_path: str,
-    checkpoint: int,
-    overwrite_checkpoints: bool,
 ):
 
     env = make_vect_envs(
@@ -136,11 +131,11 @@ def training(
         eps_decay=agent_config.epsilon_decay,
         tournament=tournament,
         mutation=mutations,
-        wb=wb,
-        checkpoint=checkpoint,
-        checkpoint_path=checkpoint_path,
-        overwrite_checkpoints=overwrite_checkpoints,
-        wandb_api_key=api_key,
+        wb=trainer_config.use_wandb,
+        checkpoint=trainer_config.checkpoint,
+        checkpoint_path=trainer_config.checkpoint_path,
+        overwrite_checkpoints=trainer_config.overwrite_checkpoints,
+        wandb_api_key=trainer_config.wandb_api_key,
     )
 
 

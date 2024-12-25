@@ -109,8 +109,6 @@ class Trainer:
         checkpoint: int = 100,
         checkpoint_path: str = "checkpoints",
         overwrite_checkpoints: bool = False,
-        use_wandb: bool = False,
-        wandb_api_key: str = "",
         use_mutation: bool = True,
         freq_evolution: int = 10000,
         population_size: int = 6,
@@ -129,8 +127,8 @@ class Trainer:
         elitism: bool = True,
         hidden_size: list = [800, 600],
         save: bool = False,
-        wb: bool = False,
-        api_key: str = "",
+        use_wandb: bool = False,
+        wandb_api_key: str = "",
     ) -> None:
         agent_config = AgentConfig(
             max_timestep,
@@ -200,11 +198,6 @@ class Trainer:
             self.env_config,
             self.render_config,
             self.pretrained_model,
-            wb,
-            api_key,
-            checkpoint_path,
-            checkpoint,
-            overwrite_checkpoints
         )
 
         return None

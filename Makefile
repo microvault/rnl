@@ -31,14 +31,30 @@ install_with_dev:
 install:
 	@poetry install --without dev
 
-.PHONY: build
-build:
-	@sudo docker build -t rnl-docker .
+.PHONY: build-cuda
+build-cuda:
+	@sudo docker build \
+		--platform=linux/amd64 \
+		--build-arg BASE_IMAGE=nvidia/cuda:12.2.0-devel-ubuntu22.04 \
+		-t rnl-docker-cuda .
+
+.PHONY: build-macos
+build-macos:
+	@sudo docker build \
+		--platform=linux/arm64 \
+		--build-arg BASE_IMAGE=ubuntu:22.04 \
+		-t rnl-docker-nocuda .
+
+.PHONY: start-cuda
+start-cuda:
+	@sudo docker run -it --net=host -v rnl:/workdir/rnl rnl-docker-cuda
 
 .PHONY: start
 start:
-	@echo "Starting training ..."
-	@sudo docker run -it --net=host -v rnl:/workdir/rnl  rnl-docker
+	@sudo docker run --platform=linux/arm64 -it --net=host -v rnl:/workdir/rnl -v $(PWD)/train.py:/workdir/train.py rnl-docker-nocuda
+
+clean:
+	@sudo docker image prune -f
 
 POETRY=poetry
 BLACK=$(POETRY) run black

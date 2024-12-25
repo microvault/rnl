@@ -211,22 +211,14 @@ def train_off_policy(
             }
 
             # Create the loss dictionaries
-            # if algo in ["RainbowDQN", "DQN"]:
-            actor_loss_dict = {
-                f"train/agent_{index}_actor_loss": np.mean(loss[-10:])
-                for index, loss in enumerate(pop_loss)
+            train_actions_hist = [
+                freq / sum(train_actions_hist) for freq in train_actions_hist
+            ]
+            train_actions_dict = {
+                f"train/action_{index}": action
+                for index, action in enumerate(train_actions_hist)
             }
-            wandb_dict.update(actor_loss_dict)
-
-            # if algo in ["DQN", "Rainbow DQN"]:
-            #     train_actions_hist = [
-            #         freq / sum(train_actions_hist) for freq in train_actions_hist
-            #     ]
-            #     train_actions_dict = {
-            #         f"train/action_{index}": action
-            #         for index, action in enumerate(train_actions_hist)
-            #     }
-            #     wandb_dict.update(train_actions_dict)
+            wandb_dict.update(train_actions_dict)
 
             wandb.log(wandb_dict)
 
