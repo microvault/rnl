@@ -1,12 +1,13 @@
 import functools
 import os
+from typing import Tuple
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
 from yaml import SafeLoader, load
-from typing import Tuple
+
 
 class Map2D:
     def __init__(
@@ -152,9 +153,9 @@ class Map2D:
 
     def initial_environment2d(
         self,
-        plot: bool=False,
-        kernel_size: Tuple=(3, 3),
-        morph_iterations: int=1,
+        plot: bool = False,
+        kernel_size: Tuple = (3, 3),
+        morph_iterations: int = 1,
         approx_epsilon_factor: float = 0.01,
         contour_retrieval_mode=cv2.RETR_TREE,
         contour_approx_method=cv2.CHAIN_APPROX_SIMPLE,
@@ -232,7 +233,6 @@ class Map2D:
     #     """generate environment from map"""
 
     #     contour_mask = self.initial_environment2d(plot)
-
 
     #     new_map_grid = self._grid_map()
 

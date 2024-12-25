@@ -4,12 +4,14 @@ from typing import List, Tuple
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+from numba import njit
 from shapely.geometry import LineString, Polygon
 from skimage import measure
-from numba import njit
+
+from rnl.engine.map2d import Map2D
+
 # from rnl.engine.collision import Collision
 from rnl.engine.world_generate import GenerateWorld
-from rnl.engine.map2d import Map2D
 
 
 @dataclass
@@ -29,7 +31,6 @@ class Generator:
             self.use_map = True
         else:
             self.use_map = False
-
 
         self.debug = True
 
@@ -102,7 +103,9 @@ class Generator:
             m = contour_mask
 
             if m is None or m.size == 0:
-                raise ValueError("A máscara 'm' está vazia ou não foi gerada corretamente.")
+                raise ValueError(
+                    "A máscara 'm' está vazia ou não foi gerada corretamente."
+                )
 
             contours = measure.find_contours(m, 0.5)
 
@@ -130,7 +133,9 @@ class Generator:
             if not exteriors:
                 raise ValueError("Nenhum contorno exterior encontrado.")
 
-            exteriors_sorted = sorted(exteriors, key=lambda p: Polygon(p).area, reverse=True)
+            exteriors_sorted = sorted(
+                exteriors, key=lambda p: Polygon(p).area, reverse=True
+            )
             exterior = exteriors_sorted[0]
 
             for extra_exterior in exteriors_sorted[1:]:
@@ -248,6 +253,7 @@ class Generator:
 
             return path_patch, ext_segments, int_segments, segment, contour_mask, poly
 
+
 @njit
 def convert_to_segments(polygon):
     segments = []
@@ -257,6 +263,7 @@ def convert_to_segments(polygon):
         x2, y2 = polygon[(i + 1) % n]
         segments.append((x1, y1, x2, y2))
     return segments
+
 
 @njit
 def is_counter_clockwise(polygon: List[Tuple[float, float]]) -> bool:
