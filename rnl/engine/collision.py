@@ -1,12 +1,13 @@
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import List, Tuple, Optional
+
+# from numba import njit
+from typing import List, Optional, Tuple
+
 import numpy as np
 from numba import njit
-# from numba import njit
-from typing import List, Tuple
-import numpy as np
-from dataclasses import dataclass
 from rtree import index
+
 
 class SpatialIndex:
     def __init__(self, segments: List[Tuple[float, float, float, float]]):
@@ -26,7 +27,9 @@ class SpatialIndex:
             self.idx.insert(i, (xmin, ymin, xmax, ymax))
         self.segments = segments
 
-    def query(self, x: float, y: float, max_range: float) -> List[Tuple[float, float, float, float]]:
+    def query(
+        self, x: float, y: float, max_range: float
+    ) -> List[Tuple[float, float, float, float]]:
         """
         Consulta os segmentos que estão dentro do alcance máximo a partir da posição (x, y).
 
@@ -39,8 +42,11 @@ class SpatialIndex:
         """
         return [
             self.segments[i]
-            for i in self.idx.intersection((x - max_range, y - max_range, x + max_range, y + max_range))
+            for i in self.idx.intersection(
+                (x - max_range, y - max_range, x + max_range, y + max_range)
+            )
         ]
+
 
 class Collision:
     def __init__(self, spatial_index: Optional[SpatialIndex] = None):
@@ -53,7 +59,9 @@ class Collision:
         """
         self.spatial_index = spatial_index
 
-    def filter_segments(self, x: float, y: float, max_range: float, segments = None) -> List[Tuple[float, float, float, float]]:
+    def filter_segments(
+        self, x: float, y: float, max_range: float, segments=None
+    ) -> List[Tuple[float, float, float, float]]:
         """
         Filtra os segmentos com base na posição do robô e no alcance máximo.
 
@@ -68,7 +76,9 @@ class Collision:
             segs_proximos = self.spatial_index.query(x, y, max_range)
             segs_filtrados = filter_list_segment(segs_proximos, x, y, max_range)
         else:
-            segs_filtrados = filter_list_segment_map_generated(segments, x, y, max_range)
+            segs_filtrados = filter_list_segment_map_generated(
+                segments, x, y, max_range
+            )
 
         return segs_filtrados
 
@@ -95,10 +105,13 @@ class Collision:
         - Lista de pontos de interseção.
         """
         if self.spatial_index is not None:
-            return lidar_intersections(robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments)
+            return lidar_intersections(
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
+            )
         else:
-            return lidar_intersections_map_generated(robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments)
-
+            return lidar_intersections_map_generated(
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
+            )
 
     def lidar_measurement(
         self,
@@ -123,17 +136,24 @@ class Collision:
         - Lista de medições de distância.
         """
         if self.spatial_index is not None:
-            return lidar_measurements(robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments)
+            return lidar_measurements(
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
+            )
         else:
-            return lidar_measurements_map_generated(robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments)
+            return lidar_measurements_map_generated(
+                robot_x, robot_y, robot_theta, lidar_range, lidar_angles, segments
+            )
+
 
 @njit
 def is_distance_within_range(distance: np.ndarray, lidar_range: float) -> bool:
     return np.all(distance <= lidar_range)
 
+
 @njit
 def calculate_distances(seg_ends: np.ndarray, center: np.ndarray) -> np.ndarray:
     return np.sqrt(np.sum((seg_ends - center) ** 2, axis=1))
+
 
 @njit
 def cross_product_2d_vector(a: np.ndarray, b: np.ndarray) -> float:
@@ -148,8 +168,11 @@ def cross_product_2d_vector(a: np.ndarray, b: np.ndarray) -> float:
     """
     return a[0] * b[1] - a[1] * b[0]
 
+
 @njit
-def calculate_temp_vector(direction_vec: np.ndarray, r: np.ndarray, s: np.ndarray) -> Tuple[float, float]:
+def calculate_temp_vector(
+    direction_vec: np.ndarray, r: np.ndarray, s: np.ndarray
+) -> Tuple[float, float]:
     cross_product = cross_product_2d_vector(r, s)
 
     if cross_product != 0:
@@ -160,8 +183,11 @@ def calculate_temp_vector(direction_vec: np.ndarray, r: np.ndarray, s: np.ndarra
 
     return t, u
 
+
 @njit
-def calculate_intersection_point_vec(p: np.ndarray, t: float, r: np.ndarray) -> np.ndarray:
+def calculate_intersection_point_vec(
+    p: np.ndarray, t: float, r: np.ndarray
+) -> np.ndarray:
     """
     Calcula o ponto de interseção entre dois segmentos de linha.
 
@@ -174,6 +200,7 @@ def calculate_intersection_point_vec(p: np.ndarray, t: float, r: np.ndarray) -> 
     - Ponto de interseção.
     """
     return p + t * r
+
 
 @njit
 def calculate_distance_to_intersection(inter_point: np.ndarray, p: np.ndarray) -> float:
@@ -189,8 +216,11 @@ def calculate_distance_to_intersection(inter_point: np.ndarray, p: np.ndarray) -
     """
     return np.sqrt(np.sum((inter_point - p) ** 2))
 
+
 @njit
-def filter_list_segment_map_generated(segs: List, x: float, y: float, max_range: float) -> List:
+def filter_list_segment_map_generated(
+    segs: List, x: float, y: float, max_range: float
+) -> List:
     """
     Filters line segments based on proximity to a given point.
 
@@ -224,7 +254,9 @@ def filter_list_segment_map_generated(segs: List, x: float, y: float, max_range:
 
 
 @njit
-def filter_list_segment(segs: List[Tuple[float, float, float, float]], x: float, y: float, max_range: float) -> List:
+def filter_list_segment(
+    segs: List[Tuple[float, float, float, float]], x: float, y: float, max_range: float
+) -> List:
     """
     Filtra segmentos com base na proximidade ao ponto (x, y).
 
@@ -239,13 +271,14 @@ def filter_list_segment(segs: List[Tuple[float, float, float, float]], x: float,
     segments_inside = []
     region_center = np.array([x, y])
 
-    for (x1, y1, x2, y2) in segs:
+    for x1, y1, x2, y2 in segs:
         seg_ends = np.array([[x1, y1], [x2, y2]])
         distances = calculate_distances(seg_ends, region_center)
         if is_distance_within_range(distances, max_range):
             segments_inside.append((x1, y1, x2, y2))
 
     return segments_inside
+
 
 @njit
 def connect_polygon_points(polygon: np.ndarray) -> List:
@@ -258,12 +291,16 @@ def connect_polygon_points(polygon: np.ndarray) -> List:
         segments.append(segment)
     return segments
 
+
 @njit
 def convert_to_line_segments(total_segments: List) -> List:
     line_segments = []
     for segment in total_segments:
-        line_segments.append((segment[0][0], segment[0][1], segment[1][0], segment[1][1]))
+        line_segments.append(
+            (segment[0][0], segment[0][1], segment[1][0], segment[1][1])
+        )
     return line_segments
+
 
 @njit
 def extract_segment_from_polygon(stack: List) -> List:
@@ -273,8 +310,11 @@ def extract_segment_from_polygon(stack: List) -> List:
         total_segments.extend(segments)
     return convert_to_line_segments(total_segments)
 
+
 # Interseção de Segmentos com Polígonos
-def intersect_segment_with_polygon(segment, poly: List[Tuple[float,float,float,float]]) -> List:
+def intersect_segment_with_polygon(
+    segment, poly: List[Tuple[float, float, float, float]]
+) -> List:
     inter = []
 
     # Converte o segmento a ser testado (o "raio" do LiDAR) em arrays
@@ -300,6 +340,7 @@ def intersect_segment_with_polygon(segment, poly: List[Tuple[float,float,float,f
                 inter.append([True, interception_point, distances])
 
     return inter
+
 
 def intersect_segment_with_polygon_map_generated(segment: list, poly: list) -> List:
     """
@@ -348,13 +389,17 @@ def intersect_segment_with_polygon_map_generated(segment: list, poly: list) -> L
 
     return inter
 
+
 # Conversão de Ângulos para Segmentos do LiDAR
 @njit
-def lidar_to_segment(robot_x: float, robot_y: float, lidar_range: float, angle: float) -> List[Tuple[float, float]]:
+def lidar_to_segment(
+    robot_x: float, robot_y: float, lidar_range: float, angle: float
+) -> List[Tuple[float, float]]:
     return [
         (robot_x, robot_y),
         (robot_x + lidar_range * np.cos(angle), robot_y + lidar_range * np.sin(angle)),
     ]
+
 
 # Algoritmo de Ray Casting para Detecção de Pontos em Polígonos
 @njit
@@ -363,10 +408,13 @@ def ray_casting(edges: list, xp: float, yp: float) -> bool:
     for edge in edges:
         (x1, y1, x2, y2) = edge
         if (yp < y1) != (yp < y2):
-            xinters = (yp - y1) * (x2 - x1) / (y2 - y1 + 1e-12) + x1  # Evita divisão por zero
+            xinters = (yp - y1) * (x2 - x1) / (
+                y2 - y1 + 1e-12
+            ) + x1  # Evita divisão por zero
             if xp < xinters:
                 cnt += 1
     return cnt % 2 == 1
+
 
 # Verificação se um Ponto Está em um Polígono
 def is_point_in_polygon(exterior: list, interiors: list, xp: float, yp: float) -> bool:
@@ -376,6 +424,7 @@ def is_point_in_polygon(exterior: list, interiors: list, xp: float, yp: float) -
         if ray_casting(hole, xp, yp):
             return False
     return True
+
 
 # Verificação se um Círculo Está Dentro de um Polígono
 def is_circle_in_polygon(
@@ -393,6 +442,7 @@ def is_circle_in_polygon(
         if not is_point_in_polygon(exterior, interiors, xp, yp):
             return False
     return True
+
 
 # Funções para Processar Interseções e Medições do LiDAR
 def lidar_intersections(
@@ -417,6 +467,7 @@ def lidar_intersections(
         else:
             intersections.append((0.0, 0.0))
     return intersections
+
 
 def lidar_intersections_map_generated(
     robot_x: float,
@@ -453,6 +504,7 @@ def lidar_intersections_map_generated(
             continue
 
     return intersections
+
 
 def lidar_measurements(
     robot_x: float,
@@ -512,6 +564,7 @@ def lidar_measurements_map_generated(
 
     return measurements
 
+
 def position_intersection(
     intersection: List[Tuple[bool, np.ndarray, float]]
 ) -> Tuple[bool, Tuple[float, float]]:
@@ -522,7 +575,10 @@ def position_intersection(
     inter_point_rounded = (round(inter_point[0], 3), round(inter_point[1], 3))
     return True, inter_point_rounded
 
-def measurements_intersection(intersection: List[Tuple[bool, np.ndarray, float]]) -> Tuple[bool, float]:
+
+def measurements_intersection(
+    intersection: List[Tuple[bool, np.ndarray, float]]
+) -> Tuple[bool, float]:
     if not intersection:
         return False, 0.0
     min_lrange_index = np.argmin([point[2] for point in intersection])

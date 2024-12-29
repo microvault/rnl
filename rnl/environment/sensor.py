@@ -7,9 +7,10 @@ from rnl.configs.config import SensorConfig
 from rnl.engine.collision import Collision
 from rnl.engine.filter import SpatialIndex
 
+
 @dataclass
 class SensorRobot:
-    def __init__(self, sensor_config: SensorConfig, map_segments = None):
+    def __init__(self, sensor_config: SensorConfig, map_segments=None):
 
         self.map_segments = map_segments
         if self.map_segments is not None:
@@ -23,13 +24,16 @@ class SensorRobot:
         half_fov = np.radians(self.sensor_config.fov) / 2
         self.lidar_angle = np.linspace(half_fov, -half_fov, self.sensor_config.num_rays)
 
-    def sensor(self, x: float, y: float, theta: float, segments: List, max_range: float
+    def sensor(
+        self, x: float, y: float, theta: float, segments: List, max_range: float
     ) -> Tuple[np.ndarray, np.ndarray]:
         if self.map_segments is not None:
             seg = self.collision.filter_segments(x, y, self.max_range)
 
         else:
-            seg = self.collision.filter_segments(x=x, y=y, max_range=self.max_range, segments=segments)
+            seg = self.collision.filter_segments(
+                x=x, y=y, max_range=self.max_range, segments=segments
+            )
 
         intersections = np.array(
             self.collision.lidar_intersection(

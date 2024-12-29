@@ -1,7 +1,8 @@
 import argparse
 import multiprocessing as mp
-import rnl as vault
 import os
+
+import rnl as vault
 
 
 def main(arg):
@@ -27,7 +28,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
+        folder_map="None",  # "/Users/nicolasalan/microvault/rnl/data/map",
         name_map="None",
         random_mode="hard",  # hard, normal
         max_timestep=1000,
@@ -93,9 +94,8 @@ def main(arg):
             hidden_size=[800, 600],
             save=True,
             use_wandb=True,
-            wandb_api_key=str(wandb_key)
+            wandb_api_key=str(wandb_key),
         )
-
 
     else:
         # 4.step -> config render
