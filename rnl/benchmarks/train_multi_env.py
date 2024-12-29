@@ -3,7 +3,7 @@ import rnl as vault
 import os
 
 def main():
-    wandb_key = os.environ.get("WANDB_API_KEY")
+    # wandb_key = os.environ.get("WANDB_API_KEY")
     # os.environ["WANDB_SILENT"] = "true"
     # os.environ["WANDB_DISABLE_GPU_STATS"] = "true"
     # 1.step -> config robot
@@ -92,7 +92,7 @@ def main():
         hidden_size=[800, 600],
         save=True,
         use_wandb=False,
-        wandb_api_key=str(wandb_key)
+        wandb_api_key=""
     )
 
 if __name__ == "__main__":
