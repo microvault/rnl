@@ -18,4 +18,4 @@ COPY pyproject.toml poetry.lock ./
 
 RUN pip install -r requirements.txt --progress-bar off
 
-CMD ["python", "rnl/benchmarks/train_multi_env.py"]
+# CMD ["python", "rnl/benchmarks/train_multi_env.py"]
