@@ -15,10 +15,11 @@ ENV PYTHONPATH=/workdir
 COPY rnl ./rnl
 COPY pyproject.toml poetry.lock ./
 
-RUN pip install --no-cache-dir --progress-bar off poetry && \
-    poetry config virtualenvs.create false && \
-    poetry install --only main --no-ansi --no-interaction && \
-    poetry install --without dev && \
-    rm -rf $POETRY_CACHE_DIR
+RUN pip install -r requirements.txt --progress-bar off
+# RUN pip install --no-cache-dir --progress-bar off poetry && \
+#     poetry config virtualenvs.create false && \
+#     poetry install --only main --no-ansi --no-interaction && \
+#     poetry install --without dev && \
+#     rm -rf $POETRY_CACHE_DIR
 
 #CMD ["poetry", "run", "python", "rnl/benchmarks/train_multi_env.py"]
