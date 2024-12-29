@@ -1,5 +1,4 @@
-ARG BASE_IMAGE=ubuntu:22.04
-FROM ${BASE_IMAGE}
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/root/.local/bin:$PATH"
@@ -12,12 +11,6 @@ RUN apt-get update && \
     curl \
     gnupg2 \
     ubuntu-keyring && \
-    # Corrige permissões da pasta de chaves
-    chmod 644 /etc/apt/trusted.gpg.d/*.gpg || true && \
-    chown root:root /etc/apt/trusted.gpg.d/*.gpg || true && \
-    # Adiciona a chave GPG da NVIDIA
-    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub | apt-key add - && \
-    apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 RUN apt-get update && \
