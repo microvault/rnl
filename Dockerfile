@@ -14,7 +14,7 @@ ENV PYTHONPATH=/workdir
 COPY rnl ./rnl
 COPY pyproject.toml poetry.lock ./
 
-RUN pip install --no-cache-dir poetry && \
+RUN pip install --no-cache-dir --progress-bar off poetry && \
     poetry config virtualenvs.create false && \
     poetry install --no-dev --no-ansi --no-interaction && \
     poetry install --without dev && \
