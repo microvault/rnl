@@ -49,11 +49,11 @@ build-nocuda:
 
 .PHONY: train-model
 train-model:
-	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD):/workdir/rnl ninim/rnl-docker-cuda
+	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD)/rnl:/workdir/rnl ninim/rnl-docker-cuda
 
 .PHONY: start-cuda
 start-cuda:
-	@sudo docker run --platform=linux/arm64 -it --net=host -v $(PWD):/workdir rnl-docker-nocuda
+	@sudo docker run --platform=linux/arm64 -it --net=host -v $(PWD)/rnl:/workdir rnl-docker-nocuda
 
 .PHONY: clean
 clean:
