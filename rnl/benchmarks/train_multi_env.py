@@ -63,7 +63,7 @@ def main():
         device="cuda",
         learn_step=10,
         target_score=200,
-        max_steps=1000000,
+        max_steps=100000,
         evaluation_steps=1000,
         evaluation_loop=1,
         learning_delay=2,
@@ -89,7 +89,7 @@ def main():
         elitism=True,
         hidden_size=[800, 600],
         save=True,
-        use_wandb=False,
+        use_wandb=True,
         wandb_api_key=str(wandb_key)
     )
 
