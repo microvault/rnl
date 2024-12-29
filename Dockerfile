@@ -7,13 +7,6 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_MAX_PARALLEL=1 \
     PIP_DISABLE_PROGRESS_BAR=1
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    curl \
-    gnupg2 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /workdir
 
 ENV PYTHONPATH=/workdir
