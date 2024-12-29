@@ -3,6 +3,12 @@ TAG = latest
 IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
 
+.PHONY: venv
+venv:
+	poetry env use python3
+	poetry install
+	poetry shell
+
 .PHONY: run
 run:
 	@poetry run python -m train run
