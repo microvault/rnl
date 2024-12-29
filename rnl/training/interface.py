@@ -126,7 +126,6 @@ class Trainer:
         tourn_size: int = 2,
         elitism: bool = True,
         hidden_size: list = [800, 600],
-        save: bool = False,
         use_wandb: bool = False,
         wandb_api_key: str = "",
     ) -> None:

@@ -83,12 +83,11 @@ def main():
         hp_mutation_selection=["lr", "batch_size", "learn_step"],
         mutation_strength=0.1,
         evolution_steps=10000,
-        save_elite=True,
+        save_elite=False,
         elite_path="elite",
         tourn_size=2,
         elitism=True,
         hidden_size=[800, 600],
-        save=True,
         use_wandb=True,
         wandb_api_key=str(wandb_key)
     )
