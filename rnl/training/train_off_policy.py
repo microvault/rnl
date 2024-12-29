@@ -64,8 +64,6 @@ def train_off_policy(
     sampler = Sampler(per=True, n_step=False, memory=memory)
     n_step_sampler = Sampler(per=False, n_step=True, memory=n_step_memory)
 
-    print("\nTraining...")
-
     print(f"Cuda is available: {torch.cuda.is_available()}")
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
