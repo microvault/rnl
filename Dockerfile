@@ -1,27 +1,6 @@
 FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-devel
 
-ENV DEBIAN_FRONTEND=noninteractive
-ENV PATH="/root/.local/bin:$PATH"
 ENV PYTHONUNBUFFERED=1
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    apt-transport-https \
-    ca-certificates \
-    curl \
-    gnupg2 \
-    ubuntu-keyring && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    build-essential \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    python3-pip \
-    python3-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
 
 ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
