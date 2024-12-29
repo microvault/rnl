@@ -261,8 +261,8 @@ def train_off_policy(
         elite, pop = tournament.select(pop)
         pop = mutation.mutation(pop)
 
-        elite_save_path = "checkpoints/rnl-elite_rainbow"
-        elite.save_checkpoint(f"{elite_save_path}.pt")
+        # elite_save_path = "checkpoints/rnl-elite_rainbow"
+        # elite.save_checkpoint(f"{elite_save_path}.pt")
 
         fitness = ["%.2f" % fitness for fitness in fitnesses]
         avg_fitness = ["%.2f" % safe_mean(agent.fitness[-5:]) for agent in pop]
