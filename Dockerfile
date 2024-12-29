@@ -21,4 +21,4 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 RUN pip install -r requirements.txt --progress-bar off
 
-# CMD ["python", "rnl/benchmarks/train_multi_env.py"]
+CMD ["python", "rnl/benchmarks/train_multi_env.py"]
