@@ -29,7 +29,7 @@ class EvolvableMLP(nn.Module):
         noise_std: float,
         device: str,
     ) -> None:
-        super(EvolvableMLP, self).__init__()
+        super().__init__()
 
         assert (
             num_inputs > 0

@@ -1,44 +1,44 @@
 import multiprocessing as mp
-import rnl as vault
 import os
+
+import rnl as vault
+
 
 def main():
     wandb_key = os.environ.get("WANDB_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
-    base_radius=20.0,
-    vel_linear=[0.0, 2.0],
-    vel_angular=[1.0, 2.0],
-    wheel_distance=0.16,
-    weight=1.0,
-    threshold=0.05,
-    path_model="./",
+        base_radius=20.0,
+        vel_linear=[0.0, 2.0],
+        vel_angular=[1.0, 2.0],
+        wheel_distance=0.16,
+        weight=1.0,
+        threshold=0.05,
+        path_model="./",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-    fov=180,
-    num_rays=40,
-    min_range=1.0,
-    max_range=20.0,
+        fov=180,
+        num_rays=40,
+        min_range=1.0,
+        max_range=20.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
-    folder_map="None",
-    name_map="None",
-    random_mode="hard",
-    max_timestep=1000,
-    grid_dimension=5,
-    friction=0.4,
-    porcentage_obstacles=0.1,
-    randomization_interval=100,
+        folder_map="None",
+        name_map="None",
+        random_mode="hard",
+        max_timestep=1000,
+        grid_dimension=5,
+        friction=0.4,
+        porcentage_obstacles=0.1,
+        randomization_interval=100,
     )
 
     # 4.step -> config train robot
-    model = vault.Trainer(
-        param_robot, param_sensor, param_env, pretrained_model=False
-    )
+    model = vault.Trainer(param_robot, param_sensor, param_env, pretrained_model=False)
 
     # 5.step -> train robot
     model.learn(
@@ -90,8 +90,9 @@ def main():
         hidden_size=[800, 600],
         save=True,
         use_wandb=True,
-        wandb_api_key=str(wandb_key)
+        wandb_api_key=str(wandb_key),
     )
+
 
 if __name__ == "__main__":
     mp.set_start_method("spawn")

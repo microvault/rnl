@@ -1,11 +1,12 @@
+import warnings
 from datetime import datetime
 from typing import List
-import wandb
-import warnings
+
 import numpy as np
+import torch
+import wandb
 from gymnasium.vector import AsyncVectorEnv
 from tqdm import trange
-import torch
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
@@ -47,8 +48,7 @@ def train_off_policy(
 
         wandb.init(
             project="rnl",
-            name="train-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
-            ),
+            name="train-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")),
             config=config,
         )
 
@@ -57,8 +57,7 @@ def train_off_policy(
     save_path = (
         checkpoint_path.split(".pt")[0]
         if checkpoint_path is not None
-        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")
-        )
+        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S"))
     )
 
     sampler = Sampler(per=True, n_step=False, memory=memory)
@@ -80,10 +79,14 @@ def train_off_policy(
         total_free_gpu_memory_gb = round(total_free_gpu_memory * 1e-9, 3)
         if total_free_gpu_memory_gb >= 16:
             BATCH_SIZE = 256
-            print(f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}")
+            print(
+                f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}"
+            )
         else:
             BATCH_SIZE = 128
-            print(f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}")
+            print(
+                f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}"
+            )
     except:
         BATCH_SIZE = 64
         print(f"Could not get GPU memory information, using batch size of {BATCH_SIZE}")
