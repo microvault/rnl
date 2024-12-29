@@ -20,4 +20,4 @@ RUN pip install --no-cache-dir --progress-bar off poetry && \
     poetry install --without dev && \
     rm -rf $POETRY_CACHE_DIR
 
-CMD ["poetry", "run", "python", "rnl/benchmarks/train_multi_env.py"]
+#CMD ["poetry", "run", "python", "rnl/benchmarks/train_multi_env.py"]
