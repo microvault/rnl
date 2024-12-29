@@ -5,8 +5,14 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false \
     POETRY_CACHE_DIR=/tmp/poetry_cache \
     POETRY_MAX_PARALLEL=1 \
-    PIP_DISABLE_PROGRESS_BAR=1 \
-    RICH_DISABLE=1
+    PIP_DISABLE_PROGRESS_BAR=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    curl \
+    gnupg2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workdir
 
@@ -17,7 +23,7 @@ COPY pyproject.toml poetry.lock ./
 
 RUN pip install --no-cache-dir --progress-bar off poetry && \
     poetry config virtualenvs.create false && \
-    poetry install --no-dev --no-ansi --no-interaction && \
+    poetry install --only main --no-ansi --no-interaction && \
     poetry install --without dev && \
     rm -rf $POETRY_CACHE_DIR
 
