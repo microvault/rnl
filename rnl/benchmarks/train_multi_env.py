@@ -1,11 +1,9 @@
 import multiprocessing as mp
 import rnl as vault
-# import os
+import os
 
 def main():
-    # wandb_key = os.environ.get("WANDB_API_KEY")
-    # os.environ["WANDB_SILENT"] = "true"
-    # os.environ["WANDB_DISABLE_GPU_STATS"] = "true"
+    wandb_key = os.environ.get("WANDB_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
     base_radius=20.0,
@@ -61,7 +59,7 @@ def main():
         batch_size=128,
         lr=0.0001,
         seed=1,
-        num_envs=40,
+        num_envs=10,
         device="cuda",
         learn_step=10,
         target_score=200,
@@ -75,7 +73,7 @@ def main():
         overwrite_checkpoints=False,
         use_mutation=True,
         freq_evolution=10000,
-        population_size=25,
+        population_size=5,
         no_mutation=0.4,
         arch_mutation=0.2,
         new_layer=0.2,
@@ -87,12 +85,12 @@ def main():
         evolution_steps=10000,
         save_elite=True,
         elite_path="elite",
-        tourn_size=4,
+        tourn_size=2,
         elitism=True,
         hidden_size=[800, 600],
         save=True,
         use_wandb=False,
-        wandb_api_key=""
+        wandb_api_key=str(wandb_key)
     )
 
 if __name__ == "__main__":
