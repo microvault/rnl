@@ -23,4 +23,4 @@ RUN pip install -r requirements.txt --progress-bar off
 #     poetry install --without dev && \
 #     rm -rf $POETRY_CACHE_DIR
 
-CMD ["python", "rnl/benchmarks/train_multi_env.py"]
+# CMD ["python", "rnl/benchmarks/train_multi_env.py"]
