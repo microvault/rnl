@@ -665,23 +665,23 @@ class NaviEnv(gym.Env):
         )
 
     def randomization(self):
-        if self.random_mode == "hard":
-            self.grid_lenght = uniform_random_int(
-                self.param.environment.min_grid_dimension,
-                self.param.environment.max_grid_dimension,
-            )
-            new_fov = uniform_random(
-                self.param.sensor.min_fov, self.param.sensor.max_fov
-            )
-            new_num_rays = uniform_random_int(
-                self.param.sensor.min_num_rays, self.param.sensor.max_num_rays
-            )
-            self.sensor.random_sensor(new_fov, new_num_rays)
+        # if self.random_mode == "hard":
+        self.grid_lenght = uniform_random_int(
+            self.param.environment.min_grid_dimension,
+            self.param.environment.max_grid_dimension,
+        )
+        new_fov = uniform_random(
+            self.param.sensor.min_fov, self.param.sensor.max_fov
+        )
+        new_num_rays = uniform_random_int(
+            self.param.sensor.min_num_rays, self.param.sensor.max_num_rays
+        )
+        self.sensor.random_sensor(new_fov, new_num_rays)
 
-            print("\n#------ New Random ----#")
-            print(f"Grid lenght : {self.grid_lenght}")
-            print(f"FOV : {new_fov}")
-            print(f"Num rays : {new_num_rays}")
+        # print("\n#------ New Random ----#")
+        # print(f"Grid lenght : {self.grid_lenght}")
+        # print(f"FOV : {new_fov}")
+        # print(f"Num rays : {new_num_rays}")
 
     def random_point_in_poly(self, poly, minx, miny, maxx, maxy, max_tries=1000):
         for _ in range(max_tries):

@@ -16,11 +16,10 @@ COPY rnl ./rnl
 COPY requirements.txt ./
 COPY pyproject.toml poetry.lock ./
 
-RUN pip install -r requirements.txt --progress-bar off
-# RUN pip install --no-cache-dir --progress-bar off poetry && \
-#     poetry config virtualenvs.create false && \
-#     poetry install --only main --no-ansi --no-interaction && \
-#     poetry install --without dev && \
-#     rm -rf $POETRY_CACHE_DIR
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0
 
-# CMD ["python", "rnl/benchmarks/train_multi_env.py"]
+RUN pip install -r requirements.txt --progress-bar off
+
+CMD ["python", "rnl/benchmarks/train_multi_env.py"]

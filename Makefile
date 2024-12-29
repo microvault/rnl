@@ -3,12 +3,6 @@ TAG = latest
 IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
 
-.PHONY: venv
-venv:
-	poetry env use python3
-	poetry install
-	poetry shell
-
 .PHONY: run
 run:
 	@poetry run python -m train run
@@ -31,8 +25,7 @@ post_test:
 
 .PHONY: publish
 publish:
-	@poetry publish --build -u __token__ -p $RNL_PYPI_TOKEN
-
+	@poetry publish --build -u __token__ -p $(RNL_PYPI_TOKEN)
 
 .PHONY: install_with_dev
 install_with_dev:
@@ -46,23 +39,21 @@ install:
 build-cuda:
 	@sudo docker build \
 		--platform=linux/amd64 \
-		--build-arg BASE_IMAGE=nvidia/cuda:12.2.0-devel-ubuntu22.04 \
 		-t ninim/rnl-docker-cuda:$(VERSION) .
 
 .PHONY: build-nocuda
 build-nocuda:
 	@sudo docker build \
 		--platform=linux/arm64 \
-		--build-arg BASE_IMAGE=ubuntu:22.04 \
 		-t rnl-docker-nocuda .
 
-.PHONY: start
-start:
-	@sudo docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --platform=linux/arm64 -it --net=host -v $(PWD)/rnl:/workdir/rnl rnl-docker-nocuda
+.PHONY: train-model
+train-model:
+	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD):/workdir/rnl ninim/rnl-docker-cuda
 
 .PHONY: start-cuda
 start-cuda:
-	@sudo docker run --platform=linux/amd64 -it --net=host -v $(PWD):/workdir rnl-docker-cuda
+	@sudo docker run --platform=linux/arm64 -it --net=host -v $(PWD):/workdir rnl-docker-nocuda
 
 .PHONY: clean
 clean:

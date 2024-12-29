@@ -70,8 +70,6 @@ def train_off_policy(
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
     print(f"Number of GPUs: {torch.cuda.device_count()}")
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    print(f"Device: {device}")
     # Set batch size depending on amount of GPU memory
     try:
         total_free_gpu_memory, total_gpu_memory = torch.cuda.mem_get_info()
@@ -297,7 +295,6 @@ def train_off_policy(
                     else f"{save_path}_{i}_{agent.steps[-1]}.pt"
                 )
                 agent.save_checkpoint(current_checkpoint_path)
-            print("Saved checkpoint.")
             checkpoint_count += 1
 
     if wb:

@@ -29,10 +29,10 @@ def main():
     name_map="None",
     random_mode="hard",
     max_timestep=1000,
-    grid_dimension=5,
+    grid_dimension=10,
     friction=0.4,
     porcentage_obstacles=0.1,
-    randomization_interval=100,
+    randomization_interval=1000,
     )
 
     # 4.step -> config train robot
@@ -59,7 +59,7 @@ def main():
         batch_size=64,
         lr=0.0001,
         seed=1,
-        num_envs=16,
+        num_envs=100,
         device="cuda",
         learn_step=10,
         target_score=200,
@@ -73,7 +73,7 @@ def main():
         overwrite_checkpoints=False,
         use_mutation=True,
         freq_evolution=10000,
-        population_size=4,
+        population_size=10,
         no_mutation=0.4,
         arch_mutation=0.2,
         new_layer=0.2,
