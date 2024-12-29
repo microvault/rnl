@@ -678,6 +678,11 @@ class NaviEnv(gym.Env):
             )
             self.sensor.random_sensor(new_fov, new_num_rays)
 
+            print("\n#------ New Random ----#")
+            print(f"Grid lenght : {self.grid_lenght}")
+            print(f"FOV : {new_fov}")
+            print(f"Num rays : {new_num_rays}")
+
     def random_point_in_poly(self, poly, minx, miny, maxx, maxy, max_tries=1000):
         for _ in range(max_tries):
             x = np.random.uniform(minx, maxx)

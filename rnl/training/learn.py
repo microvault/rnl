@@ -14,7 +14,7 @@ from rnl.hpo.mutation import Mutations
 from rnl.hpo.tournament import TournamentSelection
 from rnl.training.train_off_policy import train_off_policy
 from rnl.training.utils import create_population, make_vect_envs
-
+import torch
 
 def training(
     agent_config: AgentConfig,

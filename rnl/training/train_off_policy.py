@@ -5,6 +5,7 @@ import warnings
 import numpy as np
 from gymnasium.vector import AsyncVectorEnv
 from tqdm import trange
+import torch
 
 from rnl.algorithms.rainbow import RainbowDQN
 from rnl.components.replay_buffer import MultiStepReplayBuffer, PrioritizedReplayBuffer
@@ -64,6 +65,28 @@ def train_off_policy(
     n_step_sampler = Sampler(per=False, n_step=True, memory=n_step_memory)
 
     print("\nTraining...")
+
+    print(f"Cuda is available: {torch.cuda.is_available()}")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Device: {device}")
+    print(f"Number of GPUs: {torch.cuda.device_count()}")
+    device = "mps" if torch.backends.mps.is_available() else "cpu"
+    print(f"Device: {device}")
+    # Set batch size depending on amount of GPU memory
+    try:
+        total_free_gpu_memory, total_gpu_memory = torch.cuda.mem_get_info()
+        print(f"Total free GPU memory: {round(total_free_gpu_memory * 1e-9, 3)} GB")
+        print(f"Total GPU memory: {round(total_gpu_memory * 1e-9, 3)} GB")
+        total_free_gpu_memory_gb = round(total_free_gpu_memory * 1e-9, 3)
+        if total_free_gpu_memory_gb >= 16:
+            BATCH_SIZE = 256
+            print(f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}")
+        else:
+            BATCH_SIZE = 128
+            print(f"GPU memory available is {total_free_gpu_memory_gb} GB, using batch size of {BATCH_SIZE}")
+    except:
+        BATCH_SIZE = 64
+        print(f"Could not get GPU memory information, using batch size of {BATCH_SIZE}")
 
     bar_format = "{l_bar}{bar:10}| {n:4}/{total_fmt} [{elapsed:>7}<{remaining:>7}, {rate_fmt}{postfix}]"
     pbar = trange(max_steps, unit="step", bar_format=bar_format, ascii=True)

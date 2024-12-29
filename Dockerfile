@@ -31,9 +31,10 @@ ENV POETRY_NO_INTERACTION=1 \
 
 WORKDIR /workdir
 
+ENV PYTHONPATH=/workdir
+
 COPY rnl ./rnl
 COPY pyproject.toml poetry.lock ./
-COPY train.py ./
 
 RUN pip install --no-cache-dir poetry && \
     poetry config virtualenvs.create false && \
@@ -41,6 +42,4 @@ RUN pip install --no-cache-dir poetry && \
     poetry install --without dev && \
     rm -rf $POETRY_CACHE_DIR
 
-ENV PYTHONPATH=/workdir
-
-CMD ["poetry", "run", "python", "train.py", "train"]
+CMD ["poetry", "run", "python", "rnl/benchmarks/train_multi_env.py"]

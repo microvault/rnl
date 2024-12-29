@@ -1,3 +1,8 @@
+IMAGE_NAME = ninim/rnl-docker-cuda
+TAG = latest
+IMAGE = $(IMAGE_NAME):$(TAG)
+VERSION = 1.1
+
 .PHONY: run
 run:
 	@poetry run python -m train run
@@ -36,25 +41,35 @@ build-cuda:
 	@sudo docker build \
 		--platform=linux/amd64 \
 		--build-arg BASE_IMAGE=nvidia/cuda:12.2.0-devel-ubuntu22.04 \
-		-t rnl-docker-cuda .
+		-t ninim/rnl-docker-cuda:$(VERSION) .
 
-.PHONY: build-macos
-build-macos:
+.PHONY: build-nocuda
+build-nocuda:
 	@sudo docker build \
 		--platform=linux/arm64 \
 		--build-arg BASE_IMAGE=ubuntu:22.04 \
 		-t rnl-docker-nocuda .
 
-.PHONY: start-cuda
-start-cuda:
-	@sudo docker run -it --net=host -v rnl:/workdir/rnl rnl-docker-cuda
-
 .PHONY: start
 start:
-	@sudo docker run --platform=linux/arm64 -it --net=host -v rnl:/workdir/rnl -v $(PWD)/train.py:/workdir/train.py rnl-docker-nocuda
+	@sudo docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --platform=linux/arm64 -it --net=host -v $(PWD)/rnl:/workdir/rnl rnl-docker-nocuda
 
+.PHONY: start-cuda
+start-cuda:
+	@sudo docker run --platform=linux/amd64 -it --net=host -v $(PWD):/workdir rnl-docker-cuda
+
+.PHONY: clean
 clean:
 	@sudo docker image prune -f
+
+.PHONY: push
+push:
+	@docker tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
+	@docker push $(IMAGE_NAME):latest
+
+.PHONY: server
+server:
+	@sh server.sh
 
 POETRY=poetry
 BLACK=$(POETRY) run black

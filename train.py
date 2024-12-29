@@ -1,9 +1,11 @@
 import argparse
 import multiprocessing as mp
 import rnl as vault
+import os
 
 
 def main(arg):
+    wandb_key = os.environ.get("WANDB_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
         base_radius=20.0,  # (centimeters)
@@ -91,8 +93,7 @@ def main(arg):
             hidden_size=[800, 600],
             save=True,
             use_wandb=True,
-            wandb_api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c"
-
+            wandb_api_key=str(wandb_key)
         )
 
 
