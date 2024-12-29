@@ -4,6 +4,8 @@ import os
 
 def main():
     wandb_key = os.environ.get("WANDB_API_KEY")
+    os.environ["WANDB_SILENT"] = "true"
+    os.environ["WANDB_DISABLE_GPU_STATS"] = "true"
     # 1.step -> config robot
     param_robot = vault.robot(
     base_radius=20.0,
