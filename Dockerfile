@@ -13,6 +13,7 @@ WORKDIR /workdir
 ENV PYTHONPATH=/workdir
 
 COPY rnl ./rnl
+COPY requirements.txt ./
 COPY pyproject.toml poetry.lock ./
 
 RUN pip install -r requirements.txt --progress-bar off
