@@ -1,11 +1,10 @@
+from rnl.training.interface import Trainer, make, robot, sensor
 import multiprocessing as mp
-import rnl as vault
 import os
 
 def main():
     wandb_key = os.environ.get("WANDB_API_KEY")
-    # 1.step -> config robot
-    param_robot = vault.robot(
+    param_robot = robot(
     base_radius=20.0,
     vel_linear=[0.0, 2.0],
     vel_angular=[1.0, 2.0],
@@ -15,16 +14,14 @@ def main():
     path_model="./",
     )
 
-    # 2.step -> config sensors [for now only lidar sensor!!]
-    param_sensor = vault.sensor(
+    param_sensor = sensor(
     fov=180,
     num_rays=40,
     min_range=1.0,
     max_range=20.0,
     )
 
-    # 3.step -> config env
-    param_env = vault.make(
+    param_env = make(
     folder_map="None",
     name_map="None",
     random_mode="hard",
@@ -35,12 +32,10 @@ def main():
     randomization_interval=1000,
     )
 
-    # 4.step -> config train robot
-    model = vault.Trainer(
+    model = Trainer(
         param_robot, param_sensor, param_env, pretrained_model=False
     )
 
-    # 5.step -> train robot
     model.learn(
         max_timestep=800000,
         memory_size=1000000,
