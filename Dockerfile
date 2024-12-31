@@ -14,4 +14,4 @@ COPY pyproject.toml poetry.lock ./
 RUN pip install agilerl --progress-bar off
 RUN pip install -r requirements.txt --progress-bar off
 
-ENTRYPOINT ["bash", "-c", "apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0"]
+# ENTRYPOINT ["bash", "-c", "apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0"]
