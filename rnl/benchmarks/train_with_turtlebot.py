@@ -87,7 +87,7 @@ def main():
     }
 
 
-    num_envs = 50
+    num_envs = 25
     env = make_vect_envs(
         num_envs=num_envs
     )
