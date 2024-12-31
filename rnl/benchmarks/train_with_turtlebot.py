@@ -19,24 +19,24 @@ def main():
         'CHANNELS_LAST': False,             # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
         'BATCH_SIZE': 256,                  # Batch size
         'LR': 1e-3,                         # Learning rate
-        'MAX_STEPS': 1_000_000_0,           # Max no. steps
+        'MAX_STEPS': 100,           # Max no. steps
         'TARGET_SCORE': 500,                # Early training stop at avg score of last 100 episodes
         'GAMMA': 0.99,                      # Discount factor
         'TAU': 1e-3,                        # For soft update of target parameters
         'BETA': 0.4,                        # PER beta
         'PRIOR_EPS': 1e-6,                  # PER epsilon
-        'MEMORY_SIZE': 10000000,            # Max memory buffer size
+        'MEMORY_SIZE': 1000,            # Max memory buffer size
         'LEARN_STEP': 1,                    # Learning frequency
         'TAU': 1e-3,                        # For soft update of target parameters
         'TOURN_SIZE': 4,                    # Tournament size
         'ELITISM': True,                    # Elitism in tournament selection
-        'POP_SIZE': 40,                      # Population size
-        'EVO_STEPS': 10_000,                # Evolution frequency
+        'POP_SIZE': 1,                     # Population size
+        'EVO_STEPS': 10,                # Evolution frequency
         'EVAL_STEPS': None,                 # Evaluation steps
         'EVAL_LOOP': 1,                     # Evaluation episodes
-        'LEARNING_DELAY': 1000,             # Steps before starting learning
+        'LEARNING_DELAY': 10,             # Steps before starting learning
         'WANDB': True,                      # Log with Weights and Biases
-        'CHECKPOINT': 100,# 10_000,               # Checkpoint frequency
+        'CHECKPOINT': 10, # 10_000,        # Checkpoint frequency
         'CHECKPOINT_PATH': 'checkpoints',   # Checkpoint path
         'SAVE_ELITE': True,                 # Save elite agent
         'ELITE_PATH': 'elite',              # Elite agent path
@@ -56,7 +56,7 @@ def main():
 
     NET_CONFIG = {
         "arch": "mlp",                      # Network architecture
-        "hidden_size": [800, 600],          # Actor hidden size
+        "hidden_size": [40, 20],          # Actor hidden size
         "mlp_activation": "ReLU",
         "mlp_output_activation": "ReLU",
         "min_hidden_layers": 2,
@@ -87,7 +87,7 @@ def main():
     }
 
 
-    num_envs = 25
+    num_envs = 1
     env = make_vect_envs(
         num_envs=num_envs
     )
