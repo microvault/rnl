@@ -48,7 +48,7 @@ def main():
         'CHECKPOINT_PATH': 'checkpoints',   # Checkpoint path
         'SAVE_ELITE': True,                 # Save elite agent
         'ELITE_PATH': 'elite',              # Elite agent path
-        'ACCELERATOR': None,                # Accelerator
+        'ACCELERATOR': accelerator,                # Accelerator
         'VERBOSE': True,
         'TORCH_COMPILER': True,
         'EPS_START': 1.0,
