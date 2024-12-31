@@ -27,7 +27,7 @@ def main():
         'CHANNELS_LAST': False,             # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
         'BATCH_SIZE': 128,                  # Batch size
         'LR': 1e-3,                         # Learning rate
-        'MAX_STEPS': 1_000_000_00,             # Max no. steps
+        'MAX_STEPS': 1_000_000_0,             # Max no. steps
         'TARGET_SCORE': 500,               # Early training stop at avg score of last 100 episodes
         'GAMMA': 0.99,                      # Discount factor
         'TAU': 1e-3,                        # For soft update of target parameters
@@ -43,7 +43,7 @@ def main():
         'EVAL_STEPS': None,                 # Evaluation steps
         'EVAL_LOOP': 1,                     # Evaluation episodes
         'LEARNING_DELAY': 1000,             # Steps before starting learning
-        'WANDB': True,                      # Log with Weights and Biases
+        'WANDB': False,                      # Log with Weights and Biases
         'CHECKPOINT': 10_000,               # Checkpoint frequency
         'CHECKPOINT_PATH': 'checkpoints',   # Checkpoint path
         'SAVE_ELITE': True,                 # Save elite agent
