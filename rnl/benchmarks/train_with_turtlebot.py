@@ -6,6 +6,7 @@ from agilerl.hpo.mutation import Mutations
 from agilerl.training.train_off_policy import train_off_policy
 import os
 import torch
+import multiprocessing as mp
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 wandb_key = os.environ.get("WANDB_API_KEY")
@@ -181,4 +182,5 @@ def main():
     )
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn', force=True)
     main()
