@@ -25,7 +25,7 @@ def main():
         'ALGO': 'Rainbow DQN',              # Algorithm
         'DOUBLE': True,                     # Use double Q-learning
         'CHANNELS_LAST': False,             # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        'BATCH_SIZE': 256,                  # Batch size
+        'BATCH_SIZE': 128,                  # Batch size
         'LR': 1e-3,                         # Learning rate
         'MAX_STEPS': 1_000_000_00,             # Max no. steps
         'TARGET_SCORE': 500,               # Early training stop at avg score of last 100 episodes
@@ -50,7 +50,7 @@ def main():
         'ELITE_PATH': 'elite',              # Elite agent path
         'ACCELERATOR': accelerator,                # Accelerator
         'VERBOSE': True,
-        'TORCH_COMPILER': True,
+        'TORCH_COMPILER': False,
         'EPS_START': 1.0,
         'EPS_END': 0.1,
         'EPS_DECAY': 0.995,
