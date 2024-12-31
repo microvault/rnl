@@ -10,6 +10,7 @@ import numpy as np
 import os
 from torch.utils.data import DataLoader
 from tqdm import trange
+import multiprocessing as mp
 
 def main():
     accelerator = Accelerator()
@@ -288,4 +289,5 @@ def main():
     env.close()
 
 if __name__ == "__main__":
+    mp.set_start_method('spawn', force=True)
     main()
