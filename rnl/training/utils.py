@@ -15,11 +15,11 @@ from rnl.environment.environment_navigation import NaviEnv
 
 def make_vect_envs(
     num_envs: int,
-    robot_config: RobotConfig,
-    sensor_config: SensorConfig,
-    env_config: EnvConfig,
-    render_config: RenderConfig,
-    pretrained_model: bool,
+    robot_config: RobotConfig = RobotConfig(),
+    sensor_config: SensorConfig = SensorConfig(),
+    env_config: EnvConfig = EnvConfig(),
+    render_config: RenderConfig = RenderConfig(),
+    pretrained_model: bool = False,
 ):
     """Returns async-vectorized gym environments with custom parameters.
 

@@ -7,7 +7,6 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 from numba import njit
-# from rnl.engine.collision import Collision
 from rnl.engine.world_generate import GenerateWorld
 from rnl.engine.map2d import Map2D
 
@@ -16,7 +15,7 @@ from rnl.engine.map2d import Map2D
 class Generator:
     def __init__(
         self,
-        random: float,  # 1300
+        random: float,
         mode: str,
         folder: str,
         name: str,

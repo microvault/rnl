@@ -3,8 +3,8 @@ TAG = latest
 IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
 
-.PHONY: run
-run:
+.PHONY: sim
+sim:
 	@poetry run python -m train run
 
 .PHONY: train
@@ -58,6 +58,10 @@ start-cuda:
 .PHONY: clean
 clean:
 	@sudo docker image prune -f
+
+.PHONY: run
+run:
+	@poetry run python rnl/benchmarks/train_with_turtlebot.py
 
 .PHONY: push
 push:

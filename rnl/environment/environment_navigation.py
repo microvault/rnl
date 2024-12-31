@@ -4,11 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from omegaconf import OmegaConf
 from sklearn.preprocessing import MinMaxScaler
 
 from rnl.algorithms.rainbow import RainbowDQN
-from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig, RandomizationDomainConfig, TargetPositionConfig
 from rnl.engine.randomizer import TargetPosition
 from rnl.engine.utils import (
     angle_to_goal,
@@ -27,33 +26,34 @@ from shapely.geometry import Point
 class NaviEnv(gym.Env):
     def __init__(
         self,
-        robot_config: RobotConfig,
-        sensor_config: SensorConfig,
-        env_config: EnvConfig,
-        render_config: RenderConfig,
-        pretrained_model: bool,
+        robot_config: RobotConfig = RobotConfig(),
+        sensor_config: SensorConfig = SensorConfig(),
+        env_config: EnvConfig = EnvConfig(),
+        render_config: RenderConfig = RenderConfig(),
+        pretrained_model: bool = False,
     ):
         super().__init__()
-        self.max_num_rays = 180
+        self.max_num_rays = 40
         state_size = (
             self.max_num_rays + 9
-        )  # action_one_hot(7) + dist(1) + alpha(1) -> (action, distance, angle)
-        self.action_space = spaces.Discrete(6)  # action
+        )
+        self.action_space = spaces.Discrete(6)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
-        self.param = OmegaConf.load("./rnl/configs/limits.yaml")
+        self.randomization_domain = RandomizationDomainConfig()
         self.robot = Robot(robot_config)
         self.friction = env_config.friction
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space, friction=self.friction)
+        self.target_config = TargetPositionConfig()
         self.target_position = TargetPosition(
-            window_size=1000,
-            min_fraction=0.2,
-            max_fraction=0.8,
-            threshold=0.01,
-            adjustment=0.05,
-            episodes_interval=100
+            window_size=self.target_config.window_size,
+            min_fraction=self.target_config.min_fraction,
+            max_fraction=self.target_config.max_fraction,
+            threshold=self.target_config.threshold,
+            adjustment=self.target_config.adjustment,
+            episodes_interval=self.target_config.episodes_interval
         )
 
         # -- Normalization -- #
@@ -73,6 +73,7 @@ class NaviEnv(gym.Env):
         )
 
         self.reward_history = []
+        self.initial_distance = 0
 
         self.xmax = env_config.grid_dimension - 0.25
         self.ymax = env_config.grid_dimension - 0.25
@@ -122,7 +123,7 @@ class NaviEnv(gym.Env):
         self.fps = render_config.fps
         self.threshold = robot_config.threshold
         self.controller = render_config.controller
-        self.current_fraction = 0.5
+        self.current_fraction = 0.05
         self.min_fraction = 0.2
         self.max_fraction = 0.8
         self.threshold = 0.01
@@ -141,7 +142,7 @@ class NaviEnv(gym.Env):
         self.vr = 0.01
         self.init_distance = 0
         self.action = 0
-        self.scalar = 10# 1000
+        self.scalar = 10
         self.randomization_frequency = env_config.randomization_interval
         self.epoch = 0
         self.current_rays = sensor_config.num_rays
@@ -157,7 +158,7 @@ class NaviEnv(gym.Env):
             )
 
         if self.rgb_array:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6), subplot_kw={'projection': '3d'})
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(8, 8), subplot_kw={'projection': '3d'})
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
@@ -212,11 +213,11 @@ class NaviEnv(gym.Env):
         elif event.key == "d":
             self.action = 5
             self.vl = 0.05 * self.scalar
-            self.vr = 0.3 * self.scalar
+            self.vr = -0.3 * self.scalar
         elif event.key == "a":
             self.action = 6
             self.vl = 0.05 * self.scalar
-            self.vr = -0.3 * self.scalar
+            self.vr = 0.3 * self.scalar
         elif event.key == " ":
             self.vl = 0.0
             self.vr = 0.0
@@ -311,6 +312,7 @@ class NaviEnv(gym.Env):
             self.target_y,
             self.cumulated_reward,
             self.epoch,
+            self.initial_distance
         )
 
         self.space.step(1 / 60)
@@ -421,13 +423,12 @@ class NaviEnv(gym.Env):
             epoch=self.epoch
         )
 
-        initial_distance = self.current_fraction * self.dist_max
+        self.initial_distance = self.current_fraction * self.dist_max
 
         if self.epoch % self.randomization_frequency == 0:
             self.randomization()
 
         self.timestep = 0
-
         self.cumulated_reward = 0.0
 
         if not self.initial_map:
@@ -454,7 +455,7 @@ class NaviEnv(gym.Env):
             maxy=maxy,
             center_x=x,
             center_y=y,
-            distance=initial_distance
+            distance=self.initial_distance
         )
         theta = np.random.uniform(0, 2 * np.pi)
 
@@ -479,6 +480,7 @@ class NaviEnv(gym.Env):
                 self.target_y,
                 self.cumulated_reward,
                 self.epoch,
+                self.initial_distance
             )
 
         dist = distance_to_goal(
@@ -555,8 +557,8 @@ class NaviEnv(gym.Env):
 
         if not self.initial_map:
             self.new_map_path, _, _, _, m, poly = self.generator.world(self.grid_lenght)
-            ax.set_xlim(0, self.grid_lenght)
-            ax.set_ylim(0, self.grid_lenght)
+            ax.set_xlim(-2, self.grid_lenght + 2)
+            ax.set_ylim(-2, self.grid_lenght + 2)
 
         else:
             minx, miny, maxx, maxy = self.poly.bounds
@@ -566,7 +568,6 @@ class NaviEnv(gym.Env):
             width = maxx - minx
             height = maxy - miny
 
-            # Ajustar os limites para que o centro seja o do polígono
             ax.set_xlim(center_x - width/2, center_x + width/2)
             ax.set_ylim(center_y - height/2, center_y + height/2)
 
@@ -598,7 +599,7 @@ class NaviEnv(gym.Env):
             0,
             0,
             0.05,
-            self._get_label(0, 0, 0),
+            self._get_label(0, 0, 0, self.grid_lenght, 0),
         )
 
         self.label.set_fontsize(14)
@@ -608,7 +609,7 @@ class NaviEnv(gym.Env):
         self.fig.subplots_adjust(left=0.05, right=0.95, bottom=0.20, top=0.95)
 
     @staticmethod
-    def _get_label(timestep: int, score: float, episode: int) -> str:
+    def _get_label(timestep: int, score: float, episode: int, grid: int, initial_distance: float) -> str:
         """
         Generates a label for the environment.
 
@@ -622,8 +623,10 @@ class NaviEnv(gym.Env):
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
         line3 = "Score:".ljust(14) + f"{score:4.0f}\n"
         line4 = "Episode:".ljust(14) + f"{episode:4.0f}\n"
+        line5 = "Grid:".ljust(14) + f"{grid:4.0f}\n"
+        line6 = "Initial Distance:".ljust(14) + f"{initial_distance:.2f}\n"
 
-        return line1 + line2 + line3 + line4
+        return line1 + line2 + line3 + line4 + line5 + line6
 
     def _plot_anim(
         self,
@@ -635,9 +638,10 @@ class NaviEnv(gym.Env):
         target_y: float,
         score: float,
         episode: int,
+        initial_distance
     ) -> None:
 
-        self.label.set_text(self._get_label(i, score, episode))
+        self.label.set_text(self._get_label(i, score, episode, self.grid_lenght, initial_distance))
 
         if hasattr(self, "laser_scatters"):
             for scatter in self.laser_scatters:
@@ -665,23 +669,23 @@ class NaviEnv(gym.Env):
         )
 
     def randomization(self):
-        # if self.random_mode == "hard":
-        self.grid_lenght = uniform_random_int(
-            self.param.environment.min_grid_dimension,
-            self.param.environment.max_grid_dimension,
-        )
-        new_fov = uniform_random(
-            self.param.sensor.min_fov, self.param.sensor.max_fov
-        )
-        new_num_rays = uniform_random_int(
-            self.param.sensor.min_num_rays, self.param.sensor.max_num_rays
-        )
-        self.sensor.random_sensor(new_fov, new_num_rays)
-
-        # print("\n#------ New Random ----#")
-        # print(f"Grid lenght : {self.grid_lenght}")
-        # print(f"FOV : {new_fov}")
-        # print(f"Num rays : {new_num_rays}")
+        if self.random_mode == "normal":
+            self.grid_lenght = uniform_random_int(
+                self.randomization_domain.grid_dimension[0],
+                self.randomization_domain.grid_dimension[1],
+            )
+        elif self.random_mode == "hard":
+            self.grid_lenght = uniform_random_int(
+                self.randomization_domain.grid_dimension[0],
+                self.randomization_domain.grid_dimension[1],
+            )
+            new_fov = uniform_random(
+                self.randomization_domain.fov[0], self.randomization_domain.fov[1]
+            )
+            new_num_rays = uniform_random_int(
+                self.randomization_domain.num_rays[0], self.randomization_domain.num_rays[1]
+            )
+            self.sensor.random_sensor(new_fov, new_num_rays)
 
     def random_point_in_poly(self, poly, minx, miny, maxx, maxy, max_tries=1000):
         for _ in range(max_tries):
@@ -691,11 +695,34 @@ class NaviEnv(gym.Env):
                 return x, y
         return (minx, miny)
 
-    def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, max_tries=1000):
+    # def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, max_tries=1000):
+    #     for _ in range(max_tries):
+    #         x = np.random.uniform(minx, maxx)
+    #         y = np.random.uniform(miny, maxy)
+    #         if poly.contains(Point(x, y)):
+    #             if np.sqrt((x - center_x)**2 + (y - center_y)**2) <= distance:
+    #                 return x, y
+    #     return (center_x, center_y)
+
+    def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, buffer_distance=0.4, max_tries=1000):
+
+        # Cria uma região bufferizada internamente para garantir a distância do obstáculo
+        buffered_poly = poly.buffer(-buffer_distance)
+
+        # Verifica se o buffer resultante ainda é um polígono válido
+        if buffered_poly.is_empty:
+            raise ValueError("Error creating buffered polygon")
+
         for _ in range(max_tries):
             x = np.random.uniform(minx, maxx)
             y = np.random.uniform(miny, maxy)
-            if poly.contains(Point(x, y)):
+            point = Point(x, y)
+
+            # Verifica se o ponto está dentro da região bufferizada
+            if buffered_poly.contains(point):
+                # Verifica se o ponto está dentro da distância máxima do centro
                 if np.sqrt((x - center_x)**2 + (y - center_y)**2) <= distance:
                     return x, y
+
+        # Caso não encontre um ponto válido após todas as tentativas, retorna o centro
         return (center_x, center_y)

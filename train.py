@@ -8,18 +8,18 @@ def main(arg):
     wandb_key = os.environ.get("WANDB_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
-        base_radius=20.0,  # (centimeters)
-        vel_linear=[0.0, 2.0],  # [min, max]
-        vel_angular=[1.0, 2.0],  # [min, max]
-        wheel_distance=0.16,  # (centimeters)
+        base_radius=0.105,  # (centimeters)
+        vel_linear=[0.0, 0.22],  # [min, max]
+        vel_angular=[1.0, 2.84],  # [min, max]
+        wheel_distance=0.160,  # (centimeters)
         weight=1.0,  # (kilograms)
-        threshold=0.05,  # (centimeters)
+        threshold=0.60,  # (centimeters)
         path_model="./",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=180,
+        fov=360,
         num_rays=40,
         min_range=1.0,
         max_range=20.0,
@@ -29,12 +29,12 @@ def main(arg):
     param_env = vault.make(
         folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
         name_map="None",
-        random_mode="hard",  # hard, normal
+        random_mode="normal",  # hard, normal
         max_timestep=1000,
-        grid_dimension=5,
+        grid_dimension=12,
         friction=0.4,
         porcentage_obstacles=0.1,
-        randomization_interval=100,
+        randomization_interval=1,
     )
 
     if args.mode == "train":

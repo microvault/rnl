@@ -30,7 +30,7 @@ def angle_to_goal(
 
 def min_laser(measurement: np.ndarray, threshold: float):
     laser = np.min(measurement)
-    if laser <= threshold:
+    if laser <= (threshold - 0.20):
         return True, laser
     else:
         return False, laser

@@ -67,43 +67,30 @@ class Robot:
         """
         Move the robot in the space with given linear and angular velocities.
         """
+
         direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
         robot_body.velocity = v_linear * direction
         robot_body.angular_velocity = v_angular
-        # space.step(1 / 60)
-        # Direção atual do robô
         direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
 
-        # Velocidade linear desejada
         desired_velocity = v_linear * direction
 
-        # Diferença entre a velocidade desejada e a atual
         velocity_diff = desired_velocity - robot_body.velocity
 
-        # Força necessária para alcançar a velocidade desejada (F = m * a)
-        # Assumindo delta_time = 1/60 (passo da simulação)
         delta_time = 1 / 60
         force = (velocity_diff * self.mass) / delta_time
 
-        # Aplicar a força na direção desejada
         robot_body.apply_force_at_world_point(force, robot_body.position)
 
-        # Velocidade angular desejada
         desired_angular_velocity = v_angular
 
-        # Diferença entre a velocidade angular desejada e a atual
         angular_velocity_diff = desired_angular_velocity - robot_body.angular_velocity
 
-        # Torque necessário para alcançar a velocidade angular desejada (Torque = I * α)
-        # Onde α = (Δω) / Δt
         angular_acceleration = angular_velocity_diff / delta_time
         torque = self.moment_of_inertia * angular_acceleration
 
-        # Aplicar o torque
         robot_body.torque += torque
 
-        # Atualiza o espaço
-        # space.step(1 / 60)
 
     def reset_robot(
         self, robot_body: pymunk.Body, x: float, y: float, angle: float
