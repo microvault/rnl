@@ -63,6 +63,9 @@ clean:
 run:
 	@poetry run python rnl/benchmarks/train_with_turtlebot.py
 
+	accelerate_launch --config_file rnl/benchmarks/accelerate.yaml rnl/benchmarks/train_with_acc.py
+
+
 .PHONY: push
 push:
 	@docker tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
