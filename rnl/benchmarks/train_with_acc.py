@@ -14,6 +14,7 @@ import multiprocessing as mp
 
 def main():
     accelerator = Accelerator()
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
     accelerator.wait_for_everyone()
     if accelerator.is_main_process:

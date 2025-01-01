@@ -17,27 +17,27 @@ def main():
         'ALGO': 'Rainbow DQN',              # Algorithm
         'DOUBLE': True,                     # Use double Q-learning
         'CHANNELS_LAST': False,             # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        'BATCH_SIZE': 256,                  # Batch size
+        'BATCH_SIZE': 128,                  # Batch size
         'LR': 1e-3,                         # Learning rate
-        'MAX_STEPS': 1_000_000_00,           # Max no. steps
-        'TARGET_SCORE': 500,                # Early training stop at avg score of last 100 episodes
+        'MAX_STEPS': 1000000,               # Max no. steps
+        'TARGET_SCORE': 800,                # Early training stop at avg score of last 100 episodes
         'GAMMA': 0.99,                      # Discount factor
         'TAU': 1e-3,                        # For soft update of target parameters
         'BETA': 0.4,                        # PER beta
         'PRIOR_EPS': 1e-6,                  # PER epsilon
-        'MEMORY_SIZE': 1_000_000_00,            # Max memory buffer size
-        'LEARN_STEP': 10,                    # Learning frequency
+        'MEMORY_SIZE': 1000000,           # Max memory buffer size
+        'LEARN_STEP': 5,                   # Learning frequency
         'TAU': 1e-3,                        # For soft update of target parameters
         'TOURN_SIZE': 4,                    # Tournament size
         'ELITISM': True,                    # Elitism in tournament selection
-        'POP_SIZE': 40,                      # Population size
-        'EVO_STEPS': 10_000,                # Evolution frequency
-        'EVAL_STEPS': None,                 # Evaluation steps
-        'EVAL_LOOP': 10,                     # Evaluation episodes
-        'LEARNING_DELAY': 1000,             # Steps before starting learning
+        'POP_SIZE': 40,                     # Population size
+        'EVO_STEPS': 5000,                # Evolution frequency
+        'EVAL_STEPS': 10,                 # Evaluation steps
+        'EVAL_LOOP': 10,                    # Evaluation episodes
+        'LEARNING_DELAY': 500,             # Steps before starting learning
         'WANDB': True,                      # Log with Weights and Biases
-        'CHECKPOINT': 10_000,               # Checkpoint frequency
-        'CHECKPOINT_PATH': 'checkpoints',   # Checkpoint path
+        'CHECKPOINT': 1000,               # Checkpoint frequency
+        'CHECKPOINT_PATH': 'model',   # Checkpoint path
         'SAVE_ELITE': True,                 # Save elite agent
         'ELITE_PATH': 'elite',              # Elite agent path
         'ACCELERATOR': None,                # Accelerator
@@ -62,7 +62,7 @@ def main():
         "min_hidden_layers": 2,
         "max_hidden_layers": 4,
         "min_mlp_nodes": 64,
-        "max_mlp_nodes": 500,
+        "max_mlp_nodes": 800,
     }
 
     MUTATION_PARAMS = {
@@ -166,9 +166,9 @@ def main():
         eps_end=INIT_PARAM['EPS_END'],
         eps_decay=INIT_PARAM['EPS_DECAY'],
         target=INIT_PARAM['TARGET_SCORE'],              # Target score for early stopping
-        # n_step=INIT_PARAM['N_STEP'],                    # Use n-step returns
-        # per=INIT_PARAM['PER'],                          # Use Prioritized Experience Replay
-        # n_step_memory=INIT_PARAM['N_STEP_MEMORY'],      # n-step memory
+        # n_step=INIT_PARAM['N_STEP'],                  # Use n-step returns
+        # per=INIT_PARAM['PER'],                        # Use Prioritized Experience Replay
+        # n_step_memory=INIT_PARAM['N_STEP_MEMORY'],    # n-step memory
         tournament=tournament,                          # Tournament selection object
         mutation=mutations,                             # Mutations object
         wb=INIT_PARAM['WANDB'],                         # Weights and Biases tracking
