@@ -5,11 +5,11 @@ VERSION = 1.1
 
 .PHONY: sim
 sim:
-	@poetry run python -m train run
+	@poetry run python -m main run
 
 .PHONY: train
 train:
-	@poetry run python -m train train
+	@poetry run python -m main train
 
 .PHONY: test_without_coverage
 test_without_coverage:

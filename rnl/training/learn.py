@@ -1,12 +1,8 @@
-import multiprocessing as mp
-import os
-
 import numpy as np
 import torch
 from agilerl.components.replay_buffer import ReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
-from agilerl.training.train_off_policy import train_off_policy
 from agilerl.utils.utils import create_population
 from tqdm import trange
 
@@ -20,6 +16,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
+from rnl.environment.environment_navigation import NaviEnv
 from rnl.training.utils import make_vect_envs
 
 
@@ -36,85 +33,94 @@ def training(
 ):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    config_dict = {
+        "Agent Config": agent_config.__dict__,
+        "Trainer Config": trainer_config.__dict__,
+        "HPO Config": hpo_config.__dict__,
+        "Network Config": network_config.__dict__,
+    }
+
+    for config_name, config_values in config_dict.items():
+        print(f"\n#------ {config_name} ----#")
+        max_key_length = max(len(key) for key in config_values.keys())
+        for key, value in config_values.items():
+            print(f"{key.ljust(max_key_length)} : {value}")
+
     INIT_PARAM = {
         "ENV_NAME": "rnl",  # Gym environment name
         "ALGO": "Rainbow DQN",  # Algorithm
         "DOUBLE": True,  # Use double Q-learning
         "CHANNELS_LAST": False,  # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        "BATCH_SIZE": 128,  # Batch size
-        "LR": 1e-3,  # Learning rate
-        "MAX_STEPS": 1000000,  # Max no. steps
-        "TARGET_SCORE": 800,  # Early training stop at avg score of last 100 episodes
-        "GAMMA": 0.99,  # Discount factor
-        "TAU": 1e-3,  # For soft update of target parameters
-        "BETA": 0.4,  # PER beta
-        "PRIOR_EPS": 1e-6,  # PER epsilon
-        "MEMORY_SIZE": 1000000,  # Max memory buffer size
-        "LEARN_STEP": 5,  # Learning frequency
-        "TAU": 1e-3,  # For soft update of target parameters
-        "TOURN_SIZE": 4,  # Tournament size
-        "ELITISM": True,  # Elitism in tournament selection
-        "POP_SIZE": 40,  # Population size
-        "EVO_STEPS": 5000,  # Evolution frequency
-        "EVAL_STEPS": 10,  # Evaluation steps
-        "EVAL_LOOP": 10,  # Evaluation episodes
-        "LEARNING_DELAY": 500,  # Steps before starting learning
-        "WANDB": True,  # Log with Weights and Biases
-        "CHECKPOINT": 1000,  # Checkpoint frequency
-        "CHECKPOINT_PATH": "model",  # Checkpoint path
-        "SAVE_ELITE": True,  # Save elite agent
-        "ELITE_PATH": "elite",  # Elite agent path
-        "ACCELERATOR": None,  # Accelerator
+        "BATCH_SIZE": trainer_config.batch_size,  # Batch size
+        "LR": trainer_config.lr,  # Learning rate
+        "MAX_STEPS": trainer_config.max_steps,  # Max no. steps
+        "TARGET_SCORE": trainer_config.target_score,  # Early training stop at avg score of last 100 episodes
+        "GAMMA": agent_config.gamma,  # Discount factor
+        "TAU": agent_config.tau,  # For soft update of target parameters
+        "BETA": agent_config.beta,  # PER beta
+        "PRIOR_EPS": agent_config.prior_eps,  # PER epsilon
+        "MEMORY_SIZE": agent_config.memory_size,  # Max memory buffer size
+        "LEARN_STEP": trainer_config.learn_step,  # Learning frequency
+        "TOURN_SIZE": hpo_config.tourn_size,  # Tournament size
+        "ELITISM": hpo_config.elitism,  # Elitism in tournament selection
+        "POP_SIZE": hpo_config.population_size,  # Population size
+        "EVO_STEPS": hpo_config.evo_steps,  # Evolution frequency
+        "EVAL_STEPS": hpo_config.eval_steps,  # Evaluation steps
+        "EVAL_LOOP": hpo_config.eval_loop,  # Evaluation episodes
+        "LEARNING_DELAY": trainer_config.learning_delay,  # Steps before starting learning
+        "WANDB": trainer_config.use_wandb,  # Log with Weights and Biases
+        "CHECKPOINT": trainer_config.checkpoint,  # Checkpoint frequency
+        "CHECKPOINT_PATH": trainer_config.checkpoint_path,  # Checkpoint path
+        "SAVE_ELITE": hpo_config.save_elite,  # Save elite agent
+        "ELITE_PATH": hpo_config.elite_path,  # Elite agent path
+        "ACCELERATOR": None,
         "VERBOSE": True,
         "TORCH_COMPILER": True,
-        "EPS_START": 1.0,
-        "EPS_END": 0.1,
-        "EPS_DECAY": 0.995,
-        "N_STEP": 3,
-        "PER": True,
-        "N_STEP_MEMORY": 1,
-        "NUM_ATOMS": 51,
-        "V_MIN": -200,
-        "V_MAX": 200,
+        "EPS_START": trainer_config.eps_start,
+        "EPS_END": trainer_config.eps_end,
+        "EPS_DECAY": trainer_config.eps_decay,
+        "N_STEP": agent_config.n_step,
+        "PER": agent_config.per,
+        "N_STEP_MEMORY": trainer_config.n_step_memory,
+        "NUM_ATOMS": agent_config.num_atoms,
+        "V_MIN": agent_config.v_min,
+        "V_MAX": agent_config.v_max,
     }
 
     NET_CONFIG = {
-        "arch": "mlp",  # Network architecture
-        "hidden_size": [800, 600],  # Actor hidden size
-        "mlp_activation": "ReLU",
-        "mlp_output_activation": "ReLU",
-        "min_hidden_layers": 2,
-        "max_hidden_layers": 4,
-        "min_mlp_nodes": 64,
-        "max_mlp_nodes": 800,
+        "arch": network_config.arch,  # Network architecture
+        "hidden_size": network_config.hidden_size,  # Actor hidden size
+        "mlp_activation": network_config.mlp_activation,
+        "mlp_output_activation": network_config.mlp_output_activation,
+        "min_hidden_layers": network_config.min_hidden_layers,
+        "max_hidden_layers": network_config.max_hidden_layers,
+        "min_mlp_nodes": network_config.min_mlp_nodes,
+        "max_mlp_nodes": network_config.max_mlp_nodes,
     }
 
     MUTATION_PARAMS = {
-        "NO_MUT": 0.4,  # No mutation
-        "ARCH_MUT": 0.2,  # Architecture mutation
-        "NEW_LAYER": 0.2,  # New layer mutation
-        "PARAMS_MUT": 0.2,  # Network parameters mutation
-        "ACT_MUT": 0,  # Activation layer mutation
-        "RL_HP_MUT": 0.2,  # Learning HP mutation
-        "RL_HP_SELECTION": [
-            "lr",
-            "batch_size",
-            "learn_step",
-        ],  # Learning HPs to choose from
-        "MUT_SD": 0.1,  # Mutation strength
-        "MIN_LR": 0.0001,
-        "MAX_LR": 0.01,
-        "MIN_LEARN_STEP": 1,
-        "MAX_LEARN_STEP": 120,
-        "MIN_BATCH_SIZE": 8,
-        "MAX_BATCH_SIZE": 1024,
+        "NO_MUT": hpo_config.no_mutation,  # No mutation
+        "ARCH_MUT": hpo_config.arch_mutation,  # Architecture mutation
+        "NEW_LAYER": hpo_config.new_layer,  # New layer mutation
+        "PARAMS_MUT": hpo_config.param_mutation,  # Network parameters mutation
+        "ACT_MUT": hpo_config.active_mutation,  # Activation layer mutation
+        "RL_HP_MUT": hpo_config.hp_mutation,  # Learning HP mutation
+        "RL_HP_SELECTION": hpo_config.hp_mutation_selection,
+        "MUT_SD": hpo_config.mutation_strength,  # Mutation strength
+        "MIN_LR": hpo_config.min_lr,
+        "MAX_LR": hpo_config.max_lr,
+        "MIN_LEARN_STEP": hpo_config.min_learn_step,
+        "MAX_LEARN_STEP": hpo_config.max_learn_step,
+        "MIN_BATCH_SIZE": hpo_config.min_batch_size,
+        "MAX_BATCH_SIZE": hpo_config.max_batch_size,
         "AGENTS_IDS": None,
-        "MUTATE_ELITE": True,
-        "RAND_SEED": 1,  # Random seed
-        "ACTIVATION": ["ReLU", "ELU", "GELU"],  # Activation functions to choose from
+        "MUTATE_ELITE": hpo_config.mutate_elite,
+        "RAND_SEED": hpo_config.rand_seed,  # Random seed
+        "ACTIVATION": hpo_config.activation,  # Activation functions to choose from
     }
 
-    num_envs = 25
+    num_envs = trainer_config.num_envs
+
     env = make_vect_envs(
         num_envs=num_envs,
         robot_config=robot_config,
@@ -182,9 +188,20 @@ def training(
         device=device,
         accelerator=INIT_PARAM["ACCELERATOR"],
     )
+
+    eps_start = INIT_PARAM["EPS_START"]
+    evo_steps = INIT_PARAM["EVO_STEPS"]
+    eps_end = INIT_PARAM["EPS_END"]
+    eps_decay = INIT_PARAM["EPS_DECAY"]
+    epsilon = eps_start
+    learning_delay = INIT_PARAM["LEARNING_DELAY"]
+    total_steps = 0
+    eval_steps = INIT_PARAM["EVAL_STEPS"]
+    eval_loop = INIT_PARAM["EVAL_LOOP"]
+    max_steps = INIT_PARAM["MAX_STEPS"]
     # TRAINING LOOP
     print("Training...")
-    pbar = trange(max_steps, unit="step")
+    pbar = trange(INIT_PARAM["MAX_STEPS"], unit="step")
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
         pop_episode_scores = []
         for agent in pop:  # Loop through population
@@ -246,7 +263,7 @@ def training(
         fitnesses = [
             agent.test(
                 env,
-                swap_channels=INIT_HP["CHANNELS_LAST"],
+                swap_channels=INIT_PARAM["CHANNELS_LAST"],
                 max_steps=eval_steps,
                 loop=eval_loop,
             )

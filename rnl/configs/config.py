@@ -44,18 +44,14 @@ class RobotConfig:
 
 @dataclass
 class NetworkConfig:
+    arch: str = "mlp"
     hidden_size: List[int] = field(default_factory=lambda: [800, 600])
-    std_init_noisy_linear: float = 0.5
     mlp_activation: str = "ReLU"
     mlp_output_activation: str = "ReLU"
     min_hidden_layers: int = 2
     max_hidden_layers: int = 4
     min_mlp_nodes: int = 64
-    max_mlp_nodes: int = 500
-    layer_norm: bool = True
-    output_vanish: bool = True
-    init_layers: bool = True
-    noise_std: float = 0.5
+    max_mlp_nodes: int = 800
 
 
 @dataclass
@@ -75,6 +71,7 @@ class AgentConfig:
     epsilon_end: float = 0.1
     epsilon_decay: float = 0.995
     noise_std: float = 0.5
+    per: bool = True
 
 
 @dataclass
@@ -87,21 +84,21 @@ class TrainerConfig:
     learn_step: int = 10
     target_score: int = 200
     max_steps: int = 1000000
-    evaluation_steps: int = 10000
-    evaluation_loop: int = 10
     learning_delay: int = 0
     n_step_memory: int = 2
     checkpoint: int = 1000
-    checkpoint_path: str = "checkpoints"
+    checkpoint_path: str = "model"
     overwrite_checkpoints: bool = False
     use_wandb: bool = False
     wandb_api_key: str = ""
+    eps_start: float = 1.0
+    eps_end: float = 0.1
+    eps_decay: float = 0.995
 
 
 @dataclass
 class HPOConfig:
     use_mutation: bool = True
-    freq_evolution: int = 10000
     population_size: int = 6
     no_mutation: float = 0.4
     arch_mutation: float = 0.2
@@ -113,11 +110,22 @@ class HPOConfig:
         default_factory=lambda: ["lr", "batch_size"]
     )
     mutation_strength: float = 0.1
-    evolution_steps: int = 10000
+    min_lr: float = 0.0001
+    max_lr: float = 0.01
+    min_learn_step: int = 1
+    max_learn_step: int = 120
+    min_batch_size: int = 8
+    max_batch_size: int = 1024
     save_elite: bool = False
     elite_path: str = "elite"
     tourn_size: int = 2
     elitism: bool = True
+    evo_steps: int = 1000
+    eval_steps = None
+    eval_loop: int = 1
+    mutate_elite: bool = False
+    rand_seed: int = 1
+    activation: List[str] = field(default_factory=lambda: ["ReLU", "ELU", "GELU"])
 
 
 @dataclass
