@@ -10,7 +10,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, training
+from rnl.training.learn import inference  # , training
 
 
 def robot(
@@ -20,6 +20,7 @@ def robot(
     wheel_distance: float,
     weight: float,
     threshold: float,
+    collision: float,
     path_model: str = "",
 ):
     return RobotConfig(
@@ -29,6 +30,7 @@ def robot(
         wheel_distance,
         weight,
         threshold,
+        collision,
         path_model,
     )
 
@@ -39,28 +41,18 @@ def sensor(fov: float, num_rays: int, min_range: float, max_range: float):
 
 def make(
     folder_map: str,
-    name_map:str,
-    random_mode: str,
+    name_map: str,
     max_timestep: int,
-    grid_dimension: int,
-    friction: float,
-    porcentage_obstacles: float,
-    randomization_interval: int,
 ):
     return EnvConfig(
         folder_map=folder_map,
         name_map=name_map,
-        random_mode=random_mode,
         timestep=max_timestep,
-        grid_dimension=grid_dimension,
-        friction=friction,
-        porcentage_obstacles=porcentage_obstacles,
-        randomization_interval=randomization_interval,
     )
 
 
-def render(fps: int, controller: bool, rgb_array: bool, data_colletion: bool):
-    return RenderConfig(fps, controller, rgb_array, data_colletion)
+def render(controller: bool):
+    return RenderConfig(controller)
 
 
 class Trainer:
@@ -187,19 +179,35 @@ class Trainer:
 
         network_config = NetworkConfig(hidden_size)
 
-        training(
-            agent_config,
-            trainer_config,
-            hpo_config,
-            network_config,
-            self.robot_config,
-            self.sensor_config,
-            self.env_config,
-            self.render_config,
-            self.pretrained_model,
-        )
+        # training(
+        #     agent_config,
+        #     trainer_config,
+        #     hpo_config,
+        #     network_config,
+        #     self.robot_config,
+        #     self.sensor_config,
+        #     self.env_config,
+        #     self.render_config,
+        #     self.pretrained_model,
+        # )
 
         return None
+
+
+class Simulation:
+    def __init__(
+        self,
+        robot_config: RobotConfig = RobotConfig(),
+        sensor_config: SensorConfig = SensorConfig(),
+        env_config: EnvConfig = EnvConfig(),
+        render_config: RenderConfig = RenderConfig(),
+        pretrained_model=False,
+    ):
+        self.robot_config = robot_config
+        self.sensor_config = sensor_config
+        self.env_config = env_config
+        self.render_config = render_config
+        self.pretrained_model = pretrained_model
 
     def run(self):
 

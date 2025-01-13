@@ -6,28 +6,20 @@ from typing import List
 class EnvConfig:
     folder_map: str = "None"
     name_map: str = "map"
-    random_mode: str = "normal"
     timestep: int = 1000
-    grid_dimension: int = 12
-    friction: float = 0.4
-    porcentage_obstacles: float = 0.1
-    randomization_interval: int = 10
+
 
 @dataclass
-class TargetPositionConfig:
-    window_size: int = 1000
+class CurriculumTargetPositionConfig:
+    total_steps: int = 40_000_000
     min_fraction: float = 0.01
-    max_fraction: float = 0.8
-    threshold: float = 0.01
-    adjustment: float = 0.05
-    episodes_interval: int = 10
+    max_fraction: float = 1.0
+    increase_smoothness: float = 1.0
+
 
 @dataclass
 class RenderConfig:
-    fps: int = 1
     controller: bool = False
-    rgb_array: bool = False
-    data_collection: bool = False
 
 
 @dataclass
@@ -35,7 +27,7 @@ class SensorConfig:
     fov: float = 360.0
     num_rays: int = 40
     min_range: float = 1.0
-    max_range: float = 20.0
+    max_range: float = 40.0
 
 
 @dataclass
@@ -45,8 +37,10 @@ class RobotConfig:
     vel_angular: List[float] = field(default_factory=lambda: [1.0, 2.84])
     wheel_distance: float = 0.160
     weight: float = 1.0
-    threshold: float = 0.60
+    threshold: float = 2.0
+    collision: float = 0.20
     path_model: str = "./"
+
 
 @dataclass
 class NetworkConfig:
@@ -124,6 +118,7 @@ class HPOConfig:
     elite_path: str = "elite"
     tourn_size: int = 2
     elitism: bool = True
+
 
 @dataclass
 class RandomizationDomainConfig:

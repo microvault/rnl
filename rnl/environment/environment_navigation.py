@@ -2,25 +2,28 @@ import gymnasium as gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+from agilerl.algorithms.dqn_rainbow import RainbowDQN
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
+from shapely.geometry import Point
 from sklearn.preprocessing import MinMaxScaler
 
-from rnl.algorithms.rainbow import RainbowDQN
-from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig, RandomizationDomainConfig, TargetPositionConfig
-from rnl.engine.randomizer import TargetPosition
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
+from rnl.engine.randomizer import (
+    max_distance_in_polygon_with_holes,
+    min_robot_goal_spawn_distance,
+    spawn_robot_and_goal_curriculum,
+)
 from rnl.engine.utils import (
+    angle_reward,
     angle_to_goal,
     distance_to_goal,
-    get_reward,
+    get_reward_improved,
     min_laser,
-    uniform_random,
-    uniform_random_int,
 )
-from rnl.environment.generate_world import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
-from shapely.geometry import Point
+from rnl.environment.world import CreateWorld
 
 
 class NaviEnv(gym.Env):
@@ -31,36 +34,30 @@ class NaviEnv(gym.Env):
         env_config: EnvConfig = EnvConfig(),
         render_config: RenderConfig = RenderConfig(),
         pretrained_model: bool = False,
+        use_render: bool = False,
     ):
         super().__init__()
-        self.max_num_rays = 40
-        state_size = (
-            self.max_num_rays + 9
-        )
+        self.max_num_rays = sensor_config.num_rays
+        state_size = self.max_num_rays + 9
         self.action_space = spaces.Discrete(6)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
-        self.randomization_domain = RandomizationDomainConfig()
         self.robot = Robot(robot_config)
-        self.friction = env_config.friction
         self.space = self.robot.create_space()
-        self.body = self.robot.create_robot(space=self.space, friction=self.friction)
-        self.target_config = TargetPositionConfig()
-        self.target_position = TargetPosition(
-            window_size=self.target_config.window_size,
-            min_fraction=self.target_config.min_fraction,
-            max_fraction=self.target_config.max_fraction,
-            threshold=self.target_config.threshold,
-            adjustment=self.target_config.adjustment,
-            episodes_interval=self.target_config.episodes_interval
+        self.body = self.robot.create_robot(space=self.space)
+
+        self.generator = CreateWorld(
+            folder=env_config.folder_map,
+            name=env_config.name_map,
         )
+        self.new_map_path, self.segments, self.poly = self.generator.world()
+        self.sensor = SensorRobot(sensor_config, self.segments)
 
         # -- Normalization -- #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
-        self.scaler_reward = MinMaxScaler(feature_range=(0, 1))
 
         max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
         self.scaler_lidar.fit(
@@ -71,85 +68,40 @@ class NaviEnv(gym.Env):
                 ]
             )
         )
+        self.use_render = use_render
 
-        self.reward_history = []
-        self.initial_distance = 0
-
-        self.xmax = env_config.grid_dimension - 0.25
-        self.ymax = env_config.grid_dimension - 0.25
-        self.dist_max = np.sqrt(self.xmax**2 + self.ymax**2)
-        max_dist, min_dist = self.dist_max, 1.0
+        max_dist = max_distance_in_polygon_with_holes(self.poly)
+        min_dist = min_robot_goal_spawn_distance(self.poly, 3.0, 3.0)
         self.scaler_dist.fit(np.array([[min_dist], [max_dist]]))
 
-        max_alpha, min_alpha = 6.4, 0.0
+        max_alpha, min_alpha = 3.15, 0.0
         self.scaler_alpha.fit(np.array([[min_alpha], [max_alpha]]))
-
-        max_reward, min_reward = 500.0, -500.0
-        self.scaler_reward.fit(np.array([[min_reward], [max_reward]]))
-
-        self.grid_lenght = env_config.grid_dimension
-
-        if env_config.folder_map != "None":
-            self.generator = Generator(
-                random=env_config.porcentage_obstacles,
-                mode=env_config.random_mode,
-                folder=env_config.folder_map,
-                name=env_config.name_map,
-            )
-            self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
-                self.grid_lenght
-            )
-            self.sensor = SensorRobot(sensor_config, self.segments)
-            self.initial_map = True
-        else:
-            self.generator = Generator(
-                random=env_config.porcentage_obstacles,
-                mode=env_config.random_mode,
-                folder="None",
-                name="None",
-            )
-            self.initial_map = False
-            self.segments = []
-            self.sensor = SensorRobot(sensor_config, map_segments=None)
 
         # -- Environmental parameters -- #
         self.max_lidar = sensor_config.max_range
         self.pretrained_model = pretrained_model
-        self.random_state = env_config.random_mode
-        self.data_collection = render_config.data_collection
-        self.rgb_array = render_config.rgb_array
         self.max_timestep = env_config.timestep
-        self.step_anim = env_config.timestep
-        self.fps = render_config.fps
         self.threshold = robot_config.threshold
+        self.collision = robot_config.collision
         self.controller = render_config.controller
-        self.current_fraction = 0.05
-        self.min_fraction = 0.2
-        self.max_fraction = 0.8
-        self.threshold = 0.01
-        self.adjustment = 0.05
 
         # -- Local Variables -- #
-        self.cumulated_reward = 0.0
-        self.timestep = 0
+        self.cumulated_reward: float = 0.0
+        self.timestep: int = 0
         self.target_x: float = 0.0
         self.target_y: float = 0.0
-        self.last_position_x = 0
-        self.last_position_y = 0
-        self.last_theta = 0
-        self.last_measurement = 0
-        self.vl = 0.01
-        self.vr = 0.01
-        self.init_distance = 0
-        self.action = 0
-        self.scalar = 10
-        self.randomization_frequency = env_config.randomization_interval
-        self.epoch = 0
+        self.last_position_x: float = 0.0
+        self.last_position_y: float = 0.0
+        self.last_theta: float = 0.0
+        self.vl: float = 0.01
+        self.vr: float = 0.01
+        self.init_distance: float = 0.0
+        self.action: int = 0
+        self.scalar: int = 100
         self.current_rays = sensor_config.num_rays
         self.lidar_angle = np.linspace(0, 2 * np.pi, self.current_rays)
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
-        self.random_mode = env_config.random_mode
 
         if self.pretrained_model:
             self.rainbow = RainbowDQN.load(
@@ -157,14 +109,16 @@ class NaviEnv(gym.Env):
                 device="cpu",
             )
 
-        if self.rgb_array:
-            self.fig, self.ax = plt.subplots(1, 1, figsize=(8, 8), subplot_kw={'projection': '3d'})
+        if self.use_render:
+            self.fig, self.ax = plt.subplots(
+                1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
+            )
             self.ax.remove()
             self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
 
             self.target = self.ax.plot3D(
-                np.random.uniform(0, self.xmax),
-                np.random.uniform(0, self.ymax),
+                np.random.uniform(0, 15),
+                np.random.uniform(0, 15),
                 0,
                 marker="x",
                 markersize=6.0,
@@ -172,11 +126,11 @@ class NaviEnv(gym.Env):
             )[0]
 
             self.agents = self.ax.plot3D(
-                np.random.uniform(0, self.xmax),
-                np.random.uniform(0, self.ymax),
+                np.random.uniform(0, 15),
+                np.random.uniform(0, 15),
                 0,
                 marker="o",
-                markersize=6.0,
+                markersize=8.0,
                 color="orange",
             )[0]
 
@@ -184,7 +138,6 @@ class NaviEnv(gym.Env):
 
             self._init_animation(self.ax)
             if self.controller:
-                print("Use the arrow keys to control the robot.")
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
         self.reset()
@@ -201,34 +154,39 @@ class NaviEnv(gym.Env):
         elif event.key == "left":
             self.action = 2
             self.vl = 0.05 * self.scalar
-            self.vr = 0.15 * self.scalar
+            self.vr = 0.015 * self.scalar
         elif event.key == "right":
             self.action = 3
             self.vl = 0.05 * self.scalar
-            self.vr = -0.15 * self.scalar
+            self.vr = -0.015 * self.scalar
         elif event.key == "w":
             self.action = 4
             self.vl = 0.01 * self.scalar
-            self.vr = 0.0
+            self.vr = 0
         elif event.key == "d":
             self.action = 5
             self.vl = 0.05 * self.scalar
-            self.vr = -0.3 * self.scalar
+            self.vr = -0.03 * self.scalar
         elif event.key == "a":
             self.action = 6
             self.vl = 0.05 * self.scalar
-            self.vr = 0.3 * self.scalar
+            self.vr = 0.03 * self.scalar
         elif event.key == " ":
             self.vl = 0.0
             self.vr = 0.0
+        elif event.key == "r":
+            self.vl = 0.0
+            self.vr = -0.005 * self.scalar
+        elif event.key == "e":
+            self.vl = 0.0
+            self.vr = 0.005 * self.scalar
 
     def step_animation(self, i):
         if self.pretrained_model:
             self.action = self.rainbow.get_action(
-                self.last_states, action_mask=None, training=True
+                self.last_states, action_mask=None, training=False
             )[0]
 
-        if not self.controller:
             if self.action == 0:
                 self.vl = 0.05 * self.scalar
                 self.vr = 0.0
@@ -237,32 +195,40 @@ class NaviEnv(gym.Env):
                 self.vr = 0.0
             elif self.action == 2:
                 self.vl = 0.05 * self.scalar
-                self.vr = 0.15 * self.scalar
+                self.vr = 0.015 * self.scalar
             elif self.action == 3:
                 self.vl = 0.05 * self.scalar
-                self.vr = -0.15 * self.scalar
+                self.vr = -0.015 * self.scalar
             elif self.action == 4:
                 self.vl = 0.01 * self.scalar
                 self.vr = 0.0
             elif self.action == 5:
                 self.vl = 0.05 * self.scalar
-                self.vr = 0.3 * self.scalar
+                self.vr = -0.03 * self.scalar
             elif self.action == 6:
                 self.vl = 0.05 * self.scalar
-                self.vr = -0.3 * self.scalar
+                self.vr = 0.03 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
+
         x, y, theta = (
             self.body.position.x,
             self.body.position.y,
             self.body.angle,
         )
-
         intersections, lidar_measurements = self.sensor.sensor(
-            x=x, y=y, theta=theta, segments=self.segments, max_range=self.max_lidar
+            x=x, y=y, theta=theta, max_range=self.max_lidar
         )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
+
+        reward_angle = angle_reward(
+            self.body.position.x,
+            self.body.position.y,
+            self.body.angle,
+            self.target_x,
+            self.target_y,
+        )
 
         alpha = angle_to_goal(
             self.body.position.x,
@@ -274,12 +240,18 @@ class NaviEnv(gym.Env):
 
         diff_to_init = self.init_distance - dist
 
-        collision, laser = min_laser(lidar_measurements, self.threshold)
-        reward, done = get_reward(
-            lidar_measurements, dist, collision, alpha, diff_to_init
+        collision, laser = min_laser(lidar_measurements, self.collision)
+        reward, done = get_reward_improved(
+            lidar_measurements,
+            dist,
+            collision,
+            alpha,
+            diff_to_init,
+            i,
+            0.01,
+            self.threshold,
         )
 
-        self.current_rays = len(lidar_measurements)
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
 
@@ -300,9 +272,11 @@ class NaviEnv(gym.Env):
             )
         )
 
+        min_lidar = np.min(lidar_measurements)
+
         self.cumulated_reward += reward
-        self.reward_history.append(reward)
         self.last_states = states
+
         self._plot_anim(
             i,
             intersections,
@@ -311,8 +285,11 @@ class NaviEnv(gym.Env):
             self.target_x,
             self.target_y,
             self.cumulated_reward,
-            self.epoch,
-            self.initial_distance
+            alpha,
+            min_lidar,
+            dist,
+            self.action,
+            reward_angle,
         )
 
         self.space.step(1 / 60)
@@ -357,7 +334,7 @@ class NaviEnv(gym.Env):
         )
 
         intersections, lidar_measurements = self.sensor.sensor(
-            x=x, y=y, theta=theta, segments=self.segments, max_range=self.max_lidar
+            x=x, y=y, theta=theta, max_range=self.max_lidar
         )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y)
@@ -373,8 +350,15 @@ class NaviEnv(gym.Env):
         diff_to_init = self.init_distance - dist
 
         collision, laser = min_laser(lidar_measurements, self.threshold)
-        reward, done = get_reward(
-            lidar_measurements, dist, collision, alpha, diff_to_init
+        reward, done = get_reward_improved(
+            lidar_measurements,
+            dist,
+            collision,
+            alpha,
+            diff_to_init,
+            1,
+            0.01,
+            self.threshold,
         )
 
         current_rays = len(lidar_measurements)
@@ -399,7 +383,6 @@ class NaviEnv(gym.Env):
         )
 
         self.last_states = states
-        self.last_measurement = lidar_measurements
 
         self.cumulated_reward += reward
         self.timestep += 1
@@ -413,50 +396,29 @@ class NaviEnv(gym.Env):
 
         return states, reward, done, truncated, {}
 
-    def reset(self, seed=None, options=None):
+    def reset(self, *, seed=None, options=None, fraction=0.1):
         super().reset(seed=seed)
-
-        self.epoch += 1
-        self.current_fraction = self.target_position.adjust_initial_distance(
-            reward_history=self.reward_history,
-            current_fraction=self.current_fraction,
-            epoch=self.epoch
-        )
-
-        self.initial_distance = self.current_fraction * self.dist_max
-
-        if self.epoch % self.randomization_frequency == 0:
-            self.randomization()
 
         self.timestep = 0
         self.cumulated_reward = 0.0
 
-        if not self.initial_map:
-            self.new_map_path, self.exterior, self.interior, self.segments, self.m, self.poly = self.generator.world(
-                self.grid_lenght
-            )
+        self.new_map_path, self.segments, self.poly = self.generator.world()
 
         minx, miny, maxx, maxy = self.poly.bounds
 
-        if self.rgb_array:
+        if self.use_render:
             for patch in self.ax.patches:
                 patch.remove()
 
             self.ax.add_patch(self.new_map_path)
             art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
-        x, y = self.random_point_in_poly(self.poly, minx, miny, maxx, maxy)
-
-        self.target_x, self.target_y = self.random_point_in_poly_target(
-            poly=self.poly,
-            minx=minx,
-            miny=miny,
-            maxx=maxx,
-            maxy=maxy,
-            center_x=x,
-            center_y=y,
-            distance=self.initial_distance
+        robot_pos, goal_pos = spawn_robot_and_goal_curriculum(
+            self.poly, fraction=fraction
         )
+        self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+        x, y = robot_pos[0], robot_pos[1]
+
         theta = np.random.uniform(0, 2 * np.pi)
 
         self.robot.reset_robot(self.body, x, y, theta)
@@ -464,13 +426,13 @@ class NaviEnv(gym.Env):
             x=self.body.position.x,
             y=self.body.position.y,
             theta=self.body.position.angle,
-            segments=self.segments,
             max_range=self.max_lidar,
         )
 
-        self.last_measurement = measurement
+        min_lidar = np.min(measurement)
+        distance = dist = distance_to_goal(x, y, self.target_x, self.target_y)
 
-        if self.rgb_array:
+        if self.use_render:
             self._plot_anim(
                 0,
                 intersections,
@@ -479,8 +441,11 @@ class NaviEnv(gym.Env):
                 self.target_x,
                 self.target_y,
                 self.cumulated_reward,
-                self.epoch,
-                self.initial_distance
+                theta,
+                min_lidar,
+                distance,
+                self.action,
+                0,
             )
 
         dist = distance_to_goal(
@@ -509,7 +474,6 @@ class NaviEnv(gym.Env):
         alpha_norm = self.scaler_alpha.transform(
             np.array(alpha).reshape(1, -1)
         ).flatten()
-        # random action 0 to 6
         action = np.random.randint(0, 7)
 
         action_one_hot = np.eye(7)[action]
@@ -532,8 +496,8 @@ class NaviEnv(gym.Env):
             self.step_animation,
             init_func=self.reset,
             blit=False,
-            frames=self.step_anim,
-            interval=self.fps,
+            frames=self.max_timestep,
+            interval=1 / 60,
         )
 
         plt.show()
@@ -541,7 +505,6 @@ class NaviEnv(gym.Env):
     def _stop(self):
         self.reset()
         self.ani.frame_seq = self.ani.new_frame_seq()
-        self.step_anim = self.max_timestep
 
     def _init_animation(self, ax: Axes3D) -> None:
         """
@@ -555,21 +518,15 @@ class NaviEnv(gym.Env):
         """
         # ------ Create wordld ------ #
 
-        if not self.initial_map:
-            self.new_map_path, _, _, _, m, poly = self.generator.world(self.grid_lenght)
-            ax.set_xlim(-2, self.grid_lenght + 2)
-            ax.set_ylim(-2, self.grid_lenght + 2)
+        minx, miny, maxx, maxy = self.poly.bounds
+        center_x = (minx + maxx) / 2.0
+        center_y = (miny + maxy) / 2.0
 
-        else:
-            minx, miny, maxx, maxy = self.poly.bounds
-            center_x = (minx + maxx) / 2.0
-            center_y = (miny + maxy) / 2.0
+        width = maxx - minx
+        height = maxy - miny
 
-            width = maxx - minx
-            height = maxy - miny
-
-            ax.set_xlim(center_x - width/2, center_x + width/2)
-            ax.set_ylim(center_y - height/2, center_y + height/2)
+        ax.set_xlim(center_x - width / 2, center_x + width / 2)
+        ax.set_ylim(center_y - height / 2, center_y + height / 2)
 
         ax.add_patch(self.new_map_path)
 
@@ -596,20 +553,25 @@ class NaviEnv(gym.Env):
         ax.dist = 200
 
         self.label = self.ax.text(
-            0,
-            0,
-            0.05,
-            self._get_label(0, 0, 0, self.grid_lenght, 0),
+            0, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         )
 
         self.label.set_fontsize(14)
         self.label.set_fontweight("normal")
         self.label.set_color("#666666")
 
-        self.fig.subplots_adjust(left=0.05, right=0.95, bottom=0.20, top=0.95)
+        self.fig.subplots_adjust(left=0.05, right=0.95, bottom=0.05, top=0.95)
 
     @staticmethod
-    def _get_label(timestep: int, score: float, episode: int, grid: int, initial_distance: float) -> str:
+    def _get_label(
+        timestep: int,
+        score: float,
+        state_angle,
+        state_min_max_lidar,
+        state_distance,
+        action,
+        reward_angle,
+    ) -> str:
         """
         Generates a label for the environment.
 
@@ -619,14 +581,16 @@ class NaviEnv(gym.Env):
         Returns:
         str: The generated label containing information about the environment and the current time step.
         """
-        line1 = "Environment\n"
+        line1 = "Environment:\n"
         line2 = "Time Step:".ljust(14) + f"{timestep:4.0f}\n"
-        line3 = "Score:".ljust(14) + f"{score:4.0f}\n"
-        line4 = "Episode:".ljust(14) + f"{episode:4.0f}\n"
-        line5 = "Grid:".ljust(14) + f"{grid:4.0f}\n"
-        line6 = "Initial Distance:".ljust(14) + f"{initial_distance:.2f}\n"
+        line3 = "Cumulated reward: ".ljust(14) + f"{score:4.0f}\n"
+        line4 = "State Distance: ".ljust(14) + f"{state_distance:.2f}\n"
+        line5 = "State Angle:".ljust(14) + f"{state_angle:.2f}\n"
+        line6 = "State Lidar:".ljust(14) + f"{state_min_max_lidar:.2f}\n"
+        line7 = "Action:".ljust(14) + f"{action}\n"
+        line8 = "Reward Angle:".ljust(14) + f"{reward_angle:.2f}\n"
 
-        return line1 + line2 + line3 + line4 + line5 + line6
+        return line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8
 
     def _plot_anim(
         self,
@@ -637,11 +601,24 @@ class NaviEnv(gym.Env):
         target_x: float,
         target_y: float,
         score: float,
-        episode: int,
-        initial_distance
+        state_angle: float,
+        state_min_max_lidar: float,
+        state_distance: float,
+        action: int,
+        reward_angle: float,
     ) -> None:
 
-        self.label.set_text(self._get_label(i, score, episode, self.grid_lenght, initial_distance))
+        self.label.set_text(
+            self._get_label(
+                i,
+                score,
+                state_angle,
+                state_min_max_lidar,
+                state_distance,
+                action,
+                reward_angle,
+            )
+        )
 
         if hasattr(self, "laser_scatters"):
             for scatter in self.laser_scatters:
@@ -650,11 +627,12 @@ class NaviEnv(gym.Env):
 
         self.laser_scatters = []
         for angle, intersection in zip(self.lidar_angle, intersections):
-            if intersection is not None:
-                scatter = plt.scatter(
-                    intersection[0], intersection[1], color="g", s=3.0
-                )
-                self.laser_scatters.append(scatter)
+            if intersection is not None and np.isfinite(intersection).all():
+                if not (intersection[0] == 0 and intersection[1] == 0):
+                    scatter = plt.scatter(
+                        intersection[0], intersection[1], color="g", s=3.0
+                    )
+                    self.laser_scatters.append(scatter)
 
         self.agents.set_data_3d(
             [x],
@@ -668,61 +646,18 @@ class NaviEnv(gym.Env):
             [0],
         )
 
-    def randomization(self):
-        if self.random_mode == "normal":
-            self.grid_lenght = uniform_random_int(
-                self.randomization_domain.grid_dimension[0],
-                self.randomization_domain.grid_dimension[1],
-            )
-        elif self.random_mode == "hard":
-            self.grid_lenght = uniform_random_int(
-                self.randomization_domain.grid_dimension[0],
-                self.randomization_domain.grid_dimension[1],
-            )
-            new_fov = uniform_random(
-                self.randomization_domain.fov[0], self.randomization_domain.fov[1]
-            )
-            new_num_rays = uniform_random_int(
-                self.randomization_domain.num_rays[0], self.randomization_domain.num_rays[1]
-            )
-            self.sensor.random_sensor(new_fov, new_num_rays)
+        if hasattr(self, "heading_line") and self.heading_line is not None:
+            self.heading_line.remove()
 
-    def random_point_in_poly(self, poly, minx, miny, maxx, maxy, max_tries=1000):
-        for _ in range(max_tries):
-            x = np.random.uniform(minx, maxx)
-            y = np.random.uniform(miny, maxy)
-            if poly.contains(Point(x, y)):
-                return x, y
-        return (minx, miny)
+        x2 = x + 2.0 * np.cos(self.body.angle)
+        y2 = y + 2.0 * np.sin(self.body.angle)
 
-    # def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, max_tries=1000):
-    #     for _ in range(max_tries):
-    #         x = np.random.uniform(minx, maxx)
-    #         y = np.random.uniform(miny, maxy)
-    #         if poly.contains(Point(x, y)):
-    #             if np.sqrt((x - center_x)**2 + (y - center_y)**2) <= distance:
-    #                 return x, y
-    #     return (center_x, center_y)
+        self.heading_line = self.ax.plot3D(
+            [x, x2],
+            [y, y2],
+            [0, 0],
+            color="red",
+            linewidth=2,
+        )[0]
 
-    def random_point_in_poly_target(self, poly, minx, miny, maxx, maxy, center_x, center_y, distance, buffer_distance=0.4, max_tries=1000):
-
-        # Cria uma região bufferizada internamente para garantir a distância do obstáculo
-        buffered_poly = poly.buffer(-buffer_distance)
-
-        # Verifica se o buffer resultante ainda é um polígono válido
-        if buffered_poly.is_empty:
-            raise ValueError("Error creating buffered polygon")
-
-        for _ in range(max_tries):
-            x = np.random.uniform(minx, maxx)
-            y = np.random.uniform(miny, maxy)
-            point = Point(x, y)
-
-            # Verifica se o ponto está dentro da região bufferizada
-            if buffered_poly.contains(point):
-                # Verifica se o ponto está dentro da distância máxima do centro
-                if np.sqrt((x - center_x)**2 + (y - center_y)**2) <= distance:
-                    return x, y
-
-        # Caso não encontre um ponto válido após todas as tentativas, retorna o centro
-        return (center_x, center_y)
+        plt.draw()

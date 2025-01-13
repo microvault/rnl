@@ -1,19 +1,19 @@
 import functools
 import os
+from typing import Optional, Tuple
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
 from yaml import SafeLoader, load
-from typing import Tuple
+
 
 class Map2D:
     def __init__(
         self,
         folder: str,
         name: str,
-        silent: bool,
     ):
         self.path = folder
 
@@ -23,15 +23,9 @@ class Map2D:
         folder = os.path.expanduser(folder)
         yaml_file = os.path.join(folder, name + ".yaml")
 
-        if not silent:
-            print(f"Loading map definition from {yaml_file}")
-
         with open(yaml_file) as stream:
             mapparams = load(stream, Loader=SafeLoader)
         map_file = os.path.join(folder, mapparams["image"])
-
-        if not silent:
-            print(f"Map definition found. Loading map from {map_file}")
 
         mapimage = imread(map_file)
         temp = (1.0 - mapimage.T[:, ::-1] / 254.0).astype(np.float32)
@@ -102,7 +96,6 @@ class Map2D:
         diff_x = max_x - min_x
         diff_y = max_y - min_y
 
-        # TODO: remove this
         if abs((diff_y) - (diff_x)) == 1:
 
             if diff_y < diff_x:
@@ -129,43 +122,20 @@ class Map2D:
 
         return new_map_grid
 
-    def plot_simple_map(self, width=10, height=10, filename="image1.png"):
-        """Plota o mapa apenas com o conteúdo e salva a imagem.
-
-        Args:
-            width (int): Largura da imagem em polegadas.
-            height (int): Altura da imagem em polegadas.
-            filename (str): Nome do arquivo para salvar a imagem.
-        """
-        grid_map = self._grid_map()  # Obtenha o mapa filtrado
-
-        # Definir o tamanho da figura
-        plt.figure(figsize=(width, height))
-        plt.imshow(grid_map, cmap="gray", origin="lower")
-        plt.axis("off")  # Remove os eixos, títulos e rótulos
-
-        # Salvar a imagem
-        plt.savefig(filename, bbox_inches="tight", pad_inches=0)
-        plt.show()
-
-        print(f"Imagem salva como {filename}")
-
     def initial_environment2d(
         self,
-        plot: bool=False,
-        kernel_size: Tuple=(3, 3),
-        morph_iterations: int=1,
+        plot: bool = False,
+        kernel_size: Tuple[int, int] = (3, 3),
+        morph_iterations: int = 1,
         approx_epsilon_factor: float = 0.01,
-        contour_retrieval_mode=cv2.RETR_TREE,
-        contour_approx_method=cv2.CHAIN_APPROX_SIMPLE,
-    ):
-
+        contour_retrieval_mode: int = cv2.RETR_TREE,
+        contour_approx_method: int = cv2.CHAIN_APPROX_SIMPLE,
+    ) -> Optional[np.ndarray]:
         new_map_grid = self._grid_map()
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
-
         if idx.size == 0:
-            return
+            return None
 
         min_idx = np.min(idx)
         max_idx = np.max(idx)
@@ -174,21 +144,29 @@ class Map2D:
 
         subgrid_uint8 = (subgrid * 255).astype(np.uint8)
 
-        kernel = np.ones(kernel_size, np.uint8)
+        border_size = 10
+        subgrid_uint8 = cv2.copyMakeBorder(
+            subgrid_uint8,
+            top=border_size,
+            bottom=border_size,
+            left=border_size,
+            right=border_size,
+            borderType=cv2.BORDER_CONSTANT,
+            value=0,
+        )
 
+        kernel = np.ones(kernel_size, np.uint8)
         eroded = cv2.erode(subgrid_uint8, kernel, iterations=morph_iterations)
         dilated = cv2.dilate(eroded, kernel, iterations=morph_iterations)
 
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
             dilated, connectivity=8
         )
-
         if num_labels <= 1:
-            return
+            return None
 
         largest_component = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
-
-        mask = np.zeros_like(dilated)
+        mask = np.zeros_like(dilated, dtype=np.uint8)
         mask[labels == largest_component] = 255
 
         mask_closed = cv2.morphologyEx(
@@ -198,68 +176,28 @@ class Map2D:
         contours, hierarchy = cv2.findContours(
             mask_closed, contour_retrieval_mode, contour_approx_method
         )
-
         if not contours:
-            return
+            return None
 
-        contour_mask = np.zeros_like(mask_closed)
-
+        contour_mask = np.zeros_like(mask_closed, dtype=np.uint8)
         for i, contour in enumerate(contours):
-            epsilon = approx_epsilon_factor * cv2.arcLength(contour, True)
-            approx = cv2.approxPolyDP(contour, epsilon, True)
+            contour_int = contour.astype(np.int32)
+            epsilon = approx_epsilon_factor * cv2.arcLength(contour_int, True)
+            approx = cv2.approxPolyDP(contour_int, epsilon, True)
+            approx_int = approx.astype(np.int32)
 
             if hierarchy[0][i][3] == -1:
-                cv2.fillPoly(contour_mask, [approx], 255)
+                cv2.fillPoly(contour_mask, [approx_int], 255)
             else:
-                cv2.fillPoly(contour_mask, [approx], 0)
+                cv2.fillPoly(contour_mask, [approx_int], 0)
 
         kernel_smooth = np.ones((1, 1), np.uint8)
         contour_mask = cv2.morphologyEx(contour_mask, cv2.MORPH_OPEN, kernel_smooth)
 
         if plot:
-
-            plt.figure(figsize=(10, 10))  # 6, 6
+            plt.figure(figsize=(10, 10))
             plt.imshow(contour_mask, cmap="gray")
             plt.axis("off")
-
-            # Salvar a imagem
-            # plt.savefig("image4.png", bbox_inches="tight", pad_inches=0)
             plt.show()
 
         return contour_mask
-
-    # def plot_initial_environment3d(self, plot=False) -> None:
-    #     """generate environment from map"""
-
-    #     contour_mask = self.initial_environment2d(plot)
-
-
-    #     new_map_grid = self._grid_map()
-
-    #     idx = np.where(map_grid.sum(axis=0) > 0)[0]
-
-    #     min_idx = int(np.min(idx))
-    #     max_idx = int(np.max(idx))
-
-    # print(new_map_grid)
-
-    # all_edges = []
-
-    # for i in tqdm(range(min_idx, max_idx), desc="Plotting environment"):
-    #     for j in range(min_idx, max_idx):
-    #         if new_map_grid[i, j] == 1:
-    #             polygon = [(j, i), (j + 1, i), (j + 1, i + 1), (j, i + 1)]
-    #             poly = Polygon(polygon, color=(0.1, 0.2, 0.5, 0.15))
-
-    #             vert = poly.get_xy()
-    #             edges = [
-    #                 (vert[k], vert[(k + 1) % len(vert)]) for k in range(len(vert))
-    #             ]
-
-    #             all_edges.extend(edges)
-
-
-# if __name__ == "__main__":
-#     map2d = Map2D("/Users/nicolasalan/microvault/rnl/data/map3", "map3")
-#     map2d.plot_initial_environment3d(plot=False)
-#     # map2d.plot_simple_map()

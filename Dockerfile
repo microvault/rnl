@@ -3,6 +3,11 @@ FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-devel
 ENV PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PROGRESS_BAR=1
 
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1 \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /workdir
 
 ENV PYTHONPATH=/workdir
@@ -14,4 +19,4 @@ COPY pyproject.toml poetry.lock ./
 RUN pip install agilerl --progress-bar off
 RUN pip install -r requirements.txt --progress-bar off
 
-CMD ["bash", "-c", "apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 && python rnl/benchmarks/train_with_turtlebot.py"]
+CMD ["bash", "-c", "rnl/benchmarks/train_with_turtlebot.py"]

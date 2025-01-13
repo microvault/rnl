@@ -1,40 +1,37 @@
 import argparse
 import multiprocessing as mp
-import rnl as vault
 import os
+
+import rnl as vault
 
 
 def main(arg):
     wandb_key = os.environ.get("WANDB_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
-        base_radius=0.105,  # (centimeters)
-        vel_linear=[0.0, 0.22],  # [min, max]
-        vel_angular=[1.0, 2.84],  # [min, max]
-        wheel_distance=0.160,  # (centimeters)
-        weight=1.0,  # (kilograms)
-        threshold=0.60,  # (centimeters)
-        path_model="./",
+        base_radius=0.105,
+        vel_linear=[0.0, 0.22],
+        vel_angular=[1.0, 2.84],
+        wheel_distance=0.16,
+        weight=1.0,
+        threshold=2.0,
+        collision=2.0,
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=360,
-        num_rays=40,
+        num_rays=5,
         min_range=1.0,
-        max_range=20.0,
+        max_range=60.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="None", #"/Users/nicolasalan/microvault/rnl/data/map",
-        name_map="None",
-        random_mode="normal",  # hard, normal
-        max_timestep=1000,
-        grid_dimension=12,
-        friction=0.4,
-        porcentage_obstacles=0.1,
-        randomization_interval=1,
+        folder_map="/Users/nicolasalan/microvault/rnl/data/map4",
+        name_map="map4",
+        max_timestep=3000,
     )
 
     if args.mode == "train":
@@ -91,20 +88,16 @@ def main(arg):
             tourn_size=2,
             elitism=True,
             hidden_size=[800, 600],
-            save=True,
             use_wandb=True,
-            wandb_api_key=str(wandb_key)
+            wandb_api_key=str(wandb_key),
         )
-
 
     else:
         # 4.step -> config render
-        param_render = vault.render(
-            fps=1, controller=True, rgb_array=True, data_colletion=False
-        )
+        param_render = vault.render(controller=True)
 
         # 5.step -> config train robot
-        model = vault.Trainer(
+        model = vault.Simulation(
             param_robot, param_sensor, param_env, param_render, pretrained_model=False
         )
         # 6.step -> run robot
@@ -118,6 +111,5 @@ if __name__ == "__main__":
         "mode", choices=["train", "run"], help="Mode to run: 'train' or 'run'"
     )
 
-    # Parse arguments
     args = parser.parse_args()
     main(args)

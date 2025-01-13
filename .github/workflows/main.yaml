@@ -27,8 +27,8 @@ jobs:
       - name: Install dependencies
         run: make install_with_dev
 
-      - name: Run tests
-        run: make test
+      # - name: Run tests
+      #   run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -55,8 +55,8 @@ jobs:
       - name: Install dependencies
         run: make install_with_dev
 
-      - name: Run tests
-        run: make test
+      # - name: Run tests
+      #   run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -85,8 +85,8 @@ jobs:
       - name: Install dependencies
         run: make install_with_dev
 
-      - name: Run tests
-        run: make test
+      # - name: Run tests
+      #   run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3

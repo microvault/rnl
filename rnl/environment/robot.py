@@ -40,8 +40,6 @@ class Robot:
     def create_robot(
         self,
         space: pymunk.Space,
-        friction: float = 0.2,
-        damping: float = 0.9,
         position_x: float = 0.0,
         position_y: float = 0.0,
     ) -> pymunk.Body:
@@ -50,10 +48,11 @@ class Robot:
         """
         body = pymunk.Body(self.mass, self.moment_of_inertia)
         body.position = (position_x, position_y)
-        body.damping = damping
+        body.damping = 0.9
+        body.angular_damping = 0.9
+
         shape = pymunk.Circle(body, self.robot_radius)
-        shape.friction = friction
-        shape.damping = damping
+        shape.friction = 1.0
         space.add(body, shape)
         return body
 
@@ -65,32 +64,22 @@ class Robot:
         v_angular: float,
     ) -> None:
         """
-        Move the robot in the space with given linear and angular velocities.
+        Moves the robot using forces and torque, without setting the speed directly.
         """
-
         direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
-        robot_body.velocity = v_linear * direction
-        robot_body.angular_velocity = v_angular
-        direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
-
         desired_velocity = v_linear * direction
 
         velocity_diff = desired_velocity - robot_body.velocity
-
         delta_time = 1 / 60
-        force = (velocity_diff * self.mass) / delta_time
 
+        force = (velocity_diff * self.mass) / delta_time
         robot_body.apply_force_at_world_point(force, robot_body.position)
 
         desired_angular_velocity = v_angular
-
         angular_velocity_diff = desired_angular_velocity - robot_body.angular_velocity
-
         angular_acceleration = angular_velocity_diff / delta_time
         torque = self.moment_of_inertia * angular_acceleration
-
         robot_body.torque += torque
-
 
     def reset_robot(
         self, robot_body: pymunk.Body, x: float, y: float, angle: float

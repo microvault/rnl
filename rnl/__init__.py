@@ -1,3 +1,3 @@
-from rnl.training.interface import Trainer, make, render, robot, sensor
+from rnl.training.interface import Simulation, Trainer, make, render, robot, sensor
 
-__all__ = ["robot", "sensor", "render", "make", "Trainer"]
+__all__ = ["robot", "sensor", "render", "make", "Trainer", "Simulation"]
