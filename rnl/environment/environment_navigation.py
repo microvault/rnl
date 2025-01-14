@@ -24,6 +24,7 @@ from rnl.engine.utils import (
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+from rnl.engine.rewards import get_reward
 
 
 class NaviEnv(gym.Env):
@@ -252,6 +253,23 @@ class NaviEnv(gym.Env):
             self.threshold,
         )
 
+        reward, doness = get_reward(
+            measurement=lidar_measurements,
+            distance=dist,
+            collision=collision,
+            alpha=alpha,
+            distance_init=self.init_distance,
+            step=i,
+            time_penalty=0.01,
+            threshold=3.0,
+            scale_collision=1.0,
+            scale_target=1.0,
+            scale_orientation=1.0,
+            scale_deadend=1.0,
+            scale_global=1.0,
+            scale_time=10.0,
+        )
+
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
 
@@ -284,7 +302,7 @@ class NaviEnv(gym.Env):
             y,
             self.target_x,
             self.target_y,
-            self.cumulated_reward,
+            reward,
             alpha,
             min_lidar,
             dist,

@@ -10,7 +10,7 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
 
 
-@njit
+@njit(fastmath=True, cache=True)
 def angle_reward(
     x: float,
     y: float,
@@ -18,7 +18,7 @@ def angle_reward(
     goal_x: float,
     goal_y: float,
     fov: float = 0.3,
-    min_val: float = 0.0,
+    min_val: float = -1.0,
     max_val: float = 1.0,
 ) -> float:
     o_t = np.array([np.cos(theta), np.sin(theta)])
