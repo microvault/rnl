@@ -14,15 +14,15 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=2.0,
-        collision=2.0,
+        threshold=4.0,
+        collision=3.0,
         path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=360,
-        num_rays=40,
+        num_rays=5,
         min_range=1.0,
         max_range=60.0,
     )
@@ -42,7 +42,7 @@ def main(arg):
 
         # 5.step -> train robot
         model.learn(
-            max_timestep=100,  # 800000
+            max_timestep=100,  #
             memory_size=1000,
             gamma=0.99,
             n_step=1,
@@ -90,6 +90,29 @@ def main(arg):
             hidden_size=[800, 600],
             use_wandb=True,
             wandb_api_key=str(wandb_key),
+            eps_start=1.0,
+            eps_end=0.1,
+            eps_decay=0.995,
+            noise_std=0.5,
+            per=True,
+            min_lr=0.001,
+            max_lr=0.01,
+            min_learn_step=1,
+            max_learn_step=120,
+            min_batch_size=4,
+            max_batch_size=1024,
+            evo_steps=5000,
+            eval_steps=10,
+            eval_loop=10,
+            mutate_elite=True,
+            rand_seed=1,
+            activation=["ReLU", "ELU", "GELU"],
+            mlp_activation="ReLU",
+            mlp_output_activation="ReLU",
+            min_hidden_layers=2,
+            max_hidden_layers=4,
+            min_mlp_nodes=64,
+            max_mlp_nodes=800,
         )
 
     else:

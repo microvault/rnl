@@ -104,7 +104,7 @@ class HPOConfig:
     arch_mutation: float = 0.2
     new_layer: float = 0.2
     param_mutation: float = 0.2
-    active_mutation: float = 0
+    active_mutation: float = 0.0
     hp_mutation: float = 0.2
     hp_mutation_selection: List[str] = field(
         default_factory=lambda: ["lr", "batch_size"]
@@ -121,8 +121,8 @@ class HPOConfig:
     tourn_size: int = 2
     elitism: bool = True
     evo_steps: int = 1000
-    eval_steps = None
-    eval_loop: int = 1
+    eval_steps: int = 10
+    eval_loop: int = 10
     mutate_elite: bool = False
     rand_seed: int = 1
     activation: List[str] = field(default_factory=lambda: ["ReLU", "ELU", "GELU"])

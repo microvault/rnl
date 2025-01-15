@@ -200,4 +200,11 @@ class Map2D:
             plt.axis("off")
             plt.show()
 
+            plt.savefig("contour_mask.png")
+
         return contour_mask
+
+
+if __name__ == "__main__":
+    map = Map2D("/Users/nicolasalan/microvault/rnl/data/map", "map")
+    map.initial_environment2d(plot=True)

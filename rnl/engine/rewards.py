@@ -22,11 +22,11 @@ def angle_to_goal(x: float, y: float, theta: float, goal_x: float, goal_y: float
     return alpha
 
 @njit
-def r3(x: float) -> float:
+def r3(x: float, threshold) -> float:
     """
     Penaliza quando o obstáculo está a menos de 0.3m.
     """
-    if x < 3.0:
+    if x < threshold:
         return 1.0 - x
     else:
         return 0.0
@@ -79,24 +79,16 @@ def orientation_reward(
     return scale_orientation * alpha_norm
 
 @njit
-def global_and_direction_error_reward(
+def global_progress_reward(
     distance_init: float,
     distance: float,
-    alpha: float,
     scale_global: float = 1.0
 ) -> float:
     """
-    4. Recompensa global com base no progresso e no erro de direção.
+    Recompensa global baseada apenas no progresso (distância até o alvo).
     """
-    progress = distance_init - distance  # se diminuiu a distância, positivo
-    alpha_norm = 1.0 - (alpha / np.pi)
-    if alpha_norm < 0.0:
-        alpha_norm = 0.0
-    elif alpha_norm > 1.0:
-        alpha_norm = 1.0
-
-    # Exemplo simples, combine como desejar
-    reward = (5.0 * progress) + (2.0 * alpha_norm)
+    progress = distance_init - distance
+    reward = 5.0 * progress
     return scale_global * reward
 
 @njit
@@ -145,40 +137,21 @@ def get_reward(
     reward = 0.0
     done = False
 
-    # Módulo 1: alvo e colisão
     rew_coll_target, done_coll_target = collision_and_target_reward(
         distance, threshold, collision,
         scale_collision, scale_target
     )
-    print("------------------")
-    print("Reward collision/target: ", rew_coll_target)
     reward += rew_coll_target
     if done_coll_target:
         return reward, True
 
-    reward_orientation = orientation_reward(alpha, scale_orientation)
-    print("------------------")
-    print("Reward orientation: ", reward_orientation)
-    reward += reward_orientation
+    reward += orientation_reward(alpha, scale_orientation)
 
-    reward_error_global = global_and_direction_error_reward(
-        distance_init, distance, alpha, scale_global
+    reward += global_progress_reward(
+        distance_init, distance, scale_global
     )
-    print("------------------")
-    print("Reward error angular: ", reward_error_global)
-    reward += reward_error_global
 
+    reward += time_and_collision_reward(step, time_penalty, scale_time)
 
-    reward_time = time_and_collision_reward(step, time_penalty, scale_time)
-    print("------------------")
-    print("Reward time: ", reward_time)
-    reward += reward_time
-
-
-    # Penalização de obstáculo próximo (usando r3)
-    obstacle_penalty = r3(np.min(measurement))
-    print("------------------")
-    print("Obstacle penalty: ", obstacle_penalty)
-    reward -= obstacle_penalty
-
+    reward -= r3(np.min(measurement), threshold)
     return reward, done
