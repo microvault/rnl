@@ -15,16 +15,16 @@ def main(arg):
         wheel_distance=0.16,
         weight=1.0,
         threshold=4.0,
-        collision=3.0,
+        collision=2.0,
         path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=10,
+        num_rays=5,
         min_range=1.0,
-        max_range=30.0,
+        max_range=60.0,
     )
 
     # 3.step -> config env
@@ -50,16 +50,13 @@ def main(arg):
             beta=0.4,
             tau=0.001,
             prior_eps=0.000001,
-            num_atoms=51,
-            v_min=-200,
-            v_max=200,
             epsilon_start=1.0,
             epsilon_end=0.1,
             epsilon_decay=0.995,
             batch_size=4,
             lr=0.0001,
             seed=1,
-            num_envs=2,
+            num_envs=20,
             device="cpu",
             learn_step=10,
             target_score=200,
@@ -87,7 +84,7 @@ def main(arg):
             elite_path="elite",
             tourn_size=2,
             elitism=True,
-            hidden_size=[800, 600],
+            hidden_size=[32, 32],
             use_wandb=False,
             wandb_api_key=str(wandb_key),
             eps_start=1.0,
@@ -106,7 +103,7 @@ def main(arg):
             eval_loop=10,
             mutate_elite=True,
             rand_seed=1,
-            activation=["ReLU", "ELU", "GELU"],
+            activation=["ReLU"],
             mlp_activation="ReLU",
             mlp_output_activation="ReLU",
             min_hidden_layers=2,
@@ -117,7 +114,7 @@ def main(arg):
 
     else:
         # 4.step -> config render
-        param_render = vault.render(controller=True)
+        param_render = vault.render(controller=False)
 
         # 5.step -> config train robot
         model = vault.Simulation(

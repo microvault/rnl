@@ -1,142 +1,122 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List
 
 
 @dataclass
 class EnvConfig:
-    folder_map: str = "None"
-    name_map: str = "map"
-    timestep: int = 1000
+    folder_map: str
+    name_map: str
+    timestep: int
 
 
 @dataclass
 class CurriculumTargetPositionConfig:
-    total_steps: int = 40_000_000
-    min_fraction: float = 0.01
-    max_fraction: float = 1.0
-    increase_smoothness: float = 1.0
+    total_steps: int
+    min_fraction: float
+    max_fraction: float
+    increase_smoothness: float
 
 
 @dataclass
 class RenderConfig:
-    controller: bool = False
+    controller: bool
 
 
 @dataclass
 class SensorConfig:
-    fov: float = 360.0
-    num_rays: int = 40
-    min_range: float = 1.0
-    max_range: float = 40.0
+    fov: float
+    num_rays: int
+    min_range: float
+    max_range: float
 
 
 @dataclass
 class RobotConfig:
-    base_radius: float = 0.105
-    vel_linear: List[float] = field(default_factory=lambda: [0.0, 0.22])
-    vel_angular: List[float] = field(default_factory=lambda: [1.0, 2.84])
-    wheel_distance: float = 0.160
-    weight: float = 1.0
-    threshold: float = 2.0
-    collision: float = 0.20
-    path_model: str = "./"
+    base_radius: float
+    vel_linear: List[float]
+    vel_angular: List[float]
+    wheel_distance: float
+    weight: float
+    threshold: float
+    collision: float
+    path_model: str
 
 
 @dataclass
 class NetworkConfig:
-    arch: str = "mlp"
-    hidden_size: List[int] = field(default_factory=lambda: [800, 600])
-    mlp_activation: str = "ReLU"
-    mlp_output_activation: str = "ReLU"
-    min_hidden_layers: int = 2
-    max_hidden_layers: int = 4
-    min_mlp_nodes: int = 64
-    max_mlp_nodes: int = 800
+    arch: str
+    hidden_size: List[int]
+    mlp_activation: str
+    mlp_output_activation: str
+    min_hidden_layers: int
+    max_hidden_layers: int
+    min_mlp_nodes: int
+    max_mlp_nodes: int
 
 
 @dataclass
 class AgentConfig:
-    max_timestep: int = 800000
-    memory_size: int = 1000000
-    gamma: float = 0.99
-    n_step: int = 3
-    alpha: float = 0.6
-    beta: float = 0.4
-    tau: float = 0.001
-    prior_eps: float = 0.000001
-    num_atoms: int = 51
-    v_min: int = -200
-    v_max: int = 200
-    epsilon_start: float = 1.0
-    epsilon_end: float = 0.1
-    epsilon_decay: float = 0.995
-    noise_std: float = 0.5
-    per: bool = True
+    max_timestep: int
+    memory_size: int
+    gamma: float
+    n_step: int
+    alpha: float
+    beta: float
+    tau: float
+    prior_eps: float
+    epsilon_start: float
+    epsilon_end: float
+    epsilon_decay: float
+    noise_std: float
+    per: bool
 
 
 @dataclass
 class TrainerConfig:
-    batch_size: int = 256
-    lr: float = 0.0001
-    seed: int = 1
-    num_envs: int = 1
-    device: str = "cuda"
-    learn_step: int = 10
-    target_score: int = 200
-    max_steps: int = 1000000
-    learning_delay: int = 0
-    n_step_memory: int = 2
-    checkpoint: int = 1000
-    checkpoint_path: str = "model"
-    overwrite_checkpoints: bool = False
-    use_wandb: bool = False
-    wandb_api_key: str = ""
-    eps_start: float = 1.0
-    eps_end: float = 0.1
-    eps_decay: float = 0.995
+    batch_size: int
+    lr: float
+    seed: int
+    num_envs: int
+    device: str
+    learn_step: int
+    target_score: int
+    max_steps: int
+    learning_delay: int
+    n_step_memory: int
+    checkpoint: int
+    checkpoint_path: str
+    overwrite_checkpoints: bool
+    use_wandb: bool
+    wandb_api_key: str
+    eps_start: float
+    eps_end: float
+    eps_decay: float
 
 
 @dataclass
 class HPOConfig:
-    use_mutation: bool = True
-    population_size: int = 6
-    no_mutation: float = 0.4
-    arch_mutation: float = 0.2
-    new_layer: float = 0.2
-    param_mutation: float = 0.2
-    active_mutation: float = 0.0
-    hp_mutation: float = 0.2
-    hp_mutation_selection: List[str] = field(
-        default_factory=lambda: ["lr", "batch_size"]
-    )
-    mutation_strength: float = 0.1
-    min_lr: float = 0.0001
-    max_lr: float = 0.01
-    min_learn_step: int = 1
-    max_learn_step: int = 120
-    min_batch_size: int = 8
-    max_batch_size: int = 1024
-    save_elite: bool = False
-    elite_path: str = "elite"
-    tourn_size: int = 2
-    elitism: bool = True
-    evo_steps: int = 1000
-    eval_steps: int = 10
-    eval_loop: int = 10
-    mutate_elite: bool = False
-    rand_seed: int = 1
-    activation: List[str] = field(default_factory=lambda: ["ReLU", "ELU", "GELU"])
-
-
-@dataclass
-class RandomizationDomainConfig:
-    weight: List[float] = field(default_factory=lambda: [0.01, 500])
-    base_radius: List[float] = field(default_factory=lambda: [0.01, 0.9])
-    wheel_distance: List[float] = field(default_factory=lambda: [0.1, 1.5])
-    threshold: List[float] = field(default_factory=lambda: [0.001, 0.1])
-    fov: List[float] = field(default_factory=lambda: [3.14159, 12.56637])
-    num_rays: List[int] = field(default_factory=lambda: [5, 60])
-    min_max_range: List[int] = field(default_factory=lambda: [1, 10])
-    range: List[float] = field(default_factory=lambda: [0.1, 40])
-    grid_dimension: List[int] = field(default_factory=lambda: [5, 15])
-    porcentage_obstacles: List[float] = field(default_factory=lambda: [0.01, 0.5])
+    use_mutation: bool
+    population_size: int
+    no_mutation: float
+    arch_mutation: float
+    new_layer: float
+    param_mutation: float
+    active_mutation: float
+    hp_mutation: float
+    hp_mutation_selection: List[str]
+    mutation_strength: float
+    min_lr: float
+    max_lr: float
+    min_learn_step: int
+    max_learn_step: int
+    min_batch_size: int
+    max_batch_size: int
+    save_elite: bool
+    tourn_size: int
+    elitism: bool
+    evo_steps: int
+    eval_steps: int
+    eval_loop: int
+    mutate_elite: bool
+    rand_seed: int
+    activation: List[str]

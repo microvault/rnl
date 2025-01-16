@@ -19,6 +19,10 @@ test_without_coverage:
 test:
 	@poetry run pytest -s -x --cov=rnl -vv -p no:warnings
 
+.PHONY: plot_test
+plot_test:
+	@poetry run python tests/test_reward.py
+
 .PHONY: post_test
 post_test:
 	@poetry run coverage html

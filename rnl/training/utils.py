@@ -1,7 +1,7 @@
 import gymnasium as gym
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
-from rnl.environment.environment_navigation import NaviEnv
+from rnl.environment.env import NaviEnv
 
 
 def make_vect_envs(

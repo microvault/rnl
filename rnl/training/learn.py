@@ -1,14 +1,9 @@
 import numpy as np
 import torch
-from agilerl.components.replay_buffer import ReplayBuffer
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.utils.utils import create_population
 from tqdm import trange
-import wandb
-import os
-import warnings
-from datetime import datetime
 
 from rnl.configs.config import (
     AgentConfig,
@@ -20,11 +15,8 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.environment.environment_navigation import NaviEnv
+from rnl.environment.env import NaviEnv
 from rnl.training.utils import make_vect_envs
-from agilerl.components.replay_data import ReplayDataset
-from agilerl.components.sampler import Sampler
-from torch.utils.data import DataLoader
 
 
 def training(
@@ -38,7 +30,96 @@ def training(
     render_config: RenderConfig,
     pretrained_model: bool,
 ):
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    NET_CONFIG = {
+        "arch": network_config.arch,  # Network architecture
+        "hidden_size": network_config.hidden_size,  # Actor hidden size
+        "mlp_activation": network_config.mlp_activation,
+        "mlp_output_activation": network_config.mlp_output_activation,
+        "min_hidden_layers": network_config.min_hidden_layers,
+        "max_hidden_layers": network_config.max_hidden_layers,
+        "min_mlp_nodes": network_config.min_mlp_nodes,
+        "max_mlp_nodes": network_config.max_mlp_nodes,
+    }
+
+    HYPERPARAM = {
+        "POP_SIZE": 6,  # Population size
+        "DISCRETE_ACTIONS": True,  # Discrete action space
+        "BATCH_SIZE": 128,  # Batch size
+        "LR": 1e-3,  # Learning rate
+        "LEARN_STEP": 128,  # Learning frequency
+        "GAMMA": 0.99,  # Discount factor
+        "GAE_LAMBDA": 0.95,  # Lambda for general advantage estimation
+        "ACTION_STD_INIT": 0.6,  # Initial action standard deviation
+        "CLIP_COEF": 0.2,  # Surrogate clipping coefficient
+        "ENT_COEF": 0.01,  # Entropy coefficient
+        "VF_COEF": 0.5,  # Value function coefficient
+        "MAX_GRAD_NORM": 0.5,  # Maximum norm for gradient clipping
+        "TARGET_KL": None,  # Target KL divergence threshold
+        "UPDATE_EPOCHS": 4,  # Number of policy update epochs
+        "CHANNELS_LAST": False,
+    }
+
+    num_envs = trainer_config.num_envs
+    max_steps = trainer_config.max_steps
+    evo_steps = hpo_config.evo_steps
+    eval_steps = hpo_config.eval_steps
+    eval_loop = hpo_config.eval_loop
+    total_steps = 0
+
+    env = make_vect_envs(
+        num_envs=num_envs,
+        robot_config=robot_config,
+        sensor_config=sensor_config,
+        env_config=env_config,
+        render_config=render_config,
+    )
+    state_dim = env.single_observation_space.shape
+    action_dim = env.single_action_space.n
+
+    pop = create_population(
+        algo="PPO",
+        state_dim=state_dim,
+        action_dim=action_dim,
+        one_hot=False,
+        net_config=NET_CONFIG,
+        INIT_HP=HYPERPARAM,
+        population_size=hpo_config.tourn_size,
+        num_envs=num_envs,
+        device=trainer_config.device,
+    )
+
+    tournament = TournamentSelection(
+        tournament_size=hpo_config.tourn_size,
+        elitism=hpo_config.elitism,
+        population_size=hpo_config.population_size,
+        eval_loop=hpo_config.eval_loop,
+    )
+
+    mutations = Mutations(
+        algo="PPO",
+        no_mutation=hpo_config.no_mutation,
+        architecture=hpo_config.arch_mutation,
+        new_layer_prob=hpo_config.new_layer,
+        parameters=hpo_config.param_mutation,
+        activation=hpo_config.active_mutation,
+        rl_hp=hpo_config.hp_mutation,
+        rl_hp_selection=hpo_config.hp_mutation_selection,
+        mutation_sd=hpo_config.mutation_strength,
+        activation_selection=hpo_config.activation,
+        min_lr=hpo_config.min_lr,
+        max_lr=hpo_config.max_lr,
+        min_learn_step=hpo_config.min_learn_step,
+        max_learn_step=hpo_config.max_learn_step,
+        min_batch_size=hpo_config.min_batch_size,
+        max_batch_size=hpo_config.max_batch_size,
+        agent_ids=None,
+        mutate_elite=hpo_config.mutate_elite,
+        arch="mlp",
+        rand_seed=hpo_config.rand_seed,
+        device=trainer_config.device,
+        accelerator=None,
+    )
 
     config_dict = {
         "Agent Config": agent_config.__dict__,
@@ -53,195 +134,11 @@ def training(
         for key, value in config_values.items():
             print(f"{key.ljust(max_key_length)} : {value}")
 
-    INIT_PARAM = {
-        "ENV_NAME": "rnl",  # Gym environment name
-        "ALGO": "PPO",  # Algorithm
-        "DISCRETE_ACTIONS": True,  # Discrete action space
-        "DOUBLE": True,  # Use double Q-learning
-        "CHANNELS_LAST": False,  # Swap image channels dimension from last to first [H, W, C] -> [C, H, W]
-        "BATCH_SIZE": trainer_config.batch_size,  # Batch size
-        "LR": trainer_config.lr,  # Learning rate
-        "MAX_STEPS": trainer_config.max_steps,  # Max no. steps
-        "TARGET_SCORE": trainer_config.target_score,  # Early training stop at avg score of last 100 episodes
-        "GAMMA": agent_config.gamma,  # Discount factor
-        "TAU": agent_config.tau,  # For soft update of target parameters
-        "BETA": agent_config.beta,  # PER beta
-        "PRIOR_EPS": agent_config.prior_eps,  # PER epsilon
-        "MEMORY_SIZE": agent_config.memory_size,  # Max memory buffer size
-        "LEARN_STEP": trainer_config.learn_step,  # Learning frequency
-        "TOURN_SIZE": hpo_config.tourn_size,  # Tournament size
-        "ELITISM": hpo_config.elitism,  # Elitism in tournament selection
-        "POP_SIZE": hpo_config.population_size,  # Population size
-        "EVO_STEPS": hpo_config.evo_steps,  # Evolution frequency
-        "EVAL_STEPS": hpo_config.eval_steps,  # Evaluation steps
-        "EVAL_LOOP": hpo_config.eval_loop,  # Evaluation episodes
-        "LEARNING_DELAY": trainer_config.learning_delay,  # Steps before starting learning
-        "WANDB": trainer_config.use_wandb,  # Log with Weights and Biases
-        "WANDB_API_KEY": trainer_config.wandb_api_key,
-        "CHECKPOINT": trainer_config.checkpoint,  # Checkpoint frequency
-        "CHECKPOINT_PATH": trainer_config.checkpoint_path,  # Checkpoint path
-        "OVERWRITE_CHECKPOINTS": trainer_config.overwrite_checkpoints,
-        "SAVE_ELITE": hpo_config.save_elite,  # Save elite agent
-        "ELITE_PATH": hpo_config.elite_path,  # Elite agent path
-        "ACCELERATOR": None,
-        "VERBOSE": True,
-        "TORCH_COMPILER": True,
-        "EPS_START": trainer_config.eps_start,
-        "EPS_END": trainer_config.eps_end,
-        "EPS_DECAY": trainer_config.eps_decay,
-        "N_STEP": agent_config.n_step,
-        "PER": agent_config.per,
-        "N_STEP_MEMORY": trainer_config.n_step_memory,
-        "NUM_ATOMS": agent_config.num_atoms,
-        "V_MIN": agent_config.v_min,
-        "V_MAX": agent_config.v_max,
-    }
-
-    NET_CONFIG = {
-        "arch": network_config.arch,  # Network architecture
-        "hidden_size": network_config.hidden_size,  # Actor hidden size
-        "mlp_activation": network_config.mlp_activation,
-        "mlp_output_activation": network_config.mlp_output_activation,
-        "min_hidden_layers": network_config.min_hidden_layers,
-        "max_hidden_layers": network_config.max_hidden_layers,
-        "min_mlp_nodes": network_config.min_mlp_nodes,
-        "max_mlp_nodes": network_config.max_mlp_nodes,
-    }
-
-    MUTATION_PARAMS = {
-        "NO_MUT": hpo_config.no_mutation,  # No mutation
-        "ARCH_MUT": hpo_config.arch_mutation,  # Architecture mutation
-        "NEW_LAYER": hpo_config.new_layer,  # New layer mutation
-        "PARAMS_MUT": hpo_config.param_mutation,  # Network parameters mutation
-        "ACT_MUT": hpo_config.active_mutation,  # Activation layer mutation
-        "RL_HP_MUT": hpo_config.hp_mutation,  # Learning HP mutation
-        "RL_HP_SELECTION": hpo_config.hp_mutation_selection,
-        "MUT_SD": hpo_config.mutation_strength,  # Mutation strength
-        "MIN_LR": hpo_config.min_lr,
-        "MAX_LR": hpo_config.max_lr,
-        "MIN_LEARN_STEP": hpo_config.min_learn_step,
-        "MAX_LEARN_STEP": hpo_config.max_learn_step,
-        "MIN_BATCH_SIZE": hpo_config.min_batch_size,
-        "MAX_BATCH_SIZE": hpo_config.max_batch_size,
-        "AGENTS_IDS": None,
-        "MUTATE_ELITE": hpo_config.mutate_elite,
-        "RAND_SEED": hpo_config.rand_seed,  # Random seed
-        "ACTIVATION": hpo_config.activation,  # Activation functions to choose from
-    }
-
-    num_envs = trainer_config.num_envs
-
-    env = make_vect_envs(
-        num_envs=num_envs,
-        robot_config=robot_config,
-        sensor_config=sensor_config,
-        env_config=env_config,
-        render_config=render_config,
-    )
-    state_dim = env.single_observation_space.shape
-    action_dim = env.single_action_space.n
-
-    pop = create_population(
-        algo=INIT_PARAM["ALGO"],  # Algorithm
-        state_dim=state_dim,  # State dimension
-        action_dim=action_dim,  # Action dimension
-        one_hot=False,  # One-hot encoding
-        net_config=NET_CONFIG,  # Network configuration
-        INIT_HP=INIT_PARAM,  # Initial hyperparameters
-        population_size=INIT_PARAM["POP_SIZE"],  # Population size
-        num_envs=num_envs,  # Number of vectorized environments
-        device=device,
-        accelerator=INIT_PARAM["ACCELERATOR"],
-        torch_compiler=INIT_PARAM["TORCH_COMPILER"],
-    )
-
-    field_names = ["state", "action", "reward", "next_state", "done"]
-    memory = ReplayBuffer(
-        memory_size=INIT_PARAM["MEMORY_SIZE"],  # Max replay buffer size
-        field_names=field_names,  # Field names to store in memory
-        device=device,
-    )
-
-    tournament = TournamentSelection(
-        tournament_size=INIT_PARAM["TOURN_SIZE"],  # Tournament selection size
-        elitism=INIT_PARAM["ELITISM"],  # Elitism in tournament selection
-        population_size=INIT_PARAM["POP_SIZE"],  # Population size
-        eval_loop=INIT_PARAM["EVAL_LOOP"],  # Evaluate using last N fitness scores
-    )
-
-    mutations = Mutations(
-        algo=INIT_PARAM["ALGO"],  # Algorithm
-        no_mutation=MUTATION_PARAMS["NO_MUT"],  # No mutation
-        architecture=MUTATION_PARAMS["ARCH_MUT"],  # Architecture mutation
-        new_layer_prob=MUTATION_PARAMS["NEW_LAYER"],  # New layer mutation
-        parameters=MUTATION_PARAMS["PARAMS_MUT"],  # Network parameters mutation
-        activation=MUTATION_PARAMS["ACT_MUT"],  # Activation layer mutation
-        rl_hp=MUTATION_PARAMS["RL_HP_MUT"],  # Learning HP mutation
-        rl_hp_selection=MUTATION_PARAMS[
-            "RL_HP_SELECTION"
-        ],  # Learning HPs to choose from
-        mutation_sd=MUTATION_PARAMS["MUT_SD"],  # Mutation strength
-        activation_selection=MUTATION_PARAMS[
-            "ACTIVATION"
-        ],  # Activation functions to choose from
-        min_lr=MUTATION_PARAMS["MIN_LR"],
-        max_lr=MUTATION_PARAMS["MAX_LR"],
-        min_learn_step=MUTATION_PARAMS["MIN_LEARN_STEP"],
-        max_learn_step=MUTATION_PARAMS["MAX_LEARN_STEP"],
-        min_batch_size=MUTATION_PARAMS["MIN_BATCH_SIZE"],
-        max_batch_size=MUTATION_PARAMS["MAX_BATCH_SIZE"],
-        agent_ids=MUTATION_PARAMS["AGENTS_IDS"],
-        mutate_elite=MUTATION_PARAMS["MUTATE_ELITE"],
-        arch=NET_CONFIG["arch"],  # Network architecture
-        rand_seed=MUTATION_PARAMS["RAND_SEED"],  # Random seed
-        device=device,
-        accelerator=INIT_PARAM["ACCELERATOR"],
-    )
-
-    algo=INIT_PARAM["ALGO"]
-    env_name=INIT_PARAM["ENV_NAME"]
-    algo=INIT_PARAM["ALGO"]
-    memory=memory
-    swap_channels=INIT_PARAM[
-        "CHANNELS_LAST"
-    ]
-    n_step=False
-    per=False
-    n_step_memory=None
-    max_steps=INIT_PARAM["MAX_STEPS"]
-    evo_steps=INIT_PARAM["EVO_STEPS"]
-    eval_steps=INIT_PARAM["EVAL_STEPS"]
-    eval_loop=INIT_PARAM["EVAL_LOOP"]
-    learning_delay=INIT_PARAM["LEARNING_DELAY"]
-    eps_start=INIT_PARAM["EPS_START"]
-    eps_end=INIT_PARAM["EPS_END"]
-    eps_decay=INIT_PARAM["EPS_DECAY"]
-    target=INIT_PARAM["TARGET_SCORE"]
-    wb=INIT_PARAM["WANDB"]
-    checkpoint=INIT_PARAM["CHECKPOINT"]
-    checkpoint_path=INIT_PARAM["CHECKPOINT_PATH"]
-    save_elite=INIT_PARAM["SAVE_ELITE"]
-    elite_path=INIT_PARAM["ELITE_PATH"]
-    verbose=INIT_PARAM["VERBOSE"]
-    accelerator=INIT_PARAM["ACCELERATOR"]
-    wandb_api_key=INIT_PARAM["WANDB_API_KEY"]
-    overwrite_checkpoints = INIT_PARAM["OVERWRITE_CHECKPOINTS"]
-
-
-    max_steps = 200000  # Max steps
-    evo_steps = 10000  # Evolution frequency
-    eval_steps = None  # Evaluation steps per episode - go until done
-    eval_loop = 1  # Number of evaluation episodes
-
-    total_steps = 0
-
-    # TRAINING LOOP
-    print("Training...")
     pbar = trange(max_steps, unit="step")
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
         pop_episode_scores = []
-        for agent in pop:  # Loop through population
-            state, info = env.reset()  # Reset environment at start of episode
+        for agent in pop:
+            state, info = env.reset()
             scores = np.zeros(num_envs)
             completed_episode_scores = []
             steps = 0
@@ -293,7 +190,7 @@ def training(
                     rewards,
                     dones,
                     values,
-                    next_state
+                    next_state,
                 )
                 # Learn according to agent's RL algorithm
                 agent.learn(experiences)
@@ -345,7 +242,7 @@ def inference(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    pretrained_model=False,
+    pretrained_model: bool,
 ):
 
     text = [
@@ -379,9 +276,14 @@ def inference(
         sensor_config,
         env_config,
         render_config,
-        pretrained_model=False,
+        pretrained_model,
         use_render=True,
     )
+    print("\n#------ Info Env ----#")
+    state_dim = env.observation_space
+    action_dim = env.action_space.shape
+    print(f"{state_dim} : state dim")
+    print(f"{action_dim} : action dim")
 
     env.reset()
     env.render()

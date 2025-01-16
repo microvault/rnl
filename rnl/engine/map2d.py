@@ -122,7 +122,9 @@ class Map2D:
 
         return new_map_grid
 
-    def divide_map_into_quadrants(self, map_grid: np.ndarray, quadrant: int) -> np.ndarray:
+    def divide_map_into_quadrants(
+        self, map_grid: np.ndarray, quadrant: int
+    ) -> np.ndarray:
         """
         Returns one of the four quadrants of the map_grid.
 
@@ -156,10 +158,10 @@ class Map2D:
         contour_retrieval_mode: int = cv2.RETR_TREE,
         contour_approx_method: int = cv2.CHAIN_APPROX_SIMPLE,
     ) -> Optional[np.ndarray]:
-        # _map_grid = self._grid_map()
-        new_map_grid = self._grid_map()
+        _map_grid = self._grid_map()
+        # new_map_grid = self._grid_map()
 
-        # new_map_grid = self.divide_map_into_quadrants(_map_grid, 1)
+        new_map_grid = self.divide_map_into_quadrants(_map_grid, 1)
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
         if idx.size == 0:
@@ -226,12 +228,14 @@ class Map2D:
             plt.figure(figsize=(10, 10))
             plt.imshow(contour_mask, cmap="gray")
             plt.axis("off")
-            plt.savefig("contour.png", bbox_inches='tight', pad_inches=0)  # Salva a imagem antes de mostrar
+            plt.savefig(
+                "contour.png", bbox_inches="tight", pad_inches=0
+            )  # Salva a imagem antes de mostrar
             plt.show()
 
         return contour_mask
 
 
-if __name__ == "__main__":
-    map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
-    map.initial_environment2d(plot=True)
+# if __name__ == "__main__":
+#     map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
+#     map.initial_environment2d(plot=True)

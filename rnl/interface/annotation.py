@@ -1,13 +1,15 @@
-import matplotlib.pyplot as plt
-from matplotlib.widgets import RectangleSelector, TextBox, Button
-from matplotlib.patches import Rectangle
 import json
+
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
+from matplotlib.widgets import Button, RectangleSelector, TextBox
+
 
 class BBoxAnnotator:
     def __init__(self, image_path):
         self.image_path = image_path
-        self.bboxes = []         # lista de {"label": str, "bbox": [x1, y1, x2, y2]}
-        self.current_coords = [] # último bbox desenhado pelo RectangleSelector
+        self.bboxes = []  # lista de {"label": str, "bbox": [x1, y1, x2, y2]}
+        self.current_coords = []  # último bbox desenhado pelo RectangleSelector
 
         # Carrega a imagem
         self.fig, self.ax = plt.subplots()
@@ -24,23 +26,23 @@ class BBoxAnnotator:
             button=[1],
             minspanx=5,
             minspany=5,
-            spancoords='pixels',
-            interactive=False
+            spancoords="pixels",
+            interactive=False,
         )
 
         # Caixa de texto pro label
         ax_text = plt.axes([0.1, 0.05, 0.3, 0.05])
-        self.text_box = TextBox(ax_text, 'Label: ')
+        self.text_box = TextBox(ax_text, "Label: ")
         self.text_box.on_submit(self.on_text_submit)
 
         # Botão "Adicionar" - fixa o label naquele bbox
         ax_button_add = plt.axes([0.42, 0.05, 0.15, 0.05])
-        self.btn_add = Button(ax_button_add, 'Adicionar')
+        self.btn_add = Button(ax_button_add, "Adicionar")
         self.btn_add.on_clicked(self.add_bbox)
 
         # Botão "Salvar"
         ax_button_save = plt.axes([0.6, 0.05, 0.15, 0.05])
-        self.btn_save = Button(ax_button_save, 'Salvar')
+        self.btn_save = Button(ax_button_save, "Salvar")
         self.btn_save.on_clicked(self.save_annotations)
 
         plt.show()
@@ -61,8 +63,7 @@ class BBoxAnnotator:
 
         # Desenha retângulo permanente
         rect = Rectangle(
-            (x1, y1), (x2 - x1), (y2 - y1),
-            fill=False, edgecolor='blue', linewidth=2
+            (x1, y1), (x2 - x1), (y2 - y1), fill=False, edgecolor="blue", linewidth=2
         )
         self.ax.add_patch(rect)
 
@@ -91,22 +92,14 @@ class BBoxAnnotator:
             return
 
         # Salva bbox e label
-        self.bboxes.append({
-            "label": label,
-            "bbox": self.current_coords
-        })
+        self.bboxes.append({"label": label, "bbox": self.current_coords})
 
         # Desenha o label na figura
         x1, y1, x2, y2 = self.current_coords
-        self.ax.text(
-            x1, y1, label,
-            color='blue',
-            fontsize=9,
-            backgroundcolor='white'
-        )
+        self.ax.text(x1, y1, label, color="blue", fontsize=9, backgroundcolor="white")
 
         # Limpa a TextBox e as coords
-        self.text_box.set_val('')
+        self.text_box.set_val("")
         self.current_coords = []
 
         plt.draw()
@@ -122,6 +115,7 @@ class BBoxAnnotator:
         # Salva imagem final com bounding boxes e labels
         self.fig.savefig("annotated_image.png")
         print("Anotações salvas em 'annotations.json' e 'annotated_image.png'.")
+
 
 # Exemplo de uso
 if __name__ == "__main__":

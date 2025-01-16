@@ -12,6 +12,7 @@ from rnl.configs.config import (
 )
 from rnl.training.learn import inference, training
 
+
 def robot(
     base_radius: float,
     vel_linear: List,
@@ -20,7 +21,7 @@ def robot(
     weight: float,
     threshold: float,
     collision: float,
-    path_model: str = "",
+    path_model: str,
 ):
     return RobotConfig(
         base_radius,
@@ -57,11 +58,11 @@ def render(controller: bool):
 class Trainer:
     def __init__(
         self,
-        robot_config: RobotConfig = RobotConfig(),
-        sensor_config: SensorConfig = SensorConfig(),
-        env_config: EnvConfig = EnvConfig(),
-        render_config: RenderConfig = RenderConfig(),
-        pretrained_model=False,
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
+        env_config: EnvConfig,
+        render_config: RenderConfig,
+        pretrained_model: bool,
     ):
         self.robot_config = robot_config
         self.sensor_config = sensor_config
@@ -79,10 +80,7 @@ class Trainer:
         beta: float,
         tau: float,
         prior_eps: float,
-        num_atoms: int,
-        v_min: int,
-        v_max: int,
-        epsilon_start: float ,
+        epsilon_start: float,
         epsilon_end: float,
         epsilon_decay: float,
         batch_size: int,
@@ -153,9 +151,6 @@ class Trainer:
             beta=beta,
             tau=tau,
             prior_eps=prior_eps,
-            num_atoms=num_atoms,
-            v_min=v_min,
-            v_max=v_max,
             epsilon_start=epsilon_start,
             epsilon_end=epsilon_end,
             epsilon_decay=epsilon_decay,
@@ -184,7 +179,6 @@ class Trainer:
             eps_decay=eps_decay,
         )
 
-
         hpo_config = HPOConfig(
             use_mutation=use_mutation,
             population_size=population_size,
@@ -203,7 +197,6 @@ class Trainer:
             min_batch_size=min_batch_size,
             max_batch_size=max_batch_size,
             save_elite=save_elite,
-            elite_path=elite_path,
             tourn_size=tourn_size,
             elitism=elitism,
             evo_steps=evo_steps,
@@ -223,7 +216,7 @@ class Trainer:
             max_hidden_layers=max_hidden_layers,
             min_mlp_nodes=min_mlp_nodes,
             max_mlp_nodes=max_mlp_nodes,
-            )
+        )
 
         training(
             agent_config,
@@ -243,11 +236,11 @@ class Trainer:
 class Simulation:
     def __init__(
         self,
-        robot_config: RobotConfig = RobotConfig(),
-        sensor_config: SensorConfig = SensorConfig(),
-        env_config: EnvConfig = EnvConfig(),
-        render_config: RenderConfig = RenderConfig(),
-        pretrained_model=False,
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
+        env_config: EnvConfig,
+        render_config: RenderConfig,
+        pretrained_model: bool,
     ):
         self.robot_config = robot_config
         self.sensor_config = sensor_config

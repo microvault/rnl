@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
-from rnl.environment.environment_navigation import NaviEnv
+from rnl.environment.env import NaviEnv
 
 
 @pytest.fixture
