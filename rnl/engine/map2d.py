@@ -122,6 +122,31 @@ class Map2D:
 
         return new_map_grid
 
+    def divide_map_into_quadrants(self, map_grid: np.ndarray, quadrant: int) -> np.ndarray:
+        """
+        Returns one of the four quadrants of the map_grid.
+
+        Parameters:
+            map_grid (np.ndarray): The occupancy grid map.
+            quadrant (int): The quadrant number (1, 2, 3, or 4).
+
+        Returns:
+            np.ndarray: The specified quadrant of the map.
+        """
+        height, width = map_grid.shape
+        mid_height, mid_width = height // 2, width // 2
+
+        if quadrant == 1:
+            return map_grid[:mid_height, :mid_width]
+        elif quadrant == 2:
+            return map_grid[:mid_height, mid_width:]
+        elif quadrant == 3:
+            return map_grid[mid_height:, :mid_width]
+        elif quadrant == 4:
+            return map_grid[mid_height:, mid_width:]
+        else:
+            raise ValueError("Quadrant must be 1, 2, 3, or 4.")
+
     def initial_environment2d(
         self,
         plot: bool = False,
@@ -131,7 +156,10 @@ class Map2D:
         contour_retrieval_mode: int = cv2.RETR_TREE,
         contour_approx_method: int = cv2.CHAIN_APPROX_SIMPLE,
     ) -> Optional[np.ndarray]:
+        # _map_grid = self._grid_map()
         new_map_grid = self._grid_map()
+
+        # new_map_grid = self.divide_map_into_quadrants(_map_grid, 1)
 
         idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
         if idx.size == 0:
@@ -198,13 +226,12 @@ class Map2D:
             plt.figure(figsize=(10, 10))
             plt.imshow(contour_mask, cmap="gray")
             plt.axis("off")
+            plt.savefig("contour.png", bbox_inches='tight', pad_inches=0)  # Salva a imagem antes de mostrar
             plt.show()
-
-            plt.savefig("contour_mask.png")
 
         return contour_mask
 
 
 if __name__ == "__main__":
-    map = Map2D("/Users/nicolasalan/microvault/rnl/data/map", "map")
+    map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
     map.initial_environment2d(plot=True)

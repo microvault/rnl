@@ -1,10 +1,14 @@
 import numpy as np
 from numba import njit
 from typing import Tuple
-
+import time
 # ---------------------------------------------------
 # Funções auxiliares (evite repetir)
 # ---------------------------------------------------
+@njit
+def normalize_module(value, min_val, max_val, min_out, max_out):
+    return min_out + (value - min_val) * (max_out - min_out) / (max_val - min_val)
+
 @njit
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
@@ -106,9 +110,8 @@ def time_and_collision_reward(
 # ---------------------------------------------------
 # Função principal de recompensa que unifica tudo
 # ---------------------------------------------------
-@njit
+
 def get_reward(
-    measurement: np.ndarray,
     distance: float,
     collision: bool,
     alpha: float,
@@ -134,24 +137,39 @@ def get_reward(
     threshold: raio para considerar que chegou no alvo
     scale_*: fatores de escala para cada módulo
     """
-    reward = 0.0
     done = False
 
     rew_coll_target, done_coll_target = collision_and_target_reward(
         distance, threshold, collision,
         scale_collision, scale_target
     )
-    reward += rew_coll_target
     if done_coll_target:
-        return reward, True
+        collision_score = normalize_module(rew_coll_target, -100, 100, -1, 1)
+        return rew_coll_target, True
 
-    reward += orientation_reward(alpha, scale_orientation)
+    orientation_rewards = orientation_reward(alpha, scale_orientation)
 
-    reward += global_progress_reward(
+    progress_reward = global_progress_reward(
         distance_init, distance, scale_global
     )
 
-    reward += time_and_collision_reward(step, time_penalty, scale_time)
+    time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    reward -= r3(np.min(measurement), threshold)
+    collision_score = normalize_module(rew_coll_target, -100, 100, -1, 1)
+    orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 3) # 30%
+    progress_score = normalize_module(progress_reward, 0, 1, -5, 5) # 50%
+    time_score = normalize_module(time_reward, -2, 0, -2.5, 0) # 20%
+
+    reward = collision_score + orientation_score + progress_score + time_score
+
+
+    print("----------------")
+    print("Orientation:", orientation_score)
+    print("----------------")
+    print("Progress:", progress_score)
+    print("----------------")
+    print("Time:", time_score)
+    print("----------------")
+    print("Reward:", reward)
+
     return reward, done

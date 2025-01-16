@@ -21,17 +21,17 @@ def main(arg):
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=360,
-        num_rays=5,
+        fov=270,
+        num_rays=10,
         min_range=1.0,
-        max_range=60.0,
+        max_range=30.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
         folder_map="/Users/nicolasalan/microvault/rnl/data/map4",
         name_map="map4",
-        max_timestep=3000,
+        max_timestep=2000,
     )
 
     if args.mode == "train":
@@ -42,7 +42,7 @@ def main(arg):
 
         # 5.step -> train robot
         model.learn(
-            max_timestep=100,  #
+            max_timestep=1000,  #
             memory_size=1000,
             gamma=0.99,
             n_step=1,
@@ -63,7 +63,7 @@ def main(arg):
             device="cpu",
             learn_step=10,
             target_score=200,
-            max_steps=100,
+            max_steps=1000,
             evaluation_steps=100,
             evaluation_loop=1,
             learning_delay=2,
@@ -88,7 +88,7 @@ def main(arg):
             tourn_size=2,
             elitism=True,
             hidden_size=[800, 600],
-            use_wandb=True,
+            use_wandb=False,
             wandb_api_key=str(wandb_key),
             eps_start=1.0,
             eps_end=0.1,

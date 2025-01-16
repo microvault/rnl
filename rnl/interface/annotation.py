@@ -1,67 +1,128 @@
-import cv2
+import matplotlib.pyplot as plt
+from matplotlib.widgets import RectangleSelector, TextBox, Button
+from matplotlib.patches import Rectangle
 import json
-from numba import njit
 
-@njit
-def calc_area(x1, y1, x2, y2):
-    return abs((x2 - x1) * (y2 - y1))
+class BBoxAnnotator:
+    def __init__(self, image_path):
+        self.image_path = image_path
+        self.bboxes = []         # lista de {"label": str, "bbox": [x1, y1, x2, y2]}
+        self.current_coords = [] # último bbox desenhado pelo RectangleSelector
 
-drawing = False
-ix = iy = 0
-rects_info = []
+        # Carrega a imagem
+        self.fig, self.ax = plt.subplots()
+        self.image = plt.imread(self.image_path)
+        self.ax.imshow(self.image)
+        # Deixa espaço no rodapé pros widgets
+        plt.subplots_adjust(bottom=0.2)
 
-def mouse_callback(event, x, y, flags, param):
-    global ix, iy, drawing, rects_info
+        # RectangleSelector pra desenhar bounding box (fica fixo ao soltar)
+        self.selector = RectangleSelector(
+            self.ax,
+            self.on_select,
+            useblit=True,
+            button=[1],
+            minspanx=5,
+            minspany=5,
+            spancoords='pixels',
+            interactive=False
+        )
 
-    if event == cv2.EVENT_LBUTTONDOWN:
-        drawing = True
-        ix, iy = x, y
-        # Cria um retângulo vazio
-        rects_info.append({'label': '', 'x1': x, 'y1': y, 'x2': x, 'y2': y, 'area': 0})
+        # Caixa de texto pro label
+        ax_text = plt.axes([0.1, 0.05, 0.3, 0.05])
+        self.text_box = TextBox(ax_text, 'Label: ')
+        self.text_box.on_submit(self.on_text_submit)
 
-    elif event == cv2.EVENT_MOUSEMOVE and drawing:
-        # Atualiza as coordenadas do último retângulo
-        rects_info[-1]['x2'] = x
-        rects_info[-1]['y2'] = y
+        # Botão "Adicionar" - fixa o label naquele bbox
+        ax_button_add = plt.axes([0.42, 0.05, 0.15, 0.05])
+        self.btn_add = Button(ax_button_add, 'Adicionar')
+        self.btn_add.on_clicked(self.add_bbox)
 
-    elif event == cv2.EVENT_LBUTTONUP:
-        drawing = False
-        rects_info[-1]['x2'] = x
-        rects_info[-1]['y2'] = y
-        area = calc_area(ix, iy, x, y)
-        rects_info[-1]['area'] = area
-        # Pede um nome pra label
-        rects_info[-1]['label'] = input("Nome da label: ")
+        # Botão "Salvar"
+        ax_button_save = plt.axes([0.6, 0.05, 0.15, 0.05])
+        self.btn_save = Button(ax_button_save, 'Salvar')
+        self.btn_save.on_clicked(self.save_annotations)
 
-def annotate_png(png_path, json_path="labels.json"):
-    global rects_info
-    rects_info = []
+        plt.show()
 
-    # Carrega imagem PNG
-    img = cv2.imread(png_path)
-    clone = img.copy()
+    def on_select(self, eclick, erelease):
+        """
+        Callback chamado quando arrasta e solta o mouse.
+        Desenha o retângulo permanente assim que o mouse é solto.
+        """
+        x1, y1 = eclick.xdata, eclick.ydata
+        x2, y2 = erelease.xdata, erelease.ydata
+        # Ordena para que x1 < x2 e y1 < y2
+        x1, x2 = sorted([x1, x2])
+        y1, y2 = sorted([y1, y2])
 
-    cv2.namedWindow("PNG Annotation")
-    cv2.setMouseCallback("PNG Annotation", mouse_callback)
+        # Guarda as coords do bbox
+        self.current_coords = [x1, y1, x2, y2]
 
-    while True:
-        temp = clone.copy()
-        # Desenha todos os retângulos criados
-        for r in rects_info:
-            cv2.rectangle(temp, (r['x1'], r['y1']), (r['x2'], r['y2']), (0, 255, 0), 2)
-            cv2.putText(temp, r['label'], (r['x1'], r['y1'] - 5),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+        # Desenha retângulo permanente
+        rect = Rectangle(
+            (x1, y1), (x2 - x1), (y2 - y1),
+            fill=False, edgecolor='blue', linewidth=2
+        )
+        self.ax.add_patch(rect)
 
-        cv2.imshow("PNG Annotation", temp)
-        key = cv2.waitKey(1) & 0xFF
-        if key == 27:  # ESC pra sair
-            break
+        # Atualiza a figura
+        self.fig.canvas.draw_idle()
 
-    cv2.destroyAllWindows()
+    def on_text_submit(self, text):
+        """
+        Callback ao pressionar Enter na caixa de texto.
+        Não precisa fazer nada extra aqui, pois vamos usar o botão "Adicionar".
+        """
+        pass
 
-    # Salva dados em JSON
-    with open(json_path, "w", encoding='utf-8') as f:
-        json.dump(rects_info, f, ensure_ascii=False, indent=2)
+    def add_bbox(self, event):
+        """
+        Ao clicar em 'Adicionar', associamos o label ao bbox atual
+        e desenhamos o label na imagem de modo permanente.
+        """
+        if not self.current_coords:
+            print("Nenhum bounding box desenhado.")
+            return
 
-# Exemplo de uso:
-annotate_png("/Users/nicolasalan/microvault/rnl/contour_mask.png", "labels.json")
+        label = self.text_box.text.strip()
+        if not label:
+            print("Label vazio, digite algo na TextBox.")
+            return
+
+        # Salva bbox e label
+        self.bboxes.append({
+            "label": label,
+            "bbox": self.current_coords
+        })
+
+        # Desenha o label na figura
+        x1, y1, x2, y2 = self.current_coords
+        self.ax.text(
+            x1, y1, label,
+            color='blue',
+            fontsize=9,
+            backgroundcolor='white'
+        )
+
+        # Limpa a TextBox e as coords
+        self.text_box.set_val('')
+        self.current_coords = []
+
+        plt.draw()
+
+    def save_annotations(self, event):
+        """
+        Salva as anotações em JSON e a figura anotada em PNG.
+        """
+        # Salva JSON
+        with open("annotations.json", "w") as f:
+            json.dump(self.bboxes, f, indent=2)
+
+        # Salva imagem final com bounding boxes e labels
+        self.fig.savefig("annotated_image.png")
+        print("Anotações salvas em 'annotations.json' e 'annotated_image.png'.")
+
+# Exemplo de uso
+if __name__ == "__main__":
+    BBoxAnnotator("/Users/nicolasalan/microvault/rnl/contour.png")
