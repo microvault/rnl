@@ -1,7 +1,6 @@
-from typing import List
+from typing import List, Optional
 
 from rnl.configs.config import (
-    AgentConfig,
     EnvConfig,
     HPOConfig,
     NetworkConfig,
@@ -10,7 +9,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, training
+from rnl.training.learn import inference, probe_envs, training
 
 
 def robot(
@@ -22,7 +21,7 @@ def robot(
     threshold: float,
     collision: float,
     path_model: str,
-):
+) -> RobotConfig:
     return RobotConfig(
         base_radius,
         vel_linear,
@@ -35,7 +34,9 @@ def robot(
     )
 
 
-def sensor(fov: float, num_rays: int, min_range: float, max_range: float):
+def sensor(
+    fov: float, num_rays: int, min_range: float, max_range: float
+) -> SensorConfig:
     return SensorConfig(fov, num_rays, min_range, max_range)
 
 
@@ -43,7 +44,7 @@ def make(
     folder_map: str,
     name_map: str,
     max_timestep: int,
-):
+) -> EnvConfig:
     return EnvConfig(
         folder_map=folder_map,
         name_map=name_map,
@@ -51,8 +52,8 @@ def make(
     )
 
 
-def render(controller: bool):
-    return RenderConfig(controller)
+def render(controller: bool, debug: bool) -> RenderConfig:
+    return RenderConfig(controller, debug)
 
 
 class Trainer:
@@ -63,43 +64,32 @@ class Trainer:
         env_config: EnvConfig,
         render_config: RenderConfig,
         pretrained_model: bool,
+        train_docker: bool,
+        debug: bool,
+        probe: bool,
     ):
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
         self.pretrained_model = pretrained_model
+        self.train_docker = train_docker
+        self.debug = debug
+        self.probe = probe
 
     def learn(
         self,
-        max_timestep: int,
-        memory_size: int,
+        max_timestep_global: int,
         gamma: float,
-        n_step: int,
-        alpha: float,
-        beta: float,
-        tau: float,
-        prior_eps: float,
-        epsilon_start: float,
-        epsilon_end: float,
-        epsilon_decay: float,
         batch_size: int,
         lr: float,
-        seed: int,
         num_envs: int,
         device: str,
         learn_step: int,
-        target_score: int,
-        max_steps: int,
-        evaluation_steps: int,
-        evaluation_loop: int,
-        learning_delay: int,
-        n_step_memory: int,
         checkpoint: int,
         checkpoint_path: str,
         overwrite_checkpoints: bool,
         use_mutation: bool,
-        freq_evolution: int,
         population_size: int,
         no_mutation: float,
         arch_mutation: float,
@@ -109,7 +99,6 @@ class Trainer:
         hp_mutation: float,
         hp_mutation_selection: list,
         mutation_strength: float,
-        evolution_steps: int,
         save_elite: bool,
         elite_path: str,
         tourn_size: int,
@@ -117,11 +106,6 @@ class Trainer:
         hidden_size: list,
         use_wandb: bool,
         wandb_api_key: str,
-        eps_start: float,
-        eps_end: float,
-        eps_decay: float,
-        noise_std: float,
-        per: bool,
         min_lr: float,
         max_lr: float,
         min_learn_step: int,
@@ -129,7 +113,6 @@ class Trainer:
         min_batch_size: int,
         max_batch_size: int,
         evo_steps: int,
-        eval_steps: int,
         eval_loop: int,
         mutate_elite: bool,
         rand_seed: int,
@@ -140,43 +123,40 @@ class Trainer:
         max_hidden_layers: int,
         min_mlp_nodes: int,
         max_mlp_nodes: int,
+        gae_lambda: float,
+        action_std_init: float,
+        clip_coef: float,
+        ent_coef: float,
+        vf_coef: float,
+        max_grad_norm: float,
+        update_epochs: int,
+        eval_steps: Optional[int] = None,
     ) -> None:
 
-        agent_config = AgentConfig(
-            max_timestep=max_timestep,
-            memory_size=memory_size,
-            gamma=gamma,
-            n_step=n_step,
-            alpha=alpha,
-            beta=beta,
-            tau=tau,
-            prior_eps=prior_eps,
-            epsilon_start=epsilon_start,
-            epsilon_end=epsilon_end,
-            epsilon_decay=epsilon_decay,
-            noise_std=noise_std,
-            per=per,
-        )
+        import matplotlib
+
+        matplotlib.use("Agg")
 
         trainer_config = TrainerConfig(
+            max_timestep_global=max_timestep_global,
+            gamma=gamma,
             batch_size=batch_size,
             lr=lr,
-            seed=seed,
             num_envs=num_envs,
             device=device,
             learn_step=learn_step,
-            target_score=target_score,
-            max_steps=max_steps,
-            learning_delay=learning_delay,
-            n_step_memory=n_step_memory,
             checkpoint=checkpoint,
             checkpoint_path=checkpoint_path,
             overwrite_checkpoints=overwrite_checkpoints,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
-            eps_start=eps_start,
-            eps_end=eps_end,
-            eps_decay=eps_decay,
+            gae_lambda=gae_lambda,
+            action_std_init=action_std_init,
+            clip_coef=clip_coef,
+            ent_coef=ent_coef,
+            vf_coef=vf_coef,
+            max_grad_norm=max_grad_norm,
+            update_epochs=update_epochs,
         )
 
         hpo_config = HPOConfig(
@@ -197,6 +177,7 @@ class Trainer:
             min_batch_size=min_batch_size,
             max_batch_size=max_batch_size,
             save_elite=save_elite,
+            elite_path=elite_path,
             tourn_size=tourn_size,
             elitism=elitism,
             evo_steps=evo_steps,
@@ -219,7 +200,6 @@ class Trainer:
         )
 
         training(
-            agent_config,
             trainer_config,
             hpo_config,
             network_config,
@@ -228,6 +208,9 @@ class Trainer:
             self.env_config,
             self.render_config,
             self.pretrained_model,
+            self.train_docker,
+            self.debug,
+            self.probe,
         )
 
         return None
@@ -241,14 +224,14 @@ class Simulation:
         env_config: EnvConfig,
         render_config: RenderConfig,
         pretrained_model: bool,
-    ):
+    ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
         self.pretrained_model = pretrained_model
 
-    def run(self):
+    def run(self) -> None:
 
         inference(
             self.robot_config,
@@ -257,3 +240,43 @@ class Simulation:
             self.render_config,
             self.pretrained_model,
         )
+
+        return None
+
+
+class Probe:
+    def __init__(
+        self,
+        csv_file: str,
+        num_envs: int,
+        max_steps: int,
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
+        env_config: EnvConfig,
+        render_config: RenderConfig,
+        pretrained_model: bool,
+    ) -> None:
+
+        self.csv_file = csv_file
+        self.num_envs = num_envs
+        self.max_steps = max_steps
+        self.robot_config = robot_config
+        self.sensor_config = sensor_config
+        self.env_config = env_config
+        self.render_config = render_config
+        self.pretrained_model = pretrained_model
+
+    def execute(self) -> None:
+
+        probe_envs(
+            self.csv_file,
+            self.num_envs,
+            self.max_steps,
+            self.robot_config,
+            self.sensor_config,
+            self.env_config,
+            self.render_config,
+            self.pretrained_model,
+        )
+
+        return None

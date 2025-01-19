@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -20,6 +20,7 @@ class CurriculumTargetPositionConfig:
 @dataclass
 class RenderConfig:
     controller: bool
+    debug: bool
 
 
 @dataclass
@@ -55,42 +56,26 @@ class NetworkConfig:
 
 
 @dataclass
-class AgentConfig:
-    max_timestep: int
-    memory_size: int
-    gamma: float
-    n_step: int
-    alpha: float
-    beta: float
-    tau: float
-    prior_eps: float
-    epsilon_start: float
-    epsilon_end: float
-    epsilon_decay: float
-    noise_std: float
-    per: bool
-
-
-@dataclass
 class TrainerConfig:
+    max_timestep_global: int
+    gamma: float
     batch_size: int
     lr: float
-    seed: int
     num_envs: int
     device: str
     learn_step: int
-    target_score: int
-    max_steps: int
-    learning_delay: int
-    n_step_memory: int
     checkpoint: int
     checkpoint_path: str
     overwrite_checkpoints: bool
     use_wandb: bool
     wandb_api_key: str
-    eps_start: float
-    eps_end: float
-    eps_decay: float
+    gae_lambda: float
+    action_std_init: float
+    clip_coef: float
+    ent_coef: float
+    vf_coef: float
+    max_grad_norm: float
+    update_epochs: int
 
 
 @dataclass
@@ -112,11 +97,12 @@ class HPOConfig:
     min_batch_size: int
     max_batch_size: int
     save_elite: bool
+    elite_path: str
     tourn_size: int
     elitism: bool
     evo_steps: int
-    eval_steps: int
     eval_loop: int
     mutate_elite: bool
     rand_seed: int
     activation: List[str]
+    eval_steps: Optional[int] = None

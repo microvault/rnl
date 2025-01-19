@@ -73,7 +73,6 @@ model = vault.Trainer(
 model.learn(
     batch_size=64,
     lr=0.0001,
-    seed=1,
     num_envs=2,
     device="cpu",
     target_score=200,

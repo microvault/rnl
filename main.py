@@ -24,98 +24,89 @@ def main(arg):
         fov=270,
         num_rays=5,
         min_range=1.0,
-        max_range=60.0,
+        max_range=90.0,
     )
 
     # 3.step -> config env
     param_env = vault.make(
         folder_map="/Users/nicolasalan/microvault/rnl/data/map4",
         name_map="map4",
-        max_timestep=2000,
+        max_timestep=1000,
     )
 
-    if args.mode == "train":
-        # 4.step -> config train robot
+    # 4.step -> config render
+    param_render = vault.render(controller=False, debug=False)
+
+    if args.mode == "learn":
+        # 5.step -> config train robot
         model = vault.Trainer(
-            param_robot, param_sensor, param_env, pretrained_model=False
+            param_robot,
+            param_sensor,
+            param_env,
+            param_render,
+            pretrained_model=False,
+            train_docker=False,
+            debug=False,
+            probe=True,
         )
 
-        # 5.step -> train robot
+        # 6.step -> train robot
         model.learn(
-            max_timestep=1000,  #
-            memory_size=1000,
+            max_timestep_global=100,
             gamma=0.99,
-            n_step=1,
-            alpha=0.6,
-            beta=0.4,
-            tau=0.001,
-            prior_eps=0.000001,
-            epsilon_start=1.0,
-            epsilon_end=0.1,
-            epsilon_decay=0.995,
-            batch_size=4,
+            batch_size=64,
             lr=0.0001,
-            seed=1,
-            num_envs=20,
+            num_envs=4,
             device="cpu",
-            learn_step=10,
-            target_score=200,
-            max_steps=1000,
-            evaluation_steps=100,
-            evaluation_loop=1,
-            learning_delay=2,
-            n_step_memory=3,
-            checkpoint=1,
-            checkpoint_path="model",
-            overwrite_checkpoints=False,
+            learn_step=100,  # 2048
+            checkpoint=50,
+            checkpoint_path="./checkpoints/model",
+            overwrite_checkpoints=True,
             use_mutation=True,
-            freq_evolution=100,
-            population_size=2,
+            population_size=4,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
             param_mutation=0.2,
-            active_mutation=0.0,
+            active_mutation=0.2,
             hp_mutation=0.2,
             hp_mutation_selection=["lr", "batch_size", "learn_step"],
             mutation_strength=0.1,
-            evolution_steps=100,
-            save_elite=False,
-            elite_path="elite",
+            save_elite=True,
+            elite_path="./checkpoints/elite",
             tourn_size=2,
             elitism=True,
-            hidden_size=[32, 32],
-            use_wandb=False,
+            hidden_size=[64, 64],
+            use_wandb=True,
             wandb_api_key=str(wandb_key),
-            eps_start=1.0,
-            eps_end=0.1,
-            eps_decay=0.995,
-            noise_std=0.5,
-            per=True,
             min_lr=0.001,
             max_lr=0.01,
-            min_learn_step=1,
-            max_learn_step=120,
-            min_batch_size=4,
-            max_batch_size=1024,
-            evo_steps=5000,
-            eval_steps=10,
-            eval_loop=10,
+            min_learn_step=256,
+            max_learn_step=8192,
+            min_batch_size=128,
+            max_batch_size=4096,
+            evo_steps=20,  # Evolucao por steps
+            eval_steps=None,  # Avaliacao por steps
+            eval_loop=4,  # Avaliacao por loop
             mutate_elite=True,
-            rand_seed=1,
-            activation=["ReLU"],
+            rand_seed=42,
+            activation=["ReLU", "ELU", "GELU"],
             mlp_activation="ReLU",
             mlp_output_activation="ReLU",
-            min_hidden_layers=2,
+            min_hidden_layers=1,
             max_hidden_layers=4,
-            min_mlp_nodes=64,
-            max_mlp_nodes=800,
+            min_mlp_nodes=16,
+            max_mlp_nodes=256,
+            gae_lambda=0.95,
+            action_std_init=0.6,
+            clip_coef=0.2,
+            ent_coef=0.01,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            update_epochs=4,
         )
 
-    else:
-        # 4.step -> config render
-        param_render = vault.render(controller=False)
-
+    elif args.mode == "sim":
         # 5.step -> config train robot
         model = vault.Simulation(
             param_robot, param_sensor, param_env, param_render, pretrained_model=False
@@ -123,12 +114,26 @@ def main(arg):
         # 6.step -> run robot
         model.run()
 
+    elif args.mode == "run":
+        model = vault.Probe(
+            csv_file="/Users/nicolasalan/microvault/rnl/debugging.csv",
+            num_envs=20,
+            max_steps=1000,
+            robot_config=param_robot,
+            sensor_config=param_sensor,
+            env_config=param_env,
+            render_config=param_render,
+            pretrained_model=False,
+        )
+
+        model.execute()
+
 
 if __name__ == "__main__":
     mp.set_start_method("spawn")
     parser = argparse.ArgumentParser(description="Train or setup environment.")
     parser.add_argument(
-        "mode", choices=["train", "run"], help="Mode to run: 'train' or 'run'"
+        "mode", choices=["learn", "sim", "run"], help="Mode to run: 'train' or 'run'"
     )
 
     args = parser.parse_args()

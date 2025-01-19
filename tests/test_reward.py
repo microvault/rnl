@@ -1,6 +1,7 @@
 import csv
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def test_plot_reward_separated(csv_file: str = "rewards.csv", num_elements: int = None):
@@ -50,22 +51,42 @@ def test_plot_reward_separated(csv_file: str = "rewards.csv", num_elements: int 
     cols = 2
     rows = (num_plots + cols - 1) // cols  # Calcula o número de linhas necessárias
 
-    plt.figure(figsize=(14, 5 * rows))  # Ajusta a altura com base no número de linhas
+    plt.figure(figsize=(10, 5 * rows))  # Ajusta a altura com base no número de linhas
 
     for idx, (title, data, color) in enumerate(components, 1):
-        plt.subplot(rows, cols, idx)
-        plt.plot(steps, data, label=title, color=color, linestyle="-", linewidth=1.5)
-        plt.ylabel(title, fontsize=14)
-        plt.legend(fontsize=12)
-        plt.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-        plt.xticks(fontsize=12)
-        plt.yticks(fontsize=12)
+        ax = plt.subplot(rows, cols, idx)
+        ax.plot(steps, data, label=title, color=color, linestyle="-", linewidth=1.5)
+        ax.set_ylabel(title, fontsize=14)
+        ax.legend(fontsize=12)
+        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+        ax.tick_params(axis="x", labelsize=12)
+        ax.tick_params(axis="y", labelsize=12)
+
+        # Calcular estatísticas
+        mean_val = np.mean(data)
+        min_val = np.min(data)
+        max_val = np.max(data)
+
+        # Adicionar texto abaixo do plot com as estatísticas
+        # A posição (0.5, -0.25) coloca o texto centralizado abaixo do gráfico
+        ax.text(
+            0.5,
+            -0.25,
+            f"Média: {mean_val:.2f} | Mínimo: {min_val:.2f} | Máximo: {max_val:.2f}",
+            transform=ax.transAxes,
+            ha="center",
+            fontsize=12,
+        )
 
     # Ajustar layout para evitar sobreposição
     plt.tight_layout()
+
+    # Ajustar espaço adicional na parte inferior para os textos
+    plt.subplots_adjust(bottom=0.15)
 
     # Exibir o gráfico
     plt.show()
 
 
+# Chamada da função com o caminho do arquivo CSV
 test_plot_reward_separated(csv_file="/Users/nicolasalan/microvault/rnl/debugging.csv")

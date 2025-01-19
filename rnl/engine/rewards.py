@@ -2,11 +2,9 @@ from typing import Tuple
 
 import numpy as np
 from numba import njit
+from shapely.geometry import Point
 
 
-# ---------------------------------------------------
-# Funções auxiliares (evite repetir)
-# ---------------------------------------------------
 @njit
 def normalize_module(value, min_val, max_val, min_out, max_out):
     return min_out + (value - min_val) * (max_out - min_out) / (max_val - min_val)
@@ -52,28 +50,23 @@ def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
     return (laser <= (threshold - 0.20)), laser
 
 
-# ---------------------------------------------------
-# Módulos de Recompensa
-# ---------------------------------------------------
-@njit
 def collision_and_target_reward(
     distance: float,
     threshold: float,
     collision: bool,
-    scale_collision: float = 1.0,
-    scale_target: float = 1.0,
-    reward_collision: float = -100.0,
-    reward_target: float = 100.0,
+    x: float,
+    y: float,
+    poly,
 ) -> Tuple[float, bool]:
     """
     1. Recompensa baseada em colisão e alvo.
     """
-    # Se chegou no alvo
+    if not poly.contains(Point(x, y)):
+        return -10, True
     if distance < threshold:
-        return scale_target * reward_target, True
-    # Se colidiu
+        return 10, True
     if collision:
-        return scale_collision * reward_collision, True
+        return -10, True
     return 0.0, False
 
 
@@ -91,84 +84,53 @@ def orientation_reward(alpha: float, scale_orientation: float = 1.0) -> float:
 
 
 @njit
-def global_progress_reward(
-    distance_init: float, distance: float, scale_global: float = 1.0
-) -> float:
-    """
-    Recompensa global baseada apenas no progresso (distância até o alvo).
-    """
-    progress = distance_init - distance
-    reward = 5.0 * progress
-    return scale_global * reward
-
-
-@njit
 def time_and_collision_reward(
     step: int, time_penalty: float, scale_time: float = 1.0
 ) -> float:
     """
     5. Recompensa por tempo e colisão (aqui focado no tempo).
     """
-    # Exemplo: penalizar a cada passo
     return -scale_time * time_penalty
 
 
-# ---------------------------------------------------
-# Função principal de recompensa que unifica tudo
-# ---------------------------------------------------
+@njit
+def global_progress_reward(distance: float, scale: float) -> float:
+    min_d = 4.0
+    max_d = 63.57
+    reward = ((max_d - distance) / (max_d - min_d)) * 10 - 5
+    reward *= scale
+    reward = max(min(reward, 5), -5)
+    return reward
 
 
 def get_reward(
+    poly,
+    position_x: float,
+    position_y: float,
     distance: float,
-    max_distance: float,
-    min_distance: float,
     collision: bool,
     alpha: float,
-    distance_init: float,
     step: int,
     time_penalty: float,
     threshold: float,
-    scale_collision: float = 1.0,
-    scale_target: float = 1.0,
-    scale_orientation: float = 1.0,
-    scale_deadend: float = 1.0,
-    scale_global: float = 1.0,
-    scale_time: float = 1.0,
-    csv_file: str = "rewards.csv",
+    scale_orientation: float,
+    scale_distance: float,
+    scale_time: float,
 ) -> Tuple[float, float, float, float, bool]:
-    """
-    measurement: leituras de laser
-    distance: distância atual até o objetivo
-    collision: se houve colisão
-    alpha: ângulo até o objetivo
-    distance_init: distância no início do episódio ou step anterior
-    step: contador de steps
-    time_penalty: penalização base por tempo
-    threshold: raio para considerar que chegou no alvo
-    scale_*: fatores de escala para cada módulo
-    """
     done = False
     rew_coll_target, done_coll_target = collision_and_target_reward(
-        distance, threshold, collision, scale_collision, scale_target
+        distance, threshold, collision, position_x, position_y, poly
     )
 
     orientation_rewards = orientation_reward(alpha, scale_orientation)
 
-    progress_reward = global_progress_reward(distance_init, distance, scale_global)
-
     time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    collision_score = normalize_module(rew_coll_target, -100, 100, -1, 1)
     orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 3)  # 30%
-    progress_min = 5.0 * (distance_init - max_distance)
-    progress_max = 5.0 * (distance_init - min_distance)
-    progress_score = normalize_module(
-        progress_reward, progress_min, progress_max, -5, 5
-    )  # -5 a 5 # 50%
     time_score = normalize_module(time_reward, -2, 0, -2, 0)  # 20%
+    progress_reward = global_progress_reward(distance, scale_distance)  # 50%
 
     if done_coll_target:
-        collision_score = normalize_module(rew_coll_target, -100, 100, -1, 1)
         return rew_coll_target, 0.0, 0.0, 0.0, True
 
-    return collision_score, orientation_score, progress_score, time_score, done
+    return rew_coll_target, orientation_score, progress_reward, time_score, done
