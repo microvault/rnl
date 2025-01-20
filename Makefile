@@ -45,7 +45,7 @@ install:
 
 .PHONY: build-cuda
 build-cuda:
-	@docker build -t ninim/rnl-docker-cuda:latest .
+	@docker build -t rnl-docker-cuda .
 
 .PHONY: build-nocuda
 build-nocuda:
@@ -55,7 +55,7 @@ build-nocuda:
 
 .PHONY: train-model
 train-model:
-	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD)/rnl:/workdir/rnl ninim/rnl-docker-cuda
+	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD)/rnl:/workdir/rnl rnl-docker-cuda
 
 .PHONY: start-cuda
 start-cuda:
