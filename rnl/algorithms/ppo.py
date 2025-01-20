@@ -8,14 +8,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import wandb
 from agilerl.networks.evolvable_cnn import EvolvableCNN
 from agilerl.networks.evolvable_mlp import EvolvableMLP
 from agilerl.utils.algo_utils import chkpt_attribute_to_device, unwrap_optimizer
 from agilerl.wrappers.make_evolvable import MakeEvolvable
 from torch.distributions import Categorical, MultivariateNormal
 from torch.nn.utils import clip_grad_norm_
-
-import wandb
 
 
 class PPO:
@@ -653,9 +652,7 @@ class PPO:
 
                     entropy_loss = entropy.mean()
                     loss = (
-                        pg_loss
-                        - self.ent_coef * entropy_loss
-                        + v_loss * self.vf_coef
+                        pg_loss - self.ent_coef * entropy_loss + v_loss * self.vf_coef
                     )
 
                     # Store entropy for metrics

@@ -36,8 +36,9 @@ def angle_to_goal(x, y, theta, goal_x, goal_y):
     # Diferença entre a orientação atual e a direção do objetivo
     alpha = direction - theta
     # Normaliza pra ficar em [-π, π]
-    alpha = (alpha + np.pi) % (2*np.pi) - np.pi
+    alpha = (alpha + np.pi) % (2 * np.pi) - np.pi
     return abs(alpha)
+
 
 @njit
 def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
@@ -45,7 +46,7 @@ def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
     Retorna se há obstáculo muito próximo e o valor do laser mais próximo.
     """
     laser = np.min(measurement)
-    return (laser <= (threshold - 0.20))
+    return laser <= (threshold - 0.20)
 
 
 def collision_and_target_reward(
