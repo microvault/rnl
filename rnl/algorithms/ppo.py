@@ -759,7 +759,7 @@ class PPO:
                 frame = self.env_navigation.capture_frame()
                 frames.append(frame)
 
-        output_file = "./videos/navi_env_video.mp4"
+        output_file = "/workdir/videos/navi_env_video.mp4"
         imageio.mimsave(
             output_file,
             frames,
