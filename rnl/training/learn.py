@@ -2,7 +2,6 @@ import csv
 
 import matplotlib.pyplot as plt
 import numpy as np
-from rnl.algorithms.ppo import PPO
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.utils.probe_envs import (
@@ -11,10 +10,11 @@ from agilerl.utils.probe_envs import (
     FixedObsPolicyContActionsEnv,
     ObsDependentRewardContActionsEnv,
     PolicyContActionsEnv,
-    check_policy_on_policy_with_probe_env
+    check_policy_on_policy_with_probe_env,
 )
 from tqdm import trange
 
+from rnl.algorithms.ppo import PPO
 from rnl.configs.config import (
     EnvConfig,
     HPOConfig,
@@ -26,10 +26,7 @@ from rnl.configs.config import (
 )
 from rnl.environment.env import NaviEnv
 from rnl.training.policy import train_on_policy
-from rnl.training.utils import (
-    create_population,
-    make_vect_envs,
-)
+from rnl.training.utils import create_population, make_vect_envs
 
 
 def training(
@@ -195,7 +192,7 @@ def training(
                 "action_dim": env.action_space.shape[0],
                 "one_hot": True if env.observation_space.n > 1 else False,
                 "discrete_actions": False,
-                "lr": 0.001
+                "lr": 0.001,
             }
 
             check_policy_on_policy_with_probe_env(
@@ -451,7 +448,7 @@ def probe_envs(
     rewards = []
 
     # Ler o arquivo CSV
-    with open(csv_file, mode="r") as file:
+    with open(csv_file) as file:
         reader = csv.reader(file)
         for row in reader:
             obstacles_scores.append(float(row[0]))

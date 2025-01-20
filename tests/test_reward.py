@@ -13,7 +13,7 @@ def test_plot_reward_separated(csv_file: str = "rewards.csv", num_elements: int 
 
     # Ler o arquivo CSV
     try:
-        with open(csv_file, mode="r") as file:
+        with open(csv_file) as file:
             reader = csv.DictReader(file)
             for row in reader:
                 collision_scores.append(float(row["collision_score"]))

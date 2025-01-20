@@ -7,11 +7,11 @@ import imageio
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from rnl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 
+from rnl.algorithms.ppo import PPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
 from rnl.engine.rewards import get_reward
@@ -238,25 +238,32 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
-            get_reward(
-                lidar_measurements,
-                poly=self.poly,
-                position_x=x,
-                position_y=y,
-                distance=dist,
-                collision=collision,
-                alpha=alpha,
-                step=i,
-                time_penalty=1.0,
-                threshold=self.threshold,
-                scale_orientation=1.0,
-                scale_distance=1.0,
-                scale_time=1.0,
-            )
+        (
+            collision_score,
+            orientation_score,
+            progress_score,
+            time_score,
+            obstacle,
+            done,
+        ) = get_reward(
+            lidar_measurements,
+            poly=self.poly,
+            position_x=x,
+            position_y=y,
+            distance=dist,
+            collision=collision,
+            alpha=alpha,
+            step=i,
+            time_penalty=1.0,
+            threshold=self.threshold,
+            scale_orientation=1.0,
+            scale_distance=1.0,
+            scale_time=1.0,
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score + obstacle
+        reward = (
+            collision_score + orientation_score + progress_score + time_score + obstacle
+        )
 
         min_lidar_norm = np.min(lidar_norm)
 
@@ -359,25 +366,32 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
-            get_reward(
-                lidar_measurements,
-                poly=self.poly,
-                position_x=x,
-                position_y=y,
-                distance=dist,
-                collision=collision,
-                alpha=alpha,
-                step=self.timestep,
-                time_penalty=1.0,
-                threshold=self.threshold,
-                scale_orientation=1.0,
-                scale_distance=1.0,
-                scale_time=1.0,
-            )
+        (
+            collision_score,
+            orientation_score,
+            progress_score,
+            time_score,
+            obstacle,
+            done,
+        ) = get_reward(
+            lidar_measurements,
+            poly=self.poly,
+            position_x=x,
+            position_y=y,
+            distance=dist,
+            collision=collision,
+            alpha=alpha,
+            step=self.timestep,
+            time_penalty=1.0,
+            threshold=self.threshold,
+            scale_orientation=1.0,
+            scale_distance=1.0,
+            scale_time=1.0,
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score + obstacle
+        reward = (
+            collision_score + orientation_score + progress_score + time_score + obstacle
+        )
 
         self.last_states = states
 
