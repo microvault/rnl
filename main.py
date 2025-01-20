@@ -45,20 +45,20 @@ def main(arg):
             param_env,
             param_render,
             pretrained_model=False,
-            train_docker=False,
+            train_docker=True,
             debug=False,
-            probe=True,
+            probe=False,
         )
 
         # 6.step -> train robot
         model.learn(
-            max_timestep_global=100,
+            max_timestep_global=150000,
             gamma=0.99,
-            batch_size=64,
+            batch_size=128,
             lr=0.0001,
             num_envs=4,
             device="cpu",
-            learn_step=100,  # 2048
+            learn_step=1024,
             checkpoint=50,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=True,
@@ -84,10 +84,10 @@ def main(arg):
             min_learn_step=256,
             max_learn_step=8192,
             min_batch_size=128,
-            max_batch_size=4096,
-            evo_steps=20,  # Evolucao por steps
-            eval_steps=None,  # Avaliacao por steps
-            eval_loop=4,  # Avaliacao por loop
+            max_batch_size=1024,
+            evo_steps=10000,
+            eval_steps=None,
+            eval_loop=3,
             mutate_elite=True,
             rand_seed=42,
             activation=["ReLU", "ELU", "GELU"],

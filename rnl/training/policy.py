@@ -118,6 +118,7 @@ def train_on_policy(
     # Initialize metrics
     policy_entropies = [[] for _ in pop]
     kl_divergences = [[] for _ in pop]
+    residual_variances = [[] for _ in pop]
 
     # RL training loop
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
@@ -191,6 +192,8 @@ def train_on_policy(
                     # Store additional metrics
                     policy_entropies[agent_idx].append(metrics.get("entropy", 0))
                     kl_divergences[agent_idx].append(metrics.get("kl_div", 0))
+                    residual_variances[agent_idx].append(metrics.get("residual_var", 0))
+
 
             agent.steps[-1] += steps
             pop_episode_scores.append(completed_episode_scores)
@@ -205,7 +208,7 @@ def train_on_policy(
 
         best_agent_idx = int(np.argmax(fitnesses))
         best_agent = pop[best_agent_idx]
-        video_result = best_agent.test_with_animation(loop=1)
+        video_result = best_agent.test_with_animation()
 
         pop_fitnesses.append(fitnesses)
         mean_scores = [
@@ -224,6 +227,9 @@ def train_on_policy(
                 np.mean(ent) if len(ent) > 0 else 0 for ent in policy_entropies
             ]
             mean_kl_div = [np.mean(kl) if len(kl) > 0 else 0 for kl in kl_divergences]
+            mean_residual_variance = [
+                            np.mean(rv) if len(rv) > 0 else 0 for rv in residual_variances
+                        ]
             wandb_dict = {
                 "global_step": (total_steps),
                 "train/mean_score": np.mean(
@@ -239,6 +245,7 @@ def train_on_policy(
                 "train/mean_log_probs": np.mean(mean_log_probs),
                 "train/mean_entropy": np.mean(mean_entropies),
                 "train/mean_kl_div": np.mean(mean_kl_div),
+                "train/mean_residual_variance": np.mean(mean_residual_variance),
                 "train/video": video_result,
             }
 
@@ -255,6 +262,7 @@ def train_on_policy(
             pop_log_probs = [[] for _ in pop]
             policy_entropies = [[] for _ in pop]
             kl_divergences = [[] for _ in pop]
+            residual_variances = [[] for _ in pop]
 
         # Update step counter
         for agent in pop:
@@ -303,6 +311,9 @@ def train_on_policy(
             mean_kl_div_verbose = [
                 np.mean(kl) if len(kl) > 0 else 0 for kl in kl_divergences
             ]
+            mean_residual_variance_verbose = [
+                        np.mean(rv) if len(rv) > 0 else 0 for rv in residual_variances
+                    ]
             pbar.update(0)
 
             # Formatar os valores para melhor visualização
@@ -310,6 +321,9 @@ def train_on_policy(
             mean_log_probs_formatted = [f"{mlp:.4f}" for mlp in mean_log_probs_verbose]
             mean_entropies_formatted = [f"{me:.4f}" for me in mean_entropies_verbose]
             mean_kl_div_formatted = [f"{mkld:.4f}" for mkld in mean_kl_div_verbose]
+            mean_residual_variance_formatted = [
+                        f"{mrv:.4f}" for mrv in mean_residual_variance_verbose
+                    ]
 
             print(
                 f"""
@@ -325,6 +339,7 @@ def train_on_policy(
                 Mean Log Probs:\t{mean_log_probs_formatted}
                 Mean Entropy:\t\t{mean_entropies_formatted}
                 Mean KL Div:\t\t{mean_kl_div_formatted}
+                Mean Residual Var:\t{mean_residual_variance_formatted}
                 """,
                 end="\r",
             )
@@ -335,6 +350,7 @@ def train_on_policy(
             pop_log_probs = [[] for _ in pop]
             policy_entropies = [[] for _ in pop]
             kl_divergences = [[] for _ in pop]
+            residual_variances = [[] for _ in pop]
 
         # Save model checkpoint
         if checkpoint is not None:

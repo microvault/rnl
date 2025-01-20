@@ -2,7 +2,6 @@ import csv
 
 import matplotlib.pyplot as plt
 import numpy as np
-# from agilerl.algorithms.ppo import PPO
 from rnl.algorithms.ppo import PPO
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
@@ -183,10 +182,10 @@ def training(
     if probe:
         print("Probing environments")
         cont_vector_envs = [
-            # (ConstantRewardContActionsEnv(), 1000),
-            # (ObsDependentRewardContActionsEnv(), 1000),
-            # (DiscountedRewardContActionsEnv(), 5000),
-            # (FixedObsPolicyContActionsEnv(), 3000),
+            (ConstantRewardContActionsEnv(), 1000),
+            (ObsDependentRewardContActionsEnv(), 1000),
+            (DiscountedRewardContActionsEnv(), 5000),
+            (FixedObsPolicyContActionsEnv(), 3000),
             (PolicyContActionsEnv(), 3000),
         ]
 
@@ -200,7 +199,7 @@ def training(
             }
 
             check_policy_on_policy_with_probe_env(
-                env, PPO, algo_args,learn_steps, device="cpu"
+                env, PPO, algo_args, learn_steps, device="cpu"
             )
 
     if train_docker:

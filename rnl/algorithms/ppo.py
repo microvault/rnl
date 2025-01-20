@@ -362,19 +362,25 @@ class PPO:
             self.critic = self.critic.to(self.device)
 
     def prepare_state(self, state):
-        """Prepares state for forward pass through neural network.
-
-        :param state: Observation of environment
-        :type state: np.Array() or list
-        """
+        """Prepares state for forward pass through neural network."""
+        # Se já for tensor, não faz nada
         if not isinstance(state, torch.Tensor):
+            # Se for int ou float, converte pra array de um elemento
+            if isinstance(state, (int, float)):
+                state = np.array([state], dtype=np.float32)
+            # Se ainda não for array, converte
+            elif not isinstance(state, np.ndarray):
+                state = np.array(state, dtype=np.float32)
+            # Transforma em tensor
             state = torch.from_numpy(state).float()
 
+        # Move pro device
         if self.accelerator is None:
             state = state.to(self.device)
         else:
             state = state.to(self.accelerator.device)
 
+        # One-hot se necessário
         if self.one_hot:
             state = (
                 nn.functional.one_hot(state.long(), num_classes=self.state_dim[0])
@@ -382,6 +388,7 @@ class PPO:
                 .squeeze()
             )
 
+        # Ajusta dimensão conforme arquitetura
         if (self.arch == "mlp" and len(state.size()) < 2) or (
             self.arch == "cnn" and len(state.size()) < 4
         ):
@@ -735,7 +742,7 @@ class PPO:
         self.fitness.append(mean_fit)
         return mean_fit
 
-    def test_with_animation(self, loop=3):
+    def test_with_animation(self):
         """
         Usa a rede para escolher ações e depois gera o vídeo via env.render().
         """
