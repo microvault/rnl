@@ -13,10 +13,11 @@ WORKDIR /workdir
 ENV PYTHONPATH=/workdir
 
 COPY rnl ./rnl
+COPY main.py ./
 COPY requirements.txt ./
 COPY pyproject.toml poetry.lock ./
 
 RUN pip install agilerl --progress-bar off
 RUN pip install -r requirements.txt --progress-bar off
 
-CMD ["bash", "-c", "rnl/benchmarks/train_with_turtlebot.py"]
+CMD ["bash", "-c", "python main.py"]
