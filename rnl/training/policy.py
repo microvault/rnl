@@ -227,11 +227,7 @@ def train_on_policy(
                 np.mean(ent) if len(ent) > 0 else 0 for ent in policy_entropies
             ]
             mean_kl_div = [np.mean(kl) if len(kl) > 0 else 0 for kl in kl_divergences]
-            mean_residual_variance = [
-                            np.mean(rv) if len(rv) > 0 else 0 for rv in residual_variances
-                        ]
             wandb_dict = {
-                "global_step": (total_steps),
                 "train/mean_score": np.mean(
                     [
                         mean_score
@@ -245,12 +241,11 @@ def train_on_policy(
                 "train/mean_log_probs": np.mean(mean_log_probs),
                 "train/mean_entropy": np.mean(mean_entropies),
                 "train/mean_kl_div": np.mean(mean_kl_div),
-                "train/mean_residual_variance": np.mean(mean_residual_variance),
                 "train/video": video_result,
             }
 
             agent_loss_dict = {
-                f"train/agent_{index}_loss": np.mean(loss_[-10:])
+                f"agents/agent_{index}_loss": np.mean(loss_[-10:])
                 for index, loss_ in enumerate(pop_loss)
             }
             wandb_dict.update(agent_loss_dict)
@@ -301,21 +296,7 @@ def train_on_policy(
             agents = [agent.index for agent in pop]
             num_steps = [agent.steps[-1] for agent in pop]
             muts = [agent.mut for agent in pop]
-            mean_values_verbose = [np.mean(v) if len(v) > 0 else 0 for v in pop_values]
-            mean_log_probs_verbose = [
-                np.mean(lp) if len(lp) > 0 else 0 for lp in pop_log_probs
-            ]
-            mean_entropies_verbose = [
-                np.mean(ent) if len(ent) > 0 else 0 for ent in policy_entropies
-            ]
-            mean_kl_div_verbose = [
-                np.mean(kl) if len(kl) > 0 else 0 for kl in kl_divergences
-            ]
-            mean_residual_variance_verbose = [
-                        np.mean(rv) if len(rv) > 0 else 0 for rv in residual_variances
-                    ]
             pbar.update(0)
-
 
             print(
                 f"""
@@ -327,11 +308,6 @@ def train_on_policy(
                 Agents:\t\t{agents}
                 Steps:\t\t{num_steps}
                 Mutations:\t\t{muts}
-                Mean Values:\t\t{mean_values_verbose}
-                Mean Log Probs:\t{mean_log_probs_verbose}
-                Mean Entropy:\t\t{mean_entropies_verbose}
-                Mean KL Div:\t\t{mean_kl_div_verbose}
-                Mean Residual Var:\t{mean_residual_variance_verbose}
                 """,
                 end="\r",
             )

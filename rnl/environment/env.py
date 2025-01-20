@@ -7,7 +7,6 @@ import imageio
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-# from agilerl.algorithms.ppo import PPO
 from rnl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
@@ -64,8 +63,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 63.57
-        self.min_dist = 2.0
+        self.max_dist = 62.06
+        self.min_dist = 4.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         max_alpha, min_alpha = 3.15, 0.0
@@ -239,8 +238,9 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, done = (
+        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
             get_reward(
+                lidar_measurements,
                 poly=self.poly,
                 position_x=x,
                 position_y=y,
@@ -256,8 +256,7 @@ class NaviEnv(gym.Env):
             )
         )
 
-        # reward = collision_score + orientation_score + progress_score + time_score
-        reward = collision_score + time_score
+        reward = collision_score + orientation_score + progress_score + time_score + obstacle
 
         min_lidar_norm = np.min(lidar_norm)
 
@@ -283,6 +282,7 @@ class NaviEnv(gym.Env):
 
         if self.debug and not test:
             self.log_reward(
+                obstacle,
                 collision_score,
                 orientation_score,
                 progress_score,
@@ -359,8 +359,9 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, done = (
+        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
             get_reward(
+                lidar_measurements,
                 poly=self.poly,
                 position_x=x,
                 position_y=y,
@@ -368,7 +369,7 @@ class NaviEnv(gym.Env):
                 collision=collision,
                 alpha=alpha,
                 step=self.timestep,
-                time_penalty=2.0,
+                time_penalty=1.0,
                 threshold=self.threshold,
                 scale_orientation=1.0,
                 scale_distance=1.0,
@@ -376,8 +377,7 @@ class NaviEnv(gym.Env):
             )
         )
 
-        # reward = collision_score + orientation_score + progress_score + time_score
-        reward = collision_score + time_score
+        reward = collision_score + orientation_score + progress_score + time_score + obstacle
 
         self.last_states = states
 
@@ -385,6 +385,7 @@ class NaviEnv(gym.Env):
 
         if self.debug:
             self.log_reward_csv(
+                obstacle,
                 collision_score,
                 orientation_score,
                 progress_score,
@@ -423,7 +424,7 @@ class NaviEnv(gym.Env):
             poly=self.poly,
             robot_clearance=self.threshold,
             goal_clearance=self.collision,
-            min_robot_goal_dist=2.0,
+            min_robot_goal_dist=4.0,
         )
 
         self.target_x, self.target_y = goal_pos[0], goal_pos[1]
@@ -682,6 +683,7 @@ class NaviEnv(gym.Env):
 
     def log_reward_csv(
         self,
+        obstacles_score: float,
         collision_score: float,
         orientation_score: float,
         progress_score: float,
@@ -689,22 +691,11 @@ class NaviEnv(gym.Env):
         reward: float,
         action: int,
     ):
-        file_exists = os.path.isfile("debugging.csv")
-        with open("debugging.csv", mode="a", newline="") as file:
+        with open("./data/debugging.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
-            if not file_exists:
-                writer.writerow(
-                    [
-                        "collision_score",
-                        "orientation_score",
-                        "progress_score",
-                        "time_score",
-                        "reward",
-                        "action",
-                    ]
-                )
             writer.writerow(
                 [
+                    obstacles_score,
                     collision_score,
                     orientation_score,
                     progress_score,
@@ -716,6 +707,7 @@ class NaviEnv(gym.Env):
 
     def log_reward(
         self,
+        obstacle_score: float,
         collision_score: float,
         orientation_score: float,
         progress_score: float,
@@ -723,6 +715,7 @@ class NaviEnv(gym.Env):
         reward: float,
     ):
         # Append the new scores to the lists
+        self.obstacle_scores.append(obstacle_score)
         self.collision_scores.append(collision_score)
         self.orientation_scores.append(orientation_score)
         self.progress_scores.append(progress_score)
@@ -733,6 +726,7 @@ class NaviEnv(gym.Env):
         current_step = len(self.rewards)
 
         # Update the data of each line
+        self.obstacle_line.set_data(range(current_step), self.obstacle_scores)
         self.collision_line.set_data(range(current_step), self.collision_scores)
         self.orientation_line.set_data(range(current_step), self.orientation_scores)
         self.progress_line.set_data(range(current_step), self.progress_scores)
@@ -745,7 +739,8 @@ class NaviEnv(gym.Env):
 
         # Optionally, adjust the y-axis based on data
         all_rewards = (
-            self.collision_scores
+            self.obstacle_scores
+            + self.collision_scores
             + self.orientation_scores
             + self.progress_scores
             + self.time_scores
@@ -767,6 +762,7 @@ class NaviEnv(gym.Env):
         self.reward_ax.set_ylabel("Reward")
 
         # Initialize lists to store rewards
+        self.obstacle_scores = []
         self.collision_scores = []
         self.orientation_scores = []
         self.progress_scores = []
@@ -774,6 +770,7 @@ class NaviEnv(gym.Env):
         self.rewards = []
 
         # Initialize lines for each reward component
+        (self.obstacle_line,) = self.reward_ax.plot([], [], label="Obstacle Score")
         (self.collision_line,) = self.reward_ax.plot([], [], label="Collision Score")
         (self.orientation_line,) = self.reward_ax.plot(
             [], [], label="Orientation Score"
@@ -788,5 +785,4 @@ class NaviEnv(gym.Env):
         self.reward_ax.set_xlim(0, 100)  # Adjust based on expected number of steps
         self.reward_ax.set_ylim(-10, 10)  # Adjust based on expected reward ranges
 
-        # Optional: Improve layout
         self.reward_fig.tight_layout()

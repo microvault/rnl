@@ -443,6 +443,7 @@ def probe_envs(
 
     env.close()
 
+    obstacles_scores = []
     collision_scores = []
     orientation_scores = []
     progress_scores = []
@@ -450,32 +451,22 @@ def probe_envs(
     rewards = []
 
     # Ler o arquivo CSV
-    try:
-        with open(csv_file, mode="r") as file:
-            reader = csv.DictReader(file)
-            for row in reader:
-                collision_scores.append(float(row["collision_score"]))
-                orientation_scores.append(float(row["orientation_score"]))
-                progress_scores.append(float(row["progress_score"]))
-                time_scores.append(float(row["time_score"]))
-                rewards.append(float(row["reward"]))
-
-    except FileNotFoundError:
-        print(f"O arquivo {csv_file} não foi encontrado.")
-        return
-    except Exception as e:
-        print(f"Ocorreu um erro ao ler o arquivo CSV: {e}")
-        return
-
-    if not collision_scores:
-        print("Nenhum dado encontrado no arquivo CSV.")
-        return
+    with open(csv_file, mode="r") as file:
+        reader = csv.reader(file)
+        for row in reader:
+            obstacles_scores.append(float(row[0]))
+            collision_scores.append(float(row[1]))
+            orientation_scores.append(float(row[2]))
+            progress_scores.append(float(row[3]))
+            time_scores.append(float(row[4]))
+            rewards.append(float(row[5]))
 
     # Gerar o eixo X como o índice das linhas
     steps = list(range(1, len(rewards) + 1))
 
     # Definir uma lista de componentes para facilitar a iteração
     components = [
+        ("Obstacles Score", obstacles_scores, "brown"),
         ("Collision Score", collision_scores, "red"),
         ("Orientation Score", orientation_scores, "green"),
         ("Progress Score", progress_scores, "blue"),

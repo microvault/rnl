@@ -42,7 +42,7 @@ def test_spawn_robot_and_goal(poly, request):
             poly=poly,
             robot_clearance=4.0,
             goal_clearance=2.0,
-            min_robot_goal_dist=2.0,
+            min_robot_goal_dist=4.0,
         )
 
         # Verificar se o objetivo está dentro do polígono

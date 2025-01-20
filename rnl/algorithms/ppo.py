@@ -674,30 +674,18 @@ class PPO:
 
         mean_loss /= num_samples * self.update_epochs
 
-        # Variação residual
-        residual = returns - values
-        residual_var = residual.var(unbiased=False).item()
-        target_var = returns.var(unbiased=False).item()
-
-        if target_var < 1e-8:
-            residual_variance_ratio = 0.0
-        else:
-            residual_variance_ratio = residual_var / target_var
-
         # Cálculo da entropia relativa (se for discreto e soubermos a dimensão de ação)
         mean_entropy = np.mean(entropies) if entropies else 0
         if self.discrete_actions and self.action_dim > 0:
             max_entropy = np.log(self.action_dim)  # entropia máx. em dist. categórica
             entropy_relative = mean_entropy / max_entropy
         else:
-            # se for continuo ou nao der pra calcular entropia max, deixa sem normalizar
             entropy_relative = mean_entropy
 
         metrics = {
             "entropy": mean_entropy,
             "entropy_relative": entropy_relative,
             "kl_div": np.mean(kl_divs) if kl_divs else 0,
-            "residual_variance": residual_variance_ratio,
         }
 
         return mean_loss, metrics
@@ -759,7 +747,7 @@ class PPO:
                 frame = self.env_navigation.capture_frame()
                 frames.append(frame)
 
-        output_file = "/workdir/videos/navi_env_video.mp4"
+        output_file = "./videos/navi_env_video.mp4"
         imageio.mimsave(
             output_file,
             frames,

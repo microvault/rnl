@@ -40,23 +40,12 @@ def angle_to_goal(x, y, theta, goal_x, goal_y):
     return abs(alpha)
 
 @njit
-def r3(x: float, threshold) -> float:
-    """
-    Penaliza quando o obstáculo está a menos de 0.3m.
-    """
-    if x < threshold:
-        return 1.0 - x
-    else:
-        return 0.0
-
-
-@njit
 def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
     """
     Retorna se há obstáculo muito próximo e o valor do laser mais próximo.
     """
     laser = np.min(measurement)
-    return (laser <= (threshold - 0.20)), laser
+    return (laser <= (threshold - 0.20))
 
 
 def collision_and_target_reward(
@@ -105,14 +94,15 @@ def time_and_collision_reward(
 @njit
 def global_progress_reward(distance: float, scale: float) -> float:
     min_d = 4.0
-    max_d = 63.57
+    max_d = 62.06
     reward = ((max_d - distance) / (max_d - min_d)) * 10 - 5
     reward *= scale
-    reward = max(min(reward, 5), -5)
+    reward = max(min(reward, 0), -5)
     return reward
 
 
 def get_reward(
+    measurement,
     poly,
     position_x: float,
     position_y: float,
@@ -125,7 +115,7 @@ def get_reward(
     scale_orientation: float,
     scale_distance: float,
     scale_time: float,
-) -> Tuple[float, float, float, float, bool]:
+) -> Tuple[float, float, float, float, float, bool]:
     done = False
     rew_coll_target, done_coll_target = collision_and_target_reward(
         distance, threshold, collision, position_x, position_y, poly
@@ -133,12 +123,23 @@ def get_reward(
 
     time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    # orientation_rewards = orientation_reward(alpha, scale_orientation)
-    # orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 3)  # 30%
+    orientation_rewards = orientation_reward(alpha, scale_orientation)
+    orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
+
+    obstacle = r3(min(measurement))
+
     # time_score = normalize_module(time_reward, -1, 0, -1, 0)  # 20%
     # progress_reward = global_progress_reward(distance, scale_distance)  # 50%
 
     if done_coll_target:
-        return rew_coll_target, 0.0, 0.0, 0.0, True
+        return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
 
-    return rew_coll_target, 0.0, 0.0, time_reward, done
+    return rew_coll_target, orientation_score, 0.0, time_reward, obstacle, done
+
+
+@njit
+def r3(x: float) -> float:
+    if x < 4.0:
+        return 1.0 - x
+    else:
+        return 0.0

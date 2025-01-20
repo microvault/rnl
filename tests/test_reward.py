@@ -89,4 +89,4 @@ def test_plot_reward_separated(csv_file: str = "rewards.csv", num_elements: int 
 
 
 # Chamada da função com o caminho do arquivo CSV
-test_plot_reward_separated(csv_file="/Users/nicolasalan/microvault/rnl/debugging.csv")
+test_plot_reward_separated(csv_file="./data/debugging.csv")

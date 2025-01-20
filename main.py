@@ -29,7 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="/workdir/data/map4", # /workdir/data/map4
+        folder_map="./data/map4", # /workdir/data/map4
         name_map="map4",
         max_timestep=1000,
     )
@@ -54,12 +54,12 @@ def main(arg):
         model.learn(
             max_timestep_global=1000000,
             gamma=0.99,
-            batch_size=1024,
+            batch_size=128,
             lr=0.0001,
             num_envs=25,
             device="cuda",
             learn_step=256,
-            checkpoint=1000,
+            checkpoint=100000,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
             use_mutation=True,
@@ -83,8 +83,8 @@ def main(arg):
             max_lr=0.01,
             min_learn_step=256,
             max_learn_step=8192,
-            min_batch_size=1024,
-            max_batch_size=2048,
+            min_batch_size=128,
+            max_batch_size=1024,
             evo_steps=10000,
             eval_steps=None,
             eval_loop=3,
@@ -116,8 +116,8 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            csv_file="/Users/nicolasalan/microvault/rnl/debugging.csv",
-            num_envs=20,
+            csv_file="./data/debugging.csv",
+            num_envs=25,
             max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,
