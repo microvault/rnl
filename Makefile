@@ -45,7 +45,7 @@ install:
 
 .PHONY: build-cuda
 build-cuda:
-	@sudo docker build -t rnl-docker-cuda:$(VERSION) .
+	@docker build -t rnl-docker-cuda:$(VERSION) .
 
 .PHONY: build-nocuda
 build-nocuda:
