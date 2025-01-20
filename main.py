@@ -29,7 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="/workdir/data/map4",
+        folder_map="/workdir/data/map4", # /workdir/data/map4
         name_map="map4",
         max_timestep=1000,
     )
@@ -52,14 +52,14 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            max_timestep_global=150000,
+            max_timestep_global=1000000,
             gamma=0.99,
-            batch_size=128,
+            batch_size=1024,
             lr=0.0001,
-            num_envs=25,
+            num_envs=50,
             device="cuda",
-            learn_step=1024,
-            checkpoint=50,
+            learn_step=256,
+            checkpoint=1000,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
             use_mutation=True,
@@ -81,10 +81,10 @@ def main(arg):
             wandb_api_key=str(wandb_key),
             min_lr=0.0001,
             max_lr=0.01,
-            min_learn_step=1024,
+            min_learn_step=256,
             max_learn_step=8192,
-            min_batch_size=128,
-            max_batch_size=1024,
+            min_batch_size=1024,
+            max_batch_size=2048,
             evo_steps=10000,
             eval_steps=None,
             eval_loop=3,
@@ -95,7 +95,7 @@ def main(arg):
             mlp_output_activation="ReLU",
             min_hidden_layers=1,
             max_hidden_layers=4,
-            min_mlp_nodes=16,
+            min_mlp_nodes=32,
             max_mlp_nodes=256,
             gae_lambda=0.95,
             action_std_init=0.6,

@@ -7,7 +7,8 @@ import imageio
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from agilerl.algorithms.ppo import PPO
+# from agilerl.algorithms.ppo import PPO
+from rnl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
@@ -182,6 +183,7 @@ class NaviEnv(gym.Env):
             if self.pretrained_model or not self.controller:
                 if self.pretrained_model:
                     self.action = int(self.ppo.get_action(self.last_states)[0])
+                    print("Action: ", self.action)
                 else:
                     self.action = np.random.randint(0, 3)
 
@@ -246,7 +248,7 @@ class NaviEnv(gym.Env):
                 collision=collision,
                 alpha=alpha,
                 step=i,
-                time_penalty=2.0,
+                time_penalty=1.0,
                 threshold=self.threshold,
                 scale_orientation=1.0,
                 scale_distance=1.0,
@@ -254,7 +256,8 @@ class NaviEnv(gym.Env):
             )
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score
+        # reward = collision_score + orientation_score + progress_score + time_score
+        reward = collision_score + time_score
 
         min_lidar_norm = np.min(lidar_norm)
 
@@ -373,7 +376,8 @@ class NaviEnv(gym.Env):
             )
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score
+        # reward = collision_score + orientation_score + progress_score + time_score
+        reward = collision_score + time_score
 
         self.last_states = states
 

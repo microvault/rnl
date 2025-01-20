@@ -75,8 +75,8 @@ def train_on_policy(
         wandb.init(
             # set the wandb project where this run will be logged
             project="rnl",
-            name="{}-rnl-{}-{}".format(
-                env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+            name="rnl-{}".format(
+                datetime.now().strftime("%m%d%Y%H%M%S")
             ),
             # track hyperparameters and run metadata
             config=config_dict,
@@ -87,8 +87,8 @@ def train_on_policy(
     save_path = (
         checkpoint_path.split(".pt")[0]
         if checkpoint_path is not None
-        else "{}-rnl-{}-{}".format(
-            env_name, algo, datetime.now().strftime("%m%d%Y%H%M%S")
+        else "rnl-{}".format(
+            datetime.now().strftime("%m%d%Y%H%M%S")
         )
     )
 
@@ -316,14 +316,6 @@ def train_on_policy(
                     ]
             pbar.update(0)
 
-            # Formatar os valores para melhor visualização
-            mean_values_formatted = [f"{mv:.4f}" for mv in mean_values_verbose]
-            mean_log_probs_formatted = [f"{mlp:.4f}" for mlp in mean_log_probs_verbose]
-            mean_entropies_formatted = [f"{me:.4f}" for me in mean_entropies_verbose]
-            mean_kl_div_formatted = [f"{mkld:.4f}" for mkld in mean_kl_div_verbose]
-            mean_residual_variance_formatted = [
-                        f"{mrv:.4f}" for mrv in mean_residual_variance_verbose
-                    ]
 
             print(
                 f"""
@@ -335,11 +327,11 @@ def train_on_policy(
                 Agents:\t\t{agents}
                 Steps:\t\t{num_steps}
                 Mutations:\t\t{muts}
-                Mean Values:\t\t{mean_values_formatted}
-                Mean Log Probs:\t{mean_log_probs_formatted}
-                Mean Entropy:\t\t{mean_entropies_formatted}
-                Mean KL Div:\t\t{mean_kl_div_formatted}
-                Mean Residual Var:\t{mean_residual_variance_formatted}
+                Mean Values:\t\t{mean_values_verbose}
+                Mean Log Probs:\t{mean_log_probs_verbose}
+                Mean Entropy:\t\t{mean_entropies_verbose}
+                Mean KL Div:\t\t{mean_kl_div_verbose}
+                Mean Residual Var:\t{mean_residual_variance_verbose}
                 """,
                 end="\r",
             )
