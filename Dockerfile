@@ -8,6 +8,7 @@ WORKDIR /workdir
 ENV PYTHONPATH=/workdir
 
 COPY rnl ./rnl
+COPY data ./data
 COPY main.py ./
 COPY requirements.txt ./
 COPY pyproject.toml poetry.lock ./

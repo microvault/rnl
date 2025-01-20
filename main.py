@@ -29,7 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="/Users/nicolasalan/microvault/rnl/data/map4",
+        folder_map="/workdir/data/map4",
         name_map="map4",
         max_timestep=1000,
     )
