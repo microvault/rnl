@@ -43,36 +43,17 @@ install_with_dev:
 install:
 	@poetry install --without dev
 
-.PHONY: build-cuda
+.PHONY: build
 build-cuda:
 	@docker build -t rnl-docker-cuda .
 
-.PHONY: build-nocuda
-build-nocuda:
-	@sudo docker build \
-		--platform=linux/arm64 \
-		-t rnl-docker-nocuda .
-
-.PHONY: train-model
-train-model:
-	@docker run -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g --cpus=8 -it -v $(PWD)/rnl:/workdir/rnl rnl-docker-cuda
-
-.PHONY: start-cuda
-start-cuda:
-	@sudo docker run --platform=linux/arm64 -it --net=host -v $(PWD)/rnl:/workdir rnl-docker-nocuda
+.PHONY: train
+train:
+	@docker run -d -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g -it -v $(PWD):/workdir rnl-docker-cuda
 
 .PHONY: clean
 clean:
 	@sudo docker image prune -f
-
-.PHONY: run
-run:
-	@poetry run python rnl/benchmarks/train_with_turtlebot.py
-
-.PHONY: run-gpu
-run-gpu:
-	@accelerate launch --config_file rnl/benchmarks/accelerate.yaml rnl/benchmarks/train_with_acc.py
-
 
 .PHONY: push
 push:
