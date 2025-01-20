@@ -772,3 +772,4 @@ data/json
 checkpoints/
 NOTES.txt
 videos/
+data/debugging.csv
