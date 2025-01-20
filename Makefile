@@ -44,7 +44,7 @@ install:
 	@poetry install --without dev
 
 .PHONY: build
-build-cuda:
+build:
 	@docker build -t rnl-docker-cuda .
 
 .PHONY: train
