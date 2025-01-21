@@ -52,18 +52,18 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            max_timestep_global=1000000,
+            max_timestep_global=10000000,
             gamma=0.99,
             batch_size=1024,
             lr=0.0001,
-            num_envs=50,
+            num_envs=100,
             device="cuda",
             learn_step=1024,
             checkpoint=100000,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
             use_mutation=True,
-            population_size=5,
+            population_size=10,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
