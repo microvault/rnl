@@ -121,7 +121,6 @@ def training(
         use_render=True,
     )
 
-
     print()
     if probe:
         print("Probing environments")
@@ -146,106 +145,91 @@ def training(
                 env, PPO, algo_args, learn_steps, device="cpu"
             )
 
-    if hpo_config.no_mutation:
-        agent = PPO(state_dim=state_dim, action_dim=action_dim, one_hot=False, discrete_actions=discrete_actions)   # Create PPO agent
+    pop = create_population(
+        env_navigation=env_navigation,
+        algo="PPO",
+        state_dim=state_dim,
+        action_dim=action_dim,
+        one_hot=False,
+        net_config=NET_CONFIG,
+        INIT_HP=HYPERPARAM,
+        population_size=hpo_config.population_size,
+        num_envs=num_envs,
+        device=trainer_config.device,
+    )
 
-        config_dict = {
-            "Trainer Config": trainer_config.__dict__,
-            "Network Config": network_config.__dict__,
-        }
+    tournament = TournamentSelection(
+        tournament_size=hpo_config.tourn_size,
+        elitism=hpo_config.elitism,
+        population_size=hpo_config.population_size,
+        eval_loop=hpo_config.eval_loop,
+    )
 
-        for config_name, config_values in config_dict.items():
-            print(f"\n#------ {config_name} ----#")
-            max_key_length = max(len(key) for key in config_values.keys())
-            for key, value in config_values.items():
-                print(f"{key.ljust(max_key_length)} : {value}")
+    mutations = Mutations(
+        algo="PPO",
+        no_mutation=hpo_config.no_mutation,
+        architecture=hpo_config.arch_mutation,
+        new_layer_prob=hpo_config.new_layer,
+        parameters=hpo_config.param_mutation,
+        activation=hpo_config.active_mutation,
+        rl_hp=hpo_config.hp_mutation,
+        rl_hp_selection=hpo_config.hp_mutation_selection,
+        mutation_sd=hpo_config.mutation_strength,
+        activation_selection=hpo_config.activation,
+        min_lr=hpo_config.min_lr,
+        max_lr=hpo_config.max_lr,
+        min_learn_step=hpo_config.min_learn_step,
+        max_learn_step=hpo_config.max_learn_step,
+        min_batch_size=hpo_config.min_batch_size,
+        max_batch_size=hpo_config.max_batch_size,
+        agent_ids=None,
+        mutate_elite=hpo_config.mutate_elite,
+        arch="mlp",
+        rand_seed=hpo_config.rand_seed,
+        device=trainer_config.device,
+        accelerator=None,
+    )
 
-    else:
-        pop = create_population(
-            env_navigation=env_navigation,
+    config_dict = {
+        "Trainer Config": trainer_config.__dict__,
+        "HPO Config": hpo_config.__dict__,
+        "Network Config": network_config.__dict__,
+    }
+
+    for config_name, config_values in config_dict.items():
+        print(f"\n#------ {config_name} ----#")
+        max_key_length = max(len(key) for key in config_values.keys())
+        for key, value in config_values.items():
+            print(f"{key.ljust(max_key_length)} : {value}")
+
+
+    if train_docker:
+        print("Training in Docker")
+        trained_pop, pop_fitnesses = train_on_policy(
+            env=env,
+            env_name="rnl",
             algo="PPO",
-            state_dim=state_dim,
-            action_dim=action_dim,
-            one_hot=False,
-            net_config=NET_CONFIG,
+            pop=pop,
             INIT_HP=HYPERPARAM,
-            population_size=hpo_config.population_size,
-            num_envs=num_envs,
-            device=trainer_config.device,
-        )
-
-        tournament = TournamentSelection(
-            tournament_size=hpo_config.tourn_size,
-            elitism=hpo_config.elitism,
-            population_size=hpo_config.population_size,
-            eval_loop=hpo_config.eval_loop,
-        )
-
-        mutations = Mutations(
-            algo="PPO",
-            no_mutation=hpo_config.no_mutation,
-            architecture=hpo_config.arch_mutation,
-            new_layer_prob=hpo_config.new_layer,
-            parameters=hpo_config.param_mutation,
-            activation=hpo_config.active_mutation,
-            rl_hp=hpo_config.hp_mutation,
-            rl_hp_selection=hpo_config.hp_mutation_selection,
-            mutation_sd=hpo_config.mutation_strength,
-            activation_selection=hpo_config.activation,
-            min_lr=hpo_config.min_lr,
-            max_lr=hpo_config.max_lr,
-            min_learn_step=hpo_config.min_learn_step,
-            max_learn_step=hpo_config.max_learn_step,
-            min_batch_size=hpo_config.min_batch_size,
-            max_batch_size=hpo_config.max_batch_size,
-            agent_ids=None,
-            mutate_elite=hpo_config.mutate_elite,
-            arch="mlp",
-            rand_seed=hpo_config.rand_seed,
-            device=trainer_config.device,
+            MUT_P=MUTATION_PARAMS,
+            swap_channels=False,
+            max_steps=max_steps,
+            evo_steps=evo_steps,
+            eval_steps=eval_steps,
+            eval_loop=eval_loop,
+            target=None,
+            tournament=tournament,
+            mutation=mutations,
+            checkpoint=trainer_config.checkpoint,
+            checkpoint_path=trainer_config.checkpoint_path,
+            overwrite_checkpoints=trainer_config.overwrite_checkpoints,
+            save_elite=hpo_config.save_elite,
+            elite_path=hpo_config.elite_path,
+            wb=trainer_config.use_wandb,
+            verbose=True,
             accelerator=None,
+            wandb_api_key=trainer_config.wandb_api_key,
         )
-
-        config_dict = {
-            "Trainer Config": trainer_config.__dict__,
-            "HPO Config": hpo_config.__dict__,
-            "Network Config": network_config.__dict__,
-        }
-
-        for config_name, config_values in config_dict.items():
-            print(f"\n#------ {config_name} ----#")
-            max_key_length = max(len(key) for key in config_values.keys())
-            for key, value in config_values.items():
-                print(f"{key.ljust(max_key_length)} : {value}")
-
-
-        if train_docker:
-            print("Training in Docker")
-            trained_pop, pop_fitnesses = train_on_policy(
-                env=env,
-                env_name="rnl",
-                algo="PPO",
-                pop=pop,
-                INIT_HP=HYPERPARAM,
-                MUT_P=MUTATION_PARAMS,
-                swap_channels=False,
-                max_steps=max_steps,
-                evo_steps=evo_steps,
-                eval_steps=eval_steps,
-                eval_loop=eval_loop,
-                target=None,
-                tournament=tournament,
-                mutation=mutations,
-                checkpoint=trainer_config.checkpoint,
-                checkpoint_path=trainer_config.checkpoint_path,
-                overwrite_checkpoints=trainer_config.overwrite_checkpoints,
-                save_elite=hpo_config.save_elite,
-                elite_path=hpo_config.elite_path,
-                wb=trainer_config.use_wandb,
-                verbose=True,
-                accelerator=None,
-                wandb_api_key=trainer_config.wandb_api_key,
-            )
 
 def inference(
     robot_config: RobotConfig,
