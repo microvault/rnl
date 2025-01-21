@@ -1,3 +1,4 @@
+from tkinter.constants import NO
 import csv
 
 import matplotlib.pyplot as plt
@@ -120,62 +121,6 @@ def training(
         use_render=True,
     )
 
-    pop = create_population(
-        env_navigation=env_navigation,
-        algo="PPO",
-        state_dim=state_dim,
-        action_dim=action_dim,
-        one_hot=False,
-        net_config=NET_CONFIG,
-        INIT_HP=HYPERPARAM,
-        population_size=hpo_config.population_size,
-        num_envs=num_envs,
-        device=trainer_config.device,
-    )
-
-    tournament = TournamentSelection(
-        tournament_size=hpo_config.tourn_size,
-        elitism=hpo_config.elitism,
-        population_size=hpo_config.population_size,
-        eval_loop=hpo_config.eval_loop,
-    )
-
-    mutations = Mutations(
-        algo="PPO",
-        no_mutation=hpo_config.no_mutation,
-        architecture=hpo_config.arch_mutation,
-        new_layer_prob=hpo_config.new_layer,
-        parameters=hpo_config.param_mutation,
-        activation=hpo_config.active_mutation,
-        rl_hp=hpo_config.hp_mutation,
-        rl_hp_selection=hpo_config.hp_mutation_selection,
-        mutation_sd=hpo_config.mutation_strength,
-        activation_selection=hpo_config.activation,
-        min_lr=hpo_config.min_lr,
-        max_lr=hpo_config.max_lr,
-        min_learn_step=hpo_config.min_learn_step,
-        max_learn_step=hpo_config.max_learn_step,
-        min_batch_size=hpo_config.min_batch_size,
-        max_batch_size=hpo_config.max_batch_size,
-        agent_ids=None,
-        mutate_elite=hpo_config.mutate_elite,
-        arch="mlp",
-        rand_seed=hpo_config.rand_seed,
-        device=trainer_config.device,
-        accelerator=None,
-    )
-
-    config_dict = {
-        "Trainer Config": trainer_config.__dict__,
-        "HPO Config": hpo_config.__dict__,
-        "Network Config": network_config.__dict__,
-    }
-
-    for config_name, config_values in config_dict.items():
-        print(f"\n#------ {config_name} ----#")
-        max_key_length = max(len(key) for key in config_values.keys())
-        for key, value in config_values.items():
-            print(f"{key.ljust(max_key_length)} : {value}")
 
     print()
     if probe:
@@ -201,140 +146,106 @@ def training(
                 env, PPO, algo_args, learn_steps, device="cpu"
             )
 
-    if train_docker:
-        print("Training in Docker")
-        trained_pop, pop_fitnesses = train_on_policy(
-            env=env,
-            env_name="rnl",
-            algo="PPO",
-            pop=pop,
-            INIT_HP=HYPERPARAM,
-            MUT_P=MUTATION_PARAMS,
-            swap_channels=False,
-            max_steps=max_steps,
-            evo_steps=evo_steps,
-            eval_steps=eval_steps,
-            eval_loop=eval_loop,
-            target=None,
-            tournament=tournament,
-            mutation=mutations,
-            checkpoint=trainer_config.checkpoint,
-            checkpoint_path=trainer_config.checkpoint_path,
-            overwrite_checkpoints=trainer_config.overwrite_checkpoints,
-            save_elite=hpo_config.save_elite,
-            elite_path=hpo_config.elite_path,
-            wb=trainer_config.use_wandb,
-            verbose=True,
-            accelerator=None,
-            wandb_api_key=trainer_config.wandb_api_key,
-        )
+    if hpo_config.no_mutation:
+        agent = PPO(state_dim=state_dim, action_dim=action_dim, one_hot=False, discrete_actions=discrete_actions)   # Create PPO agent
+
+        config_dict = {
+            "Trainer Config": trainer_config.__dict__,
+            "Network Config": network_config.__dict__,
+        }
+
+        for config_name, config_values in config_dict.items():
+            print(f"\n#------ {config_name} ----#")
+            max_key_length = max(len(key) for key in config_values.keys())
+            for key, value in config_values.items():
+                print(f"{key.ljust(max_key_length)} : {value}")
 
     else:
-        print("Training locally")
-        pbar = trange(max_steps, unit="step")
-        while np.less([agent.steps[-1] for agent in pop], max_steps).all():
-            pop_episode_scores = []
-            for agent in pop:  # Loop through population
-                state, info = env.reset()  # Reset environment at start of episode
-                scores = np.zeros(num_envs)
-                completed_episode_scores = []
-                steps = 0
+        pop = create_population(
+            env_navigation=env_navigation,
+            algo="PPO",
+            state_dim=state_dim,
+            action_dim=action_dim,
+            one_hot=False,
+            net_config=NET_CONFIG,
+            INIT_HP=HYPERPARAM,
+            population_size=hpo_config.population_size,
+            num_envs=num_envs,
+            device=trainer_config.device,
+        )
 
-                for _ in range(-(evo_steps // -agent.learn_step)):
+        tournament = TournamentSelection(
+            tournament_size=hpo_config.tourn_size,
+            elitism=hpo_config.elitism,
+            population_size=hpo_config.population_size,
+            eval_loop=hpo_config.eval_loop,
+        )
 
-                    states = []
-                    actions = []
-                    log_probs = []
-                    rewards = []
-                    dones = []
-                    values = []
+        mutations = Mutations(
+            algo="PPO",
+            no_mutation=hpo_config.no_mutation,
+            architecture=hpo_config.arch_mutation,
+            new_layer_prob=hpo_config.new_layer,
+            parameters=hpo_config.param_mutation,
+            activation=hpo_config.active_mutation,
+            rl_hp=hpo_config.hp_mutation,
+            rl_hp_selection=hpo_config.hp_mutation_selection,
+            mutation_sd=hpo_config.mutation_strength,
+            activation_selection=hpo_config.activation,
+            min_lr=hpo_config.min_lr,
+            max_lr=hpo_config.max_lr,
+            min_learn_step=hpo_config.min_learn_step,
+            max_learn_step=hpo_config.max_learn_step,
+            min_batch_size=hpo_config.min_batch_size,
+            max_batch_size=hpo_config.max_batch_size,
+            agent_ids=None,
+            mutate_elite=hpo_config.mutate_elite,
+            arch="mlp",
+            rand_seed=hpo_config.rand_seed,
+            device=trainer_config.device,
+            accelerator=None,
+        )
 
-                    learn_steps = 0
+        config_dict = {
+            "Trainer Config": trainer_config.__dict__,
+            "HPO Config": hpo_config.__dict__,
+            "Network Config": network_config.__dict__,
+        }
 
-                    for idx_step in range(-(agent.learn_step // -num_envs)):
-                        # Get next action from agent
-                        action, log_prob, _, value = agent.get_action(state)
+        for config_name, config_values in config_dict.items():
+            print(f"\n#------ {config_name} ----#")
+            max_key_length = max(len(key) for key in config_values.keys())
+            for key, value in config_values.items():
+                print(f"{key.ljust(max_key_length)} : {value}")
 
-                        # Act in environment
-                        next_state, reward, terminated, truncated, info = env.step(
-                            action
-                        )
 
-                        total_steps += num_envs
-                        steps += num_envs
-                        learn_steps += num_envs
-
-                        states.append(state)
-                        actions.append(action)
-                        log_probs.append(log_prob)
-                        rewards.append(reward)
-                        dones.append(terminated)
-                        values.append(value)
-
-                        state = next_state
-                        scores += np.array(reward)
-
-                        for idx, (d, t) in enumerate(zip(terminated, truncated)):
-                            if d or t:
-                                completed_episode_scores.append(scores[idx])
-                                agent.scores.append(scores[idx])
-                                scores[idx] = 0
-
-                    pbar.update(learn_steps // len(pop))
-
-                    experiences = (
-                        states,
-                        actions,
-                        log_probs,
-                        rewards,
-                        dones,
-                        values,
-                        next_state,
-                    )
-                    # Learn according to agent's RL algorithm
-                    agent.learn(experiences)
-
-                agent.steps[-1] += steps
-                pop_episode_scores.append(completed_episode_scores)
-
-            # Evaluate population
-            fitnesses = [
-                agent.test(
-                    env,
-                    swap_channels=False,
-                    max_steps=eval_steps,
-                    loop=eval_loop,
-                )
-                for agent in pop
-            ]
-            mean_scores = [
-                (
-                    np.mean(episode_scores)
-                    if len(episode_scores) > 0
-                    else "0 completed episodes"
-                )
-                for episode_scores in pop_episode_scores
-            ]
-
-            print(f"--- Global steps {total_steps} ---")
-            print(f"Steps {[agent.steps[-1] for agent in pop]}")
-            print(f"Scores: {mean_scores}")
-            print(f'Fitnesses: {["%.2f"%fitness for fitness in fitnesses]}')
-            print(
-                f'5 fitness avgs: {["%.2f"%np.mean(agent.fitness[-5:]) for agent in pop]}'
+        if train_docker:
+            print("Training in Docker")
+            trained_pop, pop_fitnesses = train_on_policy(
+                env=env,
+                env_name="rnl",
+                algo="PPO",
+                pop=pop,
+                INIT_HP=HYPERPARAM,
+                MUT_P=MUTATION_PARAMS,
+                swap_channels=False,
+                max_steps=max_steps,
+                evo_steps=evo_steps,
+                eval_steps=eval_steps,
+                eval_loop=eval_loop,
+                target=None,
+                tournament=tournament,
+                mutation=mutations,
+                checkpoint=trainer_config.checkpoint,
+                checkpoint_path=trainer_config.checkpoint_path,
+                overwrite_checkpoints=trainer_config.overwrite_checkpoints,
+                save_elite=hpo_config.save_elite,
+                elite_path=hpo_config.elite_path,
+                wb=trainer_config.use_wandb,
+                verbose=True,
+                accelerator=None,
+                wandb_api_key=trainer_config.wandb_api_key,
             )
-
-            # Tournament selection and population mutation
-            elite, pop = tournament.select(pop)
-            pop = mutations.mutation(pop)
-
-            # Update step counter
-            for agent in pop:
-                agent.steps.append(agent.steps[-1])
-
-        pbar.close()
-        env.close()
-
 
 def inference(
     robot_config: RobotConfig,
