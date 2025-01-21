@@ -36,7 +36,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True)
+    param_render = vault.render(controller=False, debug=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
