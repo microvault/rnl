@@ -44,11 +44,13 @@ def make(
     folder_map: str,
     name_map: str,
     max_timestep: int,
+    mode: str,
 ) -> EnvConfig:
     return EnvConfig(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
+        mode=mode,
     )
 
 
@@ -65,7 +67,6 @@ class Trainer:
         render_config: RenderConfig,
         pretrained_model: bool,
         train_docker: bool,
-        debug: bool,
         probe: bool,
     ):
         self.robot_config = robot_config
@@ -74,7 +75,6 @@ class Trainer:
         self.render_config = render_config
         self.pretrained_model = pretrained_model
         self.train_docker = train_docker
-        self.debug = debug
         self.probe = probe
 
     def learn(
@@ -209,7 +209,6 @@ class Trainer:
             self.render_config,
             self.pretrained_model,
             self.train_docker,
-            self.debug,
             self.probe,
         )
 

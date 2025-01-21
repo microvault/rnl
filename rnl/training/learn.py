@@ -42,13 +42,12 @@ def training(
     render_config: RenderConfig,
     pretrained_model: bool,
     train_docker: bool,
-    debug: bool,
     probe: bool,
 ):
 
     NET_CONFIG = {
-        "arch": network_config.arch,  # Network architecture
-        "hidden_size": network_config.hidden_size,  # Actor hidden size
+        "arch": network_config.arch,
+        "hidden_size": network_config.hidden_size,
         "mlp_activation": network_config.mlp_activation,
         "mlp_output_activation": network_config.mlp_output_activation,
         "min_hidden_layers": network_config.min_hidden_layers,

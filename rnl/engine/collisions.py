@@ -242,22 +242,20 @@ def spawn_robot_and_goal(
     Utiliza Numba para acelerar o checagem de ponto dentro do polígono.
     """
 
-    # Ajusta polígono para clearance
     safe_poly_robot = poly.buffer(-robot_clearance)
     safe_poly_goal = poly.buffer(-goal_clearance)
 
     if safe_poly_robot.is_empty or safe_poly_goal.is_empty:
         raise ValueError("Clearance muito grande. Polígono invalido.")
 
-    # Extrai limites para amostragem
     minx_r, miny_r, maxx_r, maxy_r = safe_poly_robot.bounds
     minx_g, miny_g, maxx_g, maxy_g = safe_poly_goal.bounds
 
-    # Transforma o polígono em listas para Numba
     def to_numba_format(shp):
         ext = np.array(shp.exterior.coords, dtype=np.float64)
         holes = [np.array(i.coords, dtype=np.float64) for i in shp.interiors]
         return ext, holes
+
 
     ext_robot, holes_robot = to_numba_format(safe_poly_robot)
     ext_goal, holes_goal = to_numba_format(safe_poly_goal)

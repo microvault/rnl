@@ -28,7 +28,7 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
 #     dot_p = np.dot(o_t, g_t)
 #     alpha = np.abs(np.arctan2(np.linalg.norm(cross_p), dot_p))
 #     return alpha
-#
+
 @njit
 def angle_to_goal(x, y, theta, goal_x, goal_y):
     # Ângulo do objetivo em relação ao (0,0)
@@ -123,10 +123,10 @@ def get_reward(
 
     time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    orientation_rewards = orientation_reward(alpha, scale_orientation)
-    orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
+    # orientation_rewards = orientation_reward(alpha, scale_orientation)
+    # orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
 
-    obstacle = r3(min(measurement))
+    # obstacle = r3(min(measurement))
 
     # time_score = normalize_module(time_reward, -1, 0, -1, 0)  # 20%
     # progress_reward = global_progress_reward(distance, scale_distance)  # 50%
@@ -134,12 +134,12 @@ def get_reward(
     if done_coll_target:
         return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
 
-    return rew_coll_target, orientation_score, 0.0, time_reward, obstacle, done
+    return rew_coll_target, 0.0, 0.0, time_reward, 0.0, done
 
 
 @njit
 def r3(x: float) -> float:
-    if x < 4.0:
+    if x < 1.0:
         return 1.0 - x
     else:
         return 0.0

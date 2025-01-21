@@ -1,6 +1,5 @@
 import csv
 import io
-import os
 
 import gymnasium as gym
 import imageio
@@ -13,12 +12,13 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
-from rnl.engine.collisions import spawn_robot_and_goal
 from rnl.engine.rewards import get_reward
 from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+from rnl.environment.generate import Generator
+from rnl.engine.collisions import spawn_robot_and_goal
 
 
 class NaviEnv(gym.Env):
@@ -41,11 +41,19 @@ class NaviEnv(gym.Env):
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space)
 
-        self.generator = CreateWorld(
-            folder=env_config.folder_map,
-            name=env_config.name_map,
-        )
-        self.new_map_path, self.segments, self.poly = self.generator.world()
+        self.mode: str = env_config.mode
+
+        if self.mode == "medium":
+            self.create_world = CreateWorld(
+                folder=env_config.folder_map,
+                name=env_config.name_map,
+            )
+            self.new_map_path, self.segments, self.poly = self.create_world.world()
+
+        elif self.mode == "easy-01":
+            self.generator = Generator(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.generator.world(10)
+
         self.sensor = SensorRobot(sensor_config, self.segments)
 
         # ------------ Normalization ------------ #
@@ -78,8 +86,7 @@ class NaviEnv(gym.Env):
         self.controller = render_config.controller
 
         # -- Local Variables -- #
-        self.frames = []
-        self.cumulated_reward: float = 0.0
+
         self.timestep: int = 0
         self.target_x: float = 0.0
         self.target_y: float = 0.0
@@ -88,9 +95,8 @@ class NaviEnv(gym.Env):
         self.last_theta: float = 0.0
         self.vl: float = 0.01
         self.vr: float = 0.01
-        self.init_distance: float = 0.0
         self.action: int = 0
-        self.scalar: int = 100
+        self.scalar: int = 500
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.current_rays = sensor_config.num_rays
@@ -143,16 +149,16 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = 0.05 * self.scalar
+            self.vl = 0.035 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.action = 1
-            self.vl = 0.05 * self.scalar
-            self.vr = -0.015 * self.scalar
+            self.vl = 0.035 * self.scalar
+            self.vr = -0.035 * self.scalar
         elif event.key == "left":
             self.action = 2
-            self.vl = 0.05 * self.scalar
-            self.vr = 0.015 * self.scalar
+            self.vl = 0.035 * self.scalar
+            self.vr = 0.035 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -170,10 +176,10 @@ class NaviEnv(gym.Env):
             self.action = action[0]
 
             if self.action == 0:
-                self.vl = 0.05 * self.scalar
+                self.vl = 0.035 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.05 * self.scalar
+                self.vl = 0.035 * self.scalar
                 self.vr = -0.035 * self.scalar
             elif self.action == 2:
                 self.vl = 0.05 * self.scalar
@@ -182,18 +188,17 @@ class NaviEnv(gym.Env):
             if self.pretrained_model or not self.controller:
                 if self.pretrained_model:
                     self.action = int(self.ppo.get_action(self.last_states)[0])
-                    print("Action: ", self.action)
                 else:
                     self.action = np.random.randint(0, 3)
 
                 if self.action == 0:
-                    self.vl = 0.05 * self.scalar
+                    self.vl = 0.035 * self.scalar
                     self.vr = 0.0
                 elif self.action == 1:
-                    self.vl = 0.05 * self.scalar
+                    self.vl = 0.035 * self.scalar
                     self.vr = -0.035 * self.scalar
                 elif self.action == 2:
-                    self.vl = 0.05 * self.scalar
+                    self.vl = 0.035 * self.scalar
                     self.vr = 0.035 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
@@ -307,13 +312,13 @@ class NaviEnv(gym.Env):
         vr = 0.0
 
         if action == 0:
-            vl = 0.05 * self.scalar
+            vl = 0.035 * self.scalar
             vr = 0.0
         elif action == 1:
-            vl = 0.05 * self.scalar
+            vl = 0.035 * self.scalar
             vr = -0.035 * self.scalar
         elif action == 2:
-            vl = 0.05 * self.scalar
+            vl = 0.035 * self.scalar
             vr = 0.035 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
@@ -409,9 +414,32 @@ class NaviEnv(gym.Env):
 
         self.timestep = 0
 
-        self.new_map_path, self.segments, self.poly = self.generator.world()
+        if self.mode == "easy-01":
+            self.new_map_path, self.segments, self.poly = self.generator.world(10)
 
-        minx, miny, maxx, maxy = self.poly.bounds
+            targets = np.array([
+                [2.5, 2.5],
+                [6.5, 2.5],
+                [2.5, 6.5],
+                [6.5, 6.5]
+            ])
+
+            choice = targets[np.random.randint(0, len(targets))]
+
+            self.target_x, self.target_y = choice[0], choice[1]
+            x, y = 5.0, 5.0
+
+        elif self.mode == "medium":
+            self.new_map_path, self.segments, self.poly = self.create_world.world()
+            robot_pos, goal_pos = spawn_robot_and_goal(
+                poly=self.poly,
+                robot_clearance=self.threshold,
+                goal_clearance=self.collision,
+                min_robot_goal_dist=2.0,
+            )
+
+            self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+            x, y = robot_pos[0], robot_pos[1]
 
         if self.use_render:
             for patch in self.ax.patches:
@@ -419,16 +447,6 @@ class NaviEnv(gym.Env):
 
             self.ax.add_patch(self.new_map_path)
             art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
-
-        robot_pos, goal_pos = spawn_robot_and_goal(
-            poly=self.poly,
-            robot_clearance=self.threshold,
-            goal_clearance=self.collision,
-            min_robot_goal_dist=4.0,
-        )
-
-        self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-        x, y = robot_pos[0], robot_pos[1]
 
         theta = np.random.uniform(0, 2 * np.pi)
 
@@ -480,8 +498,6 @@ class NaviEnv(gym.Env):
         )
 
         self.last_states = states
-
-        self.init_distance = dist
 
         if self.use_render:
             self._plot_anim(
@@ -539,15 +555,20 @@ class NaviEnv(gym.Env):
         """
         # ------ Create wordld ------ #
 
-        minx, miny, maxx, maxy = self.poly.bounds
-        center_x = (minx + maxx) / 2.0
-        center_y = (miny + maxy) / 2.0
+        if self.mode == "easy-01":
+            ax.set_xlim(0, 10)
+            ax.set_ylim(0, 10)
 
-        width = maxx - minx
-        height = maxy - miny
+        elif self.mode == "medium":
+            minx, miny, maxx, maxy = self.poly.bounds
+            center_x = (minx + maxx) / 2.0
+            center_y = (miny + maxy) / 2.0
 
-        ax.set_xlim(center_x - width / 2, center_x + width / 2)
-        ax.set_ylim(center_y - height / 2, center_y + height / 2)
+            width = maxx - minx
+            height = maxy - miny
+
+            ax.set_xlim(center_x - width / 2, center_x + width / 2)
+            ax.set_ylim(center_y - height / 2, center_y + height / 2)
 
         ax.add_patch(self.new_map_path)
 
@@ -575,7 +596,7 @@ class NaviEnv(gym.Env):
 
         if self.debug:
             self.label = self.ax.text(
-                0.5, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0.0)
+                0.5, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0)
             )
 
             self.label.set_fontsize(14)
@@ -668,16 +689,28 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        x2 = x + 2.0 * np.cos(self.body.angle)
-        y2 = y + 2.0 * np.sin(self.body.angle)
+        if self.mode == "easy-01":
+            x2 = x + 0.5 * np.cos(self.body.angle)
+            y2 = y + 0.5 * np.sin(self.body.angle)
 
-        self.heading_line = self.ax.plot3D(
-            [x, x2],
-            [y, y2],
-            [0, 0],
-            color="red",
-            linewidth=2,
-        )[0]
+            self.heading_line = self.ax.plot3D(
+                [x, x2],
+                [y, y2],
+                [0, 0],
+                color="red",
+                linewidth=1,
+            )[0]
+        elif self.mode == "medium":
+            x2 = x + 2.0 * np.cos(self.body.angle) # 2
+            y2 = y + 2.0 * np.sin(self.body.angle) # 2
+
+            self.heading_line = self.ax.plot3D(
+                [x, x2],
+                [y, y2],
+                [0, 0],
+                color="red",
+                linewidth=2,
+            )[0]
 
         plt.draw()
 
@@ -782,7 +815,7 @@ class NaviEnv(gym.Env):
         )
 
         self.reward_ax.legend(loc="upper left")
-        self.reward_ax.set_xlim(0, 100)  # Adjust based on expected number of steps
-        self.reward_ax.set_ylim(-10, 10)  # Adjust based on expected reward ranges
+        self.reward_ax.set_xlim(0, 100)
+        self.reward_ax.set_ylim(-10, 10)
 
         self.reward_fig.tight_layout()

@@ -14,8 +14,8 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=4.0,
-        collision=2.0,
+        threshold=1.0, # 4
+        collision=1.0, # 2
         path_model="",
     )
 
@@ -29,13 +29,14 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        folder_map="./data/map4", # /workdir/data/map4
+        folder_map="./data/map4",
         name_map="map4",
         max_timestep=1000,
+        mode="easy-01" # easy-01, medium
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False)
+    param_render = vault.render(controller=False, debug=True)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -46,7 +47,6 @@ def main(arg):
             param_render,
             pretrained_model=False,
             train_docker=True,
-            debug=False,
             probe=False,
         )
 
@@ -54,15 +54,15 @@ def main(arg):
         model.learn(
             max_timestep_global=1000000,
             gamma=0.99,
-            batch_size=128,
+            batch_size=1024,
             lr=0.0001,
-            num_envs=25,
+            num_envs=100,
             device="cuda",
-            learn_step=256,
+            learn_step=1024,
             checkpoint=100000,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
-            use_mutation=True,
+            use_mutation=False,
             population_size=10,
             no_mutation=0.4,
             arch_mutation=0.2,
@@ -76,7 +76,7 @@ def main(arg):
             elite_path="./checkpoints/elite",
             tourn_size=2,
             elitism=True,
-            hidden_size=[64, 64],
+            hidden_size=[128, 128],
             use_wandb=True,
             wandb_api_key=str(wandb_key),
             min_lr=0.0001,
@@ -116,8 +116,8 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            csv_file="./data/debugging.csv",
-            num_envs=25,
+            csv_file="./data/debugging.csv", # ./data/debugging.csv
+            num_envs=20,
             max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,

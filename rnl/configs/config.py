@@ -7,6 +7,7 @@ class EnvConfig:
     folder_map: str
     name_map: str
     timestep: int
+    mode: str
 
 
 @dataclass
