@@ -33,6 +33,8 @@ google-generativeai = "^0.8.3"
 pillow = "^11.1.0"
 ffmpeg = "^1.4"
 imageio-ffmpeg = "^0.6.0"
+stable-baselines3 = "^2.4.1"
+tensorboard = "^2.18.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

@@ -46,7 +46,7 @@ def main(arg):
             param_env,
             param_render,
             pretrained_model=False,
-            train_docker=True,
+            train_docker=False,
             probe=False,
         )
 
@@ -62,7 +62,7 @@ def main(arg):
             checkpoint=100000,
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
-            use_mutation=True,
+            use_mutation=False,
             population_size=5,
             no_mutation=0.4,
             arch_mutation=0.2,

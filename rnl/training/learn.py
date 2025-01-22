@@ -1,5 +1,14 @@
-from tkinter.constants import NO
 import csv
+
+import gymnasium as gym
+from stable_baselines3 import PPO as agent_PPO
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
+import wandb
+from stable_baselines3.common.env_checker import check_env
+
+from wandb.integration.sb3 import WandbCallback
+
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -230,6 +239,45 @@ def training(
             accelerator=None,
             wandb_api_key=trainer_config.wandb_api_key,
         )
+
+def learn_with_sb3(
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    render_config: RenderConfig,
+    ):
+
+    config = {
+        "policy_type": "MlpPolicy",
+        "total_timesteps": 10000000,
+    }
+
+    run = wandb.init(
+        project="sb3",
+        config=config,
+        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+        monitor_gym=True,  # auto-upload the videos of agents playing the game
+        save_code=False,  # optional
+    )
+
+    def make_env():
+        env = NaviEnv(robot_config, sensor_config, env_config, render_config, use_render=False)
+        check_env(env)
+        env = Monitor(env)
+        return env
+
+    env = DummyVecEnv([make_env])
+
+    model = agent_PPO(config["policy_type"], env, verbose=1, tensorboard_log=f"runs/{run.id}", device="cuda")
+    model.learn(
+        total_timesteps=config["total_timesteps"],
+        callback=WandbCallback(
+            gradient_save_freq=100,
+            model_save_path=f"models/{run.id}",
+            verbose=2,
+        ),
+    )
+    run.finish()
 
 def inference(
     robot_config: RobotConfig,
