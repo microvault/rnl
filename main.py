@@ -63,7 +63,7 @@ def main(arg):
             checkpoint_path="./checkpoints/model",
             overwrite_checkpoints=False,
             use_mutation=True,
-            population_size=10,
+            population_size=5,
             no_mutation=0.4,
             arch_mutation=0.2,
             new_layer=0.2,
