@@ -410,109 +410,162 @@ class NaviEnv(gym.Env):
         return states, reward, done, truncated, {}
 
     def reset(self, seed=None, options=None):
-        super().reset(seed=seed, options=options)
+        # Se tiver algum super reset
+        try:
+            super().reset(seed=seed, options=options)
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao chamar super().reset: {e}")
+            raise  # ou tire se quiser apenas logar
 
         self.timestep = 0
 
-        if self.mode == "easy-01":
-            self.new_map_path, self.segments, self.poly = self.generator.world(10)
+        # --------------------------------
+        # 1) Definição do cenário
+        # --------------------------------
+        try:
+            if self.mode == "easy-01":
+                self.new_map_path, self.segments, self.poly = self.generator.world(10)
+                targets = np.array([
+                    [2.5, 2.5],
+                    [6.5, 2.5],
+                    [2.5, 6.5],
+                    [6.5, 6.5]
+                ])
+                choice = targets[np.random.randint(0, len(targets))]
+                self.target_x, self.target_y = choice[0], choice[1]
+                x, y = 5.0, 5.0
 
-            targets = np.array([
-                [2.5, 2.5],
-                [6.5, 2.5],
-                [2.5, 6.5],
-                [6.5, 6.5]
-            ])
+            elif self.mode == "medium":
+                self.new_map_path, self.segments, self.poly = self.create_world.world()
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=2.0,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
 
-            choice = targets[np.random.randint(0, len(targets))]
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}")
+            raise
 
-            self.target_x, self.target_y = choice[0], choice[1]
-            x, y = 5.0, 5.0
+        # --------------------------------
+        # 2) Render (se habilitado)
+        # --------------------------------
+        try:
+            if self.use_render:
+                for patch in self.ax.patches:
+                    patch.remove()
+                self.ax.add_patch(self.new_map_path)
+                art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao desenhar o cenário: {e}")
+            raise
 
-        elif self.mode == "medium":
-            self.new_map_path, self.segments, self.poly = self.create_world.world()
-            robot_pos, goal_pos = spawn_robot_and_goal(
-                poly=self.poly,
-                robot_clearance=self.threshold,
-                goal_clearance=self.collision,
-                min_robot_goal_dist=2.0,
+        # --------------------------------
+        # 3) Reinicia robô
+        # --------------------------------
+        try:
+            theta = np.random.uniform(0, 2 * np.pi)
+            self.robot.reset_robot(self.body, x, y, theta)
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+            raise
+
+        # --------------------------------
+        # 4) LIDAR / Sensor
+        # --------------------------------
+        try:
+            intersections, measurement = self.sensor.sensor(
+                x=self.body.position.x,
+                y=self.body.position.y,
+                theta=self.body.position.angle,
+                max_range=self.max_lidar,
             )
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao obter leituras do sensor: {e}")
+            raise
 
-            self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-            x, y = robot_pos[0], robot_pos[1]
-
-        if self.use_render:
-            for patch in self.ax.patches:
-                patch.remove()
-
-            self.ax.add_patch(self.new_map_path)
-            art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
-
-        theta = np.random.uniform(0, 2 * np.pi)
-
-        self.robot.reset_robot(self.body, x, y, theta)
-        intersections, measurement = self.sensor.sensor(
-            x=self.body.position.x,
-            y=self.body.position.y,
-            theta=self.body.position.angle,
-            max_range=self.max_lidar,
-        )
-
-        dist = distance_to_goal(
-            self.body.position.x,
-            self.body.position.y,
-            self.target_x,
-            self.target_y,
-        )
-
-        alpha = angle_to_goal(
-            self.body.position.x,
-            self.body.position.y,
-            self.body.position.angle,
-            self.target_x,
-            self.target_y,
-        )
-
-        self.current_rays = len(measurement)
-        padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
-        padded_lidar[: self.current_rays] = measurement[: self.current_rays]
-
-        lidar_norm = self.scaler_lidar.transform(padded_lidar.reshape(1, -1)).flatten()
-        dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
-        alpha_norm = self.scaler_alpha.transform(
-            np.array(alpha).reshape(1, -1)
-        ).flatten()
-        action = np.random.randint(0, 3)
-
-        action_one_hot = np.eye(3)[action]
-
-        min_lidar_norm = np.min(lidar_norm)
-
-        states = np.concatenate(
-            (
-                np.array(lidar_norm, dtype=np.float32),
-                np.array(action_one_hot, dtype=np.int16),
-                np.array(dist_norm, dtype=np.float32),
-                np.array(alpha_norm, dtype=np.float32),
-            )
-        )
-
-        self.last_states = states
-
-        if self.use_render:
-            self._plot_anim(
-                0,
-                intersections,
+        # --------------------------------
+        # 5) Distância / Ângulo pro alvo
+        # --------------------------------
+        try:
+            dist = distance_to_goal(
                 self.body.position.x,
                 self.body.position.y,
                 self.target_x,
                 self.target_y,
-                0.0,
-                alpha_norm,
-                min_lidar_norm,
-                dist_norm,
-                self.action,
             )
+            alpha = angle_to_goal(
+                self.body.position.x,
+                self.body.position.y,
+                self.body.position.angle,
+                self.target_x,
+                self.target_y,
+            )
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao calcular distância/ângulo: {e}")
+            raise
+
+        # --------------------------------
+        # 6) Normalização / Transforms
+        # --------------------------------
+        try:
+            self.current_rays = len(measurement)
+            padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
+            padded_lidar[: self.current_rays] = measurement[: self.current_rays]
+
+            lidar_norm = self.scaler_lidar.transform(padded_lidar.reshape(1, -1)).flatten()
+            dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
+            alpha_norm = self.scaler_alpha.transform(np.array(alpha).reshape(1, -1)).flatten()
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao normalizar entradas (scalers): {e}")
+            raise
+
+        # --------------------------------
+        # 7) Montar estado final
+        # --------------------------------
+        try:
+            action = np.random.randint(0, 3)
+            action_one_hot = np.eye(3)[action]
+            min_lidar_norm = np.min(lidar_norm)
+
+            states = np.concatenate(
+                (
+                    np.array(lidar_norm, dtype=np.float32),
+                    np.array(action_one_hot, dtype=np.int16),
+                    np.array(dist_norm, dtype=np.float32),
+                    np.array(alpha_norm, dtype=np.float32),
+                )
+            )
+            self.last_states = states
+
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao montar o array de estados: {e}")
+            raise
+
+        # --------------------------------
+        # 8) Render final (se habilitado)
+        # --------------------------------
+        try:
+            if self.use_render:
+                self._plot_anim(
+                    0,
+                    intersections,
+                    self.body.position.x,
+                    self.body.position.y,
+                    self.target_x,
+                    self.target_y,
+                    0.0,
+                    alpha_norm,
+                    min_lidar_norm,
+                    dist_norm,
+                    self.action,
+                )
+        except Exception as e:
+            print(f"[RESET-ERROR] Erro ao plotar no final do reset: {e}")
+            raise
 
         info = {}
         return states, info

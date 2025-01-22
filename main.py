@@ -54,7 +54,7 @@ def main(arg):
         model.learn(
             max_timestep_global=10000000,
             gamma=0.99,
-            batch_size=1024,
+            batch_size=256,
             lr=0.0001,
             num_envs=50,
             device="cuda",
