@@ -45,7 +45,7 @@ install:
 
 .PHONY: build
 build:
-	@docker build -t rnl-docker-cuda .
+	@sudo docker build -f docker/Dockerfile -t rnl-docker-cuda .
 
 .PHONY: train
 train:
