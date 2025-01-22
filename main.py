@@ -56,7 +56,7 @@ def main(arg):
             gamma=0.99,
             batch_size=1024,
             lr=0.0001,
-            num_envs=100,
+            num_envs=50,
             device="cuda",
             learn_step=1024,
             checkpoint=100000,
