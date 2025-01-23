@@ -29,6 +29,7 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
 #     alpha = np.abs(np.arctan2(np.linalg.norm(cross_p), dot_p))
 #     return alpha
 
+
 @njit
 def angle_to_goal(x, y, theta, goal_x, goal_y):
     # Ângulo do objetivo em relação ao (0,0)
@@ -36,8 +37,9 @@ def angle_to_goal(x, y, theta, goal_x, goal_y):
     # Diferença entre a orientação atual e a direção do objetivo
     alpha = direction - theta
     # Normaliza pra ficar em [-π, π]
-    alpha = (alpha + np.pi) % (2*np.pi) - np.pi
+    alpha = (alpha + np.pi) % (2 * np.pi) - np.pi
     return abs(alpha)
+
 
 @njit
 def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
@@ -45,7 +47,7 @@ def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
     Retorna se há obstáculo muito próximo e o valor do laser mais próximo.
     """
     laser = np.min(measurement)
-    return (laser <= (threshold - 0.20))
+    return laser <= (threshold - 0.20)
 
 
 def collision_and_target_reward(
@@ -123,13 +125,13 @@ def get_reward(
 
     time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    # orientation_rewards = orientation_reward(alpha, scale_orientation)
-    # orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
+    orientation_rewards = orientation_reward(alpha, scale_orientation)
+    orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
 
-    # obstacle = r3(min(measurement))
+    obstacle = r3(min(measurement))
 
-    # time_score = normalize_module(time_reward, -1, 0, -1, 0)  # 20%
-    # progress_reward = global_progress_reward(distance, scale_distance)  # 50%
+    time_score = normalize_module(time_reward, -1, 0, -1, 0)  # 20%
+    progress_reward = global_progress_reward(distance, scale_distance)  # 50%
 
     if done_coll_target:
         return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True

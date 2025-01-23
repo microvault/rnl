@@ -1,12 +1,11 @@
 import argparse
 import multiprocessing as mp
 import os
-
 import rnl as vault
-
 
 def main(arg):
     wandb_key = os.environ.get("WANDB_API_KEY")
+    algo = str(os.environ.get("ALGO"))
     # 1.step -> config robot
     param_robot = vault.robot(
         base_radius=0.105,
@@ -14,8 +13,8 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=1.0, # 4
-        collision=1.0, # 2
+        threshold=1.0,  # 4
+        collision=1.0,  # 2
         path_model="",
     )
 
@@ -32,11 +31,11 @@ def main(arg):
         folder_map="./data/map4",
         name_map="map4",
         max_timestep=1000,
-        mode="easy-01" # easy-01, medium
+        mode="easy-01",  # easy-01, medium
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False)
+    param_render = vault.render(controller=False, debug=False, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -52,12 +51,15 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            max_timestep_global=10000000,
+            algorithms=algo,
+            max_timestep_global=100, # 10000000
             gamma=0.99,
+            seed=42,
+            buffer_size=1000000,
             batch_size=256,
             lr=0.0001,
-            num_envs=25,
-            device="cuda",
+            num_envs=2,
+            device="cpu",
             learn_step=1024,
             checkpoint=100000,
             checkpoint_path="./checkpoints/model",
@@ -109,14 +111,14 @@ def main(arg):
     elif args.mode == "sim":
         # 5.step -> config train robot
         model = vault.Simulation(
-            param_robot, param_sensor, param_env, param_render, pretrained_model=False
+            param_robot, param_sensor, param_env, param_render, pretrained_model=True
         )
         # 6.step -> run robot
         model.run()
 
     elif args.mode == "run":
         model = vault.Probe(
-            csv_file="./data/debugging.csv", # ./data/debugging.csv
+            csv_file="./data/debugging.csv",
             num_envs=20,
             max_steps=1000,
             robot_config=param_robot,

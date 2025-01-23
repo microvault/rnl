@@ -22,6 +22,7 @@ class CurriculumTargetPositionConfig:
 class RenderConfig:
     controller: bool
     debug: bool
+    plot: bool
 
 
 @dataclass
@@ -58,8 +59,11 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
+    algorithms: str
+    buffer_size: int
     max_timestep_global: int
     gamma: float
+    seed: int
     batch_size: int
     lr: float
     num_envs: int

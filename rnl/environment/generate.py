@@ -1,22 +1,19 @@
-
 from dataclasses import dataclass
 from typing import List
 
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
+from numba import njit
 from shapely.geometry import LineString, Polygon
 from skimage import measure
-from numba import njit
+
 from rnl.engine.world import GenerateWorld
 
 
 @dataclass
 class Generator:
-    def __init__(
-        self,
-        mode: str
-    ):
+    def __init__(self, mode: str):
         self.mode = mode
         self.generate = GenerateWorld()
 
@@ -191,6 +188,7 @@ class Generator:
             )
 
             return path_patch, segment, poly
+
 
 @njit
 def convert_to_segments(polygon):

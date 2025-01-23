@@ -1,24 +1,26 @@
 import csv
 import io
+import time
 
 import gymnasium as gym
 import imageio
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from rnl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
+from stable_baselines3 import PPO as agent_ppo
 
+from rnl.algorithms.ppo import PPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
+from rnl.engine.collisions import spawn_robot_and_goal
 from rnl.engine.rewards import get_reward
 from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser
+from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-from rnl.environment.generate import Generator
-from rnl.engine.collisions import spawn_robot_and_goal
 
 
 class NaviEnv(gym.Env):
@@ -95,10 +97,11 @@ class NaviEnv(gym.Env):
         self.last_theta: float = 0.0
         self.vl: float = 0.01
         self.vr: float = 0.01
-        self.action: int = 0
+        self.action: int = 1
         self.scalar: int = 100
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
+        self.plot = render_config.plot
         self.current_rays = sensor_config.num_rays
         self.lidar_angle = np.linspace(0, 2 * np.pi, self.current_rays)
         self.measurement = np.zeros(self.current_rays)
@@ -109,6 +112,8 @@ class NaviEnv(gym.Env):
                 robot_config.path_model,
                 device="cpu",
             )
+
+            self.model = agent_ppo.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -141,7 +146,7 @@ class NaviEnv(gym.Env):
             if self.controller:
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
-            if self.debug:
+            if self.plot:
                 self._init_reward_plot()
 
         self.reset()
@@ -189,7 +194,7 @@ class NaviEnv(gym.Env):
                 if self.pretrained_model:
                     self.action = int(self.ppo.get_action(self.last_states)[0])
                 else:
-                    self.action = np.random.randint(0, 3)
+                    self.action, _states = self.model.predict(self.last_states)
 
                 if self.action == 0:
                     self.vl = 0.035 * self.scalar
@@ -243,25 +248,32 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
-            get_reward(
-                lidar_measurements,
-                poly=self.poly,
-                position_x=x,
-                position_y=y,
-                distance=dist,
-                collision=collision,
-                alpha=alpha,
-                step=i,
-                time_penalty=1.0,
-                threshold=self.threshold,
-                scale_orientation=1.0,
-                scale_distance=1.0,
-                scale_time=1.0,
-            )
+        (
+            collision_score,
+            orientation_score,
+            progress_score,
+            time_score,
+            obstacle,
+            done,
+        ) = get_reward(
+            lidar_measurements,
+            poly=self.poly,
+            position_x=x,
+            position_y=y,
+            distance=dist,
+            collision=collision,
+            alpha=alpha,
+            step=i,
+            time_penalty=1.0,
+            threshold=self.threshold,
+            scale_orientation=1.0,
+            scale_distance=1.0,
+            scale_time=1.0,
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score + obstacle
+        reward = (
+            collision_score + orientation_score + progress_score + time_score + obstacle
+        )
 
         min_lidar_norm = np.min(lidar_norm)
 
@@ -285,7 +297,8 @@ class NaviEnv(gym.Env):
 
         truncated = self.timestep >= self.max_timestep
 
-        if self.debug and not test:
+        if self.plot and not test:
+
             self.log_reward(
                 obstacle,
                 collision_score,
@@ -364,25 +377,32 @@ class NaviEnv(gym.Env):
             )
         )
 
-        collision_score, orientation_score, progress_score, time_score, obstacle, done = (
-            get_reward(
-                lidar_measurements,
-                poly=self.poly,
-                position_x=x,
-                position_y=y,
-                distance=dist,
-                collision=collision,
-                alpha=alpha,
-                step=self.timestep,
-                time_penalty=1.0,
-                threshold=self.threshold,
-                scale_orientation=1.0,
-                scale_distance=1.0,
-                scale_time=1.0,
-            )
+        (
+            collision_score,
+            orientation_score,
+            progress_score,
+            time_score,
+            obstacle,
+            done,
+        ) = get_reward(
+            lidar_measurements,
+            poly=self.poly,
+            position_x=x,
+            position_y=y,
+            distance=dist,
+            collision=collision,
+            alpha=alpha,
+            step=self.timestep,
+            time_penalty=1.0,
+            threshold=self.threshold,
+            scale_orientation=1.0,
+            scale_distance=1.0,
+            scale_time=1.0,
         )
 
-        reward = collision_score + orientation_score + progress_score + time_score + obstacle
+        reward = (
+            collision_score + orientation_score + progress_score + time_score + obstacle
+        )
 
         self.last_states = states
 
@@ -425,12 +445,7 @@ class NaviEnv(gym.Env):
         try:
             if self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(10)
-                targets = np.array([
-                    [2.5, 2.5],
-                    [6.5, 2.5],
-                    [2.5, 6.5],
-                    [6.5, 6.5]
-                ])
+                targets = np.array([[2.5, 2.5], [6.5, 2.5], [2.5, 6.5], [6.5, 6.5]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 5.0, 5.0
@@ -447,7 +462,9 @@ class NaviEnv(gym.Env):
                 x, y = robot_pos[0], robot_pos[1]
 
         except Exception as e:
-            print(f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}")
+            print(
+                f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}"
+            )
             raise
 
         # --------------------------------
@@ -516,9 +533,15 @@ class NaviEnv(gym.Env):
             padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
             padded_lidar[: self.current_rays] = measurement[: self.current_rays]
 
-            lidar_norm = self.scaler_lidar.transform(padded_lidar.reshape(1, -1)).flatten()
-            dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
-            alpha_norm = self.scaler_alpha.transform(np.array(alpha).reshape(1, -1)).flatten()
+            lidar_norm = self.scaler_lidar.transform(
+                padded_lidar.reshape(1, -1)
+            ).flatten()
+            dist_norm = self.scaler_dist.transform(
+                np.array(dist).reshape(1, -1)
+            ).flatten()
+            alpha_norm = self.scaler_alpha.transform(
+                np.array(alpha).reshape(1, -1)
+            ).flatten()
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao normalizar entradas (scalers): {e}")
             raise
@@ -754,8 +777,8 @@ class NaviEnv(gym.Env):
                 linewidth=1,
             )[0]
         elif self.mode == "medium":
-            x2 = x + 2.0 * np.cos(self.body.angle) # 2
-            y2 = y + 2.0 * np.sin(self.body.angle) # 2
+            x2 = x + 2.0 * np.cos(self.body.angle)  # 2
+            y2 = y + 2.0 * np.sin(self.body.angle)  # 2
 
             self.heading_line = self.ax.plot3D(
                 [x, x2],

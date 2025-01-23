@@ -116,6 +116,7 @@ def generate_maze(
 
     return maze
 
+
 @njit
 def _point_in_ring(px, py, ring):
     inside = False
@@ -130,6 +131,7 @@ def _point_in_ring(px, py, ring):
             inside = not inside
     return inside
 
+
 @njit
 def _point_in_polygon(px, py, exterior, holes):
     # Verifica se está dentro do contorno exterior
@@ -141,6 +143,7 @@ def _point_in_polygon(px, py, exterior, holes):
             return False
     return True
 
+
 @njit
 def random_point_in_poly(bounds, ext, holes, max_tries_local):
     minx, miny, maxx, maxy = bounds
@@ -150,6 +153,7 @@ def random_point_in_poly(bounds, ext, holes, max_tries_local):
         if _point_in_polygon(rx, ry, ext, holes):
             return rx, ry
     return -1.0, -1.0
+
 
 def spawn_robot_and_goal_with_maze(
     poly,
@@ -166,9 +170,9 @@ def spawn_robot_and_goal_with_maze(
         raise ValueError("Clearance muito grande. Polígono invalido.")
 
     def to_single_polygon(shp):
-        if shp.geom_type == 'Polygon':
+        if shp.geom_type == "Polygon":
             return shp
-        elif shp.geom_type == 'MultiPolygon':
+        elif shp.geom_type == "MultiPolygon":
             largest = max(shp.geoms, key=lambda g: g.area)
             return largest
         else:
@@ -183,18 +187,20 @@ def spawn_robot_and_goal_with_maze(
 
     # Extrai exterior e buracos como np.ndarray de float64
     ext_robot_arr = np.array(safe_poly_robot.exterior.coords, dtype=np.float64)
-    holes_robot_arr = [np.array(i.coords, dtype=np.float64)
-                       for i in safe_poly_robot.interiors]
+    holes_robot_arr = [
+        np.array(i.coords, dtype=np.float64) for i in safe_poly_robot.interiors
+    ]
 
     ext_goal_arr = np.array(safe_poly_goal.exterior.coords, dtype=np.float64)
-    holes_goal_arr = [np.array(i.coords, dtype=np.float64)
-                      for i in safe_poly_goal.interiors]
+    holes_goal_arr = [
+        np.array(i.coords, dtype=np.float64) for i in safe_poly_goal.interiors
+    ]
 
     # Se precisar, coloque array vazio se não existirem furos
     if len(holes_robot_arr) == 0:
-        holes_robot_arr.append(np.zeros((0,2), dtype=np.float64))
+        holes_robot_arr.append(np.zeros((0, 2), dtype=np.float64))
     if len(holes_goal_arr) == 0:
-        holes_goal_arr.append(np.zeros((0,2), dtype=np.float64))
+        holes_goal_arr.append(np.zeros((0, 2), dtype=np.float64))
 
     # Cria typed.List
     holes_robot_nb = List.empty_list(types.float64[:, :])
@@ -208,19 +214,13 @@ def spawn_robot_and_goal_with_maze(
     # Agora chamamos a função JIT
     for _ in range(max_tries):
         robo_x, robo_y = random_point_in_poly(
-            (minx_r, miny_r, maxx_r, maxy_r),
-            ext_robot_arr,
-            holes_robot_nb,
-            max_tries
+            (minx_r, miny_r, maxx_r, maxy_r), ext_robot_arr, holes_robot_nb, max_tries
         )
         if robo_x < 0:  # Falhou pra achar posicao do robo
             continue
 
         goal_x, goal_y = random_point_in_poly(
-            (minx_g, miny_g, maxx_g, maxy_g),
-            ext_goal_arr,
-            holes_goal_nb,
-            max_tries
+            (minx_g, miny_g, maxx_g, maxy_g), ext_goal_arr, holes_goal_nb, max_tries
         )
         if goal_x < 0:  # Falhou pra achar posicao da meta
             continue

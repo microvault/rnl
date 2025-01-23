@@ -75,9 +75,7 @@ def train_on_policy(
         wandb.init(
             # set the wandb project where this run will be logged
             project="rnl",
-            name="rnl-{}".format(
-                datetime.now().strftime("%m%d%Y%H%M%S")
-            ),
+            name="rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S")),
             # track hyperparameters and run metadata
             config=config_dict,
         )
@@ -87,9 +85,7 @@ def train_on_policy(
     save_path = (
         checkpoint_path.split(".pt")[0]
         if checkpoint_path is not None
-        else "rnl-{}".format(
-            datetime.now().strftime("%m%d%Y%H%M%S")
-        )
+        else "rnl-{}".format(datetime.now().strftime("%m%d%Y%H%M%S"))
     )
 
     print("\nTraining...")
@@ -193,7 +189,6 @@ def train_on_policy(
                     policy_entropies[agent_idx].append(metrics.get("entropy", 0))
                     kl_divergences[agent_idx].append(metrics.get("kl_div", 0))
                     residual_variances[agent_idx].append(metrics.get("residual_var", 0))
-
 
             agent.steps[-1] += steps
             pop_episode_scores.append(completed_episode_scores)

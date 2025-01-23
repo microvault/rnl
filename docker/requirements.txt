@@ -19,3 +19,4 @@ imageio-ffmpeg==0.6.0
 stable_baselines3==2.4.1
 tensorboard==2.18.0
 agilerl==1.0.21
+gym==0.26.2

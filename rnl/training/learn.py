@@ -1,18 +1,5 @@
-import csv
-
-import gymnasium as gym
-from stable_baselines3 import PPO as agent_PPO
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
-import wandb
-from stable_baselines3.common.env_checker import check_env
-
-from wandb.integration.sb3 import WandbCallback
-
-
-import matplotlib.pyplot as plt
 import numpy as np
-from rnl.algorithms.ppo import PPO
+import torch
 from agilerl.hpo.mutation import Mutations
 from agilerl.hpo.tournament import TournamentSelection
 from agilerl.utils.probe_envs import (
@@ -21,10 +8,18 @@ from agilerl.utils.probe_envs import (
     FixedObsPolicyContActionsEnv,
     ObsDependentRewardContActionsEnv,
     PolicyContActionsEnv,
-    check_policy_on_policy_with_probe_env
+    check_policy_on_policy_with_probe_env,
 )
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
 from tqdm import trange
+from wandb.integration.sb3 import WandbCallback
+from stable_baselines3 import A2C, DQN, PPO
+from stable_baselines3.dqn.policies import DQNPolicy
 
+import wandb
+from rnl.algorithms.ppo import PPO as agent_algo
 from rnl.configs.config import (
     EnvConfig,
     HPOConfig,
@@ -36,10 +31,7 @@ from rnl.configs.config import (
 )
 from rnl.environment.env import NaviEnv
 from rnl.training.policy import train_on_policy
-from rnl.training.utils import (
-    create_population,
-    make_vect_envs,
-)
+from rnl.training.utils import create_population, make_vect_envs
 
 
 def training(
@@ -109,7 +101,6 @@ def training(
     evo_steps = hpo_config.evo_steps
     eval_steps = hpo_config.eval_steps
     eval_loop = hpo_config.eval_loop
-    total_steps = 0
 
     env = make_vect_envs(
         num_envs=num_envs,
@@ -147,11 +138,11 @@ def training(
                 "action_dim": env.action_space.shape[0],
                 "one_hot": True if env.observation_space.n > 1 else False,
                 "discrete_actions": False,
-                "lr": 0.001
+                "lr": 0.001,
             }
 
             check_policy_on_policy_with_probe_env(
-                env, PPO, algo_args, learn_steps, device="cpu"
+                env, agent_algo, algo_args, learn_steps, device="cpu"
             )
 
     pop = create_population(
@@ -211,7 +202,6 @@ def training(
         for key, value in config_values.items():
             print(f"{key.ljust(max_key_length)} : {value}")
 
-
     if train_docker:
         print("Training in Docker")
         trained_pop, pop_fitnesses = train_on_policy(
@@ -240,40 +230,111 @@ def training(
             wandb_api_key=trainer_config.wandb_api_key,
         )
 
+
 def learn_with_sb3(
+    trainer_config: TrainerConfig,
+    network_config: NetworkConfig,
     robot_config: RobotConfig,
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    ):
+):
 
-    config = {
-        "policy_type": "MlpPolicy",
-        "total_timesteps": 10000000,
+    config_dict = {
+        "Trainer Config": trainer_config.__dict__,
+        "Network Config": network_config.__dict__,
+        "Robot Config": robot_config.__dict__,
+        "Sensor Config": sensor_config.__dict__,
+        "Env Config": env_config.__dict__,
+        "Render Config": render_config.__dict__,
     }
 
+    for config_name, config_values in config_dict.items():
+        print(f"\n#------ {config_name} ----#")
+        max_key_length = max(len(key) for key in config_values.keys())
+        for key, value in config_values.items():
+            print(f"{key.ljust(max_key_length)} : {value}")
+
+    print()
     run = wandb.init(
-        project="sb3",
-        config=config,
-        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-        monitor_gym=True,  # auto-upload the videos of agents playing the game
-        save_code=False,  # optional
+        project="rnl",
+        config=config_dict,
+        sync_tensorboard=True,
+        monitor_gym=False,
+        save_code=False,
+    )
+
+    env = NaviEnv(
+            robot_config, sensor_config, env_config, render_config, use_render=False
+        )
+    print("\nCheck environment ...")
+    check_env(env)
+
+    policy_kwargs_on_policy = dict(
+        activation_fn=torch.nn.ReLU,
+        net_arch=dict(
+            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        ),
     )
 
     def make_env():
-        env = NaviEnv(robot_config, sensor_config, env_config, render_config, use_render=False)
-        check_env(env)
+        env = NaviEnv(
+            robot_config, sensor_config, env_config, render_config, use_render=False
+        )
         env = Monitor(env)
         return env
 
     env = DummyVecEnv([make_env])
 
-    model = agent_PPO(config["policy_type"], env, verbose=1, tensorboard_log=f"runs/{run.id}", device="cuda")
+    if trainer_config.algorithms == "PPO":
+        model = PPO(
+            "MlpPolicy",
+            env,
+            batch_size=trainer_config.batch_size,
+            verbose=1,
+            policy_kwargs=policy_kwargs_on_policy,
+            tensorboard_log=f"runs/{run.id}",
+            device=trainer_config.device,
+            seed=trainer_config.seed,
+        )
+
+        print("\nInitiate PPO training ...")
+
+    elif trainer_config.algorithms == "A2C":
+        model = A2C("MlpPolicy",
+            env,
+            verbose=1,
+            policy_kwargs=policy_kwargs_on_policy,
+            tensorboard_log=f"runs/{run.id}",
+            device=trainer_config.device,
+            seed=trainer_config.seed,
+        )
+        print("\nInitiate A2C training ...")
+
+
+    elif trainer_config.algorithms == "DQN":
+        model = DQN(
+            DQNPolicy,
+            env,
+            batch_size=trainer_config.batch_size,
+            buffer_size=trainer_config.buffer_size,
+            verbose=1,
+            tensorboard_log=f"runs/{run.id}",
+            device=trainer_config.device,
+            seed=trainer_config.seed,
+        )
+
+        print("\nInitiate DQN training ...")
+
+    else:
+        print("Invalid algorithm")
+
     model.learn(
-        total_timesteps=config["total_timesteps"],
+        total_timesteps=trainer_config.max_timestep_global,
         callback=WandbCallback(
-            gradient_save_freq=100,
-            model_save_path=f"models/{run.id}",
+            gradient_save_freq=0,
+            model_save_path=f"models_{trainer_config.algorithms}/{run.id}",
             verbose=2,
         ),
     )
@@ -372,87 +433,145 @@ def probe_envs(
     state, info = env.reset()
     scores = np.zeros(num_envs)
     steps = 0
+    ep_rewards = np.zeros(num_envs)
+    ep_lengths = np.zeros(num_envs)
+
+    completed_rewards = []
+    completed_lengths = []
 
     for i in pbar:
-        action = env.action_space.sample()
-        next_state, reward, terminated, truncated, info = env.step(action)
-        steps += 1
-        scores += np.array(reward)
+        # Ação: exemplo usando ações aleatórias
+        actions = env.action_space.sample()
 
-        if np.any(terminated) or np.any(truncated) or i == max_steps - 1:
-            state, info = env.reset()
-            scores = np.zeros(num_envs)
+        # Passo no ambiente
+        next_state, rewards, terminated, truncated, info = env.step(actions)
+        steps += 1
+
+        # Atualiza recompensas e comprimentos
+        ep_rewards += np.array(rewards)
+        ep_lengths += 1  # Incrementa o comprimento do episódio
+
+        # Identifica quais ambientes terminaram neste passo
+        done = np.logical_or(terminated, truncated)
+        done_indices = np.where(done)[0]
+
+        if done_indices.size > 0:
+            for idx in done_indices:
+                # Adiciona as recompensas e comprimentos dos episódios concluídos às listas
+                completed_rewards.append(ep_rewards[idx])
+                completed_lengths.append(ep_lengths[idx])
+
+                # Reseta as recompensas e comprimentos para os ambientes que terminaram
+                ep_rewards[idx] = 0
+                ep_lengths[idx] = 0
+
+        # Atualiza a barra de progresso com informações relevantes
+        if len(completed_rewards) > 0 and len(completed_lengths) > 0:
+            avg_reward = np.mean(
+                completed_rewards[-100:]
+            )  # Média dos últimos 100 episódios
+            avg_length = np.mean(
+                completed_lengths[-100:]
+            )  # Média dos últimos 100 episódios
+        else:
+            avg_reward = 0
+            avg_length = 0
+
+        pbar.set_postfix(
+            {
+                "Episódios Completos": len(completed_rewards),
+                "Recompensa Média (últ 100)": f"{avg_reward:.2f}",
+                "Comprimento Médio (últ 100)": f"{avg_length:.2f}",
+            }
+        )
+
+        # Opcional: Parar se todos os ambientes completaram um episódio (ajuste conforme necessário)
+        # if len(completed_rewards) >= desired_number_of_episodes:
+        #     break
+
+    # Após o loop, é possível que alguns ambientes ainda estejam ativos e não tenham terminado
+    # Você pode optar por coletar esses dados também
+    for idx in range(num_envs):
+        if ep_lengths[idx] > 0:
+            completed_rewards.append(ep_rewards[idx])
+            completed_lengths.append(ep_lengths[idx])
 
     env.close()
 
-    obstacles_scores = []
-    collision_scores = []
-    orientation_scores = []
-    progress_scores = []
-    time_scores = []
-    rewards = []
+    # Converter as listas para arrays numpy para facilitar a análise posterior
+    completed_rewards = np.array(completed_rewards)
+    completed_lengths = np.array(completed_lengths)
 
-    # Ler o arquivo CSV
-    with open(csv_file, mode="r") as file:
-        reader = csv.reader(file)
-        for row in reader:
-            obstacles_scores.append(float(row[0]))
-            collision_scores.append(float(row[1]))
-            orientation_scores.append(float(row[2]))
-            progress_scores.append(float(row[3]))
-            time_scores.append(float(row[4]))
-            rewards.append(float(row[5]))
+    # obstacles_scores = []
+    # collision_scores = []
+    # orientation_scores = []
+    # progress_scores = []
+    # time_scores = []
+    # rewards = []
 
-    # Gerar o eixo X como o índice das linhas
-    steps = list(range(1, len(rewards) + 1))
+    # # Ler o arquivo CSV
+    # with open(csv_file, mode="r") as file:
+    #     reader = csv.reader(file)
+    #     for row in reader:
+    #         obstacles_scores.append(float(row[0]))
+    #         collision_scores.append(float(row[1]))
+    #         orientation_scores.append(float(row[2]))
+    #         progress_scores.append(float(row[3]))
+    #         time_scores.append(float(row[4]))
+    #         rewards.append(float(row[5]))
 
-    # Definir uma lista de componentes para facilitar a iteração
-    components = [
-        ("Obstacles Score", obstacles_scores, "brown"),
-        ("Collision Score", collision_scores, "red"),
-        ("Orientation Score", orientation_scores, "green"),
-        ("Progress Score", progress_scores, "blue"),
-        ("Time Score", time_scores, "orange"),
-        ("Total Reward", rewards, "purple"),
-    ]
+    # # Gerar o eixo X como o índice das linhas
+    # steps = list(range(1, len(rewards) + 1))
 
-    # Configurar o layout da figura com subplots
-    num_plots = len(components)
-    cols = 2
-    rows = (num_plots + cols - 1) // cols  # Calcula o número de linhas necessárias
+    # # Definir uma lista de componentes para facilitar a iteração
+    # components = [
+    #     ("Obstacles Score", obstacles_scores, "brown"),
+    #     ("Collision Score", collision_scores, "red"),
+    #     ("Orientation Score", orientation_scores, "green"),
+    #     ("Progress Score", progress_scores, "blue"),
+    #     ("Time Score", time_scores, "orange"),
+    #     ("Total Reward", rewards, "purple"),
+    #     ("ep_len_mean", completed_lengths, "gray"),
+    #     ("ep_rew_mean", completed_rewards, "black"),
+    # ]
 
-    plt.figure(figsize=(10, 5 * rows))  # Ajusta a altura com base no número de linhas
+    # # Configurar o layout da figura com subplots
+    # num_plots = len(components)
+    # cols = 2
+    # rows = (num_plots + cols - 1) // cols  # Calcula o número de linhas necessárias
 
-    for idx, (title, data, color) in enumerate(components, 1):
-        ax = plt.subplot(rows, cols, idx)
-        ax.plot(steps, data, label=title, color=color, linestyle="-", linewidth=1.5)
-        ax.set_ylabel(title, fontsize=14)
-        ax.legend(fontsize=12)
-        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-        ax.tick_params(axis="x", labelsize=12)
-        ax.tick_params(axis="y", labelsize=12)
+    # plt.figure(figsize=(10, 5 * rows))  # Ajusta a altura com base no número de linhas
 
-        # Calcular estatísticas
-        mean_val = np.mean(data)
-        min_val = np.min(data)
-        max_val = np.max(data)
+    # for idx, (title, data, color) in enumerate(components, 1):
+    #     ax = plt.subplot(rows, cols, idx)
+    #     ax.plot(steps, data, label=title, color=color, linestyle="-", linewidth=1.5)
+    #     ax.set_ylabel(title, fontsize=14)
+    #     ax.legend(fontsize=12)
+    #     ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+    #     ax.tick_params(axis="x", labelsize=12)
+    #     ax.tick_params(axis="y", labelsize=12)
 
-        # Adicionar texto abaixo do plot com as estatísticas
-        # A posição (0.5, -0.25) coloca o texto centralizado abaixo do gráfico
-        ax.text(
-            0.5,
-            -0.25,
-            f"Média: {mean_val:.2f} | Mínimo: {min_val:.2f} | Máximo: {max_val:.2f}",
-            transform=ax.transAxes,
-            ha="center",
-            fontsize=12,
-        )
+    #     # Calcular estatísticas
+    #     mean_val = np.mean(data)
+    #     min_val = np.min(data)
+    #     max_val = np.max(data)
 
-    # Ajustar layout para evitar sobreposição
-    plt.tight_layout()
+    #     # Adicionar texto abaixo do plot com as estatísticas
+    #     # A posição (0.5, -0.25) coloca o texto centralizado abaixo do gráfico
+    #     ax.text(
+    #         0.5,
+    #         -0.25,
+    #         f"Média: {mean_val:.2f} | Mínimo: {min_val:.2f} | Máximo: {max_val:.2f}",
+    #         transform=ax.transAxes,
+    #         ha="center",
+    #         fontsize=12,
+    #     )
 
-    # Ajustar espaço adicional na parte inferior para os textos
-    plt.subplots_adjust(bottom=0.15)
+    # # Ajustar layout para evitar sobreposição
+    # plt.tight_layout()
 
-    # Exibir o gráfico
-    plt.show()
+    # # Ajustar espaço adicional na parte inferior para os textos
+    # plt.subplots_adjust(bottom=0.15)
+
+    # # Exibir o gráfico
+    # plt.show()

@@ -653,9 +653,7 @@ class PPO:
 
                     entropy_loss = entropy.mean()
                     loss = (
-                        pg_loss
-                        - self.ent_coef * entropy_loss
-                        + v_loss * self.vf_coef
+                        pg_loss - self.ent_coef * entropy_loss + v_loss * self.vf_coef
                     )
 
                     # Store entropy for metrics

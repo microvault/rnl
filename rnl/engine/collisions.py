@@ -256,7 +256,6 @@ def spawn_robot_and_goal(
         holes = [np.array(i.coords, dtype=np.float64) for i in shp.interiors]
         return ext, holes
 
-
     ext_robot, holes_robot = to_numba_format(safe_poly_robot)
     ext_goal, holes_goal = to_numba_format(safe_poly_goal)
 

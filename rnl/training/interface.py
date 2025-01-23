@@ -9,7 +9,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, probe_envs, training, learn_with_sb3
+from rnl.training.learn import inference, learn_with_sb3, probe_envs, training
 
 
 def robot(
@@ -54,8 +54,8 @@ def make(
     )
 
 
-def render(controller: bool, debug: bool) -> RenderConfig:
-    return RenderConfig(controller, debug)
+def render(controller: bool, debug: bool, plot: bool) -> RenderConfig:
+    return RenderConfig(controller, debug, plot)
 
 
 class Trainer:
@@ -79,8 +79,11 @@ class Trainer:
 
     def learn(
         self,
+        algorithms: str,
         max_timestep_global: int,
         gamma: float,
+        seed: int,
+        buffer_size: int,
         batch_size: int,
         lr: float,
         num_envs: int,
@@ -133,73 +136,76 @@ class Trainer:
         eval_steps: Optional[int] = None,
     ) -> None:
 
+        import matplotlib
+
+        matplotlib.use("Agg")
+
+        trainer_config = TrainerConfig(
+            algorithms=algorithms,
+            buffer_size=buffer_size,
+            max_timestep_global=max_timestep_global,
+            gamma=gamma,
+            seed=seed,
+            batch_size=batch_size,
+            lr=lr,
+            num_envs=num_envs,
+            device=device,
+            learn_step=learn_step,
+            checkpoint=checkpoint,
+            checkpoint_path=checkpoint_path,
+            overwrite_checkpoints=overwrite_checkpoints,
+            use_wandb=use_wandb,
+            wandb_api_key=wandb_api_key,
+            gae_lambda=gae_lambda,
+            action_std_init=action_std_init,
+            clip_coef=clip_coef,
+            ent_coef=ent_coef,
+            vf_coef=vf_coef,
+            max_grad_norm=max_grad_norm,
+            update_epochs=update_epochs,
+        )
+
+        hpo_config = HPOConfig(
+            use_mutation=use_mutation,
+            population_size=population_size,
+            no_mutation=no_mutation,
+            arch_mutation=arch_mutation,
+            new_layer=new_layer,
+            param_mutation=param_mutation,
+            active_mutation=active_mutation,
+            hp_mutation=hp_mutation,
+            hp_mutation_selection=hp_mutation_selection,
+            mutation_strength=mutation_strength,
+            min_lr=min_lr,
+            max_lr=max_lr,
+            min_learn_step=min_learn_step,
+            max_learn_step=max_learn_step,
+            min_batch_size=min_batch_size,
+            max_batch_size=max_batch_size,
+            save_elite=save_elite,
+            elite_path=elite_path,
+            tourn_size=tourn_size,
+            elitism=elitism,
+            evo_steps=evo_steps,
+            eval_steps=eval_steps,
+            eval_loop=eval_loop,
+            mutate_elite=mutate_elite,
+            rand_seed=rand_seed,
+            activation=activation,
+        )
+
+        network_config = NetworkConfig(
+            arch="mlp",
+            hidden_size=hidden_size,
+            mlp_activation=mlp_activation,
+            mlp_output_activation=mlp_output_activation,
+            min_hidden_layers=min_hidden_layers,
+            max_hidden_layers=max_hidden_layers,
+            min_mlp_nodes=min_mlp_nodes,
+            max_mlp_nodes=max_mlp_nodes,
+        )
+
         if use_mutation:
-
-            import matplotlib
-
-            matplotlib.use("Agg")
-
-            trainer_config = TrainerConfig(
-                max_timestep_global=max_timestep_global,
-                gamma=gamma,
-                batch_size=batch_size,
-                lr=lr,
-                num_envs=num_envs,
-                device=device,
-                learn_step=learn_step,
-                checkpoint=checkpoint,
-                checkpoint_path=checkpoint_path,
-                overwrite_checkpoints=overwrite_checkpoints,
-                use_wandb=use_wandb,
-                wandb_api_key=wandb_api_key,
-                gae_lambda=gae_lambda,
-                action_std_init=action_std_init,
-                clip_coef=clip_coef,
-                ent_coef=ent_coef,
-                vf_coef=vf_coef,
-                max_grad_norm=max_grad_norm,
-                update_epochs=update_epochs,
-            )
-
-            hpo_config = HPOConfig(
-                use_mutation=use_mutation,
-                population_size=population_size,
-                no_mutation=no_mutation,
-                arch_mutation=arch_mutation,
-                new_layer=new_layer,
-                param_mutation=param_mutation,
-                active_mutation=active_mutation,
-                hp_mutation=hp_mutation,
-                hp_mutation_selection=hp_mutation_selection,
-                mutation_strength=mutation_strength,
-                min_lr=min_lr,
-                max_lr=max_lr,
-                min_learn_step=min_learn_step,
-                max_learn_step=max_learn_step,
-                min_batch_size=min_batch_size,
-                max_batch_size=max_batch_size,
-                save_elite=save_elite,
-                elite_path=elite_path,
-                tourn_size=tourn_size,
-                elitism=elitism,
-                evo_steps=evo_steps,
-                eval_steps=eval_steps,
-                eval_loop=eval_loop,
-                mutate_elite=mutate_elite,
-                rand_seed=rand_seed,
-                activation=activation,
-            )
-
-            network_config = NetworkConfig(
-                arch="mlp",
-                hidden_size=hidden_size,
-                mlp_activation=mlp_activation,
-                mlp_output_activation=mlp_output_activation,
-                min_hidden_layers=min_hidden_layers,
-                max_hidden_layers=max_hidden_layers,
-                min_mlp_nodes=min_mlp_nodes,
-                max_mlp_nodes=max_mlp_nodes,
-            )
 
             training(
                 trainer_config,
@@ -218,6 +224,8 @@ class Trainer:
 
         else:
             learn_with_sb3(
+                trainer_config,
+                network_config,
                 self.robot_config,
                 self.sensor_config,
                 self.env_config,

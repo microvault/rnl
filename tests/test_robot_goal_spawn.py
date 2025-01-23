@@ -35,8 +35,7 @@ def test_spawn_robot_and_goal(poly, request):
     # Inicializar variáveis para rastrear distâncias
     min_distance = float("inf")
     max_distance = 0.0
-    distances = []  # Opcional: armazenar todas as distâncias para análise adicional
-
+    distances = []
     for _ in range(iterations):
         robot_pos, goal_pos = spawn_robot_and_goal(
             poly=poly,
