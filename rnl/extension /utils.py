@@ -3,7 +3,7 @@ import numpy as np
 import torch
 from tqdm import trange
 
-from rnl.algorithms.ppo import PPO
+from rnl.extension.ppo import PPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.environment.env import NaviEnv
 

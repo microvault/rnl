@@ -15,7 +15,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=1.0,  # 2
-        path_model="",
+        path_model="/Users/nicolasalan/microvault/rnl/models",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -37,7 +37,78 @@ def main(arg):
     # 4.step -> config render
     param_render = vault.render(controller=False, debug=False, plot=False)
 
-    if args.mode == "learn":
+    if args.mode == "learn-agilerl":
+        # 5.step -> config train robot
+        model = vault.Trainer(
+            param_robot,
+            param_sensor,
+            param_env,
+            param_render,
+            pretrained_model=False,
+            train_docker=False,
+            probe=False,
+        )
+
+        # 6.step -> train robot
+        model.learn(
+            algorithms=algo,
+            max_timestep_global=100, # 10000000
+            gamma=0.99,
+            seed=42,
+            buffer_size=1000000,
+            batch_size=256,
+            lr=0.0001,
+            num_envs=2,
+            device="cpu",
+            learn_step=1024,
+            checkpoint=100000,
+            checkpoint_path="./checkpoints/model",
+            overwrite_checkpoints=False,
+            use_mutation=False,
+            population_size=5,
+            no_mutation=0.4,
+            arch_mutation=0.2,
+            new_layer=0.2,
+            param_mutation=0.2,
+            active_mutation=0.2,
+            hp_mutation=0.2,
+            hp_mutation_selection=["lr", "batch_size", "learn_step"],
+            mutation_strength=0.1,
+            save_elite=True,
+            elite_path="./checkpoints/elite",
+            tourn_size=2,
+            elitism=True,
+            hidden_size=[128, 128],
+            use_wandb=True,
+            wandb_api_key=str(wandb_key),
+            min_lr=0.0001,
+            max_lr=0.01,
+            min_learn_step=256,
+            max_learn_step=8192,
+            min_batch_size=128,
+            max_batch_size=1024,
+            evo_steps=10000,
+            eval_steps=None,
+            eval_loop=3,
+            mutate_elite=True,
+            rand_seed=42,
+            activation=["ReLU", "ELU", "GELU"],
+            mlp_activation="ReLU",
+            mlp_output_activation="ReLU",
+            min_hidden_layers=1,
+            max_hidden_layers=4,
+            min_mlp_nodes=64,
+            max_mlp_nodes=256,
+            gae_lambda=0.95,
+            action_std_init=0.6,
+            clip_coef=0.2,
+            ent_coef=0.01,
+            vf_coef=0.5,
+            max_grad_norm=0.5,
+            update_epochs=4,
+        )
+
+    elif args.mode == "learn-sb3":
         # 5.step -> config train robot
         model = vault.Trainer(
             param_robot,
@@ -111,7 +182,7 @@ def main(arg):
     elif args.mode == "sim":
         # 5.step -> config train robot
         model = vault.Simulation(
-            param_robot, param_sensor, param_env, param_render, pretrained_model=True
+            param_robot, param_sensor, param_env, param_render, pretrained_model=False
         )
         # 6.step -> run robot
         model.run()

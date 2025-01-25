@@ -19,7 +19,7 @@ from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.dqn.policies import DQNPolicy
 
 import wandb
-from rnl.algorithms.ppo import PPO as agent_algo
+from rnl.extension.ppo import PPO as agent_algo
 from rnl.configs.config import (
     EnvConfig,
     HPOConfig,
@@ -30,8 +30,8 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.environment.env import NaviEnv
-from rnl.training.policy import train_on_policy
-from rnl.training.utils import create_population, make_vect_envs
+from rnl.training.training_with_agilerl import train_on_policy
+from rnl.extension.utils import create_population, make_vect_envs
 
 
 def training(

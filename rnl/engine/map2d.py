@@ -236,6 +236,6 @@ class Map2D:
         return contour_mask
 
 
-# if __name__ == "__main__":
-#     map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
-#     map.initial_environment2d(plot=True)
+if __name__ == "__main__":
+    map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
+    map.initial_environment2d(plot=True)

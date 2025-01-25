@@ -107,13 +107,13 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
 
-        if self.pretrained_model:
-            self.ppo = PPO.load(
-                robot_config.path_model,
-                device="cpu",
-            )
+        # if self.pretrained_model:
+        #     self.ppo = PPO.load(
+        #         robot_config.path_model,
+        #         device="cpu",
+        #     )
 
-            self.model = agent_ppo.load(robot_config.path_model)
+        self.model = agent_ppo.load("/Users/nicolasalan/microvault/rnl/models/model")
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -177,34 +177,34 @@ class NaviEnv(gym.Env):
 
     def step_animation(self, i, action=None, test: bool = False):
 
-        if test:
-            self.action = action[0]
+        # if test:
+        #     self.action = action[0]
 
-            if self.action == 0:
-                self.vl = 0.035 * self.scalar
-                self.vr = 0.0
-            elif self.action == 1:
-                self.vl = 0.035 * self.scalar
-                self.vr = -0.035 * self.scalar
-            elif self.action == 2:
-                self.vl = 0.05 * self.scalar
-                self.vr = 0.035 * self.scalar
-        else:
-            if self.pretrained_model or not self.controller:
-                if self.pretrained_model:
-                    self.action = int(self.ppo.get_action(self.last_states)[0])
-                else:
-                    self.action, _states = self.model.predict(self.last_states)
+        #     if self.action == 0:
+        #         self.vl = 0.035 * self.scalar
+        #         self.vr = 0.0
+        #     elif self.action == 1:
+        #         self.vl = 0.035 * self.scalar
+        #         self.vr = -0.035 * self.scalar
+        #     elif self.action == 2:
+        #         self.vl = 0.05 * self.scalar
+        #         self.vr = 0.035 * self.scalar
+        # else:
+        #     if self.pretrained_model or not self.controller:
+                # if self.pretrained_model:
+                #     self.action = int(self.ppo.get_action(self.last_states)[0])
+                # else:
+        self.action, _states = self.model.predict(self.last_states)
 
-                if self.action == 0:
-                    self.vl = 0.035 * self.scalar
-                    self.vr = 0.0
-                elif self.action == 1:
-                    self.vl = 0.035 * self.scalar
-                    self.vr = -0.035 * self.scalar
-                elif self.action == 2:
-                    self.vl = 0.035 * self.scalar
-                    self.vr = 0.035 * self.scalar
+        if self.action == 0:
+            self.vl = 0.035 * self.scalar
+            self.vr = 0.0
+        elif self.action == 1:
+            self.vl = 0.035 * self.scalar
+            self.vr = -0.035 * self.scalar
+        elif self.action == 2:
+            self.vl = 0.035 * self.scalar
+            self.vr = 0.035 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
