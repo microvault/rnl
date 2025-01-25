@@ -1,18 +1,15 @@
 import csv
-import io
-import time
 
 import gymnasium as gym
-import imageio
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import PPO as agent_ppo
+from stable_baselines3 import PPO
+from typing import Optional
 
-from rnl.algorithms.ppo import PPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
 from rnl.engine.rewards import get_reward
@@ -73,8 +70,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 62.06
-        self.min_dist = 4.0
+        self.max_dist = 7.5 # 62.06
+        self.min_dist = 1.0 # 4.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         max_alpha, min_alpha = 3.15, 0.0
@@ -98,7 +95,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 100
+        self.scalar: int = 10
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot
@@ -107,13 +104,8 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
 
-        # if self.pretrained_model:
-        #     self.ppo = PPO.load(
-        #         robot_config.path_model,
-        #         device="cpu",
-        #     )
-
-        self.model = agent_ppo.load("/Users/nicolasalan/microvault/rnl/models/model")
+        if self.pretrained_model:
+            self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -146,6 +138,7 @@ class NaviEnv(gym.Env):
             if self.controller:
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
+
             if self.plot:
                 self._init_reward_plot()
 
@@ -175,36 +168,23 @@ class NaviEnv(gym.Env):
             self.vl = 0.0
             self.vr = 0.005 * self.scalar
 
-    def step_animation(self, i, action=None, test: bool = False):
+    def step_animation(self, i):
 
-        # if test:
-        #     self.action = action[0]
+        if self.pretrained_model and not self.controller:
+            if self.pretrained_model:
+                self.action, _states = self.model.predict(self.last_states)
+            else:
+                self.action = np.random.randint(0, 3)
 
-        #     if self.action == 0:
-        #         self.vl = 0.035 * self.scalar
-        #         self.vr = 0.0
-        #     elif self.action == 1:
-        #         self.vl = 0.035 * self.scalar
-        #         self.vr = -0.035 * self.scalar
-        #     elif self.action == 2:
-        #         self.vl = 0.05 * self.scalar
-        #         self.vr = 0.035 * self.scalar
-        # else:
-        #     if self.pretrained_model or not self.controller:
-                # if self.pretrained_model:
-                #     self.action = int(self.ppo.get_action(self.last_states)[0])
-                # else:
-        self.action, _states = self.model.predict(self.last_states)
-
-        if self.action == 0:
-            self.vl = 0.035 * self.scalar
-            self.vr = 0.0
-        elif self.action == 1:
-            self.vl = 0.035 * self.scalar
-            self.vr = -0.035 * self.scalar
-        elif self.action == 2:
-            self.vl = 0.035 * self.scalar
-            self.vr = 0.035 * self.scalar
+            if self.action == 0:
+                self.vl = 0.035 * self.scalar
+                self.vr = 0.0
+            elif self.action == 1:
+                self.vl = 0.035 * self.scalar
+                self.vr = -0.035 * self.scalar
+            elif self.action == 2:
+                self.vl = 0.035 * self.scalar
+                self.vr = 0.035 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -297,7 +277,7 @@ class NaviEnv(gym.Env):
 
         truncated = self.timestep >= self.max_timestep
 
-        if self.plot and not test:
+        if self.plot:
 
             self.log_reward(
                 obstacle,
@@ -309,15 +289,7 @@ class NaviEnv(gym.Env):
             )
 
         if done or truncated:
-            if test:
-                if (
-                    self.ani is not None
-                    and getattr(self.ani, "event_source", None) is not None
-                ):
-                    self.ani.event_source.stop()
-                return True
-            else:
-                self._stop(test=test)
+            self._stop()
 
     def step(self, action):
 
@@ -429,19 +401,15 @@ class NaviEnv(gym.Env):
 
         return states, reward, done, truncated, {}
 
-    def reset(self, seed=None, options=None):
-        # Se tiver algum super reset
+    def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         try:
             super().reset(seed=seed, options=options)
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao chamar super().reset: {e}")
-            raise  # ou tire se quiser apenas logar
+            raise
 
         self.timestep = 0
 
-        # --------------------------------
-        # 1) Definição do cenário
-        # --------------------------------
         try:
             if self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(10)
@@ -467,9 +435,6 @@ class NaviEnv(gym.Env):
             )
             raise
 
-        # --------------------------------
-        # 2) Render (se habilitado)
-        # --------------------------------
         try:
             if self.use_render:
                 for patch in self.ax.patches:
@@ -480,9 +445,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao desenhar o cenário: {e}")
             raise
 
-        # --------------------------------
-        # 3) Reinicia robô
-        # --------------------------------
         try:
             theta = np.random.uniform(0, 2 * np.pi)
             self.robot.reset_robot(self.body, x, y, theta)
@@ -490,9 +452,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
             raise
 
-        # --------------------------------
-        # 4) LIDAR / Sensor
-        # --------------------------------
         try:
             intersections, measurement = self.sensor.sensor(
                 x=self.body.position.x,
@@ -504,9 +463,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao obter leituras do sensor: {e}")
             raise
 
-        # --------------------------------
-        # 5) Distância / Ângulo pro alvo
-        # --------------------------------
         try:
             dist = distance_to_goal(
                 self.body.position.x,
@@ -525,9 +481,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao calcular distância/ângulo: {e}")
             raise
 
-        # --------------------------------
-        # 6) Normalização / Transforms
-        # --------------------------------
         try:
             self.current_rays = len(measurement)
             padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
@@ -546,9 +499,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao normalizar entradas (scalers): {e}")
             raise
 
-        # --------------------------------
-        # 7) Montar estado final
-        # --------------------------------
         try:
             action = np.random.randint(0, 3)
             action_one_hot = np.eye(3)[action]
@@ -568,9 +518,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao montar o array de estados: {e}")
             raise
 
-        # --------------------------------
-        # 8) Render final (se habilitado)
-        # --------------------------------
         try:
             if self.use_render:
                 self._plot_anim(
@@ -593,16 +540,6 @@ class NaviEnv(gym.Env):
         info = {}
         return states, info
 
-    def capture_frame(self):
-        """
-        Salva o frame atual do Matplotlib em memória e retorna como array (imagem).
-        """
-        buf = io.BytesIO()
-        self.fig.savefig(buf, format="png")
-        buf.seek(0)
-        frame = imageio.imread(buf)
-        return frame
-
     def render(self, mode="human"):
         self.ani = animation.FuncAnimation(
             self.fig,
@@ -616,8 +553,7 @@ class NaviEnv(gym.Env):
 
     def _stop(self, test=None):
         self.reset()
-        if test is None:
-            self.ani.frame_seq = self.ani.new_frame_seq()
+        self.ani.frame_seq = self.ani.new_frame_seq()
 
     def _init_animation(self, ax: Axes3D) -> None:
         """
@@ -823,7 +759,6 @@ class NaviEnv(gym.Env):
         time_score: float,
         reward: float,
     ):
-        # Append the new scores to the lists
         self.obstacle_scores.append(obstacle_score)
         self.collision_scores.append(collision_score)
         self.orientation_scores.append(orientation_score)
@@ -831,10 +766,8 @@ class NaviEnv(gym.Env):
         self.time_scores.append(time_score)
         self.rewards.append(reward)
 
-        # Determine the current step
         current_step = len(self.rewards)
 
-        # Update the data of each line
         self.obstacle_line.set_data(range(current_step), self.obstacle_scores)
         self.collision_line.set_data(range(current_step), self.collision_scores)
         self.orientation_line.set_data(range(current_step), self.orientation_scores)

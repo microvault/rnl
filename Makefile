@@ -7,6 +7,10 @@ VERSION = 1.1
 sim:
 	@poetry run python -m main sim
 
+.PHONY: demo
+demo:
+	@poetry run python rnl/training/demo_sweep.py
+
 .PHONY: learn
 learn:
 	@poetry run python -m main learn

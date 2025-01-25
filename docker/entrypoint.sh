@@ -9,4 +9,5 @@ echo ""
 echo "Starting training ..."
 echo ""
 
-exec python -m main learn
+# exec python -m main learn
+exec python rnl/training/demo_sweep.py

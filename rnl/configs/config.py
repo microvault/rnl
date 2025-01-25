@@ -81,33 +81,3 @@ class TrainerConfig:
     vf_coef: float
     max_grad_norm: float
     update_epochs: int
-
-
-@dataclass
-class HPOConfig:
-    use_mutation: bool
-    population_size: int
-    no_mutation: float
-    arch_mutation: float
-    new_layer: float
-    param_mutation: float
-    active_mutation: float
-    hp_mutation: float
-    hp_mutation_selection: List[str]
-    mutation_strength: float
-    min_lr: float
-    max_lr: float
-    min_learn_step: int
-    max_learn_step: int
-    min_batch_size: int
-    max_batch_size: int
-    save_elite: bool
-    elite_path: str
-    tourn_size: int
-    elitism: bool
-    evo_steps: int
-    eval_loop: int
-    mutate_elite: bool
-    rand_seed: int
-    activation: List[str]
-    eval_steps: Optional[int] = None

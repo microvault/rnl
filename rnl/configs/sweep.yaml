@@ -1,0 +1,19 @@
+method: bayes
+name: sweep
+metric:
+  goal: minimize
+  name: train/loss
+parameters:
+  batch_size:
+    values: [128, 256, 512, 1024]
+  lr:
+    max: 0.1
+    min: 0.000001
+  policy_kwargs:
+    parameters:
+      net_arch:
+        parameters:
+          pi:
+            values: [[128, 128], [256, 256], [512, 512]]
+          vf:
+            values: [[128, 128], [256, 256], [512, 512]]

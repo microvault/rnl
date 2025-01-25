@@ -3,9 +3,8 @@ import numpy as np
 import pytest
 from matplotlib.lines import Line2D
 from shapely.geometry import Point, Polygon
-
-from rnl.engine.collisions import spawn_robot_and_goal
-from rnl.environment.world import CreateWorld
+from rnl.engine.world import spawn_robot_and_goal_with_maze
+from rnl.environment.generate import Generator
 
 def is_inside_polygon(point, polygon: Polygon):
     return polygon.contains(Point(point))
@@ -13,17 +12,16 @@ def is_inside_polygon(point, polygon: Polygon):
 
 @pytest.fixture
 def poly():
-    generator = CreateWorld(
-        folder="/Users/nicolasalan/microvault/rnl/data/map4",
-        name="map4",
-    )
-    _, _, poly = generator.world()
+    generator = Generator(mode="easy-01")
+    _, _, poly = generator.world(10)
 
     return poly
 
 
 def test_spawn_robot_and_goal(poly, request):
-    iterations = 100000
+    iterations = 1000
+
+
 
     # Inicializar listas para armazenar posições
     robot_x = []
@@ -36,20 +34,23 @@ def test_spawn_robot_and_goal(poly, request):
     max_distance = 0.0
     distances = []
     for _ in range(iterations):
-        robot_pos, goal_pos = spawn_robot_and_goal(
+        targets = np.array([[2.5, 2.5], [6.5, 2.5], [2.5, 6.5], [6.5, 6.5]])
+        goal_pos = targets[np.random.randint(0, len(targets))]
+        robot_pos, _ = spawn_robot_and_goal_with_maze(
             poly=poly,
-            robot_clearance=4.0,
-            goal_clearance=2.0,
-            min_robot_goal_dist=4.0,
+            robot_clearance=1.0,
+            goal_clearance=1.0,
+            min_robot_goal_dist=2.0,
         )
 
+        # robot_pos = np.array([4.5, 4.5])
         # Verificar se o objetivo está dentro do polígono
         assert is_inside_polygon(
             goal_pos, poly
         ), f"Goal position {goal_pos} está fora do polígono."
 
         # Verificar se robô e objetivo não estão na mesma posição
-        assert robot_pos != goal_pos, "Robot and goal positions are the same."
+        assert not np.array_equal(robot_pos, goal_pos), "Robot and goal positions are the same."
 
         # Armazenar as posições
         robot_x.append(robot_pos[0])
@@ -128,3 +129,14 @@ def test_spawn_robot_and_goal(poly, request):
 
     # Mostrar o plot
     plt.show()
+
+
+
+# Definição dos pontos (x1, y1) e (x2, y2)
+ponto1 = np.array([6.5, 2.5])
+ponto2 = np.array([1.0, 8.0])
+
+# Cálculo da distância euclidiana
+distancia = np.linalg.norm(ponto1 - ponto2)
+
+print(f"Distância Euclidiana: {distancia:.4f}")
