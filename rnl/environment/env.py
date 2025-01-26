@@ -70,7 +70,7 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 9.0 # 62.06
+        self.max_dist = 9.98 # 62.06
         self.min_dist = 1.0 # 4.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -384,30 +384,30 @@ class NaviEnv(gym.Env):
 
         self.space.step(1 / 60)
 
-        if self.debug:
-            self.log_reward_csv(
-                obstacle,
-                collision_score,
-                orientation_score,
-                progress_score,
-                time_score,
-                reward,
-                action,
-                dist_norm[0],
-                alpha_norm[0],
-                min(lidar_norm),
-                max(lidar_norm),
-            )
-
-        self.last_states = states
-
         self.timestep += 1
 
         truncated = self.timestep >= self.max_timestep
 
-        self.space.step(1 / 60)
 
-        return states, reward, done, truncated, {}
+        if self.debug:
+            info = {}
+            info["obstacle"] = obstacle
+            info["collision_score"] = collision_score
+            info["orientation_score"] = orientation_score
+            info["progress_score"] = progress_score
+            info["time_score"] = time_score
+            info["total_reward"] = reward
+            info["action"] = float(action)
+            info["dist"] = float(dist_norm[0])
+            info["alpha"] = float(alpha_norm[0])
+            info["min_lidar"] = float(min(lidar_norm))
+            info["max_lidar"] = float(max(lidar_norm))
+            info["states"] = states
+
+            return states, reward, done, truncated, info
+
+        else:
+            return states, reward, done, truncated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         try:
@@ -736,17 +736,17 @@ class NaviEnv(gym.Env):
 
     def log_reward_csv(
         self,
-        obstacles_score: float,
-        collision_score: float,
-        orientation_score: float,
-        progress_score: float,
-        time_score: float,
-        reward: float,
-        action: int,
+        # obstacles_score: float,
+        # collision_score: float,
+        # orientation_score: float,
+        # progress_score: float,
+        # time_score: float,
+        # reward: float,
+        # action: int,
         norm_dist: float,
-        norm_alpha: float,
-        min_norm_lidar: float,
-        max_norm_lidar: float,
+        # norm_alpha: float,
+        # min_norm_lidar: float,
+        # max_norm_lidar: float,
     ):
 
 
@@ -759,12 +759,12 @@ class NaviEnv(gym.Env):
                     # orientation_score,
                     # progress_score,
                     # time_score,
-                    reward,
-                    action,
+                    # reward,
+                    # action,
                     norm_dist,
-                    norm_alpha,
-                    min_norm_lidar,
-                    max_norm_lidar,
+                    # norm_alpha,
+                    # min_norm_lidar,
+                    # max_norm_lidar,
                 ]
             )
 

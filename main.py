@@ -73,7 +73,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             csv_file="./data/debugging.csv",
-            num_envs=10,
+            num_envs=20,
             max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,

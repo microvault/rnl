@@ -10,7 +10,8 @@ from stable_baselines3.dqn.policies import DQNPolicy
 from rnl.engine.vector import make_vect_envs
 import matplotlib.pyplot as plt
 
-import csv
+import pickle
+
 import wandb
 from rnl.configs.config import (
     EnvConfig,
@@ -212,7 +213,6 @@ def probe_envs(
             print(f"{key.ljust(max_key_length)} : {value}")
 
     print()
-    pbar = trange(max_steps, desc="Probe envs", unit="step")
 
     env = make_vect_envs(
         num_envs=num_envs,
@@ -224,22 +224,48 @@ def probe_envs(
     )
 
     state, info = env.reset()
-    scores = np.zeros(num_envs)
-    steps = 0
     ep_rewards = np.zeros(num_envs)
     ep_lengths = np.zeros(num_envs)
 
     completed_rewards = []
     completed_lengths = []
 
+    # Listas para armazenar dados de cada step
+    obstacles_scores = []
+    collision_scores = []
+    orientation_scores = []
+    progress_scores = []
+    time_scores = []
+    total_rewards = []
+    actions_list = []
+    dists_list = []
+    alphas_list = []
+    min_lidars_list = []
+    max_lidars_list = []
+    states_list = []
+
+    pbar = trange(max_steps, desc="Probe envs", unit="step")
+
     for i in pbar:
         actions = env.action_space.sample()
-
-        next_state, rewards, terminated, truncated, info = env.step(actions)
-        steps += 1
+        next_state, rewards, terminated, truncated, infos = env.step(actions)
 
         ep_rewards += np.array(rewards)
-        ep_lengths += 1  # Incrementa o comprimento do episódio
+        ep_lengths += 1
+
+        for env_idx in range(num_envs):
+            obstacles_scores.append(infos["obstacle"][env_idx])
+            collision_scores.append(infos["collision_score"][env_idx])
+            orientation_scores.append(infos["orientation_score"][env_idx])
+            progress_scores.append(infos["progress_score"][env_idx])
+            time_scores.append(infos["time_score"][env_idx])
+            total_rewards.append(infos["total_reward"][env_idx])
+            actions_list.append(infos["action"][env_idx])
+            dists_list.append(infos["dist"][env_idx])
+            alphas_list.append(infos["alpha"][env_idx])
+            min_lidars_list.append(infos["min_lidar"][env_idx])
+            max_lidars_list.append(infos["max_lidar"][env_idx])
+            states_list.append(infos["states"][env_idx])
 
         done = np.logical_or(terminated, truncated)
         done_indices = np.where(done)[0]
@@ -253,12 +279,8 @@ def probe_envs(
                 ep_lengths[idx] = 0
 
         if len(completed_rewards) > 0 and len(completed_lengths) > 0:
-            avg_reward = np.mean(
-                completed_rewards[-100:]
-            )
-            avg_length = np.mean(
-                completed_lengths[-100:]
-            )
+            avg_reward = np.mean(completed_rewards[-100:])
+            avg_length = np.mean(completed_lengths[-100:])
         else:
             avg_reward = 0
             avg_length = 0
@@ -271,6 +293,7 @@ def probe_envs(
             }
         )
 
+    # Ao terminar os steps, se ainda houver envs que não terminaram
     for idx in range(num_envs):
         if ep_lengths[idx] > 0:
             completed_rewards.append(ep_rewards[idx])
@@ -278,54 +301,48 @@ def probe_envs(
 
     env.close()
 
+    # Converte para numpy
     completed_rewards = np.array(completed_rewards)
     completed_lengths = np.array(completed_lengths)
 
-    obstacles_scores = []
-    collision_scores = []
-    orientation_scores = []
-    progress_scores = []
-    time_scores = []
-    rewards = []
-    dists = []
-    alphas = []
-    min_lidars = []
-    max_lidars = []
-    actions = []
+    # Salvando num pickle (opcional)
+    with open("logs.pkl", "wb") as f:
+        pickle.dump(
+            {
+                "obstacles_scores": obstacles_scores,
+                "collision_scores": collision_scores,
+                "orientation_scores": orientation_scores,
+                "progress_scores": progress_scores,
+                "time_scores": time_scores,
+                "total_rewards": total_rewards,
+                "actions_list": actions_list,
+                "dists_list": dists_list,
+                "alphas_list": alphas_list,
+                "min_lidars_list": min_lidars_list,
+                "max_lidars_list": max_lidars_list,
+                "completed_rewards": completed_rewards.tolist(),
+                "completed_lengths": completed_lengths.tolist(),
+                "states_list": [s.tolist() for s in states_list],
+            },
+            f,
+        )
 
-    # Ler o arquivo CSV
-    with open(csv_file, mode="r") as file:
-        reader = csv.reader(file)
-        for row in reader:
-            # obstacles_scores.append(float(row[0]))
-            # collision_scores.append(float(row[1]))
-            # orientation_scores.append(float(row[2]))
-            # progress_scores.append(float(row[3]))
-            # time_scores.append(float(row[4]))
-            rewards.append(float(row[0]))
-            actions.append(float(row[1]))
-            dists.append(float(row[2]))
-            alphas.append(float(row[3]))
-            min_lidars.append(float(row[4]))
-            max_lidars.append(float(row[5]))
+    # === PLOTS ===
 
-
-    steps = list(range(1, len(rewards) + 1))
-
+    # 1) Plot de métricas por step
+    steps_range = list(range(1, len(total_rewards) + 1))
     components = [
-        # ("Obstacles Score", obstacles_scores, "brown"),
-        # ("Collision Score", collision_scores, "red"),
-        # ("Orientation Score", orientation_scores, "green"),
-        # ("Progress Score", progress_scores, "blue"),
-        # ("Time Score", time_scores, "orange"),
-        ("Total Reward", rewards, "purple"),
-        ("Action", actions, "blue"),
-        ("Distance", dists, "cyan"),
-        ("Alpha", alphas, "magenta"),
-        ("Min Lidar", min_lidars, "yellow"),
-        ("Max Lidar", max_lidars, "black"),
-        # ("ep_len_mean", completed_lengths, "gray"),
-        # ("ep_rew_mean", completed_rewards, "black"),
+        ("Obstacles Score", obstacles_scores, "brown"),
+        ("Collision Score", collision_scores, "red"),
+        ("Orientation Score", orientation_scores, "green"),
+        ("Progress Score", progress_scores, "blue"),
+        ("Time Score", time_scores, "orange"),
+        ("Total Reward", total_rewards, "purple"),
+        ("Action", actions_list, "blue"),
+        ("Distance", dists_list, "cyan"),
+        ("Alpha", alphas_list, "magenta"),
+        ("Min Lidar", min_lidars_list, "yellow"),
+        ("Max Lidar", max_lidars_list, "black"),
     ]
 
     num_plots = len(components)
@@ -336,12 +353,12 @@ def probe_envs(
 
     for idx, (title, data, color) in enumerate(components, 1):
         ax = plt.subplot(rows, cols, idx)
-        ax.plot(steps, data, label=title, color=color, linestyle="-", linewidth=1.5)
-        ax.set_ylabel(title, fontsize=14)
-        ax.legend(fontsize=12)
+        ax.plot(steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5)
+        ax.set_ylabel(title, fontsize=8)
+        ax.legend(fontsize=6)
         ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-        ax.tick_params(axis="x", labelsize=12)
-        ax.tick_params(axis="y", labelsize=12)
+        ax.tick_params(axis="x", labelsize=6)
+        ax.tick_params(axis="y", labelsize=6)
 
         mean_val = np.mean(data)
         min_val = np.min(data)
@@ -353,11 +370,42 @@ def probe_envs(
             f"Média: {mean_val:.2f} | Mínimo: {min_val:.2f} | Máximo: {max_val:.2f}",
             transform=ax.transAxes,
             ha="center",
-            fontsize=12,
+            fontsize=6,
         )
 
     plt.tight_layout()
-
     plt.subplots_adjust(bottom=0.15)
-
     plt.show()
+
+    # 2) Plot separado para completed_rewards e completed_lengths (por episódio)
+    if len(completed_rewards) > 0:
+        episodes_range = list(range(1, len(completed_rewards) + 1))
+        plt.figure()
+        plt.plot(episodes_range, completed_rewards, label="Completed Rewards", color="black")
+        plt.plot(episodes_range, completed_lengths, label="Completed Lengths", color="gray")
+        plt.xlabel("Episódio")
+        plt.ylabel("Valor")
+        plt.legend()
+        plt.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+        plt.title("Métricas por Episódio")
+        plt.show()
+
+    # 3) Plot dos estados (se quiser cada dimensão do state em um subplot)
+    if len(states_list) > 0:
+        state_dim = len(states_list[0])
+        steps_states = list(range(1, len(states_list) + 1))
+
+        plt.figure(figsize=(10, 5 * ((state_dim + 1) // 2)))
+        for dim_idx in range(state_dim):
+            ax = plt.subplot((state_dim + 1) // 2, 2, dim_idx + 1)
+            dim_data = [s[dim_idx] for s in states_list]
+            ax.plot(steps_states, dim_data, label=f"State_{dim_idx}")
+            ax.set_ylabel(f"State_{dim_idx}", fontsize=14)
+            ax.legend(fontsize=12)
+            ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+            ax.tick_params(axis="x", labelsize=12)
+            ax.tick_params(axis="y", labelsize=12)
+
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.15)
+        plt.show()
