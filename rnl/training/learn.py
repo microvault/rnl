@@ -8,7 +8,8 @@ from wandb.integration.sb3 import WandbCallback
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.dqn.policies import DQNPolicy
 from rnl.engine.vector import make_vect_envs
-import matplotlib as plt
+import matplotlib.pyplot as plt
+
 import csv
 import wandb
 from rnl.configs.config import (
@@ -286,29 +287,45 @@ def probe_envs(
     progress_scores = []
     time_scores = []
     rewards = []
+    dists = []
+    alphas = []
+    min_lidars = []
+    max_lidars = []
+    actions = []
 
     # Ler o arquivo CSV
     with open(csv_file, mode="r") as file:
         reader = csv.reader(file)
         for row in reader:
-            obstacles_scores.append(float(row[0]))
-            collision_scores.append(float(row[1]))
-            orientation_scores.append(float(row[2]))
-            progress_scores.append(float(row[3]))
-            time_scores.append(float(row[4]))
-            rewards.append(float(row[5]))
+            # obstacles_scores.append(float(row[0]))
+            # collision_scores.append(float(row[1]))
+            # orientation_scores.append(float(row[2]))
+            # progress_scores.append(float(row[3]))
+            # time_scores.append(float(row[4]))
+            rewards.append(float(row[0]))
+            actions.append(float(row[1]))
+            dists.append(float(row[2]))
+            alphas.append(float(row[3]))
+            min_lidars.append(float(row[4]))
+            max_lidars.append(float(row[5]))
+
 
     steps = list(range(1, len(rewards) + 1))
 
     components = [
-        ("Obstacles Score", obstacles_scores, "brown"),
-        ("Collision Score", collision_scores, "red"),
-        ("Orientation Score", orientation_scores, "green"),
-        ("Progress Score", progress_scores, "blue"),
-        ("Time Score", time_scores, "orange"),
+        # ("Obstacles Score", obstacles_scores, "brown"),
+        # ("Collision Score", collision_scores, "red"),
+        # ("Orientation Score", orientation_scores, "green"),
+        # ("Progress Score", progress_scores, "blue"),
+        # ("Time Score", time_scores, "orange"),
         ("Total Reward", rewards, "purple"),
-        ("ep_len_mean", completed_lengths, "gray"),
-        ("ep_rew_mean", completed_rewards, "black"),
+        ("Action", actions, "blue"),
+        ("Distance", dists, "cyan"),
+        ("Alpha", alphas, "magenta"),
+        ("Min Lidar", min_lidars, "yellow"),
+        ("Max Lidar", max_lidars, "black"),
+        # ("ep_len_mean", completed_lengths, "gray"),
+        # ("ep_rew_mean", completed_rewards, "black"),
     ]
 
     num_plots = len(components)

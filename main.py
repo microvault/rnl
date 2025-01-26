@@ -36,7 +36,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=True, debug=True, plot=False)
+    param_render = vault.render(controller=False, debug=True, plot=True)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -73,7 +73,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             csv_file="./data/debugging.csv",
-            num_envs=20,
+            num_envs=10,
             max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,

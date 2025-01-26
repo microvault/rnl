@@ -18,7 +18,7 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-
+import os
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -60,7 +60,7 @@ class NaviEnv(gym.Env):
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
 
-        max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
+        max_lidar, min_lidar = 11.3137, 1.0
         self.scaler_lidar.fit(
             np.array(
                 [
@@ -70,7 +70,7 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 7.5 # 62.06
+        self.max_dist = 9.0 # 62.06
         self.min_dist = 1.0 # 4.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -140,6 +140,10 @@ class NaviEnv(gym.Env):
 
 
             if self.plot:
+                self.file_path = "./data/debugging.csv"
+
+                if os.path.exists(self.file_path):
+                    os.remove(self.file_path)
                 self._init_reward_plot()
 
         self.reset()
@@ -389,6 +393,10 @@ class NaviEnv(gym.Env):
                 time_score,
                 reward,
                 action,
+                dist_norm[0],
+                alpha_norm[0],
+                min(lidar_norm),
+                max(lidar_norm),
             )
 
         self.last_states = states
@@ -735,18 +743,28 @@ class NaviEnv(gym.Env):
         time_score: float,
         reward: float,
         action: int,
+        norm_dist: float,
+        norm_alpha: float,
+        min_norm_lidar: float,
+        max_norm_lidar: float,
     ):
+
+
         with open("./data/debugging.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(
                 [
-                    obstacles_score,
-                    collision_score,
-                    orientation_score,
-                    progress_score,
-                    time_score,
+                    # obstacles_score,
+                    # collision_score,
+                    # orientation_score,
+                    # progress_score,
+                    # time_score,
                     reward,
                     action,
+                    norm_dist,
+                    norm_alpha,
+                    min_norm_lidar,
+                    max_norm_lidar,
                 ]
             )
 

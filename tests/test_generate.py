@@ -19,10 +19,7 @@ def poly():
 
 
 def test_spawn_robot_and_goal(poly, request):
-    iterations = 1000
-
-
-
+    iterations = 100000
     # Inicializar listas para armazenar posições
     robot_x = []
     robot_y = []
