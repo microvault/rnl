@@ -70,7 +70,7 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 9.98 # 62.06
+        self.max_dist = 8.1 # 62.06
         self.min_dist = 1.0 # 4.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -387,7 +387,6 @@ class NaviEnv(gym.Env):
         self.timestep += 1
 
         truncated = self.timestep >= self.max_timestep
-
 
         if self.debug:
             info = {}

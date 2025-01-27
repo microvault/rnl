@@ -322,7 +322,7 @@ def probe_envs(
                 "max_lidars_list": max_lidars_list,
                 "completed_rewards": completed_rewards.tolist(),
                 "completed_lengths": completed_lengths.tolist(),
-                "states_list": [s.tolist() for s in states_list],
+                "states_list": [s.tolist() if s is not None else [] for s in states_list],
             },
             f,
         )
@@ -331,7 +331,7 @@ def probe_envs(
 
     # 1) Plot de métricas por step
     steps_range = list(range(1, len(total_rewards) + 1))
-    components = [
+    step_metrics = [
         ("Obstacles Score", obstacles_scores, "brown"),
         ("Collision Score", collision_scores, "red"),
         ("Orientation Score", orientation_scores, "green"),
@@ -345,13 +345,16 @@ def probe_envs(
         ("Max Lidar", max_lidars_list, "black"),
     ]
 
-    num_plots = len(components)
+    # Teremos 11 métricas step-based + 1 subplot para ep-based = 12 subplots
+    # Vamos organizar em 6 linhas x 2 colunas
+    total_subplots = len(step_metrics) + 1
     cols = 2
-    rows = (num_plots + cols - 1) // cols
+    rows = (total_subplots + cols - 1) // cols  # 6
 
     plt.figure(figsize=(10, 5 * rows))
 
-    for idx, (title, data, color) in enumerate(components, 1):
+    # Plota cada métrica de step em um subplot
+    for idx, (title, data, color) in enumerate(step_metrics, start=1):
         ax = plt.subplot(rows, cols, idx)
         ax.plot(steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5)
         ax.set_ylabel(title, fontsize=8)
@@ -373,39 +376,27 @@ def probe_envs(
             fontsize=6,
         )
 
+    # 2) Agora, em um último subplot, plotamos completed_rewards e completed_lengths
+    ax_ep = plt.subplot(rows, cols, total_subplots)
+    # Precisamos de um eixo de episódios
+    episodes_range = list(range(1, len(completed_rewards) + 1))
+
+    ax_ep.plot(
+        episodes_range, completed_rewards,
+        label="Completed Rewards", color="black"
+    )
+    ax_ep.plot(
+        episodes_range, completed_lengths,
+        label="Completed Lengths", color="gray"
+    )
+
+    ax_ep.set_xlabel("Episódio", fontsize=6)
+    ax_ep.set_ylabel("Valor", fontsize=6)
+    ax_ep.legend(fontsize=6)
+    ax_ep.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+    ax_ep.tick_params(axis="x", labelsize=6)
+    ax_ep.tick_params(axis="y", labelsize=6)
+
     plt.tight_layout()
-    plt.subplots_adjust(bottom=0.15)
+    plt.subplots_adjust(bottom=0.1)
     plt.show()
-
-    # 2) Plot separado para completed_rewards e completed_lengths (por episódio)
-    if len(completed_rewards) > 0:
-        episodes_range = list(range(1, len(completed_rewards) + 1))
-        plt.figure()
-        plt.plot(episodes_range, completed_rewards, label="Completed Rewards", color="black")
-        plt.plot(episodes_range, completed_lengths, label="Completed Lengths", color="gray")
-        plt.xlabel("Episódio")
-        plt.ylabel("Valor")
-        plt.legend()
-        plt.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-        plt.title("Métricas por Episódio")
-        plt.show()
-
-    # 3) Plot dos estados (se quiser cada dimensão do state em um subplot)
-    if len(states_list) > 0:
-        state_dim = len(states_list[0])
-        steps_states = list(range(1, len(states_list) + 1))
-
-        plt.figure(figsize=(10, 5 * ((state_dim + 1) // 2)))
-        for dim_idx in range(state_dim):
-            ax = plt.subplot((state_dim + 1) // 2, 2, dim_idx + 1)
-            dim_data = [s[dim_idx] for s in states_list]
-            ax.plot(steps_states, dim_data, label=f"State_{dim_idx}")
-            ax.set_ylabel(f"State_{dim_idx}", fontsize=14)
-            ax.legend(fontsize=12)
-            ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-            ax.tick_params(axis="x", labelsize=12)
-            ax.tick_params(axis="y", labelsize=12)
-
-        plt.tight_layout()
-        plt.subplots_adjust(bottom=0.15)
-        plt.show()
