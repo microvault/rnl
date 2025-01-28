@@ -94,7 +94,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 50
+        self.scalar: int = 10
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot

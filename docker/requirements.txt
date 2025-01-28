@@ -16,3 +16,4 @@ stable_baselines3==2.4.1
 tensorboard==2.18.0
 gym==0.26.2
 wandb==0.19.4
+sb3-contrib

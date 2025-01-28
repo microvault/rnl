@@ -80,6 +80,7 @@ def train():
                 policy_kwargs=policy_kwargs,
                 seed=config.seed,
                 verbose=1,
+                device=config.device,
                 tensorboard_log=f"runs/{run.id}"
             )
             model.learn(
@@ -116,6 +117,7 @@ def train():
                 target_kl=config.target_kl,
                 vf_coef=config.vf_coef,
                 ent_coef=config.ent_coef,
+                device=config.device,
                 tensorboard_log=f"runs/{run.id}"
             )
             model.learn(
@@ -126,9 +128,6 @@ def train():
                     verbose=2,
                 ),
             )
-
-
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train sweep")
@@ -154,8 +153,21 @@ if __name__ == "__main__":
     parser.add_argument(
         "--project",
         type=str,
-        default="sb3_sweep_test",
-        help="WandB project name (default: sb3_sweep)"
+        default="rnl",
+        help="WandB project name (default: rnl)"
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Device (default: cuda)"
+    )
+
+    parser.add_argument(
+        "--seed",
+        type=str,
+        default="42",
+        help="Seed (default: 42)"
     )
 
     args = parser.parse_args()
@@ -180,7 +192,8 @@ if __name__ == "__main__":
             "activation_fn": {"values": ["ReLU", "LeakyReLU"]},
             "pi_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
             "vf_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
-            "seed": {"value": 42},
+            "seed": {"value": args.seed},
+            "device": {"value": args.device}
         },
     }
 
