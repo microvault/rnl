@@ -165,7 +165,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--seed",
-        type=str,
+        type=int,
         default="42",
         help="Seed (default: 42)"
     )
