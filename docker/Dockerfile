@@ -15,7 +15,7 @@ COPY rnl ./rnl
 COPY data ./data
 COPY main.py ./
 
-RUN pip install -r requirements.txt --no-cache-dir -qq --progress-bar off
+RUN pip install -r requirements.txt --no-cache-dir -qq
 
 RUN chmod +x /entrypoint.sh
 
