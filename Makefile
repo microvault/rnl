@@ -49,7 +49,7 @@ install:
 
 .PHONY: build
 build:
-	@sudo docker build --platform=linux/amd64 -f docker/Dockerfile -t rnl-docker-cuda .
+	@sudo docker build -f docker/Dockerfile -t rnl-docker-cuda .
 
 .PHONY: train
 train:
