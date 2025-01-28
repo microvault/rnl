@@ -92,14 +92,30 @@ def train():
             )
         elif config.algorithm == "RecurrentPPO":
             print("Using RecurrentPPO")
+            activation_fn_map = {
+                "ReLU": nn.ReLU,
+                "LeakyReLU": nn.LeakyReLU,
+            }
+            activation_fn = activation_fn_map[config.activation_fn]
+
+            policy_kwargs = dict(
+                activation_fn=activation_fn,
+                net_arch=dict(pi=config.pi_layers, vf=config.vf_layers)
+            )
+
             model = RecurrentPPO("MlpLstmPolicy",
                 env,
                 verbose=1,
                 learning_rate=config.learning_rate,
                 batch_size=config.batch_size,
                 gamma=config.gamma,
-                ent_coef=config.ent_coef,
                 seed=config.seed,
+                policy_kwargs=policy_kwargs,
+                n_steps=config.n_steps,
+                clip_range=config.clip_range,
+                target_kl=config.target_kl,
+                vf_coef=config.vf_coef,
+                ent_coef=config.ent_coef,
                 tensorboard_log=f"runs/{run.id}"
             )
             model.learn(
@@ -145,7 +161,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sweep_config = {
-        "method": "random",
+        "method": "bayes",
         "metric": {"goal": "maximize", "name": "rollout/ep_rew_mean"},
         "parameters": {
             "track_metrics": {
@@ -162,8 +178,8 @@ if __name__ == "__main__":
             "ent_coef": {"min": 0.0, "max": 0.01},
             "total_timesteps": {"value": args.total_timesteps},
             "activation_fn": {"values": ["ReLU", "LeakyReLU"]},
-            "pi_layers": {"values": [[128, 128], [256, 256]]},
-            "vf_layers": {"values": [[128, 128], [256, 256]]},
+            "pi_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
+            "vf_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
             "seed": {"value": 42},
         },
     }
