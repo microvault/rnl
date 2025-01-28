@@ -15,7 +15,7 @@ def main(arg):
         wheel_distance=0.16,
         weight=1.0,
         threshold=1.0,  # 4
-        collision=1.0,  # 2
+        collision=0.5,  # 2
         path_model="",
     )
 
@@ -24,7 +24,7 @@ def main(arg):
         fov=270,
         num_rays=5,
         min_range=1.0,
-        max_range=90.0,
+        max_range=14,
     )
 
     # 3.step -> config env
@@ -36,7 +36,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True, plot=True)
+    param_render = vault.render(controller=False, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -73,8 +73,8 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             csv_file="./data/debugging.csv",
-            num_envs=10,
-            max_steps=1000,
+            num_envs=2,
+            max_steps=10000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,

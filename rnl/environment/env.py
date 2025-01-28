@@ -18,7 +18,6 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-import os
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -60,7 +59,7 @@ class NaviEnv(gym.Env):
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
 
-        max_lidar, min_lidar = 11.3137, 1.0
+        max_lidar, min_lidar = 14.0, 0.0
         self.scaler_lidar.fit(
             np.array(
                 [
@@ -70,8 +69,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 8.1 # 62.06
-        self.min_dist = 1.0 # 4.0
+        self.max_dist = 9
+        self.min_dist = 1.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         max_alpha, min_alpha = 3.15, 0.0
@@ -95,7 +94,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 10
+        self.scalar: int = 100
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot
@@ -140,10 +139,6 @@ class NaviEnv(gym.Env):
 
 
             if self.plot:
-                self.file_path = "./data/debugging.csv"
-
-                if os.path.exists(self.file_path):
-                    os.remove(self.file_path)
                 self._init_reward_plot()
 
         self.reset()
@@ -174,7 +169,7 @@ class NaviEnv(gym.Env):
 
     def step_animation(self, i):
 
-        if self.pretrained_model and not self.controller:
+        if self.pretrained_model or not self.controller:
             if self.pretrained_model:
                 self.action, _states = self.model.predict(self.last_states)
             else:
@@ -420,10 +415,10 @@ class NaviEnv(gym.Env):
         try:
             if self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(10)
-                targets = np.array([[2.5, 2.5], [6.5, 2.5], [2.5, 6.5], [6.5, 6.5]])
+                targets = np.array([[2, 2], [7, 2], [2, 7], [7, 7]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
-                x, y = 5.0, 5.0
+                x, y = 4.5, 4.5
 
             elif self.mode == "medium":
                 self.new_map_path, self.segments, self.poly = self.create_world.world()

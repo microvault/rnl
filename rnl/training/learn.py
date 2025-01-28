@@ -248,6 +248,7 @@ def probe_envs(
 
     for i in pbar:
         actions = env.action_space.sample()
+        print(actions)
         next_state, rewards, terminated, truncated, infos = env.step(actions)
 
         ep_rewards += np.array(rewards)
