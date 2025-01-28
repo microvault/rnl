@@ -153,8 +153,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--project",
         type=str,
-        default="rnl",
-        help="WandB project name (default: rnl)"
+        default="rnl-hyperparameter-search",
+        help="WandB project name (default: rnl-hyperparameter-search)"
     )
     parser.add_argument(
         "--device",

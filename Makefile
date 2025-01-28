@@ -64,10 +64,6 @@ push:
 	@docker tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
 	@docker push $(IMAGE_NAME):latest
 
-.PHONY: server
-server:
-	@sh server.sh
-
 POETRY=poetry
 BLACK=$(POETRY) run black
 ISORT=$(POETRY) run isort
