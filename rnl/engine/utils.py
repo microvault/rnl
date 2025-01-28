@@ -6,7 +6,6 @@ from numba import njit
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
     if dist >= 9:
-        print("Goal reached: ", dist)
         return 9
     else:
         return dist

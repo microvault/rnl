@@ -59,7 +59,7 @@ class NaviEnv(gym.Env):
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
 
-        max_lidar, min_lidar = 14.0, 0.0
+        max_lidar, min_lidar = 12.0, 0.0
         self.scaler_lidar.fit(
             np.array(
                 [
@@ -94,7 +94,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 100
+        self.scalar: int = 50
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot
@@ -384,20 +384,20 @@ class NaviEnv(gym.Env):
         truncated = self.timestep >= self.max_timestep
 
         if self.debug:
-            info = {}
-            info["obstacle"] = obstacle
-            info["collision_score"] = collision_score
-            info["orientation_score"] = orientation_score
-            info["progress_score"] = progress_score
-            info["time_score"] = time_score
-            info["total_reward"] = reward
-            info["action"] = float(action)
-            info["dist"] = float(dist_norm[0])
-            info["alpha"] = float(alpha_norm[0])
-            info["min_lidar"] = float(min(lidar_norm))
-            info["max_lidar"] = float(max(lidar_norm))
-            info["states"] = states
-
+            info = {
+                "obstacle": obstacle,
+                "collision_score": collision_score,
+                "orientation_score": orientation_score,
+                "progress_score": progress_score,
+                "time_score": time_score,
+                "total_reward": reward,
+                "action": float(action),
+                "dist": float(dist_norm[0]),
+                "alpha": float(alpha_norm[0]),
+                "min_lidar": float(min(lidar_norm)),
+                "max_lidar": float(max(lidar_norm)),
+                "states": states
+            }
             return states, reward, done, truncated, info
 
         else:

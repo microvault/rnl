@@ -248,25 +248,26 @@ def probe_envs(
 
     for i in pbar:
         actions = env.action_space.sample()
-        print(actions)
         next_state, rewards, terminated, truncated, infos = env.step(actions)
 
         ep_rewards += np.array(rewards)
         ep_lengths += 1
 
-        for env_idx in range(num_envs):
-            obstacles_scores.append(infos["obstacle"][env_idx])
-            collision_scores.append(infos["collision_score"][env_idx])
-            orientation_scores.append(infos["orientation_score"][env_idx])
-            progress_scores.append(infos["progress_score"][env_idx])
-            time_scores.append(infos["time_score"][env_idx])
-            total_rewards.append(infos["total_reward"][env_idx])
-            actions_list.append(infos["action"][env_idx])
-            dists_list.append(infos["dist"][env_idx])
-            alphas_list.append(infos["alpha"][env_idx])
-            min_lidars_list.append(infos["min_lidar"][env_idx])
-            max_lidars_list.append(infos["max_lidar"][env_idx])
-            states_list.append(infos["states"][env_idx])
+        if infos is not None:
+            for env_idx in range(num_envs):
+                obstacles_scores.append(infos["obstacle"][env_idx])
+                collision_scores.append(infos["collision_score"][env_idx])
+                orientation_scores.append(infos["orientation_score"][env_idx])
+                progress_scores.append(infos["progress_score"][env_idx])
+                time_scores.append(infos["time_score"][env_idx])
+                total_rewards.append(infos["total_reward"][env_idx])
+                actions_list.append(infos["action"][env_idx])
+                dists_list.append(infos["dist"][env_idx])
+                alphas_list.append(infos["alpha"][env_idx])
+                min_lidars_list.append(infos["min_lidar"][env_idx])
+                max_lidars_list.append(infos["max_lidar"][env_idx])
+                states_list.append(infos["states"][env_idx])
+
 
         done = np.logical_or(terminated, truncated)
         done_indices = np.where(done)[0]
@@ -288,9 +289,9 @@ def probe_envs(
 
         pbar.set_postfix(
             {
-                "Episódios Completos": len(completed_rewards),
-                "Recompensa Média (últ 100)": f"{avg_reward:.2f}",
-                "Comprimento Médio (últ 100)": f"{avg_length:.2f}",
+                "Ep Comp.": len(completed_rewards),
+                "Mean Reward(100)": f"{avg_reward:.2f}",
+                "Mean lenght(100)": f"{avg_length:.2f}",
             }
         )
 

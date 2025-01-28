@@ -778,4 +778,6 @@ models/
 models_PPO/
 models_A2C/
 models_DQN/
+models_recurrent_ppo/
+models_normal_ppo/
 logs.pkl

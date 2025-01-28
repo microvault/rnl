@@ -2,10 +2,15 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 import wandb
+import sys
+import os
+import argparse
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 from wandb.integration.sb3 import WandbCallback
 from rnl.environment.env import NaviEnv
-from training.interface import make, render, robot, sensor
+from rnl.training.interface import make, render, robot, sensor
 from torch import nn
+from sb3_contrib import RecurrentPPO
 
 
 def make_env():
@@ -16,7 +21,7 @@ def make_env():
         wheel_distance=0.16,
         weight=1.0,
         threshold=1.0,
-        collision=1.0,
+        collision=0.5,
         path_model="",
     )
 
@@ -25,7 +30,7 @@ def make_env():
         fov=270,
         num_rays=5,
         min_range=1.0,
-        max_range=90.0,
+        max_range=12.0,
     )
 
     # 3.step -> config env
@@ -47,55 +52,121 @@ def make_env():
 
 def train():
     print("Inicializing training...")
-    with wandb.init(sync_tensorboard=True, monitor_gym=True) as run:
+    with wandb.init(sync_tensorboard=True, monitor_gym=True, save_code=False) as run:
         config = run.config
+        print(config)
+
         env = DummyVecEnv([make_env])
-        activation_fn_map = {
-            "ReLU": nn.ReLU,
-            "LeakyReLU": nn.LeakyReLU,
-        }
-        activation_fn = activation_fn_map[config.activation_fn]
+        if config.algorithm == "PPO":
+            print("Using PPO")
+            activation_fn_map = {
+                "ReLU": nn.ReLU,
+                "LeakyReLU": nn.LeakyReLU,
+            }
+            activation_fn = activation_fn_map[config.activation_fn]
 
-        policy_kwargs = dict(
-            activation_fn=activation_fn,
-            net_arch=dict(pi=config.pi_layers, vf=config.vf_layers)
-        )
+            policy_kwargs = dict(
+                activation_fn=activation_fn,
+                net_arch=dict(pi=config.pi_layers, vf=config.vf_layers)
+            )
 
-        model = PPO(
-            "MlpPolicy",
-            env,
-            learning_rate=config.learning_rate,
-            batch_size=config.batch_size,
-            gamma=config.gamma,
-            ent_coef=config.ent_coef,
-            policy_kwargs=policy_kwargs,
-            seed=42,
-            verbose=1,
-            tensorboard_log=f"runs/{run.id}"
-        )
-        model.learn(
-            total_timesteps=config.total_timesteps,
-            callback=WandbCallback(
-                gradient_save_freq=10,
-                model_save_path=f"models/{run.id}",
-                verbose=2,
-            ),
-        )
+            model = PPO(
+                "MlpPolicy",
+                env,
+                learning_rate=config.learning_rate,
+                batch_size=config.batch_size,
+                gamma=config.gamma,
+                ent_coef=config.ent_coef,
+                policy_kwargs=policy_kwargs,
+                seed=config.seed,
+                verbose=1,
+                tensorboard_log=f"runs/{run.id}"
+            )
+            model.learn(
+                total_timesteps=config.total_timesteps,
+                callback=WandbCallback(
+                    gradient_save_freq=10,
+                    model_save_path=f"models_normal_ppo/{run.id}",
+                    verbose=2,
+                ),
+            )
+        elif config.algorithm == "RecurrentPPO":
+            print("Using RecurrentPPO")
+            model = RecurrentPPO("MlpLstmPolicy",
+                env,
+                verbose=1,
+                learning_rate=config.learning_rate,
+                batch_size=config.batch_size,
+                gamma=config.gamma,
+                ent_coef=config.ent_coef,
+                seed=config.seed,
+                tensorboard_log=f"runs/{run.id}"
+            )
+            model.learn(
+                total_timesteps=config.total_timesteps,
+                callback=WandbCallback(
+                    gradient_save_freq=10,
+                    model_save_path=f"models_recurrent_ppo/{run.id}",
+                    verbose=2,
+                ),
+            )
 
-sweep_config = {
-    "method": "random",
-    "metric": {"goal": "maximize", "name": "rollout/ep_rew_mean"},
-    "parameters": {
-        "learning_rate": {"min": 1e-5, "max": 1e-3},
-        "batch_size": {"values": [64, 128]},
-        "gamma": {"min": 0.9, "max": 0.9999},
-        "ent_coef": {"min": 0.0, "max": 0.1},
-        "total_timesteps": {"value": 1000},
-        "activation_fn": {"values": ["ReLU", "LeakyReLU"]},
-        "pi_layers": {"values": [[128, 128], [256, 256]]},
-        "vf_layers": {"values": [[128, 128], [256, 256]]},
-    },
-}
 
-sweep_id = wandb.sweep(sweep_config, project="sb3_sweep")
-wandb.agent(sweep_id, function=train, count=2)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train sweep")
+    # Novos argumentos adicionados
+    parser.add_argument(
+        "--total_timesteps",
+        type=int,
+        default=5000000,
+        help="Total timesteps for training (default: 5000000)"
+    )
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        default="RecurrentPPO",
+        help="Algorithm to use (default: RecurrentPPO)"
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=20,
+        help="Number of sweep runs (default: 20)"
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default="sb3_sweep_test",
+        help="WandB project name (default: sb3_sweep)"
+    )
+
+    args = parser.parse_args()
+
+    sweep_config = {
+        "method": "random",
+        "metric": {"goal": "maximize", "name": "rollout/ep_rew_mean"},
+        "parameters": {
+            "track_metrics": {
+                "value": ["rollout/ep_len_mean", "train/loss"]
+            },
+            "algorithm": {"values": [args.algorithm]},
+            "learning_rate": {"min": 0.000005, "max": 0.003},
+            "batch_size": {"values": [128, 1024]},
+            "gamma": {"min": 0.9, "max": 0.9999},
+            "n_steps": {"min": 32, "max": 5000},
+            "clip_range": {"values": [0.1, 0.2, 0.3]},
+            "target_kl": {"min": 0.003, "max": 0.03},
+            "vf_coef": {"values": [0.5, 1]},
+            "ent_coef": {"min": 0.0, "max": 0.01},
+            "total_timesteps": {"value": args.total_timesteps},
+            "activation_fn": {"values": ["ReLU", "LeakyReLU"]},
+            "pi_layers": {"values": [[128, 128], [256, 256]]},
+            "vf_layers": {"values": [[128, 128], [256, 256]]},
+            "seed": {"value": 42},
+        },
+    }
+
+    sweep_id = wandb.sweep(sweep_config, project=args.project)
+    wandb.agent(sweep_id, function=train, count=args.count)

@@ -24,7 +24,7 @@ def main(arg):
         fov=270,
         num_rays=5,
         min_range=1.0,
-        max_range=14,
+        max_range=12.0,
     )
 
     # 3.step -> config env
@@ -74,7 +74,7 @@ def main(arg):
         model = vault.Probe(
             csv_file="./data/debugging.csv",
             num_envs=2,
-            max_steps=10000,
+            max_steps=100000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,
