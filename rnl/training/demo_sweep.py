@@ -141,8 +141,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--algorithm",
         type=str,
-        default="RecurrentPPO",
-        help="Algorithm to use (default: RecurrentPPO)"
+        default="PPO",
+        help="Algorithm to use (default: PPO)"
     )
     parser.add_argument(
         "--count",
@@ -159,8 +159,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
-        help="Device (default: cuda)"
+        default="cuda:1",
+        help="Device (default: cuda:1)"
     )
 
     parser.add_argument(
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             "gamma": {"min": 0.9, "max": 0.9999},
             "n_steps": {"min": 32, "max": 5000},
             "clip_range": {"values": [0.1, 0.2, 0.3]},
-            "target_kl": {"min": 0.003, "max": 0.03},
+            # "target_kl": {"min": 0.003, "max": 0.03},
             "vf_coef": {"values": [0.5, 1]},
             "ent_coef": {"min": 0.0, "max": 0.01},
             "total_timesteps": {"value": args.total_timesteps},
