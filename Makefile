@@ -53,7 +53,7 @@ build:
 
 .PHONY: train
 train:
-	@docker run -d -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g -it -v $(PWD):/workdir rnl-docker-cuda
+	@sudo docker run -d -e WANDB_API_KEY=$(WANDB_API_KEY) --gpus all --network host --privileged --memory=16g -it -v $(PWD):/workdir rnl-docker-cuda
 
 .PHONY: clean
 clean:
