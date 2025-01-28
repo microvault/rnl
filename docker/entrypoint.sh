@@ -1,4 +1,4 @@
-!/bin/bash
+#!/bin/bash
 set -e
 
 apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0
