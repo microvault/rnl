@@ -6,5 +6,7 @@ apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libg
 apt-get clean && rm -rf /var/lib/apt/lists/*
 
 echo ""
-echo "Starting training ..."
+echo "Finish setup!"
 echo ""
+
+exec /bin/bash
