@@ -63,7 +63,7 @@ def training(
 
     env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
-        )
+    )
     print("\nCheck environment ...")
     check_env(env)
 
@@ -219,14 +219,29 @@ def probe_envs(
 
     print()
 
-    env = make_vect_envs(
-        num_envs=num_envs,
-        robot_config=robot_config,
-        sensor_config=sensor_config,
-        env_config=env_config,
-        render_config=render_config,
-        use_render=False,
+    #env = make_vect_envs(
+        #num_envs=num_envs,
+        #robot_config=robot_config,
+        #sensor_config=sensor_config,
+        #env_config=env_config,
+        #render_config=render_config,
+        #use_render=False,
+    #)
+    
+    env = NaviEnv(
+            robot_config, sensor_config, env_config, render_config, use_render=False
     )
+    print("\nCheck environment ...")
+    check_env(env)
+
+    def make_env():
+        env = NaviEnv(
+            robot_config, sensor_config, env_config, render_config, use_render=False
+        )
+        return env
+        
+    # Parallel environments
+    env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
 
     state, info = env.reset()
     ep_rewards = np.zeros(num_envs)
