@@ -33,4 +33,4 @@ RUN pip install \
     "gym==0.26.2" \
     "wandb==0.19.4"
 
-# CMD ["bash", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0"]
+CMD ["bash", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0 && python -m main learn"]
