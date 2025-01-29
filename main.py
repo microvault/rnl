@@ -70,7 +70,7 @@ def main(arg):
             vf_coef=0.5,
             max_grad_norm=0.5,
             update_epochs=10,
-            name="rnl_29_01_2025",
+            name="test_rnl_29_01_2025",
         )
 
     elif args.mode == "sim":
