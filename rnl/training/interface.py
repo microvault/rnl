@@ -73,13 +73,14 @@ class Trainer:
         self,
         algorithm: str,
         max_timestep_global: int,
+        buffer_size: int,
         seed: int,
         hidden_size: List[int],
-        batch_size: int
+        batch_size: int,
         num_envs: int,
         device: str,
         activation: str,
-        checkpoint: int,
+        checkpoint_path: str,
         use_wandb: bool,
         wandb_api_key: str,
         lr: float,
@@ -91,6 +92,7 @@ class Trainer:
         vf_coef: float,
         max_grad_norm: float,
         update_epochs: int,
+        name: str,
     ) -> None:
 
         network_config = NetworkConfig(
@@ -102,11 +104,11 @@ class Trainer:
             algorithm=algorithm,
             max_timestep_global=max_timestep_global,
             seed=seed,
-            hidden_size=hidden_size,
+            buffer_size=buffer_size,
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,
-            checkpoint=checkpoint,
+            checkpoint_path=checkpoint_path,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
             lr=lr,
@@ -118,8 +120,9 @@ class Trainer:
             vf_coef=vf_coef,
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
+            name=name
         )
-            
+
         training(
             trainer_config,
             network_config,
@@ -138,13 +141,11 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        pretrained_model: bool,
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.pretrained_model = pretrained_model
 
     def run(self) -> None:
 
@@ -153,7 +154,6 @@ class Simulation:
             self.sensor_config,
             self.env_config,
             self.render_config,
-            self.pretrained_model,
         )
 
         return None
@@ -162,36 +162,30 @@ class Simulation:
 class Probe:
     def __init__(
         self,
-        csv_file: str,
         num_envs: int,
         max_steps: int,
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        pretrained_model: bool,
     ) -> None:
 
-        self.csv_file = csv_file
         self.num_envs = num_envs
         self.max_steps = max_steps
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.pretrained_model = pretrained_model
 
     def execute(self) -> None:
 
         probe_envs(
-            self.csv_file,
             self.num_envs,
             self.max_steps,
             self.robot_config,
             self.sensor_config,
             self.env_config,
             self.render_config,
-            self.pretrained_model,
         )
 
         return None

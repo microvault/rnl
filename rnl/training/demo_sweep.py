@@ -173,25 +173,22 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sweep_config = {
-        "method": "bayes",
+        "method": "random",
         "metric": {"goal": "maximize", "name": "rollout/ep_rew_mean"},
         "parameters": {
-            "track_metrics": {
-                "value": ["rollout/ep_len_mean", "train/loss"]
-            },
             "algorithm": {"values": [args.algorithm]},
             "learning_rate": {"min": 0.000005, "max": 0.003},
-            "batch_size": {"values": [128, 1024]},
+            "batch_size": {"values": [1024]},
             "gamma": {"min": 0.9, "max": 0.9999},
-            "n_steps": {"min": 32, "max": 5000},
+            "n_steps": {"min": 32, "max": 3000},
             "clip_range": {"values": [0.1, 0.2, 0.3]},
             # "target_kl": {"min": 0.003, "max": 0.03},
             "vf_coef": {"values": [0.5, 1]},
             "ent_coef": {"min": 0.0, "max": 0.01},
             "total_timesteps": {"value": args.total_timesteps},
             "activation_fn": {"values": ["ReLU", "LeakyReLU"]},
-            "pi_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
-            "vf_layers": {"values": [[128, 128], [256, 256], [128, 256], [256, 128]]},
+            "pi_layers": {"values": [[128, 128], [256, 256], [512, 512]]},
+            "vf_layers": {"values": [[128, 128], [256, 256], [512, 512]]},
             "seed": {"value": args.seed},
             "device": {"value": args.device}
         },

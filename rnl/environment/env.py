@@ -94,7 +94,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 10
+        self.scalar: int = 100
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot
@@ -103,7 +103,8 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
 
-        if self.pretrained_model:
+        if self.pretrained_model != "None":
+            print(f"Loading model from {self.pretrained_model}")
             self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
@@ -368,7 +369,7 @@ class NaviEnv(gym.Env):
             threshold=self.threshold,
             scale_orientation=1.0,
             scale_distance=1.0,
-            scale_time=1.0,
+            scale_time=0.001,
         )
 
         reward = (
@@ -390,7 +391,6 @@ class NaviEnv(gym.Env):
                 "orientation_score": orientation_score,
                 "progress_score": progress_score,
                 "time_score": time_score,
-                "total_reward": reward,
                 "action": float(action),
                 "dist": float(dist_norm[0]),
                 "alpha": float(alpha_norm[0]),

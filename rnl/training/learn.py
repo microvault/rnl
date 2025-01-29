@@ -1,5 +1,5 @@
 import numpy as np
-import torch
+from torch import nn
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
@@ -11,7 +11,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from rnl.engine.vector import make_vect_envs
 import matplotlib.pyplot as plt
 
-import gymnasium as gym
+# import gymnasium as gym
 
 import pickle
 
@@ -34,7 +34,6 @@ def training(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    pretrained_model: bool,
 ):
 
     config_dict = {
@@ -54,9 +53,9 @@ def training(
 
     print()
     run = wandb.init(
-        project="rnl",
+        project=trainer_config.name,
         config=config_dict,
-        sync_tensorboard=True,
+        sync_tensorboard=False,
         monitor_gym=False,
         save_code=False,
     )
@@ -67,39 +66,47 @@ def training(
     print("\nCheck environment ...")
     check_env(env)
 
+    activation_fn_map = {
+        "ReLU": nn.ReLU,
+        "LeakyReLU": nn.LeakyReLU,
+    }
+    activation_fn = activation_fn_map[network_config.mlp_activation]
+
     policy_kwargs_on_policy = dict(
-        activation_fn=torch.nn.ReLU,
+        activation_fn=activation_fn,
         net_arch=dict(
             pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
             vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
         ),
     )
-
     def make_env():
         env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
         )
         env = Monitor(env)
         return env
-        
+
     # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
-
-    if trainer_config.algorithms == "PPO":
+    if trainer_config.algorithm == "PPO":
         model = PPO(
             "MlpPolicy",
             vec_env,
             batch_size=trainer_config.batch_size,
             verbose=1,
             policy_kwargs=policy_kwargs_on_policy,
-            tensorboard_log=f"runs/{run.id}",
+            n_steps=trainer_config.learn_step,
+            vf_coef=trainer_config.vf_coef,
+            ent_coef=trainer_config.ent_coef,
             device=trainer_config.device,
+            max_grad_norm=trainer_config.max_grad_norm,
+            n_epochs=trainer_config.update_epochs,
             seed=trainer_config.seed,
         )
 
         print("\nInitiate PPO training ...")
 
-    elif trainer_config.algorithms == "A2C":
+    elif trainer_config.algorithm == "A2C":
         model = A2C("MlpPolicy",
             vec_env,
             verbose=1,
@@ -110,8 +117,7 @@ def training(
         )
         print("\nInitiate A2C training ...")
 
-
-    elif trainer_config.algorithms == "DQN":
+    elif trainer_config.algorithm == "DQN":
         env = DummyVecEnv([make_env])
         model = DQN(
             DQNPolicy,
@@ -133,7 +139,7 @@ def training(
         total_timesteps=trainer_config.max_timestep_global,
         callback=WandbCallback(
             gradient_save_freq=0,
-            model_save_path=f"models_{trainer_config.algorithms}/{run.id}",
+            model_save_path=f"{trainer_config.checkpoint_path}/{run.id}",
             verbose=2,
         ),
     )
@@ -144,7 +150,6 @@ def inference(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    pretrained_model: bool,
 ):
 
     text = [
@@ -194,14 +199,12 @@ def inference(
 
 
 def probe_envs(
-    csv_file: str,
     num_envs: int,
     max_steps: int,
     robot_config: RobotConfig,
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    pretrained_model: bool,
 ):
 
     config_dict = {
@@ -219,29 +222,20 @@ def probe_envs(
 
     print()
 
-    #env = make_vect_envs(
-        #num_envs=num_envs,
-        #robot_config=robot_config,
-        #sensor_config=sensor_config,
-        #env_config=env_config,
-        #render_config=render_config,
-        #use_render=False,
-    #)
-    
     env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
     )
     print("\nCheck environment ...")
     check_env(env)
 
-    def make_env():
-        env = NaviEnv(
-            robot_config, sensor_config, env_config, render_config, use_render=False
-        )
-        return env
-        
-    # Parallel environments
-    env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+    env = make_vect_envs(
+        num_envs=num_envs,
+        robot_config=robot_config,
+        sensor_config=sensor_config,
+        env_config=env_config,
+        render_config=render_config,
+        use_render=False,
+    )
 
     state, info = env.reset()
     ep_rewards = np.zeros(num_envs)
@@ -280,7 +274,7 @@ def probe_envs(
                 orientation_scores.append(infos["orientation_score"][env_idx])
                 progress_scores.append(infos["progress_score"][env_idx])
                 time_scores.append(infos["time_score"][env_idx])
-                total_rewards.append(infos["total_reward"][env_idx])
+                total_rewards.append(rewards[env_idx])
                 actions_list.append(infos["action"][env_idx])
                 dists_list.append(infos["dist"][env_idx])
                 alphas_list.append(infos["alpha"][env_idx])
@@ -392,7 +386,7 @@ def probe_envs(
         ax.text(
             0.5,
             -0.25,
-            f"Média: {mean_val:.2f} | Mínimo: {min_val:.2f} | Máximo: {max_val:.2f}",
+            f"Média: {mean_val:.4f} | Mínimo: {min_val:.4f} | Máximo: {max_val:.4f}",
             transform=ax.transAxes,
             ha="center",
             fontsize=6,

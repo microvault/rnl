@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List
 
 
 @dataclass
@@ -54,13 +54,14 @@ class NetworkConfig:
 class TrainerConfig:
     algorithm: str
     max_timestep_global: int
+    buffer_size: int
     seed: int
     batch_size: int
     lr: float
     num_envs: int
     device: str
     learn_step: int
-    checkpoint: int
+    checkpoint_path: str
     use_wandb: bool
     wandb_api_key: str
     gae_lambda: float
@@ -70,4 +71,4 @@ class TrainerConfig:
     vf_coef: float
     max_grad_norm: float
     update_epochs: int
-
+    name: str
