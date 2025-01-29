@@ -7,8 +7,11 @@ from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.dqn.policies import DQNPolicy
+from stable_baselines3.common.env_util import make_vec_env
 from rnl.engine.vector import make_vect_envs
 import matplotlib.pyplot as plt
+
+import gymnasium as gym
 
 import pickle
 
@@ -78,13 +81,14 @@ def training(
         )
         env = Monitor(env)
         return env
-
-    env = DummyVecEnv([make_env])
+        
+    # Parallel environments
+    vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
 
     if trainer_config.algorithms == "PPO":
         model = PPO(
             "MlpPolicy",
-            env,
+            vec_env,
             batch_size=trainer_config.batch_size,
             verbose=1,
             policy_kwargs=policy_kwargs_on_policy,
@@ -97,7 +101,7 @@ def training(
 
     elif trainer_config.algorithms == "A2C":
         model = A2C("MlpPolicy",
-            env,
+            vec_env,
             verbose=1,
             policy_kwargs=policy_kwargs_on_policy,
             tensorboard_log=f"runs/{run.id}",
@@ -108,6 +112,7 @@ def training(
 
 
     elif trainer_config.algorithms == "DQN":
+        env = DummyVecEnv([make_env])
         model = DQN(
             DQNPolicy,
             env,
