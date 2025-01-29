@@ -47,15 +47,8 @@ class RobotConfig:
 
 @dataclass
 class NetworkConfig:
-    arch: str
     hidden_size: List[int]
     mlp_activation: str
-    mlp_output_activation: str
-    min_hidden_layers: int
-    max_hidden_layers: int
-    min_mlp_nodes: int
-    max_mlp_nodes: int
-
 
 @dataclass
 class TrainerConfig:
