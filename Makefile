@@ -76,3 +76,6 @@ lint:
 	$(ISORT) $(SRC_DIR)
 	$(BLACK) $(SRC_DIR)
 	$(RUFF) check $(SRC_DIR)
+
+
+sudo docker run --name train_rl -e WANDB_API_KEY=$WANDB_API_KEY --gpus all --network host --privileged --memory=16g -it -v $PWD:/workdir rnl-docker-cuda
