@@ -74,7 +74,7 @@ class Trainer:
         algorithm: str,
         max_timestep_global: int,
         seed: int,
-        hidden_size: list,
+        hidden_size: List[int],
         batch_size: int
         num_envs: int,
         device: str,
