@@ -50,6 +50,7 @@ class NetworkConfig:
     hidden_size: List[int]
     mlp_activation: str
 
+
 @dataclass
 class TrainerConfig:
     algorithm: str
@@ -72,3 +73,9 @@ class TrainerConfig:
     max_grad_norm: float
     update_epochs: int
     name: str
+
+
+@dataclass
+class ProbeEnvConfig:
+    num_envs: int
+    max_steps: int
