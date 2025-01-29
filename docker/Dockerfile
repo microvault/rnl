@@ -31,8 +31,7 @@ RUN pip install \
     stable_baselines3==2.4.1 \
     tensorboard==2.18.0 \
     gym==0.26.2 \
-    wandb==0.19.4 \
-    --no-cache-dir
+    wandb==0.19.4
 
 CMD ["bash", "-c", "apt-get update -qq && \
     apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0 && \
