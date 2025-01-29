@@ -52,10 +52,8 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
-    algorithms: str
-    buffer_size: int
+    algorithm: str
     max_timestep_global: int
-    gamma: float
     seed: int
     batch_size: int
     lr: float
@@ -63,8 +61,6 @@ class TrainerConfig:
     device: str
     learn_step: int
     checkpoint: int
-    checkpoint_path: str
-    overwrite_checkpoints: bool
     use_wandb: bool
     wandb_api_key: str
     gae_lambda: float
@@ -74,3 +70,4 @@ class TrainerConfig:
     vf_coef: float
     max_grad_norm: float
     update_epochs: int
+
