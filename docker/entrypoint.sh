@@ -10,4 +10,4 @@ echo "Finish setup!"
 echo ""
 
 # exec /bin/bash
-exec python rnl/training/demo_sweep.py
+exec python -m main learn
