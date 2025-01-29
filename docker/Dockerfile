@@ -33,8 +33,4 @@ COPY main.py ./
 #     gym==0.26.2 \
 #     wandb==0.19.4
 
-CMD ["bash", "-c", "apt-get update -qq && \
-    apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    python -m main learn"]
+CMD ["bash", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0"]
