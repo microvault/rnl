@@ -9,8 +9,6 @@ WORKDIR /workdir
 
 ENV PYTHONPATH=/workdir
 
-COPY docker/entrypoint.sh /entrypoint.sh
-COPY docker/requirements.txt ./
 COPY rnl ./rnl
 COPY data ./data
 COPY main.py ./
