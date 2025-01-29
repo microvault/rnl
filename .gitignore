@@ -774,7 +774,6 @@ NOTES.txt
 videos/
 data/debugging.csv
 runs/
-models/
 models_PPO/
 models_A2C/
 models_DQN/
