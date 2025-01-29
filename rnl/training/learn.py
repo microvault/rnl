@@ -1,29 +1,26 @@
+import matplotlib.pyplot as plt
 import numpy as np
-from torch import nn
+from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.dqn.policies import DQNPolicy
+from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
-from stable_baselines3 import A2C, DQN, PPO
-from stable_baselines3.dqn.policies import DQNPolicy
-from stable_baselines3.common.env_util import make_vec_env
-from rnl.engine.vector import make_vect_envs
-import matplotlib.pyplot as plt
-
-# import gymnasium as gym
-
-import pickle
 
 import wandb
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
+    ProbeEnvConfig,
     RenderConfig,
     RobotConfig,
     SensorConfig,
     TrainerConfig,
 )
+from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 
 
@@ -45,23 +42,29 @@ def training(
         "Render Config": render_config.__dict__,
     }
 
-    for config_name, config_values in config_dict.items():
-        print(f"\n#------ {config_name} ----#")
-        max_key_length = max(len(key) for key in config_values.keys())
-        for key, value in config_values.items():
-            print(f"{key.ljust(max_key_length)} : {value}")
+    table_width = 45
+    horizontal_line = "-" * table_width
+    print(horizontal_line)
 
-    print()
-    run = wandb.init(
-        project=trainer_config.name,
-        config=config_dict,
-        sync_tensorboard=False,
-        monitor_gym=False,
-        save_code=False,
-    )
+    for config_name, config_values in config_dict.items():
+        # Imprimir o cabeçalho da seção
+        print(f"| {config_name + '/':<41} |")
+        print(horizontal_line)
+        for key, value in config_values.items():
+            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        print(horizontal_line)
+
+    if trainer_config.use_wandb:
+        run = wandb.init(
+            project=trainer_config.name,
+            config=config_dict,
+            sync_tensorboard=False,
+            monitor_gym=True,
+            save_code=False,
+        )
 
     env = NaviEnv(
-            robot_config, sensor_config, env_config, render_config, use_render=False
+        robot_config, sensor_config, env_config, render_config, use_render=False
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -79,6 +82,7 @@ def training(
             vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
         ),
     )
+
     def make_env():
         env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
@@ -107,7 +111,8 @@ def training(
         print("\nInitiate PPO training ...")
 
     elif trainer_config.algorithm == "A2C":
-        model = A2C("MlpPolicy",
+        model = A2C(
+            "MlpPolicy",
             vec_env,
             verbose=1,
             policy_kwargs=policy_kwargs_on_policy,
@@ -135,15 +140,20 @@ def training(
     else:
         print("Invalid algorithm")
 
-    model.learn(
-        total_timesteps=trainer_config.max_timestep_global,
-        callback=WandbCallback(
-            gradient_save_freq=0,
-            model_save_path=f"{trainer_config.checkpoint_path}/{run.id}",
-            verbose=2,
-        ),
-    )
-    run.finish()
+    if trainer_config.use_wandb:
+        model.learn(
+            total_timesteps=trainer_config.max_timestep_global,
+            callback=WandbCallback(
+                gradient_save_freq=0,
+                model_save_path=f"{trainer_config.checkpoint_path}/{run.id}",
+                verbose=2,
+            ),
+        )
+        run.finish()
+
+    else:
+        model.learn(total_timesteps=trainer_config.max_timestep_global)
+
 
 def inference(
     robot_config: RobotConfig,
@@ -172,11 +182,16 @@ def inference(
         "Render Config": render_config.__dict__,
     }
 
+    table_width = 45
+    horizontal_line = "-" * table_width
+    print(horizontal_line)
+
     for config_name, config_values in config_dict.items():
-        print(f"\n#------ {config_name} ----#")
-        max_key_length = max(len(key) for key in config_values.keys())
+        print(f"| {config_name + '/':<41} |")
+        print(horizontal_line)
         for key, value in config_values.items():
-            print(f"{key.ljust(max_key_length)} : {value}")
+            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        print(horizontal_line)
 
     env = NaviEnv(
         robot_config,
@@ -185,7 +200,6 @@ def inference(
         render_config,
         use_render=True,
     )
-    print("\n#------ Info Env ----#")
     obs_space = env.observation_space
     state_dim = obs_space.shape
     print("States dim: ", state_dim)
@@ -206,24 +220,32 @@ def probe_envs(
     env_config: EnvConfig,
     render_config: RenderConfig,
 ):
+    probe_config = ProbeEnvConfig(
+        num_envs=num_envs,
+        max_steps=max_steps,
+    )
 
     config_dict = {
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
         "Env Config": env_config.__dict__,
         "Render Config": render_config.__dict__,
+        "Probe Config": probe_config.__dict__,
     }
 
-    for config_name, config_values in config_dict.items():
-        print(f"\n#------ {config_name} ----#")
-        max_key_length = max(len(key) for key in config_values.keys())
-        for key, value in config_values.items():
-            print(f"{key.ljust(max_key_length)} : {value}")
+    table_width = 45
+    horizontal_line = "-" * table_width
+    print(horizontal_line)
 
-    print()
+    for config_name, config_values in config_dict.items():
+        print(f"| {config_name + '/':<41} |")
+        print(horizontal_line)
+        for key, value in config_values.items():
+            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        print(horizontal_line)
 
     env = NaviEnv(
-            robot_config, sensor_config, env_config, render_config, use_render=False
+        robot_config, sensor_config, env_config, render_config, use_render=False
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -243,8 +265,6 @@ def probe_envs(
 
     completed_rewards = []
     completed_lengths = []
-
-    # Listas para armazenar dados de cada step
     obstacles_scores = []
     collision_scores = []
     orientation_scores = []
@@ -282,7 +302,6 @@ def probe_envs(
                 max_lidars_list.append(infos["max_lidar"][env_idx])
                 states_list.append(infos["states"][env_idx])
 
-
         done = np.logical_or(terminated, truncated)
         done_indices = np.where(done)[0]
 
@@ -309,7 +328,6 @@ def probe_envs(
             }
         )
 
-    # Ao terminar os steps, se ainda houver envs que não terminaram
     for idx in range(num_envs):
         if ep_lengths[idx] > 0:
             completed_rewards.append(ep_rewards[idx])
@@ -317,35 +335,9 @@ def probe_envs(
 
     env.close()
 
-    # Converte para numpy
     completed_rewards = np.array(completed_rewards)
     completed_lengths = np.array(completed_lengths)
 
-    # Salvando num pickle (opcional)
-    with open("logs.pkl", "wb") as f:
-        pickle.dump(
-            {
-                "obstacles_scores": obstacles_scores,
-                "collision_scores": collision_scores,
-                "orientation_scores": orientation_scores,
-                "progress_scores": progress_scores,
-                "time_scores": time_scores,
-                "total_rewards": total_rewards,
-                "actions_list": actions_list,
-                "dists_list": dists_list,
-                "alphas_list": alphas_list,
-                "min_lidars_list": min_lidars_list,
-                "max_lidars_list": max_lidars_list,
-                "completed_rewards": completed_rewards.tolist(),
-                "completed_lengths": completed_lengths.tolist(),
-                "states_list": [s.tolist() if s is not None else [] for s in states_list],
-            },
-            f,
-        )
-
-    # === PLOTS ===
-
-    # 1) Plot de métricas por step
     steps_range = list(range(1, len(total_rewards) + 1))
     step_metrics = [
         ("Obstacles Score", obstacles_scores, "brown"),
@@ -361,18 +353,17 @@ def probe_envs(
         ("Max Lidar", max_lidars_list, "black"),
     ]
 
-    # Teremos 11 métricas step-based + 1 subplot para ep-based = 12 subplots
-    # Vamos organizar em 6 linhas x 2 colunas
     total_subplots = len(step_metrics) + 1
     cols = 2
     rows = (total_subplots + cols - 1) // cols  # 6
 
     plt.figure(figsize=(10, 5 * rows))
 
-    # Plota cada métrica de step em um subplot
     for idx, (title, data, color) in enumerate(step_metrics, start=1):
         ax = plt.subplot(rows, cols, idx)
-        ax.plot(steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5)
+        ax.plot(
+            steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+        )
         ax.set_ylabel(title, fontsize=8)
         ax.legend(fontsize=6)
         ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
@@ -392,26 +383,39 @@ def probe_envs(
             fontsize=6,
         )
 
-    # 2) Agora, em um último subplot, plotamos completed_rewards e completed_lengths
     ax_ep = plt.subplot(rows, cols, total_subplots)
-    # Precisamos de um eixo de episódios
-    episodes_range = list(range(1, len(completed_rewards) + 1))
+    episodes_range = range(1, len(completed_rewards) + 1)
 
     ax_ep.plot(
-        episodes_range, completed_rewards,
-        label="Completed Rewards", color="black"
+        episodes_range, completed_rewards, label="Completed Rewards", color="black"
     )
     ax_ep.plot(
-        episodes_range, completed_lengths,
-        label="Completed Lengths", color="gray"
+        episodes_range, completed_lengths, label="Completed Lengths", color="gray"
     )
 
-    ax_ep.set_xlabel("Episódio", fontsize=6)
-    ax_ep.set_ylabel("Valor", fontsize=6)
+    ax_ep.set_ylabel("Geral", fontsize=8)
     ax_ep.legend(fontsize=6)
     ax_ep.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
     ax_ep.tick_params(axis="x", labelsize=6)
     ax_ep.tick_params(axis="y", labelsize=6)
+
+    mean_rewards = np.mean(completed_rewards)
+    min_rewards = np.min(completed_rewards)
+    max_rewards = np.max(completed_rewards)
+
+    mean_lengths = np.mean(completed_lengths)
+    min_lengths = np.min(completed_lengths)
+    max_lengths = np.max(completed_lengths)
+
+    ax_ep.text(
+        0.5,
+        -0.4,
+        f"Rewards -> Média: {mean_rewards:.4f} | Mínimo: {min_rewards:.4f} | Máximo: {max_rewards:.4f}\n"
+        f"Lengths -> Média: {mean_lengths:.4f} | Mínimo: {min_lengths:.4f} | Máximo: {max_lengths:.4f}",
+        transform=ax_ep.transAxes,
+        ha="center",
+        fontsize=6,
+    )
 
     plt.tight_layout()
     plt.subplots_adjust(bottom=0.1)
