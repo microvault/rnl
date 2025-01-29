@@ -63,73 +63,55 @@ class Trainer:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        pretrained_model: bool,
     ):
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.pretrained_model = pretrained_model
 
     def learn(
         self,
-        algorithms: str,
+        algorithm: str,
         max_timestep_global: int,
         seed: int,
+        hidden_size: list,
+        batch_size: int
         num_envs: int,
         device: str,
+        activation: str,
         checkpoint: int,
-        checkpoint_path: str,
-        population_size: int,
         use_wandb: bool,
         wandb_api_key: str,
     ) -> None:
 
-        print("Sem por enquanto")
+        network_config = NetworkConfig(
+             hidden_size=hidden_size,
+             mlp_activation=activation,
 
-        # network_config = NetworkConfig(
-        #     arch="mlp",
-        #     hidden_size=hidden_size,
-        #     mlp_activation=mlp_activation,
-        #     mlp_output_activation=mlp_output_activation,
-        #     min_hidden_layers=min_hidden_layers,
-        #     max_hidden_layers=max_hidden_layers,
-        #     min_mlp_nodes=min_mlp_nodes,
-        #     max_mlp_nodes=max_mlp_nodes,
-        # )
+        )
+        trainer_config = TrainerConfig(
+            algorithm=algorithm,
+            max_timestep_global=max_timestep_global,
+            seed=seed,
+            hidden_size=hidden_size,
+            batch_size=batch_size,
+            num_envs=num_envs,
+            device=device,
+            checkpoint=checkpoint,
+            use_wandb=use_wandb,
+            wandb_api_key=wandb_api_key,
+        )
+            
+        training(
+            trainer_config,
+            network_config,
+            self.robot_config,
+            self.sensor_config,
+            self.env_config,
+            self.render_config,
+        )
 
-        # if use_mutation:
-
-        #     training(
-        #         trainer_config,
-        #         hpo_config,
-        #         network_config,
-        #         self.robot_config,
-        #         self.sensor_config,
-        #         self.env_config,
-        #         self.render_config,
-        #         self.pretrained_model,
-        #         self.train_docker,
-        #         self.probe,
-        #     )
-
-        #     return None
-
-        # else:
-        #     learn_with_sb3(
-        #         trainer_config,
-        #         network_config,
-        #         self.robot_config,
-        #         self.sensor_config,
-        #         self.env_config,
-        #         self.render_config,
-        #     )
-
-        #     return None
-        #
-
-
-
+        return None
 
 class Simulation:
     def __init__(
