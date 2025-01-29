@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List
 
 from rnl.configs.config import (
     EnvConfig,
@@ -9,6 +9,7 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.training.learn import inference, probe_envs, training
+
 
 def robot(
     base_radius: float,
@@ -96,9 +97,8 @@ class Trainer:
     ) -> None:
 
         network_config = NetworkConfig(
-             hidden_size=hidden_size,
-             mlp_activation=activation,
-
+            hidden_size=hidden_size,
+            mlp_activation=activation,
         )
         trainer_config = TrainerConfig(
             algorithm=algorithm,
@@ -120,7 +120,7 @@ class Trainer:
             vf_coef=vf_coef,
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
-            name=name
+            name=name,
         )
 
         training(
@@ -133,6 +133,7 @@ class Trainer:
         )
 
         return None
+
 
 class Simulation:
     def __init__(

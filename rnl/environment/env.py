@@ -1,4 +1,5 @@
 import csv
+from typing import Optional
 
 import gymnasium as gym
 import matplotlib.animation as animation
@@ -8,7 +9,6 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 from stable_baselines3 import PPO
-from typing import Optional
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
@@ -18,6 +18,7 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -104,7 +105,6 @@ class NaviEnv(gym.Env):
         self.last_states = np.zeros(state_size)
 
         if self.pretrained_model != "None":
-            print(f"Loading model from {self.pretrained_model}")
             self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
@@ -138,7 +138,6 @@ class NaviEnv(gym.Env):
             if self.controller:
                 self.fig.canvas.mpl_connect("key_press_event", self.on_key_press)
 
-
             if self.plot:
                 self._init_reward_plot()
 
@@ -170,8 +169,8 @@ class NaviEnv(gym.Env):
 
     def step_animation(self, i):
 
-        if self.pretrained_model or not self.controller:
-            if self.pretrained_model:
+        if self.pretrained_model != "None" or not self.controller:
+            if self.pretrained_model != "None":
                 self.action, _states = self.model.predict(self.last_states)
             else:
                 self.action = np.random.randint(0, 3)
@@ -396,7 +395,7 @@ class NaviEnv(gym.Env):
                 "alpha": float(alpha_norm[0]),
                 "min_lidar": float(min(lidar_norm)),
                 "max_lidar": float(max(lidar_norm)),
-                "states": states
+                "states": states,
             }
             return states, reward, done, truncated, info
 
@@ -637,12 +636,19 @@ class NaviEnv(gym.Env):
         Returns:
         str: The generated label containing information about the environment and the current time step.
         """
+        if isinstance(state_distance, np.ndarray):
+            state_distance = state_distance.item()
+        if isinstance(state_angle, np.ndarray):
+            state_angle = state_angle.item()
+        if isinstance(state_min_max_lidar, np.ndarray):
+            state_min_max_lidar = state_min_max_lidar.item()
+
         line1 = "Environment:\n"
         line2 = "Time Step:".ljust(14) + f"{timestep}\n"
         line3 = "Reward: ".ljust(14) + f"{score}\n"
-        line4 = "Distance: ".ljust(14) + f"{state_distance}\n"
-        line5 = "Angle:".ljust(14) + f"{state_angle}\n"
-        line6 = "Lidar:".ljust(14) + f"{state_min_max_lidar}\n"
+        line4 = "Distance: ".ljust(14) + f"{state_distance:.2f}\n"
+        line5 = "Angle:".ljust(14) + f"{state_angle:.2f}\n"
+        line6 = "Lidar:".ljust(14) + f"{state_min_max_lidar:.2f}\n"
         line7 = "Action:".ljust(14) + f"{action}\n"
 
         return line1 + line2 + line3 + line4 + line5 + line6 + line7
@@ -742,7 +748,6 @@ class NaviEnv(gym.Env):
         # min_norm_lidar: float,
         # max_norm_lidar: float,
     ):
-
 
         with open("./data/debugging.csv", mode="a", newline="") as file:
             writer = csv.writer(file)
