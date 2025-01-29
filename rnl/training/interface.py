@@ -82,6 +82,15 @@ class Trainer:
         checkpoint: int,
         use_wandb: bool,
         wandb_api_key: str,
+        lr: float,
+        learn_step: int,
+        gae_lambda: float,
+        action_std_init: float,
+        clip_coef: float,
+        ent_coef: float,
+        vf_coef: float,
+        max_grad_norm: float,
+        update_epochs: int,
     ) -> None:
 
         network_config = NetworkConfig(
@@ -100,6 +109,15 @@ class Trainer:
             checkpoint=checkpoint,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
+            lr=lr,
+            learn_step=learn_step,
+            gae_lambda=gae_lambda,
+            action_std_init=action_std_init,
+            clip_coef=clip_coef,
+            ent_coef=ent_coef,
+            vf_coef=vf_coef,
+            max_grad_norm=max_grad_norm,
+            update_epochs=update_epochs,
         )
             
         training(
