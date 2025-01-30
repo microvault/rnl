@@ -146,7 +146,7 @@ def training(
             total_timesteps=trainer_config.max_timestep_global,
             callback=WandbCallback(
                 gradient_save_freq=100,
-                model_save_path=f"model_{trainer_config.checkpoint_path}/{run.id}",
+                model_save_path=f"model_{trainer_config.checkpoint}/{run.id}",
                 verbose=2,
             ),
         )
