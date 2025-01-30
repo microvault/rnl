@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument('--algorithm', type=str, default="PPO",
                         help='Algoritmo de aprendizado a ser usado (default: PPO)')
 
-    parser.add_argument('--max_timestep_global', type=int, default=1000000,
+    parser.add_argument('--max_timestep_global', type=int, default=500000,
                         help='Número máximo de timesteps globais (default: 10000)')
 
     parser.add_argument('--seed', type=int, default=1,
@@ -110,8 +110,8 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_size', type=int, default=1000000,
                         help='Tamanho do buffer (default: 1000000)')
 
-    parser.add_argument('--hidden_size', type=int, nargs='+', default=[128, 128],
-                        help='Tamanhos das camadas ocultas (default: [128, 128])')
+    parser.add_argument('--hidden_size', type=int, nargs='+', default=[64, 128],
+                        help='Tamanhos das camadas ocultas (default: [64, 128])')
 
     parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="LeakyReLU",
                         help='Função de ativação a ser usada (default: LeakyReLU)')
@@ -125,8 +125,8 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda",
                         help='Dispositivo para treinamento (default: cuda)')
 
-    parser.add_argument('--checkpoint', type=str, default="30_01_2025",
-                        help='Nome do checkpoint (default: 30_01_2025)')
+    parser.add_argument('--checkpoint', type=str, default="31_01_2025",
+                        help='Nome do checkpoint (default: 31_01_2025)')
 
     parser.add_argument('--lr', type=float, default=0.0003,
                         help='Taxa de aprendizado (default: 0.0003)')
