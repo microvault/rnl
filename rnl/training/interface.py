@@ -40,12 +40,14 @@ def sensor(
 
 
 def make(
+    scale: int,
     folder_map: str,
     name_map: str,
     max_timestep: int,
     mode: str,
 ) -> EnvConfig:
     return EnvConfig(
+        scale=scale,
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
@@ -81,7 +83,7 @@ class Trainer:
         num_envs: int,
         device: str,
         activation: str,
-        checkpoint_path: str,
+        checkpoint: str,
         use_wandb: bool,
         wandb_api_key: str,
         lr: float,
@@ -108,7 +110,7 @@ class Trainer:
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,
-            checkpoint_path=checkpoint_path,
+            checkpoint=checkpoint,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
             lr=lr,

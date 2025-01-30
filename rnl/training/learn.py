@@ -47,7 +47,6 @@ def training(
     print(horizontal_line)
 
     for config_name, config_values in config_dict.items():
-        # Imprimir o cabeçalho da seção
         print(f"| {config_name + '/':<41} |")
         print(horizontal_line)
         for key, value in config_values.items():
@@ -56,9 +55,10 @@ def training(
 
     if trainer_config.use_wandb:
         run = wandb.init(
+            name=trainer_config.checkpoint,
             project=trainer_config.name,
             config=config_dict,
-            sync_tensorboard=False,
+            sync_tensorboard=True,
             monitor_gym=True,
             save_code=False,
         )
@@ -103,6 +103,7 @@ def training(
             vf_coef=trainer_config.vf_coef,
             ent_coef=trainer_config.ent_coef,
             device=trainer_config.device,
+            tensorboard_log=f"runs/{run.id}",
             max_grad_norm=trainer_config.max_grad_norm,
             n_epochs=trainer_config.update_epochs,
             seed=trainer_config.seed,
@@ -144,8 +145,8 @@ def training(
         model.learn(
             total_timesteps=trainer_config.max_timestep_global,
             callback=WandbCallback(
-                gradient_save_freq=0,
-                model_save_path=f"{trainer_config.checkpoint_path}/{run.id}",
+                gradient_save_freq=100,
+                model_save_path=f"model_{trainer_config.checkpoint_path}/{run.id}",
                 verbose=2,
             ),
         )
@@ -220,6 +221,9 @@ def probe_envs(
     env_config: EnvConfig,
     render_config: RenderConfig,
 ):
+
+    assert num_envs >= 1, "num_envs must be greater than 1"
+
     probe_config = ProbeEnvConfig(
         num_envs=num_envs,
         max_steps=max_steps,
@@ -259,7 +263,7 @@ def probe_envs(
         use_render=False,
     )
 
-    state, info = env.reset()
+    obs, info = env.reset()
     ep_rewards = np.zeros(num_envs)
     ep_lengths = np.zeros(num_envs)
 
@@ -278,11 +282,17 @@ def probe_envs(
     max_lidars_list = []
     states_list = []
 
+    if robot_config.path_model != "None":
+        model = PPO.load(robot_config.path_model)
+
     pbar = trange(max_steps, desc="Probe envs", unit="step")
 
     for i in pbar:
-        actions = env.action_space.sample()
-        next_state, rewards, terminated, truncated, infos = env.step(actions)
+        if robot_config.path_model != "None":
+            actions, _states = model.predict(obs)
+        else:
+            actions = env.action_space.sample()
+        obs, rewards, terminated, truncated, infos = env.step(actions)
 
         ep_rewards += np.array(rewards)
         ep_lengths += 1

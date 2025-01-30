@@ -4,6 +4,7 @@ from typing import List
 
 @dataclass
 class EnvConfig:
+    scale: int
     folder_map: str
     name_map: str
     timestep: int
@@ -62,7 +63,7 @@ class TrainerConfig:
     num_envs: int
     device: str
     learn_step: int
-    checkpoint_path: str
+    checkpoint: str
     use_wandb: bool
     wandb_api_key: str
     gae_lambda: float

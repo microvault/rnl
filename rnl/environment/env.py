@@ -95,8 +95,8 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
-        self.scalar: int = 100
         self.current_fraction: float = 0.0
+        self.scalar = env_config.scale
         self.debug = render_config.debug
         self.plot = render_config.plot
         self.current_rays = sensor_config.num_rays
@@ -247,7 +247,7 @@ class NaviEnv(gym.Env):
             threshold=self.threshold,
             scale_orientation=1.0,
             scale_distance=1.0,
-            scale_time=1.0,
+            scale_time=0.001,
         )
 
         reward = (

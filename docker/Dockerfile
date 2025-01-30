@@ -1,3 +1,4 @@
+# This docker is only adapted for the server, it is not the official version.
 FROM pytorch/pytorch:2.5.1-cuda11.8-cudnn9-devel
 
 ENV PYTHONUNBUFFERED=1 \
@@ -29,7 +30,6 @@ RUN pip install \
     "rtree>=1.3.0,<2.0.0" \
     "pillow==11.1.0" \
     "stable_baselines3==2.4.1" \
-    "tensorboard==2.18.0" \
     "gym==0.26.2" \
     "wandb==0.19.4"
 

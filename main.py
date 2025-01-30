@@ -16,7 +16,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="None",
+        path_model="/Users/nicolasalan/microvault/rnl/models/model_29_01_2025/model",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -29,6 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
+        scale=100,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=10000,
@@ -50,15 +51,15 @@ def main(arg):
         # 6.step -> train robot
         model.learn(
             algorithm="PPO",
-            max_timestep_global=1000000,
+            max_timestep_global=10000, # 1000000
             seed=42,
             buffer_size=1000000,
             hidden_size=[256, 256],
             activation="LeakyReLU",  # LeakyReLU, ReLU
             batch_size=1024,
             num_envs=4,
-            device="cuda",
-            checkpoint_path="model_29_01_2025",
+            device="cpu",
+            checkpoint="29_01_2025",
             use_wandb=True,
             wandb_api_key=str(wandb_key),
             lr=0.0003,
@@ -70,7 +71,7 @@ def main(arg):
             vf_coef=0.5,
             max_grad_norm=0.5,
             update_epochs=10,
-            name="test_rnl_29_01_2025",
+            name="rnl",
         )
 
     elif args.mode == "sim":
@@ -82,7 +83,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             num_envs=4,
-            max_steps=1000,
+            max_steps=10000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,
