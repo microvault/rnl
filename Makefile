@@ -1,4 +1,4 @@
-IMAGE_NAME = ninim/rnl-docker-cuda
+IMAGE_NAME = rnl-docker-cuda
 TAG = latest
 IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
@@ -85,7 +85,7 @@ train:
 		--memory=16g \
 		-it \
 		-v $(PWD):/workdir \
-		$(IMAGE_NAME) \
+		rnl-docker-cuda \
 		$(MODE) \
 		--algorithm $(ALGORITHM) \
 		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
