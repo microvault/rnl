@@ -5,15 +5,15 @@ VERSION = 1.1
 
 MODE ?= learn
 ALGORITHM ?= PPO
-MAX_TIMESTEP_GLOBAL ?= 10000
-SEED ?= 42
+MAX_TIMESTEP_GLOBAL ?= 2000000
+SEED ?= 1
 BUFFER_SIZE ?= 1000000
 HIDDEN_SIZE ?= 256 256
 ACTIVATION ?= LeakyReLU
 BATCH_SIZE ?= 1024
 NUM_ENVS ?= 4
-DEVICE ?= cpu
-CHECKPOINT ?= 29_01_2025
+DEVICE ?= cuda
+CHECKPOINT ?= 30_01_2025
 LR ?= 0.0003
 LEARN_STEP ?= 512
 GAE_LAMBDA ?= 0.95
@@ -75,7 +75,7 @@ build:
 
 .PHONY: train
 train:
-	@docker run \
+	@docker run -d \
 		-e WANDB_API_KEY=$(WANDB_API_KEY) \
 		--gpus all \
 		--network host \

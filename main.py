@@ -102,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--algorithm', type=str, default="PPO",
                         help='Algoritmo de aprendizado a ser usado (default: PPO)')
 
-    parser.add_argument('--max_timestep_global', type=int, default=1000000,
+    parser.add_argument('--max_timestep_global', type=int, default=2000000,
                         help='Número máximo de timesteps globais (default: 10000)')
 
     parser.add_argument('--seed', type=int, default=1,
@@ -126,8 +126,8 @@ if __name__ == "__main__":
     parser.add_argument('--device', type=str, default="cuda",
                         help='Dispositivo para treinamento (default: cpu)')
 
-    parser.add_argument('--checkpoint', type=str, default="29_01_2025",
-                        help='Nome do checkpoint (default: 29_01_2025)')
+    parser.add_argument('--checkpoint', type=str, default="30_01_2025",
+                        help='Nome do checkpoint (default: 30_01_2025)')
 
     parser.add_argument('--lr', type=float, default=0.0003,
                         help='Taxa de aprendizado (default: 0.0003)')
