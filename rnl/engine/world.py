@@ -181,11 +181,9 @@ def spawn_robot_and_goal_with_maze(
     safe_poly_robot = to_single_polygon(safe_poly_robot)
     safe_poly_goal = to_single_polygon(safe_poly_goal)
 
-    # Extrai bounds
     minx_r, miny_r, maxx_r, maxy_r = safe_poly_robot.bounds
     minx_g, miny_g, maxx_g, maxy_g = safe_poly_goal.bounds
 
-    # Extrai exterior e buracos como np.ndarray de float64
     ext_robot_arr = np.array(safe_poly_robot.exterior.coords, dtype=np.float64)
     holes_robot_arr = [
         np.array(i.coords, dtype=np.float64) for i in safe_poly_robot.interiors
@@ -196,13 +194,11 @@ def spawn_robot_and_goal_with_maze(
         np.array(i.coords, dtype=np.float64) for i in safe_poly_goal.interiors
     ]
 
-    # Se precisar, coloque array vazio se não existirem furos
     if len(holes_robot_arr) == 0:
         holes_robot_arr.append(np.zeros((0, 2), dtype=np.float64))
     if len(holes_goal_arr) == 0:
         holes_goal_arr.append(np.zeros((0, 2), dtype=np.float64))
 
-    # Cria typed.List
     holes_robot_nb = List.empty_list(types.float64[:, :])
     for arr in holes_robot_arr:
         holes_robot_nb.append(arr)
@@ -211,7 +207,6 @@ def spawn_robot_and_goal_with_maze(
     for arr in holes_goal_arr:
         holes_goal_nb.append(arr)
 
-    # Agora chamamos a função JIT
     for _ in range(max_tries):
         robo_x, robo_y = random_point_in_poly(
             (minx_r, miny_r, maxx_r, maxy_r), ext_robot_arr, holes_robot_nb, max_tries
@@ -230,7 +225,6 @@ def spawn_robot_and_goal_with_maze(
         dist = (dx * dx + dy * dy) ** 0.5
 
         if dist >= min_robot_goal_dist:
-            # Achou posições válidas
             return (robo_x, robo_y), (goal_x, goal_y)
 
     raise ValueError("Falha ao gerar posições válidas para robô e objetivo.")
