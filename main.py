@@ -15,7 +15,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="",
+        path_model="None",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -111,7 +111,7 @@ if __name__ == "__main__":
                         help='Tamanho do buffer (default: 1000000)')
 
     parser.add_argument('--hidden_size', type=int, nargs='+', default=[128, 128],
-                        help='Tamanhos das camadas ocultas (default: [256, 256])')
+                        help='Tamanhos das camadas ocultas (default: [128, 128])')
 
     parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="LeakyReLU",
                         help='Função de ativação a ser usada (default: LeakyReLU)')
