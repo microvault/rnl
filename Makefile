@@ -75,7 +75,7 @@ build:
 
 .PHONY: train
 train:
-	@docker run -d \
+	@docker run \
 		-e WANDB_API_KEY=$(WANDB_API_KEY) \
 		--gpus all \
 		--network host \

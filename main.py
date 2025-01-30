@@ -105,7 +105,7 @@ if __name__ == "__main__":
     parser.add_argument('--max_timestep_global', type=int, default=1000000,
                         help='Número máximo de timesteps globais (default: 10000)')
 
-    parser.add_argument('--seed', type=int, default=42,
+    parser.add_argument('--seed', type=int, default=1,
                         help='Semente para inicialização aleatória (default: 42)')
 
     parser.add_argument('--buffer_size', type=int, default=1000000,
