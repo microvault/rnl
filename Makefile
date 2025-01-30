@@ -14,8 +14,6 @@ BATCH_SIZE ?= 1024
 NUM_ENVS ?= 4
 DEVICE ?= cpu
 CHECKPOINT ?= 29_01_2025
-USE_WANDB ?= False
-WANDB_API_KEY ?=
 LR ?= 0.0003
 LEARN_STEP ?= 512
 GAE_LAMBDA ?= 0.95
@@ -97,8 +95,6 @@ train:
 		--num_envs $(NUM_ENVS) \
 		--device $(DEVICE) \
 		--checkpoint $(CHECKPOINT) \
-		--use_wandb $(USE_WANDB) \
-		--wandb_api_key $(WANDB_API_KEY) \
 		--lr $(LR) \
 		--learn_step $(LEARN_STEP) \
 		--gae_lambda $(GAE_LAMBDA) \

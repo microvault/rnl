@@ -60,8 +60,8 @@ def main(arg):
             num_envs=args.num_envs,
             device=args.device,
             checkpoint=args.checkpoint,
-            use_wandb=args.use_wandb,
-            wandb_api_key=args.wandb_api_key,
+            use_wandb=True,
+            wandb_api_key=str(wandb_key),
             lr=args.lr,
             learn_step=args.learn_step,
             gae_lambda=args.gae_lambda,
@@ -128,12 +128,6 @@ if __name__ == "__main__":
 
     parser.add_argument('--checkpoint', type=str, default="29_01_2025",
                         help='Nome do checkpoint (default: 29_01_2025)')
-
-    parser.add_argument('--use_wandb', action='store_true',
-                        help='Ativar o uso do Weights & Biases')
-
-    parser.add_argument('--wandb_api_key', type=str, default="",
-                        help='Chave API do Weights & Biases')
 
     parser.add_argument('--lr', type=float, default=0.0003,
                         help='Taxa de aprendizado (default: 0.0003)')
