@@ -8,7 +8,7 @@ ALGORITHM ?= PPO
 MAX_TIMESTEP_GLOBAL ?= 1000000
 SEED ?= 1
 BUFFER_SIZE ?= 1000000
-HIDDEN_SIZE ?= 128, 128
+HIDDEN_SIZE ?= 128 128
 ACTIVATION ?= LeakyReLU
 BATCH_SIZE ?= 1024
 NUM_ENVS ?= 4
@@ -75,7 +75,7 @@ build:
 
 .PHONY: train
 train:
-	@docker run \
+	@docker run -d \
 		-e WANDB_API_KEY=$(WANDB_API_KEY) \
 		--gpus all \
 		--network host \
