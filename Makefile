@@ -104,7 +104,7 @@ train:
 		-it \
 		-v $(PWD):/workdir \
 		rnl-docker-cuda \
-		$(MODE) \
+		--MODE $(MODE) \
 		--algorithm $(ALGORITHM) \
 		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
 		--seed $(SEED) \
