@@ -107,14 +107,14 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=1,
                         help='Semente para inicialização aleatória (default: 42)')
 
-    parser.add_argument('--buffer_size', type=int, default=1000000,
+    parser.add_argument('--buffer_size', type=int, default=100000,
                         help='Tamanho do buffer (default: 1000000)')
 
-    parser.add_argument('--hidden_size', type=str, default="64,128",
-                        help='Tamanhos das camadas ocultas (default: [64, 128])')
+    parser.add_argument('--hidden_size', type=str, default="20,20",
+                        help='Tamanhos das camadas ocultas (default: [20, 20])')
 
-    parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="LeakyReLU",
-                        help='Função de ativação a ser usada (default: LeakyReLU)')
+    parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="ReLU",
+                        help='Função de ativação a ser usada (default: ReLU)')
 
     parser.add_argument('--batch_size', type=int, default=1024,
                         help='Tamanho do batch (default: 1024)')

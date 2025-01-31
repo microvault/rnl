@@ -5,7 +5,6 @@ from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.dqn.policies import DQNPolicy
 from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
@@ -83,12 +82,23 @@ def training(
         ),
     )
 
+    policy_kwargs_off_policy = dict(
+        activation_fn=activation_fn,
+        net_arch=dict(
+            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            qf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        ),
+    )
+
+
     def make_env():
         env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
         )
         env = Monitor(env)
         return env
+
+    print(trainer_config)
 
     # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
@@ -98,6 +108,7 @@ def training(
             vec_env,
             batch_size=trainer_config.batch_size,
             verbose=1,
+            learning_rate=trainer_config.lr,
             policy_kwargs=policy_kwargs_on_policy,
             n_steps=trainer_config.learn_step,
             vf_coef=trainer_config.vf_coef,
@@ -111,28 +122,37 @@ def training(
 
         print("\nInitiate PPO training ...")
 
+
     elif trainer_config.algorithm == "A2C":
         model = A2C(
             "MlpPolicy",
             vec_env,
             verbose=1,
+            learning_rate=trainer_config.lr,
+            n_steps=trainer_config.learn_step,
+            gae_lambda=trainer_config.gae_lambda,
+            ent_coef=trainer_config.ent_coef,
+            vf_coef=trainer_config.vf_coef,
+            max_grad_norm=trainer_config.max_grad_norm,
+            seed=trainer_config.seed,
             policy_kwargs=policy_kwargs_on_policy,
             tensorboard_log=f"runs/{run.id}",
             device=trainer_config.device,
-            seed=trainer_config.seed,
         )
         print("\nInitiate A2C training ...")
 
     elif trainer_config.algorithm == "DQN":
         env = DummyVecEnv([make_env])
         model = DQN(
-            DQNPolicy,
+            "MlpPolicy",
             env,
+            learning_rate=trainer_config.lr,
             batch_size=trainer_config.batch_size,
             buffer_size=trainer_config.buffer_size,
             verbose=1,
             tensorboard_log=f"runs/{run.id}",
             device=trainer_config.device,
+            policy_kwargs=policy_kwargs_off_policy,
             seed=trainer_config.seed,
         )
 

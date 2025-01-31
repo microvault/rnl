@@ -7,8 +7,8 @@ MODE ?= learn
 ALGORITHM ?= PPO
 MAX_TIMESTEP_GLOBAL ?= 500000
 SEED ?= 1
-BUFFER_SIZE ?= 1000000
-HIDDEN_SIZE ?= 64, 128
+BUFFER_SIZE ?= 100000
+HIDDEN_SIZE ?= 20,20
 ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
 NUM_ENVS ?= 4
@@ -35,7 +35,27 @@ demo:
 
 .PHONY: learn
 learn:
-	@poetry run python -m main learn
+	@poetry run python -m main $(MODE) \
+	--algorithm $(ALGORITHM) \
+	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+	--seed $(SEED) \
+	--buffer_size $(BUFFER_SIZE) \
+	--hidden_size $(HIDDEN_SIZE) \
+	--activation $(ACTIVATION) \
+	--batch_size $(BATCH_SIZE) \
+	--num_envs $(NUM_ENVS) \
+	--device $(DEVICE) \
+	--checkpoint $(CHECKPOINT) \
+	--lr $(LR) \
+	--learn_step $(LEARN_STEP) \
+	--gae_lambda $(GAE_LAMBDA) \
+	--action_std_init $(ACTION_STD_INIT) \
+	--clip_coef $(CLIP_COEF) \
+	--ent_coef $(ENT_COEF) \
+	--vf_coef $(VF_COEF) \
+	--max_grad_norm $(MAX_GRAD_NORM) \
+	--update_epochs $(UPDATE_EPOCHS) \
+	--name $(NAME)
 
 .PHONY: probe
 probe:
@@ -84,7 +104,7 @@ train:
 		-it \
 		-v $(PWD):/workdir \
 		rnl-docker-cuda \
-		--MODE $(MODE) \
+		$(MODE) \
 		--algorithm $(ALGORITHM) \
 		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
 		--seed $(SEED) \
