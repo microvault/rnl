@@ -53,7 +53,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             buffer_size=args.buffer_size,
-            hidden_size=args.hidden_size,
+            hidden_size=list(map(int, args.hidden_size.split(','))) ,
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument('--buffer_size', type=int, default=1000000,
                         help='Tamanho do buffer (default: 1000000)')
 
-    parser.add_argument('--hidden_size', type=int, nargs='+', default=[64, 128],
+    parser.add_argument('--hidden_size', type=str, default="64,128",
                         help='Tamanhos das camadas ocultas (default: [64, 128])')
 
     parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="LeakyReLU",
