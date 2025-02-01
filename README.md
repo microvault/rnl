@@ -41,7 +41,7 @@ param_robot = vault.robot(
     base_radius=0.033,  # (m)
     vel_linear=[0.0, 2.0],  # [min, max]
     vel_angular=[1.0, 2.0],  # [min, max]
-    wheel_distance=0.16,  # (cm)
+    wheel_distance=0.16,  # (m)
     weight=1.0,  # robot (kg)
     threshold=0.01,  # distance for obstacle avoidance (cm)
 )
@@ -131,7 +131,7 @@ model.run()
 
 * **Use** `demo`:
 ```bash
-python train.py
+python main.py -m learn
 ```
 </details>
 
@@ -141,10 +141,3 @@ This project is licensed under the MIT license - see archive [LICENSE](https://g
 ## Contact and Contribution
 The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an `issue` or send an `email` to:
 Nicolas Alan - **grottimeireles@gmail.com**.
-
-## Acknowledgments
-* [AgileRL](https://github.com/AgileRL/AgileRL)
-* [Gazebo](https://gazebosim.org/home)
-* [Pytorch](https://pytorch.org/)
-* [OpenAI](https://openai.com/)
-* [ROS](https://www.ros.org/)

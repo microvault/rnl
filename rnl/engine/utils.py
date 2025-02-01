@@ -4,7 +4,11 @@ from numba import njit
 
 @njit
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
-    return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+    dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+    if dist >= 9:
+        return 9
+    else:
+        return dist
 
 
 def angle_to_goal(

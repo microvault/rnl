@@ -4,8 +4,8 @@ import pytest
 from matplotlib.lines import Line2D
 from shapely.geometry import Point, Polygon
 
-from rnl.engine.collisions import spawn_robot_and_goal
-from rnl.environment.world import CreateWorld
+from rnl.engine.world import spawn_robot_and_goal_with_maze
+from rnl.environment.generate import Generator
 
 
 def is_inside_polygon(point, polygon: Polygon):
@@ -14,18 +14,14 @@ def is_inside_polygon(point, polygon: Polygon):
 
 @pytest.fixture
 def poly():
-    generator = CreateWorld(
-        folder="/Users/nicolasalan/microvault/rnl/data/map4",
-        name="map4",
-    )
-    _, _, poly = generator.world()
+    generator = Generator(mode="easy-01")
+    _, _, poly = generator.world(10)
 
     return poly
 
 
 def test_spawn_robot_and_goal(poly, request):
     iterations = 100000
-
     robot_x = []
     robot_y = []
     goal_x = []
@@ -35,18 +31,22 @@ def test_spawn_robot_and_goal(poly, request):
     max_distance = 0.0
     distances = []
     for _ in range(iterations):
-        robot_pos, goal_pos = spawn_robot_and_goal(
+        targets = np.array([[2.5, 2.5], [6.5, 2.5], [2.5, 6.5], [6.5, 6.5]])
+        goal_pos = targets[np.random.randint(0, len(targets))]
+        robot_pos, _ = spawn_robot_and_goal_with_maze(
             poly=poly,
-            robot_clearance=4.0,
-            goal_clearance=2.0,
-            min_robot_goal_dist=4.0,
+            robot_clearance=1.0,
+            goal_clearance=1.0,
+            min_robot_goal_dist=2.0,
         )
 
         assert is_inside_polygon(
             goal_pos, poly
         ), f"Goal position {goal_pos} está fora do polígono."
 
-        assert robot_pos != goal_pos, "Robot and goal positions are the same."
+        assert not np.array_equal(
+            robot_pos, goal_pos
+        ), "Robot and goal positions are the same."
 
         robot_x.append(robot_pos[0])
         robot_y.append(robot_pos[1])

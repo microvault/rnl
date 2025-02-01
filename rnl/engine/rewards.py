@@ -62,11 +62,11 @@ def collision_and_target_reward(
     1. Recompensa baseada em colisão e alvo.
     """
     if not poly.contains(Point(x, y)):
-        return -10, True
+        return -1, True
     if distance < threshold:
-        return 10, True
+        return 1, True
     if collision:
-        return -10, True
+        return -1, True
     return 0.0, False
 
 
@@ -125,13 +125,13 @@ def get_reward(
 
     time_reward = time_and_collision_reward(step, time_penalty, scale_time)
 
-    orientation_rewards = orientation_reward(alpha, scale_orientation)
-    orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
+    # orientation_rewards = orientation_reward(alpha, scale_orientation)
+    # orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
 
-    obstacle = r3(min(measurement))
+    # obstacle = r3(min(measurement))
 
-    time_score = normalize_module(time_reward, -1, 0, -1, 0)  # 20%
-    progress_reward = global_progress_reward(distance, scale_distance)  # 50%
+    # time_score = normalize_module(time_reward, -0.001, 0, -0.001, 0)  # 20%
+    # progress_reward = global_progress_reward(distance, scale_distance)  # 50%
 
     if done_coll_target:
         return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
