@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -9,7 +10,6 @@ from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
-import wandb
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -90,7 +90,6 @@ def training(
         ),
     )
 
-
     def make_env():
         env = NaviEnv(
             robot_config, sensor_config, env_config, render_config, use_render=False
@@ -121,7 +120,6 @@ def training(
         )
 
         print("\nInitiate PPO training ...")
-
 
     elif trainer_config.algorithm == "A2C":
         model = A2C(

@@ -8,8 +8,8 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    pkg_dir = get_package_share_directory('demo')
-    world_file = os.path.join(pkg_dir, 'worlds', 'my_world.world')
+    pkg_dir = get_package_share_directory("demo")
+    world_file = os.path.join(pkg_dir, "worlds", "my_world.world")
 
     x_pose = "5.0"
     y_pose = "5.0"
@@ -17,41 +17,53 @@ def generate_launch_description():
     yaw = "1.57"
 
     gazebo = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('gazebo_ros'), 'launch', 'gazebo.launch.py')]),
-        launch_arguments={'world': world_file}.items(),
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    get_package_share_directory("gazebo_ros"),
+                    "launch",
+                    "gazebo.launch.py",
+                )
+            ]
+        ),
+        launch_arguments={"world": world_file}.items(),
     )
 
     turtlebot3_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('turtlebot3_gazebo'), 'launch', 'spawn_turtlebot3.launch.py')]),
+        PythonLaunchDescriptionSource(
+            [
+                os.path.join(
+                    get_package_share_directory("turtlebot3_gazebo"),
+                    "launch",
+                    "spawn_turtlebot3.launch.py",
+                )
+            ]
+        ),
         launch_arguments={
-            'x_pose': x_pose,
-            'y_pose': y_pose,
-            'z_pose': z_pose,
-            'yaw': yaw,
+            "x_pose": x_pose,
+            "y_pose": y_pose,
+            "z_pose": z_pose,
+            "yaw": yaw,
         }.items(),
     )
     main_node = Node(
-        package='demo',
-        executable='main.py',
-        name='laser_processor',
-        output='screen'
+        package="demo", executable="main.py", name="laser_processor", output="screen"
     )
 
     # Teleop node
     teleop = Node(
-        package='turtlebot3_teleop',
-        executable='teleop_keyboard',
-        name='teleop_keyboard',
-        prefix='xterm -e',
-        output='screen'
+        package="turtlebot3_teleop",
+        executable="teleop_keyboard",
+        name="teleop_keyboard",
+        prefix="xterm -e",
+        output="screen",
     )
 
-
-    return LaunchDescription([
-        gazebo,
-        turtlebot3_launch,
-        teleop,
-        main_node,
-    ])
+    return LaunchDescription(
+        [
+            gazebo,
+            turtlebot3_launch,
+            teleop,
+            main_node,
+        ]
+    )
