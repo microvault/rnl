@@ -89,6 +89,7 @@ install_with_dev:
 install:
 	@poetry install --without dev
 
+
 .PHONY: build
 build:
 	@docker build -f docker/Dockerfile -t rnl-docker-cuda .

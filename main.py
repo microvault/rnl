@@ -15,7 +15,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="None",
+        path_model="/Users/nicolasalan/microvault/rnl/models/model_31_01_2025/model",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -53,7 +53,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             buffer_size=args.buffer_size,
-            hidden_size=list(map(int, args.hidden_size.split(','))) ,
+            hidden_size=list(map(int, args.hidden_size.split(","))),
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
@@ -98,65 +98,137 @@ if __name__ == "__main__":
         "mode", choices=["learn", "sim", "run"], help="Mode to run: 'train' or 'run'"
     )
 
-    parser.add_argument('--algorithm', type=str, default="PPO",
-                        help='Algoritmo de aprendizado a ser usado (default: PPO)')
+    parser.add_argument(
+        "--algorithm",
+        type=str,
+        default="PPO",
+        help="Algoritmo de aprendizado a ser usado (default: PPO)",
+    )
 
-    parser.add_argument('--max_timestep_global', type=int, default=500000,
-                        help='Número máximo de timesteps globais (default: 10000)')
+    parser.add_argument(
+        "--max_timestep_global",
+        type=int,
+        default=500000,
+        help="Número máximo de timesteps globais (default: 10000)",
+    )
 
-    parser.add_argument('--seed', type=int, default=1,
-                        help='Semente para inicialização aleatória (default: 42)')
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=1,
+        help="Semente para inicialização aleatória (default: 42)",
+    )
 
-    parser.add_argument('--buffer_size', type=int, default=100000,
-                        help='Tamanho do buffer (default: 1000000)')
+    parser.add_argument(
+        "--buffer_size",
+        type=int,
+        default=100000,
+        help="Tamanho do buffer (default: 1000000)",
+    )
 
-    parser.add_argument('--hidden_size', type=str, default="20,20",
-                        help='Tamanhos das camadas ocultas (default: [20, 20])')
+    parser.add_argument(
+        "--hidden_size",
+        type=str,
+        default="20,20",
+        help="Tamanhos das camadas ocultas (default: [20, 20])",
+    )
 
-    parser.add_argument('--activation', type=str, choices=['LeakyReLU', 'ReLU'], default="ReLU",
-                        help='Função de ativação a ser usada (default: ReLU)')
+    parser.add_argument(
+        "--activation",
+        type=str,
+        choices=["LeakyReLU", "ReLU"],
+        default="ReLU",
+        help="Função de ativação a ser usada (default: ReLU)",
+    )
 
-    parser.add_argument('--batch_size', type=int, default=1024,
-                        help='Tamanho do batch (default: 1024)')
+    parser.add_argument(
+        "--batch_size", type=int, default=1024, help="Tamanho do batch (default: 1024)"
+    )
 
-    parser.add_argument('--num_envs', type=int, default=4,
-                        help='Número de ambientes paralelos (default: 4)')
+    parser.add_argument(
+        "--num_envs",
+        type=int,
+        default=4,
+        help="Número de ambientes paralelos (default: 4)",
+    )
 
-    parser.add_argument('--device', type=str, default="cuda",
-                        help='Dispositivo para treinamento (default: cuda)')
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="Dispositivo para treinamento (default: cuda)",
+    )
 
-    parser.add_argument('--checkpoint', type=str, default="31_01_2025",
-                        help='Nome do checkpoint (default: 31_01_2025)')
+    parser.add_argument(
+        "--checkpoint",
+        type=str,
+        default="31_01_2025",
+        help="Nome do checkpoint (default: 31_01_2025)",
+    )
 
-    parser.add_argument('--lr', type=float, default=0.0003,
-                        help='Taxa de aprendizado (default: 0.0003)')
+    parser.add_argument(
+        "--lr", type=float, default=0.0003, help="Taxa de aprendizado (default: 0.0003)"
+    )
 
-    parser.add_argument('--learn_step', type=int, default=512,
-                        help='Número de passos de aprendizado (default: 512)')
+    parser.add_argument(
+        "--learn_step",
+        type=int,
+        default=512,
+        help="Número de passos de aprendizado (default: 512)",
+    )
 
-    parser.add_argument('--gae_lambda', type=float, default=0.95,
-                        help='Lambda para GAE (default: 0.95)')
+    parser.add_argument(
+        "--gae_lambda", type=float, default=0.95, help="Lambda para GAE (default: 0.95)"
+    )
 
-    parser.add_argument('--action_std_init', type=float, default=0.6,
-                        help='Desvio padrão inicial para as ações (default: 0.6)')
+    parser.add_argument(
+        "--action_std_init",
+        type=float,
+        default=0.6,
+        help="Desvio padrão inicial para as ações (default: 0.6)",
+    )
 
-    parser.add_argument('--clip_coef', type=float, default=0.2,
-                        help='Coeficiente de clipping (default: 0.2)')
+    parser.add_argument(
+        "--clip_coef",
+        type=float,
+        default=0.2,
+        help="Coeficiente de clipping (default: 0.2)",
+    )
 
-    parser.add_argument('--ent_coef', type=float, default=0.0,
-                        help='Coeficiente de entropia (default: 0.0)')
+    parser.add_argument(
+        "--ent_coef",
+        type=float,
+        default=0.0,
+        help="Coeficiente de entropia (default: 0.0)",
+    )
 
-    parser.add_argument('--vf_coef', type=float, default=0.5,
-                        help='Coeficiente de valor de função (default: 0.5)')
+    parser.add_argument(
+        "--vf_coef",
+        type=float,
+        default=0.5,
+        help="Coeficiente de valor de função (default: 0.5)",
+    )
 
-    parser.add_argument('--max_grad_norm', type=float, default=0.5,
-                        help='Norma máxima do gradiente (default: 0.5)')
+    parser.add_argument(
+        "--max_grad_norm",
+        type=float,
+        default=0.5,
+        help="Norma máxima do gradiente (default: 0.5)",
+    )
 
-    parser.add_argument('--update_epochs', type=int, default=10,
-                        help='Número de épocas de atualização (default: 10)')
+    parser.add_argument(
+        "--update_epochs",
+        type=int,
+        default=10,
+        help="Número de épocas de atualização (default: 10)",
+    )
 
-    parser.add_argument('--name', type=str, default="rnl",
-                        help='Nome do experimento/modelo (default: rnl)')
+    parser.add_argument(
+        "--name",
+        type=str,
+        default="rnl",
+        help="Nome do experimento/modelo (default: rnl)",
+    )
 
     args = parser.parse_args()
     main(args)
