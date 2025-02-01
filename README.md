@@ -1,7 +1,7 @@
 # Robot Navigation Learning
 
 <div align="center">
-     <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/_static/img.png" alt="MicroVault">
+     <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="MicroVault">
 </div>
 
 <p align="center">
@@ -131,7 +131,7 @@ model.run()
 
 * **Use** `demo`:
 ```bash
-python main.py -m learn
+python main.py -m sim
 ```
 </details>
 
