@@ -17,7 +17,8 @@ services:
     platform: linux/arm64/v8
     ipc: host
     volumes:
-      - ./demo:/turtlebot3_ws/src:rw
+      - ./playground:/turtlebot3_ws/src/playground:rw
+      - ./run.bash:/turtlebot3_ws/run.bash:rw
     depends_on:
       - xserver
     volumes_from:
