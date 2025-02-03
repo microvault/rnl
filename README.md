@@ -24,8 +24,7 @@
 
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
-<details>
-  <summary>How to Use</summary>
+### How to Use
 
 Installation and usage mode.
 
@@ -41,12 +40,14 @@ import rnl as vault
 
 # 1.step -> config robot
 param_robot = vault.robot(
-    base_radius=0.033,  # (m)
-    vel_linear=[0.0, 2.0],  # [min, max]
-    vel_angular=[1.0, 2.0],  # [min, max]
+    base_radius=0.105,  # (m)
+    vel_linear=[0.0, 0.22],  # [min, max]
+    vel_angular=[1.0, 2.84],  # [min, max]
     wheel_distance=0.16,  # (m)
     weight=1.0,  # robot (kg)
-    threshold=0.01,  # distance for obstacle avoidance (cm)
+    threshold=1.0,  # distance for obstacle avoidance (m)
+    collision=0.5, 
+    path_model="None",
 )
 
 # 2.step -> config sensors [for now only lidar sensor!!]
@@ -59,29 +60,44 @@ param_sensor = vault.sensor(
 
 # 3.step -> config env
 param_env = vault.make(
-    map_file="None", # map file yaml (Coming soon)
-    random_mode="normal",  # hard or normal (Coming soon)
-    timestep=1000,  # max timestep
-    grid_dimension=5,  # size grid
-    friction=0.4,  # grid friction
-    porcentage_obstacles=0.1
+    scale=100,
+    folder_map="None",  
+    name_map="None",
+    max_timestep=10000,
+    mode="easy-01", 
 )
+
+param_render = vault.render(controller=False, debug=True, plot=False)
 
 # 4.step -> config train robot
 model = vault.Trainer(
-    param_robot, param_sensor, param_env, pretrained_model=False
+    param_robot, param_sensor, param_env, param_render
 )
 
 # 5.step -> train robot
 model.learn(
-    batch_size=64,
-    lr=0.0001,
-    num_envs=2,
-    device="cpu",
-    target_score=200,
-    checkpoint=100,
-    checkpoint_path="checkpoints",
-    hidden_size=[800, 600],
+  algorithm="PPO",
+  max_timestep_global=3000000,
+  seed=1,
+  buffer_size=1000000,
+  hidden_size=[20, 10],
+  activation="ReLu",
+  batch_size=1024,
+  num_envs=4,
+  device="cuda",
+  checkpoint="model",
+  use_wandb=True,
+  wandb_api_key="",
+  lr=0.0003,
+  learn_step=512,
+  gae_lambda=0.95,
+  action_std_init=0.5,
+  clip_coef=args.clip_coef,
+  ent_coef=args.ent_coef,
+  vf_coef=args.vf_coef,
+  max_grad_norm=args.max_grad_norm,
+  update_epochs=10,
+  name="models",
 )
 
 ```
@@ -93,12 +109,14 @@ import rnl as vault
 
 # 1.step -> config robot
 param_robot = vault.robot(
-    base_radius=0.033,  # (m)
-    vel_linear=[0.0, 2.0],  # [min, max]
-    vel_angular=[1.0, 2.0],  # [min, max]
-    wheel_distance=0.16,  # (cm)
+    base_radius=0.105,  # (m)
+    vel_linear=[0.0, 0.22],  # [min, max]
+    vel_angular=[1.0, 2.84],  # [min, max]
+    wheel_distance=0.16,  # (m)
     weight=1.0,  # robot (kg)
-    threshold=0.01,  # distance for obstacle avoidance (cm)
+    threshold=1.0,  # distance for obstacle avoidance (m)
+    collision=0.5, 
+    path_model="None",
 )
 
 # 2.step -> config sensors [for now only lidar sensor!!]
@@ -111,22 +129,18 @@ param_sensor = vault.sensor(
 
 # 3.step -> config env
 param_env = vault.make(
-    map_file="None", # map file yaml (Coming soon)
-    random_mode="normal",  # hard or normal (Coming soon)
-    timestep=1000,  # max timestep
-    grid_dimension=5,  # size grid
-    friction=0.4,  # grid friction
-    porcentage_obstacles=0.1
+    scale=100,
+    folder_map="None",  
+    name_map="None",
+    max_timestep=10000,
+    mode="easy-01", 
 )
 
 # 4.step -> config render
-param_render = vault.render(fps=100, controller=True, rgb_array=True)
-
+param_render = vault.render(controller=False, debug=True, plot=False)
 
 # 5.step -> config train robot
-model = vault.Trainer(
-    param_robot, param_sensor, param_env, param_render, pretrained_model=False
-)
+vault.Simulation(param_robot, param_sensor, param_env, param_render)
 
 # 6.step -> run robot
 model.run()
@@ -136,7 +150,6 @@ model.run()
 ```bash
 python main.py -m sim
 ```
-</details>
 
 ## License
 This project is licensed under the MIT license - see archive [LICENSE](https://github.com/microvault/rnl/blob/main/LICENSE) for details.
