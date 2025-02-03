@@ -1,8 +1,10 @@
+import math
+
 import numpy as np
 import numpy.random as npr
 from numba import njit, types
 from numba.typed import List
-import math
+
 
 class GenerateWorld:
     def __init__(self):
@@ -230,13 +232,12 @@ def spawn_robot_and_goal_with_maze(
     raise ValueError("Falha ao gerar posições válidas para robô e objetivo.")
 
 
-
 @njit
 def generate_gazebo_world_with_walls(segments):
     """
     segments: lista de tuplas (x1, y1, x2, y2) definindo cada parede.
     """
-    sdf_header = '''<?xml version="1.0" ?>
+    sdf_header = """<?xml version="1.0" ?>
 <sdf version="1.6">
   <world name="default">
     <include>
@@ -245,11 +246,11 @@ def generate_gazebo_world_with_walls(segments):
     <include>
       <uri>model://sun</uri>
     </include>
-'''
-    sdf_footer = '''
+"""
+    sdf_footer = """
   </world>
 </sdf>
-'''
+"""
     models = ""
     for i, seg in enumerate(segments):
         x1, y1, x2, y2 = seg
@@ -259,7 +260,7 @@ def generate_gazebo_world_with_walls(segments):
         length = math.sqrt(dx**2 + dy**2)
         angle = math.atan2(dy, dx)
 
-        wall_model = f'''
+        wall_model = f"""
     <model name="wall_{i}">
       <static>true</static>
       <pose>{cx} {cy} 0 0 0 {angle}</pose>
@@ -280,7 +281,7 @@ def generate_gazebo_world_with_walls(segments):
          </visual>
       </link>
     </model>
-'''
+"""
         models += wall_model
 
     sdf_world = sdf_header + models + sdf_footer
