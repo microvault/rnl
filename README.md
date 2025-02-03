@@ -1,4 +1,4 @@
-# Robot Navigation Learning
+# V.A.U.L.T. - Versatile Autonomous Unified Learning Toolkit
 
 <div align="center">
      <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="MicroVault">
