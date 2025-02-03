@@ -1,24 +1,27 @@
-import rclpy
-from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import Odometry
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from math import pi
+
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy
+from sensor_msgs.msg import LaserScan
+
 # from tf_transformations import euler_from_quaternion
+
 
 class SimpleSensorReader(Node):
     def __init__(self):
-        super().__init__('environment')
+        super().__init__("environment")
 
         # QoS profile for sensors
         qos_profile = QoSProfile(depth=10, reliability=QoSReliabilityPolicy.BEST_EFFORT)
 
         # Create subscriptions
-        self.create_subscription(LaserScan, '/scan', self.laser_callback, qos_profile)
-        self.create_subscription(Odometry, '/odom', self.odom_callback, qos_profile)
+        self.create_subscription(LaserScan, "/scan", self.laser_callback, qos_profile)
+        self.create_subscription(Odometry, "/odom", self.odom_callback, qos_profile)
 
         # Initialize variables
-        self.pose = {'x': 0.0, 'y': 0.0, 'theta': 0.0}
+        self.pose = {"x": 0.0, "y": 0.0, "theta": 0.0}
         self.lidar_readings = [0.0] * 5  # 5 equidistant readings
 
     def laser_callback(self, msg):
@@ -43,8 +46,8 @@ class SimpleSensorReader(Node):
 
     def odom_callback(self, msg):
         # Extract position
-        self.pose['x'] = msg.pose.pose.position.x
-        self.pose['y'] = msg.pose.pose.position.y
+        self.pose["x"] = msg.pose.pose.position.x
+        self.pose["y"] = msg.pose.pose.position.y
 
         # Extract orientation (quaternion to euler)
         # orientation_q = msg.pose.pose.orientation
@@ -58,6 +61,7 @@ class SimpleSensorReader(Node):
         print(f"Y: {self.pose['y']:.3f}m")
         # print(f"θ: {self.pose['theta']:.3f}rad ({(self.pose['theta'] * 180/pi):.1f}°)")
 
+
 def main(args=None):
     rclpy.init(args=args)
     node = SimpleSensorReader()
@@ -70,5 +74,6 @@ def main(args=None):
         node.destroy_node()
         rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
