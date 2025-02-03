@@ -67,14 +67,15 @@ param_env = vault.make(
     mode="easy-01", 
 )
 
+# 4. step -> config render 
 param_render = vault.render(controller=False, debug=True, plot=False)
 
-# 4.step -> config train robot
+# 5.step -> config train robot
 model = vault.Trainer(
     param_robot, param_sensor, param_env, param_render
 )
 
-# 5.step -> train robot
+# 6.step -> train robot
 model.learn(
   algorithm="PPO",
   max_timestep_global=3000000,
@@ -91,11 +92,11 @@ model.learn(
   lr=0.0003,
   learn_step=512,
   gae_lambda=0.95,
-  action_std_init=0.5,
-  clip_coef=args.clip_coef,
-  ent_coef=args.ent_coef,
-  vf_coef=args.vf_coef,
-  max_grad_norm=args.max_grad_norm,
+  action_std_init=0.6,
+  clip_coef=0.2,
+  ent_coef=0.0,
+  vf_coef=0.5,
+  max_grad_norm=0.5,
   update_epochs=10,
   name="models",
 )
