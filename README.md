@@ -1,6 +1,4 @@
 # Robot Navigation Learning
-> **Warning** :
-> This project is still in progress and not yet finalized for release for use.
 
 <div align="center">
      <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="MicroVault">
@@ -20,6 +18,9 @@
 **End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
 
 </div>
+
+> **Warning** :
+> This project is still in progress and not yet finalized for release for use.
 
 This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
 
