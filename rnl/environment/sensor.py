@@ -25,8 +25,13 @@ class SensorRobot:
         """
 
         seg = self.spatial_index.filter_segments(x, y, self.max_range)
-        inter_all, mea_all = lidar_segments(
-            x, y, theta, self.max_range, self.lidar_angle, seg
-        )
+        if not seg:
+            return np.array([]), np.full(self.sensor_config.num_rays, self.sensor_config.max_range)
+
+
+        else:
+            inter_all, mea_all = lidar_segments(
+                x, y, theta, self.max_range, self.lidar_angle, seg
+            )
 
         return np.array(inter_all), np.array(mea_all)

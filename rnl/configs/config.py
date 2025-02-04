@@ -4,11 +4,11 @@ from typing import List
 
 @dataclass
 class EnvConfig:
-    scale: int
     folder_map: str
     name_map: str
     timestep: int
     mode: str
+    reward_function: str
 
 
 @dataclass

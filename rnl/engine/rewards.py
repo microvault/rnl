@@ -14,22 +14,6 @@ def normalize_module(value, min_val, max_val, min_out, max_out):
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
 
-
-# @njit
-# def angle_to_goal(
-#     x: float, y: float, theta: float, goal_x: float, goal_y: float
-# ) -> float:
-#     """
-#     Retorna ângulo absoluto entre a orientação do robô e o objetivo.
-#     """
-#     o_t = np.array([np.cos(theta), np.sin(theta)])
-#     g_t = np.array([goal_x - x, goal_y - y])
-#     cross_p = np.cross(o_t, g_t)
-#     dot_p = np.dot(o_t, g_t)
-#     alpha = np.abs(np.arctan2(np.linalg.norm(cross_p), dot_p))
-#     return alpha
-
-
 @njit
 def angle_to_goal(x, y, theta, goal_x, goal_y):
     # Ângulo do objetivo em relação ao (0,0)

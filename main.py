@@ -15,28 +15,28 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="/Users/nicolasalan/microvault/rnl/models/model_31_01_2025/model",
+        path_model="None",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
         num_rays=5,
-        min_range=1.0,
-        max_range=12.0,
+        min_range=0.5,
+        max_range=3.5,
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        scale=100,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=10000,
         mode="easy-01",  # easy-01, medium
+        reward_function="distance",
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True, plot=False)
+    param_render = vault.render(controller=False, debug=False, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -129,8 +129,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hidden_size",
         type=str,
-        default="20,20",
-        help="Tamanhos das camadas ocultas (default: [20, 20])",
+        default="20,10",
+        help="Tamanhos das camadas ocultas (default: [20, 10])",
     )
 
     parser.add_argument(

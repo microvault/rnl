@@ -24,14 +24,13 @@ def angle_to_goal(
 
     return alpha
 
-
+@njit
 def min_laser(measurement: np.ndarray, threshold: float):
     laser = np.min(measurement)
-    if laser <= (threshold - 0.20):
+    if laser <= threshold:
         return True, laser
     else:
         return False, laser
-
 
 @njit
 def uniform_random(min_val, max_val):

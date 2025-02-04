@@ -57,5 +57,7 @@ class SpatialIndex:
         - List of filtered segments.
         """
         segs_proximos = self.query(x, y, max_range)
+        if not segs_proximos:
+            return []
         segs_filtrados = filter_list_segment(segs_proximos, x, y, max_range)
         return segs_filtrados

@@ -311,24 +311,30 @@ def probe_envs(
         else:
             actions = env.action_space.sample()
         obs, rewards, terminated, truncated, infos = env.step(actions)
+        # if 'final_observation' in infos or '_final_observation' in infos or 'final_info' in infos or '_final_info' in infos:
+        #     infos = list(infos)
+        #     for i in range(num_envs):
+        #         for k in ["final_observation", "_final_observation", "final_info", "_final_info"]:
+        #             if k in infos[i]:
+        #                 del infos[i][k]
 
         ep_rewards += np.array(rewards)
         ep_lengths += 1
 
         if infos is not None:
-            for env_idx in range(num_envs):
-                obstacles_scores.append(infos["obstacle"][env_idx])
-                collision_scores.append(infos["collision_score"][env_idx])
-                orientation_scores.append(infos["orientation_score"][env_idx])
-                progress_scores.append(infos["progress_score"][env_idx])
-                time_scores.append(infos["time_score"][env_idx])
-                total_rewards.append(rewards[env_idx])
-                actions_list.append(infos["action"][env_idx])
-                dists_list.append(infos["dist"][env_idx])
-                alphas_list.append(infos["alpha"][env_idx])
-                min_lidars_list.append(infos["min_lidar"][env_idx])
-                max_lidars_list.append(infos["max_lidar"][env_idx])
-                states_list.append(infos["states"][env_idx])
+                for env_idx in range(num_envs):
+                    obstacles_scores.append(infos["obstacle"][env_idx])
+                    collision_scores.append(infos["collision_score"][env_idx])
+                    orientation_scores.append(infos["orientation_score"][env_idx])
+                    progress_scores.append(infos["progress_score"][env_idx])
+                    time_scores.append(infos["time_score"][env_idx])
+                    total_rewards.append(rewards[env_idx])
+                    actions_list.append(infos["action"][env_idx])
+                    dists_list.append(infos["dist"][env_idx])
+                    alphas_list.append(infos["alpha"][env_idx])
+                    min_lidars_list.append(infos["min_lidar"][env_idx])
+                    max_lidars_list.append(infos["max_lidar"][env_idx])
+                    states_list.append(infos["states"][env_idx])
 
         done = np.logical_or(terminated, truncated)
         done_indices = np.where(done)[0]

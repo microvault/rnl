@@ -1,4 +1,3 @@
-import csv
 from typing import Optional
 
 import gymnasium as gym
@@ -60,7 +59,7 @@ class NaviEnv(gym.Env):
         self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
 
-        max_lidar, min_lidar = 12.0, 0.0
+        max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
         self.scaler_lidar.fit(
             np.array(
                 [
@@ -96,7 +95,6 @@ class NaviEnv(gym.Env):
         self.vr: float = 0.01
         self.action: int = 1
         self.current_fraction: float = 0.0
-        self.scalar = env_config.scale
         self.debug = render_config.debug
         self.plot = render_config.plot
         self.current_rays = sensor_config.num_rays
@@ -146,16 +144,16 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = 0.035 * self.scalar
+            self.vl = 0.10
             self.vr = 0.0
-        elif event.key == "right":
+        elif event.key == "right": # direita
             self.action = 1
-            self.vl = 0.035 * self.scalar
-            self.vr = -0.035 * self.scalar
-        elif event.key == "left":
+            self.vl = 0.08
+            self.vr =  -0.08
+        elif event.key == "left": # esquerda
             self.action = 2
-            self.vl = 0.035 * self.scalar
-            self.vr = 0.035 * self.scalar
+            self.vl = 0.08
+            self.vr = 0.08
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -176,14 +174,14 @@ class NaviEnv(gym.Env):
                 self.action = np.random.randint(0, 3)
 
             if self.action == 0:
-                self.vl = 0.035 * self.scalar
+                self.vl = 0.10
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.035 * self.scalar
-                self.vr = -0.035 * self.scalar
+                self.vl = 0.08
+                self.vr = -0.08
             elif self.action == 2:
-                self.vl = 0.035 * self.scalar
-                self.vr = 0.035 * self.scalar
+                self.vl = 0.08
+                self.vr = 0.08
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -205,7 +203,6 @@ class NaviEnv(gym.Env):
             self.target_x,
             self.target_y,
         )
-
         collision, laser = min_laser(lidar_measurements, self.collision)
 
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
@@ -295,15 +292,15 @@ class NaviEnv(gym.Env):
         vl = 0.0
         vr = 0.0
 
-        if action == 0:
-            vl = 0.035 * self.scalar
-            vr = 0.0
-        elif action == 1:
-            vl = 0.035 * self.scalar
-            vr = -0.035 * self.scalar
-        elif action == 2:
-            vl = 0.035 * self.scalar
-            vr = 0.035 * self.scalar
+        if self.action == 0:
+            self.vl = 0.10
+            self.vr = 0.0
+        elif self.action == 1:
+            self.vl = 0.08
+            self.vr = -0.08
+        elif self.action == 2:
+            self.vl = 0.08
+            self.vr = 0.08
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -686,25 +683,16 @@ class NaviEnv(gym.Env):
             del self.laser_scatters
 
         self.laser_scatters = []
-        for angle, intersection in zip(self.lidar_angle, intersections):
-            if intersection is not None and np.isfinite(intersection).all():
-                if not (intersection[0] == 0 and intersection[1] == 0):
-                    scatter = plt.scatter(
-                        intersection[0], intersection[1], color="g", s=3.0
-                    )
-                    self.laser_scatters.append(scatter)
 
-        self.agents.set_data_3d(
-            [x],
-            [y],
-            [0],
-        )
+        if intersections is not None and np.size(intersections) > 0:
+            for angle, intersection in zip(self.lidar_angle, intersections):
+                if intersection is not None and np.isfinite(intersection).all():
+                    if not (intersection[0] == 0 and intersection[1] == 0):
+                        scatter = plt.scatter(intersection[0], intersection[1], color="g", s=3.0)
+                        self.laser_scatters.append(scatter)
 
-        self.target.set_data_3d(
-            [target_x],
-            [target_y],
-            [0],
-        )
+        self.agents.set_data_3d([x], [y], [0])
+        self.target.set_data_3d([target_x], [target_y], [0])
 
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
@@ -712,60 +700,14 @@ class NaviEnv(gym.Env):
         if self.mode == "easy-01":
             x2 = x + 0.5 * np.cos(self.body.angle)
             y2 = y + 0.5 * np.sin(self.body.angle)
-
-            self.heading_line = self.ax.plot3D(
-                [x, x2],
-                [y, y2],
-                [0, 0],
-                color="red",
-                linewidth=1,
-            )[0]
+            self.heading_line = self.ax.plot3D([x, x2], [y, y2], [0, 0], color="red", linewidth=1)[0]
         elif self.mode == "medium":
-            x2 = x + 2.0 * np.cos(self.body.angle)  # 2
-            y2 = y + 2.0 * np.sin(self.body.angle)  # 2
-
-            self.heading_line = self.ax.plot3D(
-                [x, x2],
-                [y, y2],
-                [0, 0],
-                color="red",
-                linewidth=2,
-            )[0]
+            x2 = x + 2.0 * np.cos(self.body.angle)
+            y2 = y + 2.0 * np.sin(self.body.angle)
+            self.heading_line = self.ax.plot3D([x, x2], [y, y2], [0, 0], color="red", linewidth=2)[0]
 
         plt.draw()
 
-    def log_reward_csv(
-        self,
-        # obstacles_score: float,
-        # collision_score: float,
-        # orientation_score: float,
-        # progress_score: float,
-        # time_score: float,
-        # reward: float,
-        # action: int,
-        norm_dist: float,
-        # norm_alpha: float,
-        # min_norm_lidar: float,
-        # max_norm_lidar: float,
-    ):
-
-        with open("./data/debugging.csv", mode="a", newline="") as file:
-            writer = csv.writer(file)
-            writer.writerow(
-                [
-                    # obstacles_score,
-                    # collision_score,
-                    # orientation_score,
-                    # progress_score,
-                    # time_score,
-                    # reward,
-                    # action,
-                    norm_dist,
-                    # norm_alpha,
-                    # min_norm_lidar,
-                    # max_norm_lidar,
-                ]
-            )
 
     def log_reward(
         self,

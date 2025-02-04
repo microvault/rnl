@@ -27,9 +27,6 @@ jobs:
       - name: Install dependencies
         run: make install_with_dev
 
-      # - name: Run tests
-      #   run: make test
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
@@ -54,9 +51,6 @@ jobs:
 
       - name: Install dependencies
         run: make install_with_dev
-
-      # - name: Run tests
-      #   run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -85,25 +79,7 @@ jobs:
       - name: Install dependencies
         run: make install_with_dev
 
-      # - name: Run tests
-      #   run: make test
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
-  # Push:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v4
-
-  #     - name: login to ghcr.io
-  #       run: echo "${{ secrets.GHCR }}" | docker login ghcr.io -u rnl --password-stdin
-
-  #     - name: Build image
-  #       run: docker build -t ghcr.io/microvault/rnl:latest .
-
-  #     - name: Push image
-  #       run: docker push ghcr.io/microvault/rnl:latest
