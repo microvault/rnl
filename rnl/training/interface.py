@@ -40,6 +40,7 @@ def sensor(
 
 
 def make(
+    scalar: int,
     folder_map: str,
     name_map: str,
     max_timestep: int,
@@ -47,6 +48,7 @@ def make(
     reward_function: str,
 ) -> EnvConfig:
     return EnvConfig(
+        scalar=scalar,
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,

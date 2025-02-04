@@ -4,6 +4,7 @@ from typing import List
 
 @dataclass
 class EnvConfig:
+    scalar: int
     folder_map: str
     name_map: str
     timestep: int

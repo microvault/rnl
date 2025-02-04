@@ -28,6 +28,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
+        scalar=100,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=10000,
@@ -82,7 +83,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             num_envs=4,
-            max_steps=60000,
+            max_steps=30000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,

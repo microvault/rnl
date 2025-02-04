@@ -348,8 +348,8 @@ def probe_envs(
                 ep_lengths[idx] = 0
 
         if len(completed_rewards) > 0 and len(completed_lengths) > 0:
-            avg_reward = np.mean(completed_rewards[-1:])
-            avg_length = np.mean(completed_lengths[-1:])
+            avg_reward = np.mean(completed_rewards[-100:])
+            avg_length = np.mean(completed_lengths[-100:])
         else:
             avg_reward = 0
             avg_length = 0

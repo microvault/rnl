@@ -94,6 +94,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
+        self.scalar = env_config.scalar
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
         self.plot = render_config.plot
@@ -293,14 +294,14 @@ class NaviEnv(gym.Env):
         vr = 0.0
 
         if action == 0:
-            vl = 0.10
+            vl = 0.10 * self.scalar
             vr = 0.0
         elif action == 1:
-            vl = 0.08
-            vr = -0.08
+            vl = 0.08 * self.scalar
+            vr = -0.08 * self.scalar
         elif action == 2:
-            vl = 0.08
-            vr = 0.08
+            vl = 0.08 * self.scalar
+            vr = 0.08 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
