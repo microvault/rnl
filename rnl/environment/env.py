@@ -145,16 +145,16 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = 0.10
+            self.vl = 0.10 * self.scalar
             self.vr = 0.0
         elif event.key == "right": # direita
             self.action = 1
-            self.vl = 0.08
-            self.vr =  -0.08
+            self.vl = 0.08 * self.scalar
+            self.vr =  -0.08 * self.scalar
         elif event.key == "left": # esquerda
             self.action = 2
-            self.vl = 0.08
-            self.vr = 0.08
+            self.vl = 0.08 * self.scalar
+            self.vr = 0.08 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -175,14 +175,14 @@ class NaviEnv(gym.Env):
                 self.action = np.random.randint(0, 3)
 
             if self.action == 0:
-                self.vl = 0.10
+                self.vl = 0.10 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.08
-                self.vr = -0.08
+                self.vl = 0.08 * self.scalar
+                self.vr = -0.08 * self.scalar
             elif self.action == 2:
-                self.vl = 0.08
-                self.vr = 0.08
+                self.vl = 0.08 * self.scalar
+                self.vr = 0.08 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
