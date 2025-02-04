@@ -125,6 +125,13 @@ class Trainer:
             name=name,
         )
 
+        if self.render_config.debug:
+            raise ValueError("Error: Debug mode is not supported for training.")
+        if self.render_config.plot:
+            raise ValueError("Error: Plot mode is not supported for training.")
+        if self.render_config.controller:
+            raise ValueError("Error: Controller mode is not supported for training.")
+
         training(
             trainer_config,
             network_config,
@@ -181,6 +188,12 @@ class Probe:
         self.render_config = render_config
 
     def execute(self) -> None:
+
+        if self.render_config.controller:
+            raise ValueError("Error: Controller mode is not supported for training.")
+
+        if self.render_config.plot:
+            raise ValueError("Error: Plot mode is not supported for training.")
 
         probe_envs(
             self.num_envs,

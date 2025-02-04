@@ -23,7 +23,7 @@ def main(arg):
         fov=270,
         num_rays=5,
         min_range=0.5,
-        max_range=3.5,
+        max_range=3.5, # 3.5
     )
 
     # 3.step -> config env
@@ -82,7 +82,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             num_envs=4,
-            max_steps=10000,
+            max_steps=60000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,

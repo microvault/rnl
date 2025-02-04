@@ -292,15 +292,15 @@ class NaviEnv(gym.Env):
         vl = 0.0
         vr = 0.0
 
-        if self.action == 0:
-            self.vl = 0.10
-            self.vr = 0.0
-        elif self.action == 1:
-            self.vl = 0.08
-            self.vr = -0.08
-        elif self.action == 2:
-            self.vl = 0.08
-            self.vr = 0.08
+        if action == 0:
+            vl = 0.10
+            vr = 0.0
+        elif action == 1:
+            vl = 0.08
+            vr = -0.08
+        elif action == 2:
+            vl = 0.08
+            vr = 0.08
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -367,6 +367,9 @@ class NaviEnv(gym.Env):
             scale_distance=1.0,
             scale_time=0.001,
         )
+
+        if collision_score == -10:
+            print(collision_score)
 
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
@@ -747,8 +750,8 @@ class NaviEnv(gym.Env):
             + self.time_scores
             + self.rewards
         )
-        min_y = min(all_rewards) if all_rewards else -10
-        max_y = max(all_rewards) if all_rewards else 10
+        min_y = min(all_rewards) if all_rewards else -1
+        max_y = max(all_rewards) if all_rewards else 1
         self.reward_ax.set_ylim(min_y - 1, max_y + 1)
 
         # Redraw the reward plot
@@ -784,6 +787,6 @@ class NaviEnv(gym.Env):
 
         self.reward_ax.legend(loc="upper left")
         self.reward_ax.set_xlim(0, 100)
-        self.reward_ax.set_ylim(-10, 10)
+        self.reward_ax.set_ylim(-1, 10)
 
         self.reward_fig.tight_layout()

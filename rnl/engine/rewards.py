@@ -9,31 +9,6 @@ from shapely.geometry import Point
 def normalize_module(value, min_val, max_val, min_out, max_out):
     return min_out + (value - min_val) * (max_out - min_out) / (max_val - min_val)
 
-
-@njit
-def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
-    return np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
-
-@njit
-def angle_to_goal(x, y, theta, goal_x, goal_y):
-    # Ângulo do objetivo em relação ao (0,0)
-    direction = np.arctan2(goal_y - y, goal_x - x)
-    # Diferença entre a orientação atual e a direção do objetivo
-    alpha = direction - theta
-    # Normaliza pra ficar em [-π, π]
-    alpha = (alpha + np.pi) % (2 * np.pi) - np.pi
-    return abs(alpha)
-
-
-@njit
-def min_laser(measurement: np.ndarray, threshold: float) -> Tuple[bool, float]:
-    """
-    Retorna se há obstáculo muito próximo e o valor do laser mais próximo.
-    """
-    laser = np.min(measurement)
-    return laser <= (threshold - 0.20)
-
-
 def collision_and_target_reward(
     distance: float,
     threshold: float,
