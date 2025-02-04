@@ -108,7 +108,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_timestep_global",
         type=int,
-        default=500000,
+        default=300000,
         help="Número máximo de timesteps globais (default: 10000)",
     )
 
@@ -162,8 +162,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="31_01_2025",
-        help="Nome do checkpoint (default: 31_01_2025)",
+        default="03_02_2025",
+        help="Nome do checkpoint (default: 03_02_2025)",
     )
 
     parser.add_argument(
