@@ -9,6 +9,7 @@ from shapely.geometry import Point
 def normalize_module(value, min_val, max_val, min_out, max_out):
     return min_out + (value - min_val) * (max_out - min_out) / (max_val - min_val)
 
+
 def collision_and_target_reward(
     distance: float,
     threshold: float,

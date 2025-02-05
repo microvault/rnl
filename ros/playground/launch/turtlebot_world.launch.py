@@ -6,6 +6,7 @@ from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
     pkg_dir = get_package_share_directory("playground")
     world_file = os.path.join(pkg_dir, "worlds", "my_world.world")
@@ -17,38 +18,35 @@ def generate_launch_description():
 
     # Carrega o launch do Gazebo passando o arquivo do mundo
     gazebo_launch_file = os.path.join(
-        get_package_share_directory("gazebo_ros"),
-        "launch",
-        "gazebo.launch.py"
+        get_package_share_directory("gazebo_ros"), "launch", "gazebo.launch.py"
     )
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gazebo_launch_file),
-        launch_arguments={'world': world_file}.items(),
+        launch_arguments={"world": world_file}.items(),
     )
 
     # Carrega o launch do Turtlebot3
     turtlebot3_launch_file = os.path.join(
         get_package_share_directory("turtlebot3_gazebo"),
         "launch",
-        "spawn_turtlebot3.launch.py"
+        "spawn_turtlebot3.launch.py",
     )
     turtlebot3_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(turtlebot3_launch_file),
         launch_arguments={
-            'x_pose': x_pose,
-            'y_pose': y_pose,
-            'z_pose': z_pose,
-            'yaw': yaw,
+            "x_pose": x_pose,
+            "y_pose": y_pose,
+            "z_pose": z_pose,
+            "yaw": yaw,
         }.items(),
     )
 
     main_node = Node(
-        package='playground',
-        executable='environment',
-        name='environment',
-        output='screen'
+        package="playground",
+        executable="environment",
+        name="environment",
+        output="screen",
     )
-
 
     # Nó de teleop (abre num xterm)
     # teleop = Node(
@@ -59,9 +57,11 @@ def generate_launch_description():
     #     output="screen",
     # )
 
-    return LaunchDescription([
-        gazebo,
-        turtlebot3_launch,
-        # teleop,
-        main_node,
-    ])
+    return LaunchDescription(
+        [
+            gazebo,
+            turtlebot3_launch,
+            # teleop,
+            main_node,
+        ]
+    )

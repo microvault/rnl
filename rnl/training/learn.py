@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import wandb
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -10,6 +9,7 @@ from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
+import wandb
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -322,19 +322,19 @@ def probe_envs(
         ep_lengths += 1
 
         if infos is not None:
-                for env_idx in range(num_envs):
-                    obstacles_scores.append(infos["obstacle"][env_idx])
-                    collision_scores.append(infos["collision_score"][env_idx])
-                    orientation_scores.append(infos["orientation_score"][env_idx])
-                    progress_scores.append(infos["progress_score"][env_idx])
-                    time_scores.append(infos["time_score"][env_idx])
-                    total_rewards.append(rewards[env_idx])
-                    actions_list.append(infos["action"][env_idx])
-                    dists_list.append(infos["dist"][env_idx])
-                    alphas_list.append(infos["alpha"][env_idx])
-                    min_lidars_list.append(infos["min_lidar"][env_idx])
-                    max_lidars_list.append(infos["max_lidar"][env_idx])
-                    states_list.append(infos["states"][env_idx])
+            for env_idx in range(num_envs):
+                obstacles_scores.append(infos["obstacle"][env_idx])
+                collision_scores.append(infos["collision_score"][env_idx])
+                orientation_scores.append(infos["orientation_score"][env_idx])
+                progress_scores.append(infos["progress_score"][env_idx])
+                time_scores.append(infos["time_score"][env_idx])
+                total_rewards.append(rewards[env_idx])
+                actions_list.append(infos["action"][env_idx])
+                dists_list.append(infos["dist"][env_idx])
+                alphas_list.append(infos["alpha"][env_idx])
+                min_lidars_list.append(infos["min_lidar"][env_idx])
+                max_lidars_list.append(infos["max_lidar"][env_idx])
+                states_list.append(infos["states"][env_idx])
 
         done = np.logical_or(terminated, truncated)
         done_indices = np.where(done)[0]

@@ -147,11 +147,11 @@ class NaviEnv(gym.Env):
             self.action = 0
             self.vl = 0.10 * self.scalar
             self.vr = 0.0
-        elif event.key == "right": # direita
+        elif event.key == "right":  # direita
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr =  -0.08 * self.scalar
-        elif event.key == "left": # esquerda
+            self.vr = -0.08 * self.scalar
+        elif event.key == "left":  # esquerda
             self.action = 2
             self.vl = 0.08 * self.scalar
             self.vr = 0.08 * self.scalar
@@ -692,7 +692,9 @@ class NaviEnv(gym.Env):
             for angle, intersection in zip(self.lidar_angle, intersections):
                 if intersection is not None and np.isfinite(intersection).all():
                     if not (intersection[0] == 0 and intersection[1] == 0):
-                        scatter = plt.scatter(intersection[0], intersection[1], color="g", s=3.0)
+                        scatter = plt.scatter(
+                            intersection[0], intersection[1], color="g", s=3.0
+                        )
                         self.laser_scatters.append(scatter)
 
         self.agents.set_data_3d([x], [y], [0])
@@ -704,14 +706,17 @@ class NaviEnv(gym.Env):
         if self.mode == "easy-01":
             x2 = x + 0.5 * np.cos(self.body.angle)
             y2 = y + 0.5 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D([x, x2], [y, y2], [0, 0], color="red", linewidth=1)[0]
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+            )[0]
         elif self.mode == "medium":
             x2 = x + 2.0 * np.cos(self.body.angle)
             y2 = y + 2.0 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D([x, x2], [y, y2], [0, 0], color="red", linewidth=2)[0]
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=2
+            )[0]
 
         plt.draw()
-
 
     def log_reward(
         self,
