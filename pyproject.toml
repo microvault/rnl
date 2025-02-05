@@ -45,6 +45,9 @@ pre-commit = "^3.7.0"
 [tool.pytest.ini_options]
 pythonpath = "."
 
+[tool.isort]
+profile = "black"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
