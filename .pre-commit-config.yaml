@@ -3,6 +3,7 @@ repos:
     rev: 25.1.0
     hooks:
       - id: black
+        autostage: true
         args: ["--exclude", "docs/"] # Exclude the 'docs' folder
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -33,6 +34,7 @@ repos:
     rev: 6.0.0
     hooks:
       - id: isort
+        autostage: true
         args: ["--skip", "microvault/utils/*.pyx", "--profile", "black"]
 
   - repo: https://github.com/asottile/pyupgrade
