@@ -51,17 +51,17 @@ def generate_launch_description():
 
 
     # Nó de teleop (abre num xterm)
-    teleop = Node(
-        package="turtlebot3_teleop",
-        executable="teleop_keyboard",
-        name="teleop_keyboard",
-        prefix="xterm -e",
-        output="screen",
-    )
+    # teleop = Node(
+    #     package="turtlebot3_teleop",
+    #     executable="teleop_keyboard",
+    #     name="teleop_keyboard",
+    #     prefix="xterm -e",
+    #     output="screen",
+    # )
 
     return LaunchDescription([
         gazebo,
         turtlebot3_launch,
-        teleop,
+        # teleop,
         main_node,
     ])

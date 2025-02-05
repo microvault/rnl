@@ -37,5 +37,6 @@ RUN echo "bind -n M-Down split-window -v"                                       
 
 RUN apt install -y python3-pip
 RUN pip install setuptools==58.2.0
+RUN pip install stable_baselines3
 
 WORKDIR /turtlebot3_ws
