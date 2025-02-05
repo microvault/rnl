@@ -1,13 +1,7 @@
 from typing import List
 
-from rnl.configs.config import (
-    EnvConfig,
-    NetworkConfig,
-    RenderConfig,
-    RobotConfig,
-    SensorConfig,
-    TrainerConfig,
-)
+from rnl.configs.config import (EnvConfig, NetworkConfig, RenderConfig,
+                                RobotConfig, SensorConfig, TrainerConfig)
 from rnl.training.learn import inference, probe_envs, training
 
 
