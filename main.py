@@ -23,12 +23,12 @@ def main(arg):
         fov=270,
         num_rays=5,
         min_range=0.5,
-        max_range=3.5, # 3.5
+        max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=100,
+        scalar=40,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=10000,
@@ -37,7 +37,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=False, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
