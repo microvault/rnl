@@ -10,9 +10,15 @@ from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
 import wandb
-from rnl.configs.config import (EnvConfig, NetworkConfig, ProbeEnvConfig,
-                                RenderConfig, RobotConfig, SensorConfig,
-                                TrainerConfig)
+from rnl.configs.config import (
+    EnvConfig,
+    NetworkConfig,
+    ProbeEnvConfig,
+    RenderConfig,
+    RobotConfig,
+    SensorConfig,
+    TrainerConfig,
+)
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 

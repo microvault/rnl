@@ -1,7 +1,6 @@
 import gymnasium as gym
 
-from rnl.configs.config import (EnvConfig, RenderConfig, RobotConfig,
-                                SensorConfig)
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.environment.env import NaviEnv
 
 

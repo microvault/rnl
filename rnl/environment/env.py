@@ -9,8 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 from stable_baselines3 import PPO
 
-from rnl.configs.config import (EnvConfig, RenderConfig, RobotConfig,
-                                SensorConfig)
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
 from rnl.engine.rewards import get_reward
 from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser

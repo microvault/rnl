@@ -6,9 +6,11 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 from skimage import measure
 
-from rnl.engine.collisions import (convert_to_segments,
-                                   extract_segment_from_polygon,
-                                   is_counter_clockwise)
+from rnl.engine.collisions import (
+    convert_to_segments,
+    extract_segment_from_polygon,
+    is_counter_clockwise,
+)
 from rnl.engine.map2d import Map2D
 
 
