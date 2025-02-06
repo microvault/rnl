@@ -1,6 +1,14 @@
 <?xml version="1.0" ?>
 <sdf version="1.6">
   <world name="default">
+
+    <!-- Aceleração da simulação em ~4x -->
+    <physics name="my_physics" default="1" type="ode">
+      <max_step_size>0.001</max_step_size>
+      <real_time_update_rate>4000</real_time_update_rate>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
     <include>
       <uri>model://ground_plane</uri>
     </include>
@@ -784,6 +792,5 @@
          </visual>
       </link>
     </model>
-
   </world>
 </sdf>

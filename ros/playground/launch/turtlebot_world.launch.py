@@ -22,9 +22,11 @@ def generate_launch_description():
     )
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gazebo_launch_file),
-        launch_arguments={"world": world_file}.items(),
+        launch_arguments={
+            "world": world_file,
+            "playback_speed": "4.0"
+        }.items(),
     )
-
     # Carrega o launch do Turtlebot3
     turtlebot3_launch_file = os.path.join(
         get_package_share_directory("turtlebot3_gazebo"),
