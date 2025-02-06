@@ -28,7 +28,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=40,
+        scalar=10,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=10000,
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_timestep_global",
         type=int,
-        default=300000,
+        default=1000000,
         help="Número máximo de timesteps globais (default: 10000)",
     )
 
@@ -130,8 +130,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--hidden_size",
         type=str,
-        default="20,10",
-        help="Tamanhos das camadas ocultas (default: [20, 10])",
+        default="40,40",
+        help="Tamanhos das camadas ocultas (default: [40,40])",
     )
 
     parser.add_argument(
@@ -149,7 +149,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_envs",
         type=int,
-        default=4,
+        default=8,
         help="Número de ambientes paralelos (default: 4)",
     )
 
@@ -163,8 +163,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="03_02_2025",
-        help="Nome do checkpoint (default: 03_02_2025)",
+        default="06_02_2025",
+        help="Nome do checkpoint (default: 06_02_2025)",
     )
 
     parser.add_argument(
