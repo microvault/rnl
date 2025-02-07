@@ -11,11 +11,32 @@ from gazebo_msgs.srv import SetModelState
 from gazebo_msgs.msg import ModelState
 from ament_index_python.packages import get_package_share_directory
 import os
+import numpy as np
 
 from stable_baselines3 import PPO
 
 def clamp(value, vmin, vmax):
     return max(vmin, min(value, vmax))
+
+def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
+    dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+    if dist >= 9:
+        return 9
+    else:
+        return dist
+
+def angle_to_goal(
+    x: float, y: float, theta: float, goal_x: float, goal_y: float
+) -> float:
+    o_t = np.array([np.cos(theta), np.sin(theta)])
+    g_t = np.array([goal_x - x, goal_y - y])
+
+    cross_product = np.cross(o_t, g_t)
+    dot_product = np.dot(o_t, g_t)
+
+    alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
+
+    return alpha
 
 def min_max_scale(features, data_min, data_max):
     """ Escala cada valor de features para [0,1] via min-max manual. """
@@ -28,7 +49,7 @@ def min_max_scale(features, data_min, data_max):
         else:
             s = 0.0
         # Mantém em [0..1]
-        s = max(0.0, min(s, 1.0))
+        s = max(0.0, min(s, 0.99999994))
         scaled.append(s)
     return scaled
 
@@ -38,6 +59,8 @@ class SimpleSensorReader(Node):
 
         # Monta caminho do modelo (exemplo usando os.path)
         self.position = 0
+        self.action = 0
+        self.last_states = np.zeros(10)
 
         pkg_dir = get_package_share_directory("playground")
         model_path = os.path.join(pkg_dir, "models", "model")
@@ -55,8 +78,7 @@ class SimpleSensorReader(Node):
         self.set_model_state_client = self.create_client(SetModelState, "/gazebo/set_model_state")
 
         # Objetivo
-        self.goal_x = 7.0
-        self.goal_y = 2.0
+        self.goal_x, self.goal_y = 7, 7
 
         # Armazena leituras e ação anterior
         self.lidar_ranges = [0.0]*5
@@ -87,14 +109,14 @@ class SimpleSensorReader(Node):
     def odom_callback(self, msg):
         self.position = msg.pose.pose
 
-    def action_to_one_hot(self, action):
-        action = int(action)
-        oh = [0, 0, 0]
-        if 0 <= action < 3:
-            oh[action] = 1
-        return oh
+    # def action_to_one_hot(self, action):
+    #     action = int(action)
+    #     oh = [0, 0, 0]
+    #     if 0 <= action < 3:
+    #         oh[action] = 1
+    #     return oh
 
-    def do_action(self, action):
+    def move_robot(self, action):
         if action == 0:
             # self.get_logger().info("Ação: Frente")
             vl, vr = 0.10, 0.0
@@ -113,6 +135,17 @@ class SimpleSensorReader(Node):
         self.cmd_vel_pub.publish(twist)
 
     def update(self):
+
+
+        # Prediz ação
+        # stable-baselines3 converte de list -> numpy internamente
+        self.get_logger().info(f"last_states: {self.last_states}")
+        self.action, _ = self.model.predict(self.last_states)
+
+
+        # Executa ação
+        self.move_robot(self.action)
+
         # Extrai pose e yaw
         x = self.position.position.x
         y = self.position.position.y
@@ -120,36 +153,54 @@ class SimpleSensorReader(Node):
         w = self.position.orientation.w
         theta = 2.0 * math.atan2(z, w)
 
+        # self.get_logger().info(f"X: {x}, Y: {y}, Theta: {theta}")
+
         # Dist e alpha
-        dist = math.sqrt((self.goal_x - x)**2 + (self.goal_y - y)**2)
-        angle_to_goal = math.atan2(self.goal_y - y, self.goal_x - x)
-        alpha = angle_to_goal - theta
-        alpha = math.atan2(math.sin(alpha), math.cos(alpha))
-        alpha = abs(alpha)  # se quiser só positivo
+        dist = float(distance_to_goal(x, y, self.goal_x, self.goal_y))
+        alpha = float(angle_to_goal(x , y , theta , self.goal_x, self.goal_y))
+        # dist = math.sqrt((self.goal_x - x)**2 + (self.goal_y - y)**2)
+        # angle_to_goal = math.atan2(self.goal_y - y, self.goal_x - x)
+        # alpha = angle_to_goal - theta
+        # alpha = math.atan2(math.sin(alpha), math.cos(alpha))
+        # alpha = abs(alpha)  # se quiser só positivo
 
         # Clamps manuais
-        clamped_lidar = [clamp(val, 0.5, 3.5) for val in self.lidar_ranges]
-        clamped_dist = clamp(dist, 1.0, 9.0)
-        clamped_alpha = clamp(alpha, 0.0, 3.5)
-        clamped_action_oh = [clamp(a, 0.0, 1.0) for a in self.last_action_oh]
+        clamped_lidar = [float(clamp(val, 0.5, 3.5)) for val in self.lidar_ranges]
+        clamped_dist = float(clamp(dist, 1.0, 9.0))
+        clamped_alpha = float(clamp(alpha, 0.0, 3.5))
+        # clamped_action_oh = [clamp(a, 0.0, 1.0) for a in self.last_action_oh]
+
+        action_one_hot = np.eye(3)[self.action]
+        # self.get_logger().info(f"action_one_hot: {action_one_hot}")
 
         # Monta estado: [5 lidar, dist, alpha, 3 actionOH]
-        raw_state = clamped_lidar + [clamped_dist, clamped_alpha] + clamped_action_oh
+        # raw_state = clamped_lidar + action_one_hot + clamped_dist, clamped_alpha
+        # self.get_logger().info(f"clamped_lidar: {clamped_lidar}")
+        # self.get_logger().info(f"clamped_dist: {clamped_dist}")
+        # self.get_logger().info(f"clamped_alpha: {clamped_alpha}")
+
+        norm_lidar = (np.array(clamped_lidar, dtype=np.float32) - 0.5) / (3.5 - 0.5)
+        norm_dist  = np.array(clamped_dist, dtype=np.float32) / 9.0
+        norm_alpha = np.array(clamped_alpha, dtype=np.float32) / 3.5
+
+        states = np.concatenate(
+            (
+                norm_lidar,
+                np.array(action_one_hot, dtype=np.int16),
+                np.array([norm_dist], dtype=np.float32),
+                np.array([norm_alpha], dtype=np.float32),
+            )
+        )
 
         # Normaliza manualmente
-        scaled_state = min_max_scale(raw_state, self.data_min, self.data_max)
+        # scaled_state = min_max_scale(states, self.data_min, self.data_max)
 
-        self.get_logger().info(f"Estado normalizado: {scaled_state}")
+        # self.get_logger().info(f"Estado normalizado: {scaled_state}")
 
-        # Prediz ação
-        # stable-baselines3 converte de list -> numpy internamente
-        action, _ = self.model.predict([scaled_state], deterministic=True)
+        self.last_states = states
 
-        # Converte pra one-hot e guarda
-        self.last_action_oh = self.action_to_one_hot(action)
+        # self.get_logger().info(f"Action: {int(self.action)}")
 
-        # Executa ação
-        self.do_action(action)
 
         # Exemplo: se dist <= 1, reset e respawn
         if dist <= 1.0:
