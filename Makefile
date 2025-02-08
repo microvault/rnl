@@ -13,7 +13,7 @@ ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
 NUM_ENVS ?= 4
 DEVICE ?= cuda
-CHECKPOINT ?= 06_02_2025
+CHECKPOINT ?= 07_02_2025
 LR ?= 0.0003
 LEARN_STEP ?= 512
 GAE_LAMBDA ?= 0.95
@@ -96,7 +96,30 @@ build:
 
 .PHONY: train
 train:
-	@docker run -d \
+	@echo "Running training with the following parameters:"
+		@echo "MODE=$(MODE)"
+		@echo "ALGORITHM=$(ALGORITHM)"
+		@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
+		@echo "SEED=$(SEED)"
+		@echo "BUFFER_SIZE=$(BUFFER_SIZE)"
+		@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
+		@echo "ACTIVATION=$(ACTIVATION)"
+		@echo "BATCH_SIZE=$(BATCH_SIZE)"
+		@echo "NUM_ENVS=$(NUM_ENVS)"
+		@echo "DEVICE=$(DEVICE)"
+		@echo "CHECKPOINT=$(CHECKPOINT)"
+		@echo "LR=$(LR)"
+		@echo "LEARN_STEP=$(LEARN_STEP)"
+		@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
+		@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
+		@echo "CLIP_COEF=$(CLIP_COEF)"
+		@echo "ENT_COEF=$(ENT_COEF)"
+		@echo "VF_COEF=$(VF_COEF)"
+		@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
+		@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
+		@echo "NAME=$(NAME)"
+		@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+		@docker run -d \
 		-e WANDB_API_KEY=$(WANDB_API_KEY) \
 		--gpus all \
 		--network host \

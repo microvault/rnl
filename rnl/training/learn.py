@@ -65,6 +65,8 @@ def training(
     env = NaviEnv(
         robot_config, sensor_config, env_config, render_config, use_render=False
     )
+
+
     print("\nCheck environment ...")
     check_env(env)
 
@@ -96,8 +98,6 @@ def training(
         )
         env = Monitor(env)
         return env
-
-    print(trainer_config)
 
     # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
@@ -164,7 +164,7 @@ def training(
             total_timesteps=trainer_config.max_timestep_global,
             callback=WandbCallback(
                 gradient_save_freq=100,
-                model_save_path=f"model_{trainer_config.checkpoint}/{run.id}",
+                model_save_path=f"model_{trainer_config.checkpoint}_{trainer_config.algorithm}/{run.id}",
                 verbose=2,
             ),
         )
@@ -369,88 +369,90 @@ def probe_envs(
 
     env.close()
 
-    completed_rewards = np.array(completed_rewards)
-    completed_lengths = np.array(completed_lengths)
+    if render_config.debug:
 
-    steps_range = list(range(1, len(total_rewards) + 1))
-    step_metrics = [
-        ("Obstacles Score", obstacles_scores, "brown"),
-        ("Collision Score", collision_scores, "red"),
-        ("Orientation Score", orientation_scores, "green"),
-        ("Progress Score", progress_scores, "blue"),
-        ("Time Score", time_scores, "orange"),
-        ("Total Reward", total_rewards, "purple"),
-        ("Action", actions_list, "blue"),
-        ("Distance", dists_list, "cyan"),
-        ("Alpha", alphas_list, "magenta"),
-        ("Min Lidar", min_lidars_list, "yellow"),
-        ("Max Lidar", max_lidars_list, "black"),
-    ]
+        completed_rewards = np.array(completed_rewards)
+        completed_lengths = np.array(completed_lengths)
 
-    total_subplots = len(step_metrics) + 1
-    cols = 2
-    rows = (total_subplots + cols - 1) // cols  # 6
+        steps_range = list(range(1, len(total_rewards) + 1))
+        step_metrics = [
+            ("Obstacles Score", obstacles_scores, "brown"),
+            ("Collision Score", collision_scores, "red"),
+            ("Orientation Score", orientation_scores, "green"),
+            ("Progress Score", progress_scores, "blue"),
+            ("Time Score", time_scores, "orange"),
+            ("Total Reward", total_rewards, "purple"),
+            ("Action", actions_list, "blue"),
+            ("Distance", dists_list, "cyan"),
+            ("Alpha", alphas_list, "magenta"),
+            ("Min Lidar", min_lidars_list, "yellow"),
+            ("Max Lidar", max_lidars_list, "black"),
+        ]
 
-    plt.figure(figsize=(10, 5 * rows))
+        total_subplots = len(step_metrics) + 1
+        cols = 2
+        rows = (total_subplots + cols - 1) // cols  # 6
 
-    for idx, (title, data, color) in enumerate(step_metrics, start=1):
-        ax = plt.subplot(rows, cols, idx)
-        ax.plot(
-            steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+        plt.figure(figsize=(10, 5 * rows))
+
+        for idx, (title, data, color) in enumerate(step_metrics, start=1):
+            ax = plt.subplot(rows, cols, idx)
+            ax.plot(
+                steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+            )
+            ax.set_ylabel(title, fontsize=8)
+            ax.legend(fontsize=6)
+            ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+            ax.tick_params(axis="x", labelsize=6)
+            ax.tick_params(axis="y", labelsize=6)
+
+            mean_val = np.mean(data)
+            min_val = np.min(data)
+            max_val = np.max(data)
+
+            ax.text(
+                0.5,
+                -0.25,
+                f"Média: {mean_val:.4f} | Mínimo: {min_val:.4f} | Máximo: {max_val:.4f}",
+                transform=ax.transAxes,
+                ha="center",
+                fontsize=6,
+            )
+
+        ax_ep = plt.subplot(rows, cols, total_subplots)
+        episodes_range = range(1, len(completed_rewards) + 1)
+
+        ax_ep.plot(
+            episodes_range, completed_rewards, label="Completed Rewards", color="black"
         )
-        ax.set_ylabel(title, fontsize=8)
-        ax.legend(fontsize=6)
-        ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-        ax.tick_params(axis="x", labelsize=6)
-        ax.tick_params(axis="y", labelsize=6)
+        ax_ep.plot(
+            episodes_range, completed_lengths, label="Completed Lengths", color="gray"
+        )
 
-        mean_val = np.mean(data)
-        min_val = np.min(data)
-        max_val = np.max(data)
+        ax_ep.set_ylabel("Geral", fontsize=8)
+        ax_ep.legend(fontsize=6)
+        ax_ep.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
+        ax_ep.tick_params(axis="x", labelsize=6)
+        ax_ep.tick_params(axis="y", labelsize=6)
 
-        ax.text(
+        mean_rewards = np.mean(completed_rewards)
+        min_rewards = np.min(completed_rewards)
+        max_rewards = np.max(completed_rewards)
+
+        mean_lengths = np.mean(completed_lengths)
+        min_lengths = np.min(completed_lengths)
+        max_lengths = np.max(completed_lengths)
+
+        ax_ep.text(
             0.5,
-            -0.25,
-            f"Média: {mean_val:.4f} | Mínimo: {min_val:.4f} | Máximo: {max_val:.4f}",
-            transform=ax.transAxes,
+            -0.4,
+            f"Rewards -> Média: {mean_rewards:.4f} | Mínimo: {min_rewards:.4f} | Máximo: {max_rewards:.4f}\n"
+            f"Lengths -> Média: {mean_lengths:.4f} | Mínimo: {min_lengths:.4f} | Máximo: {max_lengths:.4f}",
+            transform=ax_ep.transAxes,
             ha="center",
             fontsize=6,
         )
 
-    ax_ep = plt.subplot(rows, cols, total_subplots)
-    episodes_range = range(1, len(completed_rewards) + 1)
-
-    ax_ep.plot(
-        episodes_range, completed_rewards, label="Completed Rewards", color="black"
-    )
-    ax_ep.plot(
-        episodes_range, completed_lengths, label="Completed Lengths", color="gray"
-    )
-
-    ax_ep.set_ylabel("Geral", fontsize=8)
-    ax_ep.legend(fontsize=6)
-    ax_ep.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
-    ax_ep.tick_params(axis="x", labelsize=6)
-    ax_ep.tick_params(axis="y", labelsize=6)
-
-    mean_rewards = np.mean(completed_rewards)
-    min_rewards = np.min(completed_rewards)
-    max_rewards = np.max(completed_rewards)
-
-    mean_lengths = np.mean(completed_lengths)
-    min_lengths = np.min(completed_lengths)
-    max_lengths = np.max(completed_lengths)
-
-    ax_ep.text(
-        0.5,
-        -0.4,
-        f"Rewards -> Média: {mean_rewards:.4f} | Mínimo: {min_rewards:.4f} | Máximo: {max_rewards:.4f}\n"
-        f"Lengths -> Média: {mean_lengths:.4f} | Mínimo: {min_lengths:.4f} | Máximo: {max_lengths:.4f}",
-        transform=ax_ep.transAxes,
-        ha="center",
-        fontsize=6,
-    )
-
-    plt.tight_layout()
-    plt.subplots_adjust(bottom=0.1)
-    plt.show()
+        plt.tight_layout()
+        plt.subplots_adjust(bottom=0.1)
+        plt.show()

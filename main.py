@@ -15,7 +15,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="None",
+        path_model="/Users/nicolasalan/microvault/rnl/models_PPO/e0ws4jvg/model",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -83,7 +83,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             num_envs=4,
-            max_steps=30000,
+            max_steps=100,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,
@@ -102,35 +102,30 @@ if __name__ == "__main__":
     parser.add_argument(
         "--algorithm",
         type=str,
-        default="PPO",
         help="Algoritmo de aprendizado a ser usado (default: PPO)",
     )
 
     parser.add_argument(
         "--max_timestep_global",
         type=int,
-        default=1000000,
         help="Número máximo de timesteps globais (default: 10000)",
     )
 
     parser.add_argument(
         "--seed",
         type=int,
-        default=1,
         help="Semente para inicialização aleatória (default: 42)",
     )
 
     parser.add_argument(
         "--buffer_size",
         type=int,
-        default=100000,
         help="Tamanho do buffer (default: 1000000)",
     )
 
     parser.add_argument(
         "--hidden_size",
         type=str,
-        default="40,40",
         help="Tamanhos das camadas ocultas (default: [40,40])",
     )
 
@@ -138,7 +133,6 @@ if __name__ == "__main__":
         "--activation",
         type=str,
         choices=["LeakyReLU", "ReLU"],
-        default="ReLU",
         help="Função de ativação a ser usada (default: ReLU)",
     )
 
@@ -149,85 +143,74 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num_envs",
         type=int,
-        default=8,
         help="Número de ambientes paralelos (default: 4)",
     )
 
     parser.add_argument(
         "--device",
         type=str,
-        default="cuda",
         help="Dispositivo para treinamento (default: cuda)",
     )
 
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="06_02_2025",
         help="Nome do checkpoint (default: 06_02_2025)",
     )
 
     parser.add_argument(
-        "--lr", type=float, default=0.0003, help="Taxa de aprendizado (default: 0.0003)"
+        "--lr", type=float, help="Taxa de aprendizado (default: 0.0003)"
     )
 
     parser.add_argument(
         "--learn_step",
         type=int,
-        default=512,
         help="Número de passos de aprendizado (default: 512)",
     )
 
     parser.add_argument(
-        "--gae_lambda", type=float, default=0.95, help="Lambda para GAE (default: 0.95)"
+        "--gae_lambda", type=float, help="Lambda para GAE (default: 0.95)"
     )
 
     parser.add_argument(
         "--action_std_init",
         type=float,
-        default=0.6,
         help="Desvio padrão inicial para as ações (default: 0.6)",
     )
 
     parser.add_argument(
         "--clip_coef",
         type=float,
-        default=0.2,
         help="Coeficiente de clipping (default: 0.2)",
     )
 
     parser.add_argument(
         "--ent_coef",
         type=float,
-        default=0.0,
         help="Coeficiente de entropia (default: 0.0)",
     )
 
     parser.add_argument(
         "--vf_coef",
         type=float,
-        default=0.5,
         help="Coeficiente de valor de função (default: 0.5)",
     )
 
     parser.add_argument(
         "--max_grad_norm",
         type=float,
-        default=0.5,
         help="Norma máxima do gradiente (default: 0.5)",
     )
 
     parser.add_argument(
         "--update_epochs",
         type=int,
-        default=10,
         help="Número de épocas de atualização (default: 10)",
     )
 
     parser.add_argument(
         "--name",
         type=str,
-        default="rnl",
         help="Nome do experimento/modelo (default: rnl)",
     )
 
