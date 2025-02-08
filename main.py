@@ -15,7 +15,7 @@ def main(arg):
         weight=1.0,
         threshold=1.0,  # 4
         collision=0.5,  # 2
-        path_model="/Users/nicolasalan/microvault/rnl/models_PPO/e0ws4jvg/model",
+        path_model="None",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]

@@ -96,59 +96,60 @@ build:
 
 .PHONY: train
 train:
-	@echo "Running training with the following parameters:"
-		@echo "MODE=$(MODE)"
-		@echo "ALGORITHM=$(ALGORITHM)"
-		@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
-		@echo "SEED=$(SEED)"
-		@echo "BUFFER_SIZE=$(BUFFER_SIZE)"
-		@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
-		@echo "ACTIVATION=$(ACTIVATION)"
-		@echo "BATCH_SIZE=$(BATCH_SIZE)"
-		@echo "NUM_ENVS=$(NUM_ENVS)"
-		@echo "DEVICE=$(DEVICE)"
-		@echo "CHECKPOINT=$(CHECKPOINT)"
-		@echo "LR=$(LR)"
-		@echo "LEARN_STEP=$(LEARN_STEP)"
-		@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
-		@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
-		@echo "CLIP_COEF=$(CLIP_COEF)"
-		@echo "ENT_COEF=$(ENT_COEF)"
-		@echo "VF_COEF=$(VF_COEF)"
-		@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
-		@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
-		@echo "NAME=$(NAME)"
-		@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
-		@docker run -d \
-		-e WANDB_API_KEY=$(WANDB_API_KEY) \
-		--gpus all \
-		--network host \
-		--privileged \
-		--memory=16g \
-		-it \
-		-v $(PWD):/workdir \
-		rnl-docker-cuda \
-		--MODE $(MODE) \
-		--algorithm $(ALGORITHM) \
-		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
-		--seed $(SEED) \
-		--buffer_size $(BUFFER_SIZE) \
-		--hidden_size $(HIDDEN_SIZE) \
-		--activation $(ACTIVATION) \
-		--batch_size $(BATCH_SIZE) \
-		--num_envs $(NUM_ENVS) \
-		--device $(DEVICE) \
-		--checkpoint $(CHECKPOINT) \
-		--lr $(LR) \
-		--learn_step $(LEARN_STEP) \
-		--gae_lambda $(GAE_LAMBDA) \
-		--action_std_init $(ACTION_STD_INIT) \
-		--clip_coef $(CLIP_COEF) \
-		--ent_coef $(ENT_COEF) \
-		--vf_coef $(VF_COEF) \
-		--max_grad_norm $(MAX_GRAD_NORM) \
-		--update_epochs $(UPDATE_EPOCHS) \
-		--name $(NAME)
+	@echo
+	@echo "MODE=$(MODE)"
+	@echo "ALGORITHM=$(ALGORITHM)"
+	@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
+	@echo "SEED=$(SEED)"
+	@echo "BUFFER_SIZE=$(BUFFER_SIZE)"
+	@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
+	@echo "ACTIVATION=$(ACTIVATION)"
+	@echo "BATCH_SIZE=$(BATCH_SIZE)"
+	@echo "NUM_ENVS=$(NUM_ENVS)"
+	@echo "DEVICE=$(DEVICE)"
+	@echo "CHECKPOINT=$(CHECKPOINT)"
+	@echo "LR=$(LR)"
+	@echo "LEARN_STEP=$(LEARN_STEP)"
+	@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
+	@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
+	@echo "CLIP_COEF=$(CLIP_COEF)"
+	@echo "ENT_COEF=$(ENT_COEF)"
+	@echo "VF_COEF=$(VF_COEF)"
+	@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
+	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
+	@echo "NAME=$(NAME)"
+	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo
+	@docker run -d \
+	-e WANDB_API_KEY=$(WANDB_API_KEY) \
+	--gpus all \
+	--network host \
+	--privileged \
+	--memory=16g \
+	-it \
+	-v $(PWD):/workdir \
+	rnl-docker-cuda \
+	--MODE $(MODE) \
+	--algorithm $(ALGORITHM) \
+	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+	--seed $(SEED) \
+	--buffer_size $(BUFFER_SIZE) \
+	--hidden_size $(HIDDEN_SIZE) \
+	--activation $(ACTIVATION) \
+	--batch_size $(BATCH_SIZE) \
+	--num_envs $(NUM_ENVS) \
+	--device $(DEVICE) \
+	--checkpoint $(CHECKPOINT) \
+	--lr $(LR) \
+	--learn_step $(LEARN_STEP) \
+	--gae_lambda $(GAE_LAMBDA) \
+	--action_std_init $(ACTION_STD_INIT) \
+	--clip_coef $(CLIP_COEF) \
+	--ent_coef $(ENT_COEF) \
+	--vf_coef $(VF_COEF) \
+	--max_grad_norm $(MAX_GRAD_NORM) \
+	--update_epochs $(UPDATE_EPOCHS) \
+	--name $(NAME)
 
 .PHONY: clean
 clean:
