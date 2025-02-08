@@ -86,10 +86,7 @@ def training(
 
     policy_kwargs_off_policy = dict(
         activation_fn=activation_fn,
-        net_arch=dict(
-            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
-            qf=[network_config.hidden_size[0], network_config.hidden_size[1]],
-        ),
+        net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
     )
 
     def make_env():
