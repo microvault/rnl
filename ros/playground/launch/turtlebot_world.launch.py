@@ -10,6 +10,7 @@ from launch_ros.actions import Node
 def generate_launch_description():
     pkg_dir = get_package_share_directory("playground")
     world_file = os.path.join(pkg_dir, "worlds", "my_world.world")
+    target_file = os.path.join(pkg_dir, "worlds", "target.sdf")
 
     x_pose = "5.0"
     y_pose = "5.0"
@@ -50,20 +51,23 @@ def generate_launch_description():
         output="screen",
     )
 
-    # Nó de teleop (abre num xterm)
-    # teleop = Node(
-    #     package="turtlebot3_teleop",
-    #     executable="teleop_keyboard",
-    #     name="teleop_keyboard",
-    #     prefix="xterm -e",
-    #     output="screen",
-    # )
+    target_positions = [(2.0, 2.0), (7.0, 2.0), (2.0, 7.0), (7.0, 7.0)]
+    target_nodes = [
+        Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            arguments=[
+                '-entity', f'target_{i+1}',
+                '-file', target_file,
+                '-x', str(x),
+                '-y', str(y),
+                '-z', '0.0'
+            ],
+            output='screen'
+        )
+        for i, (x, y) in enumerate(target_positions)
+    ]
 
     return LaunchDescription(
-        [
-            gazebo,
-            turtlebot3_launch,
-            # teleop,
-            main_node,
-        ]
+        [gazebo, turtlebot3_launch, main_node] + target_nodes
     )
