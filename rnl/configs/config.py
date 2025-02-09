@@ -45,6 +45,7 @@ class RobotConfig:
     threshold: float
     collision: float
     path_model: str
+    algorithm: str
 
 
 @dataclass

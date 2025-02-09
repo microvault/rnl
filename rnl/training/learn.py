@@ -308,13 +308,6 @@ def probe_envs(
         else:
             actions = env.action_space.sample()
         obs, rewards, terminated, truncated, infos = env.step(actions)
-        # if 'final_observation' in infos or '_final_observation' in infos or 'final_info' in infos or '_final_info' in infos:
-        #     infos = list(infos)
-        #     for i in range(num_envs):
-        #         for k in ["final_observation", "_final_observation", "final_info", "_final_info"]:
-        #             if k in infos[i]:
-        #                 del infos[i][k]
-
         ep_rewards += np.array(rewards)
         ep_lengths += 1
 

@@ -16,6 +16,8 @@ def main(arg):
         threshold=1.0,  # 4
         collision=0.5,  # 2
         path_model="None",
+        algorithm=args.algorithm
+
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -31,13 +33,13 @@ def main(arg):
         scalar=100,
         folder_map="None",  # ./data/map4
         name_map="None",
-        max_timestep=10000,
+        max_timestep=1000,
         mode="easy-01",  # easy-01, medium
-        reward_function="distance",
+        reward_function=args.type_reward, # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=False, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -82,8 +84,8 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            num_envs=4,
-            max_steps=100,
+            num_envs=10,
+            max_steps=10000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,
@@ -102,116 +104,105 @@ if __name__ == "__main__":
     parser.add_argument(
         "--algorithm",
         type=str,
-        help="Algoritmo de aprendizado a ser usado (default: PPO)",
     )
 
     parser.add_argument(
         "--max_timestep_global",
         type=int,
-        help="Número máximo de timesteps globais (default: 10000)",
     )
 
     parser.add_argument(
         "--seed",
         type=int,
-        help="Semente para inicialização aleatória (default: 42)",
     )
 
     parser.add_argument(
         "--buffer_size",
         type=int,
-        help="Tamanho do buffer (default: 1000000)",
     )
 
     parser.add_argument(
         "--hidden_size",
         type=str,
-        help="Tamanhos das camadas ocultas (default: [40,40])",
     )
 
     parser.add_argument(
         "--activation",
         type=str,
         choices=["LeakyReLU", "ReLU"],
-        help="Função de ativação a ser usada (default: ReLU)",
     )
 
     parser.add_argument(
-        "--batch_size", type=int, default=1024, help="Tamanho do batch (default: 1024)"
+        "--batch_size", type=int, default=1024,
     )
 
     parser.add_argument(
         "--num_envs",
         type=int,
-        help="Número de ambientes paralelos (default: 4)",
     )
 
     parser.add_argument(
         "--device",
         type=str,
-        help="Dispositivo para treinamento (default: cuda)",
     )
 
     parser.add_argument(
         "--checkpoint",
         type=str,
-        help="Nome do checkpoint (default: 06_02_2025)",
     )
 
     parser.add_argument(
-        "--lr", type=float, help="Taxa de aprendizado (default: 0.0003)"
+        "--lr", type=float,
     )
 
     parser.add_argument(
         "--learn_step",
         type=int,
-        help="Número de passos de aprendizado (default: 512)",
     )
 
     parser.add_argument(
-        "--gae_lambda", type=float, help="Lambda para GAE (default: 0.95)"
+        "--gae_lambda", type=float,
     )
 
     parser.add_argument(
         "--action_std_init",
         type=float,
-        help="Desvio padrão inicial para as ações (default: 0.6)",
     )
 
     parser.add_argument(
         "--clip_coef",
         type=float,
-        help="Coeficiente de clipping (default: 0.2)",
     )
 
     parser.add_argument(
         "--ent_coef",
         type=float,
-        help="Coeficiente de entropia (default: 0.0)",
     )
 
     parser.add_argument(
         "--vf_coef",
         type=float,
-        help="Coeficiente de valor de função (default: 0.5)",
     )
 
     parser.add_argument(
         "--max_grad_norm",
         type=float,
-        help="Norma máxima do gradiente (default: 0.5)",
     )
 
     parser.add_argument(
         "--update_epochs",
         type=int,
-        help="Número de épocas de atualização (default: 10)",
     )
 
     parser.add_argument(
         "--name",
         type=str,
-        help="Nome do experimento/modelo (default: rnl)",
+    )
+
+    parser.add_argument(
+        "--type_reward",
+        type=str,
+        choices=["time", "distance", "orientation", "obstacle", "all", "any", "distance_orientation", "distance_time", "orientation_time", "distance_orientation_time", "distance_obstacle", "orientation_obstacle"],
     )
 
     args = parser.parse_args()

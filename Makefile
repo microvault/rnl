@@ -24,10 +24,11 @@ VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl
+TYPE_REWARD ?= "time"
 
 .PHONY: sim
 sim:
-	@poetry run python -m main sim
+	@poetry run python -m main sim --algorithm $(ALGORITHM)
 
 .PHONY: demo
 demo:
@@ -55,7 +56,8 @@ learn:
 	--vf_coef $(VF_COEF) \
 	--max_grad_norm $(MAX_GRAD_NORM) \
 	--update_epochs $(UPDATE_EPOCHS) \
-	--name $(NAME)
+	--name $(NAME) \
+	--type_reward $(TYPE_REWARD)
 
 .PHONY: probe
 probe:

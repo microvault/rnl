@@ -20,6 +20,7 @@ def robot(
     threshold: float,
     collision: float,
     path_model: str,
+    algorithm: str,
 ) -> RobotConfig:
     return RobotConfig(
         base_radius,
@@ -30,6 +31,7 @@ def robot(
         threshold,
         collision,
         path_model,
+        algorithm,
     )
 
 

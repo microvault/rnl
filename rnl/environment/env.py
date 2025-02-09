@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DQN, A2C
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
@@ -53,6 +53,7 @@ class NaviEnv(gym.Env):
             self.new_map_path, self.segments, self.poly = self.generator.world(10)
 
         self.sensor = SensorRobot(sensor_config, self.segments)
+        self.reward_function = env_config.reward_function
 
         # ------------ Normalization ------------ #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
@@ -94,6 +95,7 @@ class NaviEnv(gym.Env):
         self.vl: float = 0.01
         self.vr: float = 0.01
         self.action: int = 1
+        self.initial_distance: float = 0.0
         self.scalar = env_config.scalar
         self.current_fraction: float = 0.0
         self.debug = render_config.debug
@@ -104,7 +106,12 @@ class NaviEnv(gym.Env):
         self.last_states = np.zeros(state_size)
 
         if self.pretrained_model != "None":
-            self.model = PPO.load(robot_config.path_model)
+            if robot_config.algorithm == "PPO":
+                self.model = PPO.load(robot_config.path_model)
+            elif robot_config.algorithm == "DQN":
+                self.model = DQN.load(robot_config.path_model)
+            elif robot_config.algorithm == "A2C":
+                self.model = A2C.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -233,19 +240,22 @@ class NaviEnv(gym.Env):
             obstacle,
             done,
         ) = get_reward(
+            self.reward_function,
             lidar_measurements,
             poly=self.poly,
             position_x=x,
             position_y=y,
-            distance=dist,
+            current_distance=dist,
+            initial_distance=self.initial_distance,
             collision=collision,
             alpha=alpha,
             step=i,
-            time_penalty=1.0,
             threshold=self.threshold,
-            scale_orientation=1.0,
-            scale_distance=1.0,
-            scale_time=0.001,
+            threshold_collision=self.collision,
+            scale_orientation=0.003,
+            scale_distance=0.1,
+            scale_time=0.007,
+            scale_obstacle=0.001,
         )
 
         reward = (
@@ -268,6 +278,7 @@ class NaviEnv(gym.Env):
             min_lidar_norm,
             dist_norm[0],
             self.action,
+            obstacle,
         )
 
         self.space.step(1 / 60)
@@ -354,23 +365,23 @@ class NaviEnv(gym.Env):
             obstacle,
             done,
         ) = get_reward(
+            self.reward_function,
             lidar_measurements,
             poly=self.poly,
             position_x=x,
             position_y=y,
-            distance=dist,
+            initial_distance=self.initial_distance,
+            current_distance=dist,
             collision=collision,
             alpha=alpha,
             step=self.timestep,
-            time_penalty=1.0,
             threshold=self.threshold,
-            scale_orientation=1.0,
-            scale_distance=1.0,
-            scale_time=0.001,
+            threshold_collision=self.collision,
+            scale_orientation=0.003,
+            scale_distance=0.1,
+            scale_time=0.007,
+            scale_obstacle=0.001,
         )
-
-        if collision_score == -10:
-            print(collision_score)
 
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
@@ -401,6 +412,7 @@ class NaviEnv(gym.Env):
             return states, reward, done, truncated, info
 
         else:
+            print("Collision")
             return states, reward, done, truncated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
@@ -479,6 +491,8 @@ class NaviEnv(gym.Env):
                 self.target_x,
                 self.target_y,
             )
+
+            self.initial_distance = dist
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao calcular distância/ângulo: {e}")
             raise
@@ -534,6 +548,7 @@ class NaviEnv(gym.Env):
                     min_lidar_norm,
                     dist_norm,
                     self.action,
+                    0.0,
                 )
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao plotar no final do reset: {e}")
@@ -610,7 +625,7 @@ class NaviEnv(gym.Env):
 
         if self.debug:
             self.label = self.ax.text(
-                0.5, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0)
+                0.5, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0, 0.0)
             )
 
             self.label.set_fontsize(14)
@@ -627,6 +642,7 @@ class NaviEnv(gym.Env):
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
+        obstacle: float
     ) -> str:
         """
         Generates a label for the environment.
@@ -651,8 +667,9 @@ class NaviEnv(gym.Env):
         line5 = "Angle:".ljust(14) + f"{state_angle:.2f}\n"
         line6 = "Lidar:".ljust(14) + f"{state_min_max_lidar:.2f}\n"
         line7 = "Action:".ljust(14) + f"{action}\n"
+        line8 = "Obstacle:".ljust(14) + f"{obstacle}\n"
 
-        return line1 + line2 + line3 + line4 + line5 + line6 + line7
+        return line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8
 
     def _plot_anim(
         self,
@@ -667,6 +684,7 @@ class NaviEnv(gym.Env):
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
+        obstacle,
     ) -> None:
 
         if self.debug:
@@ -678,6 +696,7 @@ class NaviEnv(gym.Env):
                     state_min_max_lidar,
                     state_distance,
                     action,
+                    obstacle,
                 )
             )
 
