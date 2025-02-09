@@ -121,6 +121,7 @@ train:
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo "TYPE_REWARD=$(TYPE_REWARD)"
 	@echo
 	@docker run -d \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
@@ -151,7 +152,8 @@ train:
 	--vf_coef $(VF_COEF) \
 	--max_grad_norm $(MAX_GRAD_NORM) \
 	--update_epochs $(UPDATE_EPOCHS) \
-	--name $(NAME)
+	--name $(NAME) \
+	--type_reward $(TYPE_REWARD)
 
 .PHONY: clean
 clean:
