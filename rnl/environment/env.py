@@ -412,7 +412,6 @@ class NaviEnv(gym.Env):
             return states, reward, done, truncated, info
 
         else:
-            print("Collision")
             return states, reward, done, truncated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
