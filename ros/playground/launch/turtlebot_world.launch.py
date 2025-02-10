@@ -23,10 +23,7 @@ def generate_launch_description():
     )
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gazebo_launch_file),
-        launch_arguments={
-            "world": world_file,
-            "playback_speed": "4.0"
-        }.items(),
+        launch_arguments={"world": world_file, "playback_speed": "4.0"}.items(),
     )
     # Carrega o launch do Turtlebot3
     turtlebot3_launch_file = os.path.join(
@@ -54,20 +51,23 @@ def generate_launch_description():
     target_positions = [(2.0, 2.0), (7.0, 2.0), (2.0, 7.0), (7.0, 7.0)]
     target_nodes = [
         Node(
-            package='gazebo_ros',
-            executable='spawn_entity.py',
+            package="gazebo_ros",
+            executable="spawn_entity.py",
             arguments=[
-                '-entity', f'target_{i+1}',
-                '-file', target_file,
-                '-x', str(x),
-                '-y', str(y),
-                '-z', '0.0'
+                "-entity",
+                f"target_{i+1}",
+                "-file",
+                target_file,
+                "-x",
+                str(x),
+                "-y",
+                str(y),
+                "-z",
+                "0.0",
             ],
-            output='screen'
+            output="screen",
         )
         for i, (x, y) in enumerate(target_positions)
     ]
 
-    return LaunchDescription(
-        [gazebo, turtlebot3_launch, main_node] + target_nodes
-    )
+    return LaunchDescription([gazebo, turtlebot3_launch, main_node] + target_nodes)

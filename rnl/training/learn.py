@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -9,7 +10,6 @@ from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
-import wandb
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -65,7 +65,6 @@ def training(
     env = NaviEnv(
         robot_config, sensor_config, env_config, render_config, use_render=False
     )
-
 
     print("\nCheck environment ...")
     check_env(env)
@@ -388,7 +387,12 @@ def probe_envs(
         for idx, (title, data, color) in enumerate(step_metrics, start=1):
             ax = plt.subplot(rows, cols, idx)
             ax.plot(
-                steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+                steps_range,
+                data,
+                label=title,
+                color=color,
+                linestyle="-",
+                linewidth=1.5,
             )
             ax.set_ylabel(title, fontsize=8)
             ax.legend(fontsize=6)
