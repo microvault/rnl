@@ -10,6 +10,7 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     else:
         return dist
 
+
 def angle_to_goal(
     x: float, y: float, theta: float, goal_x: float, goal_y: float
 ) -> float:

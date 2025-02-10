@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import PPO, DQN, A2C
+from stable_baselines3 import A2C, DQN, PPO
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
@@ -641,7 +641,7 @@ class NaviEnv(gym.Env):
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
-        obstacle: float
+        obstacle: float,
     ) -> str:
         """
         Generates a label for the environment.

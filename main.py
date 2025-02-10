@@ -16,8 +16,7 @@ def main(arg):
         threshold=1.0,  # 4
         collision=0.5,  # 2
         path_model="None",
-        algorithm=args.algorithm
-
+        algorithm=args.algorithm,
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -35,7 +34,7 @@ def main(arg):
         name_map="None",
         max_timestep=1000,
         mode="easy-01",  # easy-01, medium
-        reward_function=args.type_reward, # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
+        reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
@@ -133,7 +132,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--batch_size", type=int, default=1024,
+        "--batch_size",
+        type=int,
+        default=1024,
     )
 
     parser.add_argument(
@@ -152,7 +153,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--lr", type=float,
+        "--lr",
+        type=float,
     )
 
     parser.add_argument(
@@ -161,7 +163,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--gae_lambda", type=float,
+        "--gae_lambda",
+        type=float,
     )
 
     parser.add_argument(
@@ -202,7 +205,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--type_reward",
         type=str,
-        choices=["time", "distance", "orientation", "obstacle", "all", "any", "distance_orientation", "distance_time", "orientation_time", "distance_orientation_time", "distance_obstacle", "orientation_obstacle"],
+        choices=[
+            "time",
+            "distance",
+            "orientation",
+            "obstacle",
+            "all",
+            "any",
+            "distance_orientation",
+            "distance_time",
+            "orientation_time",
+            "distance_orientation_time",
+            "distance_obstacle",
+            "orientation_obstacle",
+        ],
     )
 
     args = parser.parse_args()
