@@ -258,7 +258,7 @@ class NaviEnv(gym.Env):
             threshold_collision=self.collision,
             scale_orientation=0.003,
             scale_distance=0.1,
-            scale_time=0.007,
+            scale_time=0.001,
             scale_obstacle=0.001,
         )
 
@@ -383,7 +383,7 @@ class NaviEnv(gym.Env):
             threshold_collision=self.collision,
             scale_orientation=0.003,
             scale_distance=0.1,
-            scale_time=0.007,
+            scale_time=0.001,
             scale_obstacle=0.001,
         )
 
