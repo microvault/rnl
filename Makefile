@@ -24,7 +24,7 @@ VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
-TYPE_REWARD ?= distance_time
+TYPE_REWARD ?= time
 
 .PHONY: sim
 sim:

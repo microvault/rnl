@@ -158,12 +158,12 @@ class NaviEnv(gym.Env):
         elif event.key == "right":  # direita
             print("right")
             self.action = 1
-            self.vl = 0.16 * self.scalar
+            self.vl = 0.4 * self.scalar
             self.vr = -0.8 * self.scalar
         elif event.key == "left":  # esquerda
             print("left")
             self.action = 2
-            self.vl = 0.16 * self.scalar
+            self.vl = 0.4 * self.scalar
             self.vr = 0.8 * self.scalar
         # Control and test
         elif event.key == " ":
@@ -188,10 +188,10 @@ class NaviEnv(gym.Env):
                 self.vl = 0.10 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.16 * self.scalar
+                self.vl = 0.4 * self.scalar
                 self.vr = -0.8 * self.scalar
             elif self.action == 2:
-                self.vl = 0.16 * self.scalar
+                self.vl = 0.4 * self.scalar
                 self.vr = 0.8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
@@ -311,10 +311,10 @@ class NaviEnv(gym.Env):
             vl = 0.10 * self.scalar
             vr = 0.0
         elif action == 1:
-            vl = 0.16 * self.scalar
+            vl = 0.4 * self.scalar
             vr = -0.08 * self.scalar
         elif action == 2:
-            vl = 0.16 * self.scalar
+            vl = 0.4 * self.scalar
             vr = 0.08 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
