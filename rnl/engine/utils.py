@@ -5,8 +5,8 @@ from numba import njit
 @njit
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
-    if dist >= 2.7:
-        return 2.7
+    if dist >= 2.35:
+        return 2.35
     else:
         return dist
 

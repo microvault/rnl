@@ -63,7 +63,7 @@ class Generator:
         """
         if self.mode == "easy-01":
             # Tamanho do grid
-            width, height = grid_lenght, grid_lenght
+            width, height = grid_lenght + 1, grid_lenght + 1
 
             exterior = []
             # 1 (topo)

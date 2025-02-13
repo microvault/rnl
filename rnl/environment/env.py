@@ -50,7 +50,7 @@ class NaviEnv(gym.Env):
 
         elif self.mode == "easy-01":
             self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(4)
+            self.new_map_path, self.segments, self.poly = self.generator.world(2)
 
         self.sensor = SensorRobot(sensor_config, self.segments)
         self.reward_function = env_config.reward_function
@@ -70,7 +70,7 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 2.7 # 9 !!!!!!
+        self.max_dist = 2.35 # 9 !!!!!!
         self.min_dist = 0.0 # 1,0 !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -159,12 +159,12 @@ class NaviEnv(gym.Env):
             print("right")
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.16 * self.scalar
+            self.vr = -0.9 * self.scalar
         elif event.key == "left":  # esquerda
             print("left")
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.16 * self.scalar
+            self.vr = 0.9 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -313,7 +313,7 @@ class NaviEnv(gym.Env):
             vr = 0.0
         elif action == 1:
             vl = 0.08 * self.scalar
-            vr = -0.16 * self.scalar
+            vr = -0. * self.scalar
         elif action == 2:
             vl = 0.08 * self.scalar
             vr = 0.16 * self.scalar
@@ -429,11 +429,11 @@ class NaviEnv(gym.Env):
 
         try:
             if self.mode == "easy-01":
-                self.new_map_path, self.segments, self.poly = self.generator.world(4)
-                targets = np.array([[0.7, 0.7], [0.7, 2.3], [2.3, 2.3], [2.3, 0.7]])
+                self.new_map_path, self.segments, self.poly = self.generator.world(2)
+                targets = np.array([[0.35, 0.35], [0.35, 1.80], [1.80, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
-                x, y = 1.5, 1.5
+                x, y = 1.07, 1.07
 
             elif self.mode == "medium":
                 self.new_map_path, self.segments, self.poly = self.create_world.world()
@@ -588,8 +588,8 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if self.mode == "easy-01":
-            ax.set_xlim(0, 4)
-            ax.set_ylim(0, 4)
+            ax.set_xlim(0, 2)
+            ax.set_ylim(0, 2)
 
         elif self.mode == "medium":
             minx, miny, maxx, maxy = self.poly.bounds
@@ -726,8 +726,8 @@ class NaviEnv(gym.Env):
             self.heading_line.remove()
 
         if self.mode == "easy-01":
-            x2 = x + 0.2 * np.cos(self.body.angle)
-            y2 = y + 0.2 * np.sin(self.body.angle)
+            x2 = x + 0.1 * np.cos(self.body.angle)
+            y2 = y + 0.1 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
