@@ -70,8 +70,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 9
-        self.min_dist = 0.0 # !!!!!!!!!!
+        self.max_dist = 3.7 # 9 !!!!!!
+        self.min_dist = 0.0 # 1,0 !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         max_alpha, min_alpha = 3.15, 0.0
@@ -194,6 +194,7 @@ class NaviEnv(gym.Env):
                 self.vl = 0.4 * self.scalar
                 self.vr = 0.8 * self.scalar
 
+        print("States: ", self.last_states)
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
         x, y, theta = (
