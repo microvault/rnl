@@ -31,6 +31,7 @@ stable-baselines3 = "^2.4.1"
 wandb = "^0.19.4"
 gym = "^0.26.2"
 tensorboard = "^2.18.0"
+taichi = "^1.7.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0.0"

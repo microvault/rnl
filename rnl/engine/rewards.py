@@ -14,6 +14,7 @@ def normalize_module(value, min_val, max_val):
     else:
         return value
 
+
 def collision_and_target_reward(
     distance: float,
     threshold: float,
@@ -58,10 +59,13 @@ def time_and_collision_reward(
 
 
 @njit
-def global_progress_reward(distance_initial: float, current_distance: float, scale_distance: float) -> float:
+def global_progress_reward(
+    distance_initial: float, current_distance: float, scale_distance: float
+) -> float:
     diff = distance_initial - current_distance
     reward = (diff / 8) * scale_distance
     return reward
+
 
 @njit
 def r3(x: float, threshold_collision: float, scale: float) -> float:
@@ -90,7 +94,7 @@ def get_reward(
     scale_orientation: float,
     scale_distance: float,
     scale_time: float,
-    scale_obstacle: float
+    scale_obstacle: float,
 ) -> Tuple[float, float, float, float, float, bool]:
     done = False
     rew_coll_target, done_coll_target = collision_and_target_reward(
@@ -103,9 +107,13 @@ def get_reward(
 
     obstacle_reward = r3(min(measurement), threshold_collision, scale_obstacle)
 
-    progress_reward = global_progress_reward(initial_distance, current_distance, scale_distance)
+    progress_reward = global_progress_reward(
+        initial_distance, current_distance, scale_distance
+    )
 
-    norm_progress_reward = normalize_module(progress_reward, -scale_distance, scale_distance)
+    norm_progress_reward = normalize_module(
+        progress_reward, -scale_distance, scale_distance
+    )
 
     if done_coll_target:
         return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
@@ -123,13 +131,27 @@ def get_reward(
         return rew_coll_target, 0.0, 0.0, 0.0, obstacle_reward, done
 
     elif type_reward == "all":
-        return rew_coll_target, orientation_rewards, norm_progress_reward, time_reward, obstacle_reward, done
+        return (
+            rew_coll_target,
+            orientation_rewards,
+            norm_progress_reward,
+            time_reward,
+            obstacle_reward,
+            done,
+        )
 
     elif type_reward == "any":
         return rew_coll_target, 0.0, 0.0, 0.0, 0.0, done
 
     elif type_reward == "distance_orientation":
-        return rew_coll_target, orientation_rewards, norm_progress_reward, 0.0, 0.0, done
+        return (
+            rew_coll_target,
+            orientation_rewards,
+            norm_progress_reward,
+            0.0,
+            0.0,
+            done,
+        )
 
     elif type_reward == "distance_time":
         return rew_coll_target, 0.0, norm_progress_reward, time_reward, 0.0, done
@@ -138,7 +160,14 @@ def get_reward(
         return rew_coll_target, orientation_rewards, 0.0, time_reward, 0.0, done
 
     elif type_reward == "distance_orientation_time":
-        return rew_coll_target, orientation_rewards, norm_progress_reward, time_reward, 0.0, done
+        return (
+            rew_coll_target,
+            orientation_rewards,
+            norm_progress_reward,
+            time_reward,
+            0.0,
+            done,
+        )
 
     elif type_reward == "distance_obstacle":
         return rew_coll_target, 0.0, norm_progress_reward, 0.0, obstacle_reward, done

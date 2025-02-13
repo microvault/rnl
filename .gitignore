@@ -771,6 +771,7 @@ docs/.next/
 data/json
 checkpoints/
 NOTES.txt
+TODO.txt
 videos/
 data/debugging.csv
 runs/
@@ -819,3 +820,4 @@ AMENT_IGNORE
 
 # End of https://www.toptal.com/developers/gitignore/api/ros2
 /rnl/environment/env_taichi.py
+./TODO.txt

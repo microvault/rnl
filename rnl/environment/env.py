@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import PPO, DQN, A2C
+from stable_baselines3 import A2C, DQN, PPO
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
@@ -50,7 +50,7 @@ class NaviEnv(gym.Env):
 
         elif self.mode == "easy-01":
             self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(10)
+            self.new_map_path, self.segments, self.poly = self.generator.world(4)
 
         self.sensor = SensorRobot(sensor_config, self.segments)
         self.reward_function = env_config.reward_function
@@ -151,17 +151,20 @@ class NaviEnv(gym.Env):
 
     def on_key_press(self, event):
         if event.key == "up":
+            print("up")
             self.action = 0
             self.vl = 0.10 * self.scalar
             self.vr = 0.0
         elif event.key == "right":  # direita
+            print("right")
             self.action = 1
-            self.vl = 0.08 * self.scalar
-            self.vr = -0.08 * self.scalar
+            self.vl = 0.16 * self.scalar
+            self.vr = -0.8 * self.scalar
         elif event.key == "left":  # esquerda
+            print("left")
             self.action = 2
-            self.vl = 0.08 * self.scalar
-            self.vr = 0.08 * self.scalar
+            self.vl = 0.16 * self.scalar
+            self.vr = 0.8 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -185,11 +188,11 @@ class NaviEnv(gym.Env):
                 self.vl = 0.10 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.08 * self.scalar
-                self.vr = -0.08 * self.scalar
+                self.vl = 0.16 * self.scalar
+                self.vr = -0.8 * self.scalar
             elif self.action == 2:
-                self.vl = 0.08 * self.scalar
-                self.vr = 0.08 * self.scalar
+                self.vl = 0.16 * self.scalar
+                self.vr = 0.8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -308,10 +311,10 @@ class NaviEnv(gym.Env):
             vl = 0.10 * self.scalar
             vr = 0.0
         elif action == 1:
-            vl = 0.08 * self.scalar
+            vl = 0.16 * self.scalar
             vr = -0.08 * self.scalar
         elif action == 2:
-            vl = 0.08 * self.scalar
+            vl = 0.16 * self.scalar
             vr = 0.08 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
@@ -425,11 +428,11 @@ class NaviEnv(gym.Env):
 
         try:
             if self.mode == "easy-01":
-                self.new_map_path, self.segments, self.poly = self.generator.world(10)
-                targets = np.array([[2, 2], [7, 2], [2, 7], [7, 7]])
+                self.new_map_path, self.segments, self.poly = self.generator.world(4)
+                targets = np.array([[0.7, 0.7], [0.7, 2.3], [2.3, 2.3], [2.3, 0.7]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
-                x, y = 4.5, 4.5
+                x, y = 1.5, 1.5
 
             elif self.mode == "medium":
                 self.new_map_path, self.segments, self.poly = self.create_world.world()
@@ -584,8 +587,8 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if self.mode == "easy-01":
-            ax.set_xlim(0, 10)
-            ax.set_ylim(0, 10)
+            ax.set_xlim(0, 4)
+            ax.set_ylim(0, 4)
 
         elif self.mode == "medium":
             minx, miny, maxx, maxy = self.poly.bounds
@@ -641,7 +644,7 @@ class NaviEnv(gym.Env):
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
-        obstacle: float
+        obstacle: float,
     ) -> str:
         """
         Generates a label for the environment.
@@ -722,8 +725,8 @@ class NaviEnv(gym.Env):
             self.heading_line.remove()
 
         if self.mode == "easy-01":
-            x2 = x + 0.5 * np.cos(self.body.angle)
-            y2 = y + 0.5 * np.sin(self.body.angle)
+            x2 = x + 0.2 * np.cos(self.body.angle)
+            y2 = y + 0.2 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]

@@ -13,29 +13,28 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=1.0,  # 4
-        collision=0.5,  # 2
+        threshold=0.4,  # 4
+        collision=0.2,  # 2
         path_model="None",
-        algorithm=args.algorithm
-
+        algorithm="PPO",  # args.algorithm
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=5,
+        num_rays=20, # 5
         min_range=0.5,
         max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=100,
+        scalar=5,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=1000,
         mode="easy-01",  # easy-01, medium
-        reward_function=args.type_reward, # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
+        reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
@@ -133,7 +132,9 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--batch_size", type=int, default=1024,
+        "--batch_size",
+        type=int,
+        default=1024,
     )
 
     parser.add_argument(
@@ -152,7 +153,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--lr", type=float,
+        "--lr",
+        type=float,
     )
 
     parser.add_argument(
@@ -161,7 +163,8 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--gae_lambda", type=float,
+        "--gae_lambda",
+        type=float,
     )
 
     parser.add_argument(
@@ -202,7 +205,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--type_reward",
         type=str,
-        choices=["time", "distance", "orientation", "obstacle", "all", "any", "distance_orientation", "distance_time", "orientation_time", "distance_orientation_time", "distance_obstacle", "orientation_obstacle"],
+        choices=[
+            "time",
+            "distance",
+            "orientation",
+            "obstacle",
+            "all",
+            "any",
+            "distance_orientation",
+            "distance_time",
+            "orientation_time",
+            "distance_orientation_time",
+            "distance_obstacle",
+            "orientation_obstacle",
+        ],
     )
 
     args = parser.parse_args()

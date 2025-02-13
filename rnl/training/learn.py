@@ -66,7 +66,6 @@ def training(
         robot_config, sensor_config, env_config, render_config, use_render=False
     )
 
-
     print("\nCheck environment ...")
     check_env(env)
 
@@ -388,7 +387,12 @@ def probe_envs(
         for idx, (title, data, color) in enumerate(step_metrics, start=1):
             ax = plt.subplot(rows, cols, idx)
             ax.plot(
-                steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+                steps_range,
+                data,
+                label=title,
+                color=color,
+                linestyle="-",
+                linewidth=1.5,
             )
             ax.set_ylabel(title, fontsize=8)
             ax.legend(fontsize=6)

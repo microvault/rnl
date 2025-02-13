@@ -12,6 +12,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import LaserScan
 from stable_baselines3 import PPO
 
+
 def clamp(value, vmin, vmax):
     return max(vmin, min(value, vmax))
 

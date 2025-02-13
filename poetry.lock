@@ -547,6 +547,21 @@ files = [
 ]
 
 [[package]]
+name = "dill"
+version = "0.3.9"
+description = "serialize all of Python"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "dill-0.3.9-py3-none-any.whl", hash = "sha256:468dff3b89520b474c0397703366b7b95eebe6303f108adf9b19da1f702be87a"},
+    {file = "dill-0.3.9.tar.gz", hash = "sha256:81aa267dddf68cbfe8029c42ca9ec6a4ab3b22371d1c450abc54422577b4512c"},
+]
+
+[package.extras]
+graph = ["objgraph (>=1.7.2)"]
+profile = ["gprof2dot (>=2022.7.29)"]
+
+[[package]]
 name = "distlib"
 version = "0.3.9"
 description = "Distribution utilities"
@@ -1159,6 +1174,30 @@ docs = ["mdx-gh-links (>=0.2)", "mkdocs (>=1.5)", "mkdocs-gen-files", "mkdocs-li
 testing = ["coverage", "pyyaml"]
 
 [[package]]
+name = "markdown-it-py"
+version = "3.0.0"
+description = "Python port of markdown-it. Markdown parsing, done right!"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "markdown-it-py-3.0.0.tar.gz", hash = "sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb"},
+    {file = "markdown_it_py-3.0.0-py3-none-any.whl", hash = "sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1"},
+]
+
+[package.dependencies]
+mdurl = ">=0.1,<1.0"
+
+[package.extras]
+benchmarking = ["psutil", "pytest", "pytest-benchmark"]
+code-style = ["pre-commit (>=3.0,<4.0)"]
+compare = ["commonmark (>=0.9,<1.0)", "markdown (>=3.4,<4.0)", "mistletoe (>=1.0,<2.0)", "mistune (>=2.0,<3.0)", "panflute (>=2.3,<3.0)"]
+linkify = ["linkify-it-py (>=1,<3)"]
+plugins = ["mdit-py-plugins"]
+profiling = ["gprof2dot"]
+rtd = ["jupyter_sphinx", "mdit-py-plugins", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
+testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
+
+[[package]]
 name = "markupsafe"
 version = "3.0.2"
 description = "Safely add untrusted strings to HTML/XML markup."
@@ -1284,6 +1323,17 @@ python-dateutil = ">=2.7"
 
 [package.extras]
 dev = ["meson-python (>=0.13.1,<0.17.0)", "pybind11 (>=2.13.2,!=2.13.3)", "setuptools (>=64)", "setuptools_scm (>=7)"]
+
+[[package]]
+name = "mdurl"
+version = "0.1.2"
+description = "Markdown URL utilities"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
+    {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
+]
 
 [[package]]
 name = "mpmath"
@@ -2090,6 +2140,20 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
+name = "pygments"
+version = "2.19.1"
+description = "Pygments is a syntax highlighting package written in Python."
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c"},
+    {file = "pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f"},
+]
+
+[package.extras]
+windows-terminal = ["colorama (>=0.4.6)"]
+
+[[package]]
 name = "pymunk"
 version = "6.11.0"
 description = "Pymunk is a easy-to-use pythonic 2D physics library"
@@ -2341,6 +2405,25 @@ urllib3 = ">=1.21.1,<3"
 [package.extras]
 socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
+
+[[package]]
+name = "rich"
+version = "13.9.4"
+description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
+optional = false
+python-versions = ">=3.8.0"
+files = [
+    {file = "rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90"},
+    {file = "rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098"},
+]
+
+[package.dependencies]
+markdown-it-py = ">=2.2.0"
+pygments = ">=2.13.0,<3.0.0"
+typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.11\""}
+
+[package.extras]
+jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "rtree"
@@ -2841,6 +2924,38 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
+name = "taichi"
+version = "1.7.3"
+description = "The Taichi Programming Language"
+optional = false
+python-versions = "<4.0,>=3.6"
+files = [
+    {file = "taichi-1.7.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ff35bc6e450a57df80d14e9614765ff20d2b40a3f3996c0f139509f5992f51be"},
+    {file = "taichi-1.7.3-cp310-cp310-manylinux_2_27_x86_64.whl", hash = "sha256:9c005305f0bb40bb37fc6d1a2ae3bd998218acbf595fe135cf6c81431039a864"},
+    {file = "taichi-1.7.3-cp310-cp310-win_amd64.whl", hash = "sha256:279cd858ea4bc3890b8b8dc636407993a0d20cfac516ef7c142c0061f135aebc"},
+    {file = "taichi-1.7.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9d855c4c4dfc51183fac1e6335076526eceb354eb6a5e0122c89aa59d555586f"},
+    {file = "taichi-1.7.3-cp311-cp311-manylinux_2_27_x86_64.whl", hash = "sha256:017fe653bdacda6d8bc98e520c7ba812beac9c0687b3426e043d44e7a928a941"},
+    {file = "taichi-1.7.3-cp311-cp311-win_amd64.whl", hash = "sha256:589539b43fc45ff473c5a355d0da59f66fc87996b487d2e0de81cddab232b065"},
+    {file = "taichi-1.7.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bf069db8ad159e8f0775b9478399ea8a120a9b4cff3f8b385a6e68fd84295917"},
+    {file = "taichi-1.7.3-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:c5cdbd39b4b54a667a1c7aeba5214542e6ad87ad4c5c87c3efaf78876950903e"},
+    {file = "taichi-1.7.3-cp312-cp312-win_amd64.whl", hash = "sha256:b7d86a147ad7347c7ab9badd5f2b0c9abec1649fea819cc87870ca5d68ce9930"},
+    {file = "taichi-1.7.3-cp37-cp37m-manylinux_2_27_x86_64.whl", hash = "sha256:e165684100e7dff86f30432200da2bbd6a3972638002d8bb065c3ef8bebfcd1b"},
+    {file = "taichi-1.7.3-cp37-cp37m-win_amd64.whl", hash = "sha256:95cbf3db05f133211023c7b7d90ea3f2b1bd0d9df0a3c049c2db02f78e16b299"},
+    {file = "taichi-1.7.3-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:250ac82bcb540ac06629892ad58f9c1aa6d93f64f1a67ca9c7e97b135ea25376"},
+    {file = "taichi-1.7.3-cp38-cp38-manylinux_2_27_x86_64.whl", hash = "sha256:f1830de4dbb1a71b31b0768dd75887de6cf1c88ee83119f5086511fddcceaff4"},
+    {file = "taichi-1.7.3-cp38-cp38-win_amd64.whl", hash = "sha256:ce49013868c48746e4f37706e894a0169a16c811940912cce638e27324443b92"},
+    {file = "taichi-1.7.3-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:dd8646677d06723180c13f36d4149f45e6ef550726e74e7f916b6dbea9926573"},
+    {file = "taichi-1.7.3-cp39-cp39-manylinux_2_27_x86_64.whl", hash = "sha256:e35eaf5c1ea10e248c6d7511e9e69ae779b90fe8624108df2335995d184281ae"},
+    {file = "taichi-1.7.3-cp39-cp39-win_amd64.whl", hash = "sha256:871368f44504d2b349c7be845bdebe54cfe2f01f907479aee4e1d07add310072"},
+]
+
+[package.dependencies]
+colorama = "*"
+dill = "*"
+numpy = "*"
+rich = "*"
+
+[[package]]
 name = "tensorboard"
 version = "2.18.0"
 description = "TensorBoard lets you watch Tensors Flow"
@@ -3207,4 +3322,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "5566b5b2631ac8ba0498b6d20d5808277f8043c01a0c04cf83f6cca2b1e51dfa"
+content-hash = "523ea3f7c43ca1e01e354859852fc54f514dbb4eec2faa55c70849792569cda2"
