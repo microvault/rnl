@@ -29,7 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=5,
+        scalar=100,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=1000,
