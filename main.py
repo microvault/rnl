@@ -29,7 +29,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=100,
+        scalar=10,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=1000,
@@ -38,7 +38,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=False, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -84,7 +84,7 @@ def main(arg):
     elif args.mode == "run":
         model = vault.Probe(
             num_envs=10,
-            max_steps=10000,
+            max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,

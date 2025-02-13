@@ -5,7 +5,7 @@ VERSION = 1.1
 
 MODE ?= learn
 ALGORITHM ?= PPO
-MAX_TIMESTEP_GLOBAL ?= 3_000_000
+MAX_TIMESTEP_GLOBAL ?= 1_000_000
 SEED ?= 1
 BUFFER_SIZE ?= 100000
 HIDDEN_SIZE ?= 40,40
@@ -24,44 +24,45 @@ VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
-TYPE_REWARD ?= "time"
+TYPE_REWARD ?= distance_time
 
 .PHONY: sim
 sim:
 	@poetry run python -m main sim --algorithm $(ALGORITHM)
 
-.PHONY: demo
-demo:
-	@poetry run python rnl/training/demo_sweep.py
 
 .PHONY: learn
 learn:
 	@poetry run python -m main $(MODE) \
-	--algorithm $(ALGORITHM) \
-	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
-	--seed $(SEED) \
-	--buffer_size $(BUFFER_SIZE) \
-	--hidden_size $(HIDDEN_SIZE) \
-	--activation $(ACTIVATION) \
-	--batch_size $(BATCH_SIZE) \
-	--num_envs $(NUM_ENVS) \
-	--device $(DEVICE) \
-	--checkpoint $(CHECKPOINT) \
-	--lr $(LR) \
-	--learn_step $(LEARN_STEP) \
-	--gae_lambda $(GAE_LAMBDA) \
-	--action_std_init $(ACTION_STD_INIT) \
-	--clip_coef $(CLIP_COEF) \
-	--ent_coef $(ENT_COEF) \
-	--vf_coef $(VF_COEF) \
-	--max_grad_norm $(MAX_GRAD_NORM) \
-	--update_epochs $(UPDATE_EPOCHS) \
-	--name $(NAME) \
-	--type_reward $(TYPE_REWARD)
+    	--algorithm $(ALGORITHM) \
+    	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+    	--seed $(SEED) \
+    	--buffer_size $(BUFFER_SIZE) \
+    	--hidden_size $(HIDDEN_SIZE) \
+    	--activation $(ACTIVATION) \
+    	--batch_size $(BATCH_SIZE) \
+    	--num_envs $(NUM_ENVS) \
+    	--device $(DEVICE) \
+    	--checkpoint $(CHECKPOINT) \
+    	--lr $(LR) \
+    	--learn_step $(LEARN_STEP) \
+    	--gae_lambda $(GAE_LAMBDA) \
+    	--action_std_init $(ACTION_STD_INIT) \
+    	--clip_coef $(CLIP_COEF) \
+    	--ent_coef $(ENT_COEF) \
+    	--vf_coef $(VF_COEF) \
+    	--max_grad_norm $(MAX_GRAD_NORM) \
+    	--update_epochs $(UPDATE_EPOCHS) \
+    	--name $(NAME) \
+    	--type_reward $(TYPE_REWARD)
 
 .PHONY: probe
 probe:
-	@poetry run python -m main run
+	@poetry run python -m main run \
+    	--algorithm $(ALGORITHM) \
+    	--num_envs $(NUM_ENVS) \
+    	--device $(DEVICE) \
+    	--type_reward $(TYPE_REWARD)
 
 .PHONY: test_without_coverage
 test_without_coverage:
