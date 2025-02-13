@@ -11,6 +11,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import LaserScan
 from stable_baselines3 import PPO
+from geometry_msgs.msg import Pose
 
 
 def clamp(value, vmin, vmax):
@@ -60,6 +61,11 @@ class InferenceModel(Node):
         self.action = 0
         self.last_states = np.zeros(10)
 
+        self.position = Pose()
+        self.position.position.x = 1.07
+        self.position.position.y = 1.07
+        self.initialized = False
+
         self.goal_positions = [(2, 2), (7, 2), (2, 7), (7, 7)]
         self.goal_order = random.sample(
             range(len(self.goal_positions)), len(self.goal_positions)
@@ -104,7 +110,12 @@ class InferenceModel(Node):
             self.lidar_ranges[i] = val
 
     def odom_callback(self, msg):
-        self.position = msg.pose.pose
+        if not self.initialized:
+            # Mantém x e y iniciais, só atualiza a orientação
+            self.position.orientation = msg.pose.pose.orientation
+            self.initialized = True
+        else:
+            self.position = msg.pose.pose
 
     def move_robot(self, action):
         if action == 0:
