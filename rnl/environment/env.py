@@ -71,7 +71,7 @@ class NaviEnv(gym.Env):
         )
         self.use_render = use_render
         self.max_dist = 9
-        self.min_dist = 1.0
+        self.min_dist = 0.0 # !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         max_alpha, min_alpha = 3.15, 0.0

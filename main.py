@@ -22,8 +22,8 @@ def main(arg):
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=20, # 5
-        min_range=0.5,
+        num_rays=5, # 5
+        min_range=0.0,
         max_range=3.5,  # 3.5
     )
 
