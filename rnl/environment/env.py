@@ -189,10 +189,10 @@ class NaviEnv(gym.Env):
                 self.vr = 0.0
             elif self.action == 1:
                 self.vl = 0.08 * self.scalar
-                self.vr = -0.16 * self.scalar
+                self.vr = -0.9 * self.scalar
             elif self.action == 2:
                 self.vl = 0.08 * self.scalar
-                self.vr = 0.16 * self.scalar
+                self.vr = 0.9 * self.scalar
 
         print("States: ", self.last_states)
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
@@ -313,10 +313,10 @@ class NaviEnv(gym.Env):
             vr = 0.0
         elif action == 1:
             vl = 0.08 * self.scalar
-            vr = -0. * self.scalar
+            vr = -0.9 * self.scalar
         elif action == 2:
             vl = 0.08 * self.scalar
-            vr = 0.16 * self.scalar
+            vr = 0.9 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
