@@ -1,29 +1,32 @@
 - [ ] Passar velocidade minima e maxima para os parametros do ambiente.
-- [ ] Criar versão somente de video para google colab.
 - [ ] Integracao com HuggingFace, CodeSandbox, Google Colab, Replit, deepNote, PaperSpace, Github Codespace.
 - [ ] README em chines, ingles, espanhol, portugues.
-- [ ] Adicionar mapa de forma dinamica
-- [ ] Add random mode (hard or normal)
 - [ ] Integracao com ROS e Gazebo
 - [ ] Randomizar o mapa tambem com aqueles dois parametros do map2d
 - [ ] O LLM precisa modificar parametros especificos.
 - [ ] Utilizar mascara para multiplas entradas.
-- [ ] O sensor lidar nao esta seguinto o angulo de orientacao do robo.
 - [ ] Criar um dataset de aprendizado por imitacao para acelerar o ambiente
 - [ ] Fazer finetune do modelo pre-treinaod e transfer learning
-- [ ] Ao randomizar o robo o theta fica na mesma direcao, ou seja, pro mesmo lado.
 - [ ] Ao mudar o peso, tipo aumentar ao maximo, era para ficar mais pesado e logo a velocidade diminuir certo.
 - [ ] Ao parar o robo de uma vez, era para ele continuar por um certo periodo andando certo ?
-- [ ] As velocidades, distancia ate o objetivo nao estao sendo usados.
-- [ ] O angulo do lidar e as medicoes nao sao alteradas: self.lidar_angle = np.linspace(0, 2 * np.pi, 20), self.measurement = np.zeros(20)
 - [ ] Mudar dinamicamente o timestep total de acordo com o tamanho do mapa
 - [ ] Existem muito parametros que sao repetidos e reduntantes.
-- [ ] Talvez treinar uma rede neural com sequencia com os dados do dataset.
 - [ ] O LLM modificar tambem o grau de treinamento, ou seja, ele ve se precisa intensificar o treinamento.
 - [ ] Colocar o modelo pre-treinado no pacote.
-- [ ] Criacao do csv dinamico, criar com data e hora e dividir por step e epocas.
-- [ ] Ao salvar o arquivo checkpoint e csv na pasta especificada
 - [ ] Criar um dataset com os mapas.
-- [ ] Criar um algoritmo para ir randomizando o target porem de forma progressiva vai aumentando a distancia.
-- [x] Normalizacao do estado
 - [ ] Randomizar os parametros do mapa
+- [ ] Testes no robo fisico
+- [ ] Adicionar graus de dificuldade no ambiente
+- [ ] Adicionar chamada para o LLM e ir modificando
+- [ ] Criar uma rede totalmente personalizada com pytorch
+- [ ] Adicionar o ambiente todo com taichi
+- [ ] Criar testes unitarios para o ambiente todo
+- [ ] Resolver questao de somente selecionar uma acao (viciado)
+- [ ] Adicionar callback personalizado com video e dados do robo
+- [ ] 1000000 steps/seg
+- [ ] Adicionar Flash Attention em Pytorch
+- [ ] Adicionar um ambiente de treinamento com o proprio ambiente
+- [ ] Randomizar:
+      - Layout geral (paredes, corredores, aberturas)
+      - Presença de agentes (pessoas, outros robôs, objetos em movimento)
+- [ ] As velocidades Linear e Angular estao invertidas *****************

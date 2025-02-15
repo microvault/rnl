@@ -3,14 +3,14 @@ from numba import njit
 
 
 @njit
-def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
+def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float, max_value: float) -> float:
     dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
-    if dist >= 2.35:
-        return 2.35
+    if dist >= max_value:
+        return max_value
     else:
         return dist
 
-
+#@njit # !!!!!!
 def angle_to_goal(
     x: float, y: float, theta: float, goal_x: float, goal_y: float
 ) -> float:

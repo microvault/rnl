@@ -16,7 +16,7 @@ def main(arg):
         threshold=0.2,  # 4
         collision=0.075,  # 2
         path_model="None",
-        algorithm="PPO",  # args.algorithm
+        algorithm="PPO",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -29,7 +29,8 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=100,
+        scalar=1,
+        grid_length=2,
         folder_map="None",  # ./data/map4
         name_map="None",
         max_timestep=1000,
@@ -38,7 +39,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=True, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot

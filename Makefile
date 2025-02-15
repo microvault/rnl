@@ -64,29 +64,36 @@ probe:
     	--device $(DEVICE) \
     	--type_reward $(TYPE_REWARD)
 
+
 .PHONY: test_without_coverage
 test_without_coverage:
 	@poetry run pytest -s -x -vv -p no:warnings
+
 
 .PHONY: test
 test:
 	@poetry run pytest -s -x --cov=rnl -vv -p no:warnings
 
+
 .PHONY: plot_test
 plot_test:
 	@poetry run python tests/test_reward.py
+
 
 .PHONY: post_test
 post_test:
 	@poetry run coverage html
 
+
 .PHONY: publish
 publish:
 	@poetry publish --build -u __token__ -p $(RNL_PYPI_TOKEN)
 
+
 .PHONY: install_with_dev
 install_with_dev:
 		@poetry install
+
 
 .PHONY: install
 install:
@@ -96,6 +103,16 @@ install:
 .PHONY: build
 build:
 	@docker build -f docker/Dockerfile -t rnl-docker-cuda .
+
+
+.PHONY: build-turtlebot
+build-turtlebot:
+		@docker build -f ros/turtlebot.Dockerfile -t turtlebot3-docker .
+
+.PHONY: run-turtlebot
+run-turtlebot:
+	@docker run -it --net=host -v ./playground:/turtlebot3_ws/src/playground:rw turtlebot3-docker
+
 
 .PHONY: train
 train:

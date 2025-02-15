@@ -9,6 +9,7 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.training.learn import inference, probe_envs, training
+from pickle import INT
 
 
 def robot(
@@ -43,6 +44,7 @@ def sensor(
 
 def make(
     scalar: int,
+    grid_length: int,
     folder_map: str,
     name_map: str,
     max_timestep: int,
@@ -51,6 +53,7 @@ def make(
 ) -> EnvConfig:
     return EnvConfig(
         scalar=scalar,
+        grid_length=grid_length,
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,

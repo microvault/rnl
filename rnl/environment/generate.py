@@ -51,7 +51,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_lenght):
+    def world(self, grid_lenght: int):
         """
         Generates a maze world.
 
@@ -61,28 +61,21 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        if self.mode == "easy-01":
-            # Tamanho do grid
+        if self.mode == "easy-01" or self.mode == "easy-02":
             width, height = grid_lenght + 1, grid_lenght + 1
 
             exterior = []
-            # 1 (topo)
             for x in range(width):
                 exterior.append((x, height - 1))
-            # 2 (lado direito)
             for y in range(height - 2, -1, -1):
                 exterior.append((width - 1, y))
-            # 3 (base)
             for x in range(width - 2, -1, -1):
                 exterior.append((x, 0))
-            # 4 (lado esquerdo)
             for y in range(1, height - 1):
                 exterior.append((0, y))
 
-            # Nenhum interior (sem buracos)
             interiors = []
 
-            # Cria o polígono
             poly = Polygon(exterior, holes=interiors).buffer(0)
             if not poly.is_valid:
                 poly = poly.buffer(0)
@@ -93,7 +86,6 @@ class Generator:
 
             stack = [polygon]
 
-            # Agora geramos os segmentos (x1, y1, x2, y2)
             segments = extract_segment_from_polygon(stack)
 
             path = Path.make_compound_path(
@@ -101,7 +93,6 @@ class Generator:
                 *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
             )
 
-            # Cria o patch
             path_patch = PathPatch(
                 path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
             )

@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import A2C, DQN, PPO
+from stable_baselines3 import PPO
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.collisions import spawn_robot_and_goal
@@ -40,6 +40,7 @@ class NaviEnv(gym.Env):
         self.body = self.robot.create_robot(space=self.space)
 
         self.mode: str = env_config.mode
+        self.grid_length = env_config.grid_length
 
         if self.mode == "medium":
             self.create_world = CreateWorld(
@@ -48,9 +49,9 @@ class NaviEnv(gym.Env):
             )
             self.new_map_path, self.segments, self.poly = self.create_world.world()
 
-        elif self.mode == "easy-01":
+        elif self.mode == "easy-01" or self.mode == "easy-02":
             self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(2)
+            self.new_map_path, self.segments, self.poly = self.generator.world(self.grid_length)
 
         self.sensor = SensorRobot(sensor_config, self.segments)
         self.reward_function = env_config.reward_function
@@ -108,10 +109,6 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             if robot_config.algorithm == "PPO":
                 self.model = PPO.load(robot_config.path_model)
-            elif robot_config.algorithm == "DQN":
-                self.model = DQN.load(robot_config.path_model)
-            elif robot_config.algorithm == "A2C":
-                self.model = A2C.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -151,20 +148,17 @@ class NaviEnv(gym.Env):
 
     def on_key_press(self, event):
         if event.key == "up":
-            print("up")
             self.action = 0
             self.vl = 0.10 * self.scalar
             self.vr = 0.0
-        elif event.key == "right":  # direita
-            print("right")
+        elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.60 * self.scalar
-        elif event.key == "left":  # esquerda
-            print("left")
+            self.vr = -0.36 * self.scalar
+        elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.60 * self.scalar
+            self.vr = 0.36 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -194,7 +188,6 @@ class NaviEnv(gym.Env):
                 self.vl = 0.08 * self.scalar
                 self.vr = 0.36 * self.scalar
 
-        print("States: ", self.last_states)
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
         x, y, theta = (
@@ -206,7 +199,7 @@ class NaviEnv(gym.Env):
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
 
-        dist = distance_to_goal(x, y, self.target_x, self.target_y)
+        dist = distance_to_goal(x, y, self.target_x, self.target_y, self.max_dist)
 
         alpha = angle_to_goal(
             self.body.position.x,
@@ -329,7 +322,7 @@ class NaviEnv(gym.Env):
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
 
-        dist = distance_to_goal(x, y, self.target_x, self.target_y)
+        dist = distance_to_goal(x, y, self.target_x, self.target_y, self.max_dist)
 
         alpha = angle_to_goal(
             self.body.position.x,
@@ -429,11 +422,19 @@ class NaviEnv(gym.Env):
 
         try:
             if self.mode == "easy-01":
-                self.new_map_path, self.segments, self.poly = self.generator.world(2)
-                targets = np.array([[0.35, 0.35], [0.35, 1.80], [1.80, 0.35], [1.8, 1.8]])
+                self.new_map_path, self.segments, self.poly = self.generator.world(self.grid_length)
+                targets = np.array([[0.35, 0.35]])#, [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
+
+            elif self.mode == "easy-02":
+                self.new_map_path, self.segments, self.poly = self.generator.world(self.grid_length)
+
+                # random target
+                self.target_x, self.target_y = np.random.uniform(0.35, 1.8), np.random.uniform(0.35, 1.8)
+                x, y = np.random.uniform(0.35, 1.8), np.random.uniform(0.35, 1.8)
+
 
             elif self.mode == "medium":
                 self.new_map_path, self.segments, self.poly = self.create_world.world()
@@ -441,7 +442,7 @@ class NaviEnv(gym.Env):
                     poly=self.poly,
                     robot_clearance=self.threshold,
                     goal_clearance=self.collision,
-                    min_robot_goal_dist=2.0,
+                    min_robot_goal_dist=0.03,
                 )
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
@@ -463,7 +464,9 @@ class NaviEnv(gym.Env):
             raise
 
         try:
-            theta = np.random.uniform(0, 2 * np.pi)
+            # theta = np.random.uniform(0, 2 * np.pi)
+            theta = 4
+            print("Theta: ", theta)
             self.robot.reset_robot(self.body, x, y, theta)
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
@@ -486,6 +489,7 @@ class NaviEnv(gym.Env):
                 self.body.position.y,
                 self.target_x,
                 self.target_y,
+                self.max_dist,
             )
             alpha = angle_to_goal(
                 self.body.position.x,
@@ -587,7 +591,7 @@ class NaviEnv(gym.Env):
         """
         # ------ Create wordld ------ #
 
-        if self.mode == "easy-01":
+        if self.mode == "easy-01" or self.mode == "easy-02":
             ax.set_xlim(0, 2)
             ax.set_ylim(0, 2)
 
@@ -725,7 +729,7 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if self.mode == "easy-01":
+        if self.mode == "easy-01" or self.mode == "easy-02":
             x2 = x + 0.1 * np.cos(self.body.angle)
             y2 = y + 0.1 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
