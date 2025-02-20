@@ -4,7 +4,6 @@ import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
-from skimage import measure
 
 from rnl.engine.collisions import (
     convert_to_segments,
@@ -12,6 +11,7 @@ from rnl.engine.collisions import (
     is_counter_clockwise,
 )
 from rnl.engine.map2d import Map2D
+from rnl.engine.polygons import find_contours, process
 
 
 @dataclass
@@ -77,7 +77,8 @@ class CreateWorld:
         if m is None or m.size == 0:
             raise ValueError("A máscara 'm' está vazia ou não foi gerada corretamente.")
 
-        contours = measure.find_contours(m, 0.5)
+        conts = find_contours(m, 0.5)
+        contours = process(conts)
 
         all_x = []
         all_y = []
