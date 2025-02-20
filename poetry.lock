@@ -23,16 +23,6 @@ files = [
 ]
 
 [[package]]
-name = "antlr4-python3-runtime"
-version = "4.9.3"
-description = "ANTLR 4.9.3 runtime for Python 3.7"
-optional = false
-python-versions = "*"
-files = [
-    {file = "antlr4-python3-runtime-4.9.3.tar.gz", hash = "sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b"},
-]
-
-[[package]]
 name = "argcomplete"
 version = "3.5.3"
 description = "Bash tab completion for argparse"
@@ -547,21 +537,6 @@ files = [
 ]
 
 [[package]]
-name = "dill"
-version = "0.3.9"
-description = "serialize all of Python"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "dill-0.3.9-py3-none-any.whl", hash = "sha256:468dff3b89520b474c0397703366b7b95eebe6303f108adf9b19da1f702be87a"},
-    {file = "dill-0.3.9.tar.gz", hash = "sha256:81aa267dddf68cbfe8029c42ca9ec6a4ab3b22371d1c450abc54422577b4512c"},
-]
-
-[package.extras]
-graph = ["objgraph (>=1.7.2)"]
-profile = ["gprof2dot (>=2022.7.29)"]
-
-[[package]]
 name = "distlib"
 version = "0.3.9"
 description = "Distribution utilities"
@@ -935,39 +910,6 @@ files = [
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
-name = "imageio"
-version = "2.37.0"
-description = "Library for reading and writing a wide range of image, video, scientific, and volumetric data formats."
-optional = false
-python-versions = ">=3.9"
-files = [
-    {file = "imageio-2.37.0-py3-none-any.whl", hash = "sha256:11efa15b87bc7871b61590326b2d635439acc321cf7f8ce996f812543ce10eed"},
-    {file = "imageio-2.37.0.tar.gz", hash = "sha256:71b57b3669666272c818497aebba2b4c5f20d5b37c81720e5e1a56d59c492996"},
-]
-
-[package.dependencies]
-numpy = "*"
-pillow = ">=8.3.2"
-
-[package.extras]
-all-plugins = ["astropy", "av", "imageio-ffmpeg", "numpy (>2)", "pillow-heif", "psutil", "rawpy", "tifffile"]
-all-plugins-pypy = ["av", "imageio-ffmpeg", "pillow-heif", "psutil", "tifffile"]
-build = ["wheel"]
-dev = ["black", "flake8", "fsspec[github]", "pytest", "pytest-cov"]
-docs = ["numpydoc", "pydata-sphinx-theme", "sphinx (<6)"]
-ffmpeg = ["imageio-ffmpeg", "psutil"]
-fits = ["astropy"]
-full = ["astropy", "av", "black", "flake8", "fsspec[github]", "gdal", "imageio-ffmpeg", "itk", "numpy (>2)", "numpydoc", "pillow-heif", "psutil", "pydata-sphinx-theme", "pytest", "pytest-cov", "rawpy", "sphinx (<6)", "tifffile", "wheel"]
-gdal = ["gdal"]
-itk = ["itk"]
-linting = ["black", "flake8"]
-pillow-heif = ["pillow-heif"]
-pyav = ["av"]
-rawpy = ["numpy (>2)", "rawpy"]
-test = ["fsspec[github]", "pytest", "pytest-cov"]
-tifffile = ["tifffile"]
-
-[[package]]
 name = "iniconfig"
 version = "2.0.0"
 description = "brain-dead simple config-ini parsing"
@@ -1110,25 +1052,6 @@ files = [
 ]
 
 [[package]]
-name = "lazy-loader"
-version = "0.4"
-description = "Makes it easy to load subpackages and functions on demand."
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "lazy_loader-0.4-py3-none-any.whl", hash = "sha256:342aa8e14d543a154047afb4ba8ef17f5563baad3fc610d7b15b213b0f119efc"},
-    {file = "lazy_loader-0.4.tar.gz", hash = "sha256:47c75182589b91a4e1a85a136c074285a5ad4d9f39c63e0d7fb76391c4574cd1"},
-]
-
-[package.dependencies]
-packaging = "*"
-
-[package.extras]
-dev = ["changelist (==0.5)"]
-lint = ["pre-commit (==3.7.0)"]
-test = ["pytest (>=7.4)", "pytest-cov (>=4.1)"]
-
-[[package]]
 name = "llvmlite"
 version = "0.43.0"
 description = "lightweight wrapper around basic LLVM functionality"
@@ -1172,30 +1095,6 @@ files = [
 [package.extras]
 docs = ["mdx-gh-links (>=0.2)", "mkdocs (>=1.5)", "mkdocs-gen-files", "mkdocs-literate-nav", "mkdocs-nature (>=0.6)", "mkdocs-section-index", "mkdocstrings[python]"]
 testing = ["coverage", "pyyaml"]
-
-[[package]]
-name = "markdown-it-py"
-version = "3.0.0"
-description = "Python port of markdown-it. Markdown parsing, done right!"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "markdown-it-py-3.0.0.tar.gz", hash = "sha256:e3f60a94fa066dc52ec76661e37c851cb232d92f9886b15cb560aaada2df8feb"},
-    {file = "markdown_it_py-3.0.0-py3-none-any.whl", hash = "sha256:355216845c60bd96232cd8d8c40e8f9765cc86f46880e43a8fd22dc1a1a8cab1"},
-]
-
-[package.dependencies]
-mdurl = ">=0.1,<1.0"
-
-[package.extras]
-benchmarking = ["psutil", "pytest", "pytest-benchmark"]
-code-style = ["pre-commit (>=3.0,<4.0)"]
-compare = ["commonmark (>=0.9,<1.0)", "markdown (>=3.4,<4.0)", "mistletoe (>=1.0,<2.0)", "mistune (>=2.0,<3.0)", "panflute (>=2.3,<3.0)"]
-linkify = ["linkify-it-py (>=1,<3)"]
-plugins = ["mdit-py-plugins"]
-profiling = ["gprof2dot"]
-rtd = ["jupyter_sphinx", "mdit-py-plugins", "myst-parser", "pyyaml", "sphinx", "sphinx-copybutton", "sphinx-design", "sphinx_book_theme"]
-testing = ["coverage", "pytest", "pytest-cov", "pytest-regressions"]
 
 [[package]]
 name = "markupsafe"
@@ -1323,17 +1222,6 @@ python-dateutil = ">=2.7"
 
 [package.extras]
 dev = ["meson-python (>=0.13.1,<0.17.0)", "pybind11 (>=2.13.2,!=2.13.3)", "setuptools (>=64)", "setuptools_scm (>=7)"]
-
-[[package]]
-name = "mdurl"
-version = "0.1.2"
-description = "Markdown URL utilities"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
-    {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
-]
 
 [[package]]
 name = "mpmath"
@@ -1649,45 +1537,6 @@ files = [
 ]
 
 [[package]]
-name = "omegaconf"
-version = "2.3.0"
-description = "A flexible configuration library"
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "omegaconf-2.3.0-py3-none-any.whl", hash = "sha256:7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b"},
-    {file = "omegaconf-2.3.0.tar.gz", hash = "sha256:d5d4b6d29955cc50ad50c46dc269bcd92c6e00f5f90d23ab5fee7bfca4ba4cc7"},
-]
-
-[package.dependencies]
-antlr4-python3-runtime = "==4.9.*"
-PyYAML = ">=5.1.0"
-
-[[package]]
-name = "opencv-python"
-version = "4.11.0.86"
-description = "Wrapper package for OpenCV python bindings."
-optional = false
-python-versions = ">=3.6"
-files = [
-    {file = "opencv-python-4.11.0.86.tar.gz", hash = "sha256:03d60ccae62304860d232272e4a4fda93c39d595780cb40b161b310244b736a4"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-macosx_13_0_arm64.whl", hash = "sha256:432f67c223f1dc2824f5e73cdfcd9db0efc8710647d4e813012195dc9122a52a"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-macosx_13_0_x86_64.whl", hash = "sha256:9d05ef13d23fe97f575153558653e2d6e87103995d54e6a35db3f282fe1f9c66"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1b92ae2c8852208817e6776ba1ea0d6b1e0a1b5431e971a2a0ddd2a8cc398202"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b02611523803495003bd87362db3e1d2a0454a6a63025dc6658a9830570aa0d"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-win32.whl", hash = "sha256:810549cb2a4aedaa84ad9a1c92fbfdfc14090e2749cedf2c1589ad8359aa169b"},
-    {file = "opencv_python-4.11.0.86-cp37-abi3-win_amd64.whl", hash = "sha256:085ad9b77c18853ea66283e98affefe2de8cc4c1f43eda4c100cf9b2721142ec"},
-]
-
-[package.dependencies]
-numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
-    {version = ">=1.23.5", markers = "python_version >= \"3.11\" and python_version < \"3.12\""},
-    {version = ">=1.21.4", markers = "python_version >= \"3.10\" and platform_system == \"Darwin\" and python_version < \"3.11\""},
-    {version = ">=1.21.2", markers = "platform_system != \"Darwin\" and python_version >= \"3.10\" and python_version < \"3.11\""},
-]
-
-[[package]]
 name = "packaging"
 version = "24.2"
 description = "Core utilities for Python packages"
@@ -1751,9 +1600,9 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
-    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
     {version = ">=1.22.4", markers = "python_version < \"3.11\""},
+    {version = ">=1.23.2", markers = "python_version == \"3.11\""},
+    {version = ">=1.26.0", markers = "python_version >= \"3.12\""},
 ]
 python-dateutil = ">=2.8.2"
 pytz = ">=2020.1"
@@ -2140,20 +1989,6 @@ files = [
 typing-extensions = ">=4.6.0,<4.7.0 || >4.7.0"
 
 [[package]]
-name = "pygments"
-version = "2.19.1"
-description = "Pygments is a syntax highlighting package written in Python."
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "pygments-2.19.1-py3-none-any.whl", hash = "sha256:9ea1544ad55cecf4b8242fab6dd35a93bbce657034b0611ee383099054ab6d8c"},
-    {file = "pygments-2.19.1.tar.gz", hash = "sha256:61c16d2a8576dc0649d9f39e089b5f02bcd27fba10d8fb4dcc28173f7a45151f"},
-]
-
-[package.extras]
-windows-terminal = ["colorama (>=0.4.6)"]
-
-[[package]]
 name = "pymunk"
 version = "6.11.0"
 description = "Pymunk is a easy-to-use pythonic 2D physics library"
@@ -2407,25 +2242,6 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<6)"]
 
 [[package]]
-name = "rich"
-version = "13.9.4"
-description = "Render rich text, tables, progress bars, syntax highlighting, markdown and more to the terminal"
-optional = false
-python-versions = ">=3.8.0"
-files = [
-    {file = "rich-13.9.4-py3-none-any.whl", hash = "sha256:6049d5e6ec054bf2779ab3358186963bac2ea89175919d699e378b99738c2a90"},
-    {file = "rich-13.9.4.tar.gz", hash = "sha256:439594978a49a09530cff7ebc4b5c7103ef57baf48d5ea3184f21d9a2befa098"},
-]
-
-[package.dependencies]
-markdown-it-py = ">=2.2.0"
-pygments = ">=2.13.0,<3.0.0"
-typing-extensions = {version = ">=4.0.0,<5.0", markers = "python_version < \"3.11\""}
-
-[package.extras]
-jupyter = ["ipywidgets (>=7.5.1,<9)"]
-
-[[package]]
 name = "rtree"
 version = "1.3.0"
 description = "R-Tree spatial index for Python GIS"
@@ -2470,54 +2286,6 @@ files = [
     {file = "ruff-0.6.9-py3-none-win_arm64.whl", hash = "sha256:a9641e31476d601f83cd602608739a0840e348bda93fec9f1ee816f8b6798b93"},
     {file = "ruff-0.6.9.tar.gz", hash = "sha256:b076ef717a8e5bc819514ee1d602bbdca5b4420ae13a9cf61a0c0a4f53a2baa2"},
 ]
-
-[[package]]
-name = "scikit-image"
-version = "0.25.1"
-description = "Image processing in Python"
-optional = false
-python-versions = ">=3.10"
-files = [
-    {file = "scikit_image-0.25.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:40763a3a089617e6f00f92d46b3475368b9783588a165c2aa854da95b66bb4ff"},
-    {file = "scikit_image-0.25.1-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:7c6b69f33e5512ee7fc53361b064430f146583f08dc75317667e81d5f8fcd0c6"},
-    {file = "scikit_image-0.25.1-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d9187347d115776ff0ddba3e5d2a04638d291b1a62e3c315d17b71eea351cde8"},
-    {file = "scikit_image-0.25.1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:cdfca713979ad1873a4b55d94bb1eb4bc713f0c10165b261bf6f7e606f44a00c"},
-    {file = "scikit_image-0.25.1-cp310-cp310-win_amd64.whl", hash = "sha256:167fb146de80bb2a1493d1a760a9ac81644a8a5de254c3dd12a95d1b662d819c"},
-    {file = "scikit_image-0.25.1-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:c1bde2d5f1dfb23b3c72ef9fcdb2dd5f42fa353e8bd606aea63590eba5e79565"},
-    {file = "scikit_image-0.25.1-cp311-cp311-macosx_12_0_arm64.whl", hash = "sha256:5112d95cccaa45c434e57efc20c1f721ab439e516e2ed49709ddc2afb7c15c70"},
-    {file = "scikit_image-0.25.1-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:0f5e313b028f5d7a9f3888ad825ddf4fb78913d7762891abb267b99244b4dd31"},
-    {file = "scikit_image-0.25.1-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:39ad76aeff754048dabaff83db752aa0655dee425f006678d14485471bdb459d"},
-    {file = "scikit_image-0.25.1-cp311-cp311-win_amd64.whl", hash = "sha256:8dc8b06176c1a2316fa8bc539fd7e96155721628ae5cf51bc1a2c62cb9786581"},
-    {file = "scikit_image-0.25.1-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:ebf83699d60134909647395a0bf07db3859646de7192b088e656deda6bc15e95"},
-    {file = "scikit_image-0.25.1-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:408086520eed036340e634ab7e4f648e00238f711bac61ab933efeb11464a238"},
-    {file = "scikit_image-0.25.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:5bd709faa87795869ccd21f32490c37989ca5846571495822f4b9430fb42c34c"},
-    {file = "scikit_image-0.25.1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a6b15c0265c072a46ff4720784d756d8f8e5d63567639aa8451f6673994d6846"},
-    {file = "scikit_image-0.25.1-cp312-cp312-win_amd64.whl", hash = "sha256:a689a0d091e0bd97d7767309abdeb27c43be210d075abb34e71657add920c22b"},
-    {file = "scikit_image-0.25.1-cp313-cp313-macosx_10_13_x86_64.whl", hash = "sha256:f070f899d6572a125ab106c4b26d1a5fb784dc60ba6dea45c7816f08c3a4fb4d"},
-    {file = "scikit_image-0.25.1-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:cc9538d8db7670878aa68ea79c0b1796b6c771085e8d50f5408ee617da3281b6"},
-    {file = "scikit_image-0.25.1-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:caa08d4fa851e1f421fcad8eac24d32f2810971dc61f1d72dc950ca9e9ec39b1"},
-    {file = "scikit_image-0.25.1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c9923aa898b7921fbcf503d32574d48ed937a7cff45ce8587be4868b39676e18"},
-    {file = "scikit_image-0.25.1-cp313-cp313-win_amd64.whl", hash = "sha256:6c7bba6773ab8c39ee8b1cbb17c7f98965bacdb8cd8da337942be6acc38fc562"},
-    {file = "scikit_image-0.25.1.tar.gz", hash = "sha256:d4ab30540d114d37c35fe5c837f89b94aaba2a7643afae8354aa353319e9bbbb"},
-]
-
-[package.dependencies]
-imageio = ">=2.33,<2.35.0 || >2.35.0"
-lazy-loader = ">=0.4"
-networkx = ">=3.0"
-numpy = ">=1.24"
-packaging = ">=21"
-pillow = ">=10.1"
-scipy = ">=1.11.2"
-tifffile = ">=2022.8.12"
-
-[package.extras]
-build = ["Cython (>=3.0.8)", "build (>=1.2.1)", "meson-python (>=0.16)", "ninja (>=1.11.1.1)", "numpy (>=2.0)", "pythran (>=0.16)", "setuptools (>=68)", "spin (==0.13)"]
-data = ["pooch (>=1.6.0)"]
-developer = ["ipython", "pre-commit", "tomli"]
-docs = ["PyWavelets (>=1.6)", "dask[array] (>=2022.9.2)", "intersphinx-registry (>=0.2411.14)", "ipykernel", "ipywidgets", "kaleido (==0.2.1)", "matplotlib (>=3.7)", "myst-parser", "numpydoc (>=1.7)", "pandas (>=2.0)", "plotly (>=5.20)", "pooch (>=1.6)", "pydata-sphinx-theme (>=0.16)", "pytest-doctestplus", "scikit-learn (>=1.2)", "seaborn (>=0.11)", "sphinx (>=8.0)", "sphinx-copybutton", "sphinx-gallery[parallel] (>=0.18)", "sphinx_design (>=0.5)", "tifffile (>=2022.8.12)"]
-optional = ["PyWavelets (>=1.6)", "SimpleITK", "astropy (>=5.0)", "cloudpickle (>=0.2.1)", "dask[array] (>=2021.1.0,!=2024.8.0)", "matplotlib (>=3.7)", "pooch (>=1.6.0)", "pyamg (>=5.2)", "scikit-learn (>=1.2)"]
-test = ["asv", "numpydoc (>=1.7)", "pooch (>=1.6.0)", "pytest (>=7.0)", "pytest-cov (>=2.11.0)", "pytest-doctestplus", "pytest-faulthandler", "pytest-localserver"]
 
 [[package]]
 name = "scikit-learn"
@@ -2924,38 +2692,6 @@ mpmath = ">=1.1.0,<1.4"
 dev = ["hypothesis (>=6.70.0)", "pytest (>=7.1.0)"]
 
 [[package]]
-name = "taichi"
-version = "1.7.3"
-description = "The Taichi Programming Language"
-optional = false
-python-versions = "<4.0,>=3.6"
-files = [
-    {file = "taichi-1.7.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:ff35bc6e450a57df80d14e9614765ff20d2b40a3f3996c0f139509f5992f51be"},
-    {file = "taichi-1.7.3-cp310-cp310-manylinux_2_27_x86_64.whl", hash = "sha256:9c005305f0bb40bb37fc6d1a2ae3bd998218acbf595fe135cf6c81431039a864"},
-    {file = "taichi-1.7.3-cp310-cp310-win_amd64.whl", hash = "sha256:279cd858ea4bc3890b8b8dc636407993a0d20cfac516ef7c142c0061f135aebc"},
-    {file = "taichi-1.7.3-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:9d855c4c4dfc51183fac1e6335076526eceb354eb6a5e0122c89aa59d555586f"},
-    {file = "taichi-1.7.3-cp311-cp311-manylinux_2_27_x86_64.whl", hash = "sha256:017fe653bdacda6d8bc98e520c7ba812beac9c0687b3426e043d44e7a928a941"},
-    {file = "taichi-1.7.3-cp311-cp311-win_amd64.whl", hash = "sha256:589539b43fc45ff473c5a355d0da59f66fc87996b487d2e0de81cddab232b065"},
-    {file = "taichi-1.7.3-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:bf069db8ad159e8f0775b9478399ea8a120a9b4cff3f8b385a6e68fd84295917"},
-    {file = "taichi-1.7.3-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:c5cdbd39b4b54a667a1c7aeba5214542e6ad87ad4c5c87c3efaf78876950903e"},
-    {file = "taichi-1.7.3-cp312-cp312-win_amd64.whl", hash = "sha256:b7d86a147ad7347c7ab9badd5f2b0c9abec1649fea819cc87870ca5d68ce9930"},
-    {file = "taichi-1.7.3-cp37-cp37m-manylinux_2_27_x86_64.whl", hash = "sha256:e165684100e7dff86f30432200da2bbd6a3972638002d8bb065c3ef8bebfcd1b"},
-    {file = "taichi-1.7.3-cp37-cp37m-win_amd64.whl", hash = "sha256:95cbf3db05f133211023c7b7d90ea3f2b1bd0d9df0a3c049c2db02f78e16b299"},
-    {file = "taichi-1.7.3-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:250ac82bcb540ac06629892ad58f9c1aa6d93f64f1a67ca9c7e97b135ea25376"},
-    {file = "taichi-1.7.3-cp38-cp38-manylinux_2_27_x86_64.whl", hash = "sha256:f1830de4dbb1a71b31b0768dd75887de6cf1c88ee83119f5086511fddcceaff4"},
-    {file = "taichi-1.7.3-cp38-cp38-win_amd64.whl", hash = "sha256:ce49013868c48746e4f37706e894a0169a16c811940912cce638e27324443b92"},
-    {file = "taichi-1.7.3-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:dd8646677d06723180c13f36d4149f45e6ef550726e74e7f916b6dbea9926573"},
-    {file = "taichi-1.7.3-cp39-cp39-manylinux_2_27_x86_64.whl", hash = "sha256:e35eaf5c1ea10e248c6d7511e9e69ae779b90fe8624108df2335995d184281ae"},
-    {file = "taichi-1.7.3-cp39-cp39-win_amd64.whl", hash = "sha256:871368f44504d2b349c7be845bdebe54cfe2f01f907479aee4e1d07add310072"},
-]
-
-[package.dependencies]
-colorama = "*"
-dill = "*"
-numpy = "*"
-rich = "*"
-
-[[package]]
 name = "tensorboard"
 version = "2.18.0"
 description = "TensorBoard lets you watch Tensors Flow"
@@ -3013,28 +2749,6 @@ files = [
     {file = "threadpoolctl-3.5.0-py3-none-any.whl", hash = "sha256:56c1e26c150397e58c4926da8eeee87533b1e32bef131bd4bf6a2f45f3185467"},
     {file = "threadpoolctl-3.5.0.tar.gz", hash = "sha256:082433502dd922bf738de0d8bcc4fdcbf0979ff44c42bd40f5af8a282f6fa107"},
 ]
-
-[[package]]
-name = "tifffile"
-version = "2025.1.10"
-description = "Read and write TIFF files"
-optional = false
-python-versions = ">=3.10"
-files = [
-    {file = "tifffile-2025.1.10-py3-none-any.whl", hash = "sha256:ed24cf4c99fb13b4f5fb29f8a0d5605e60558c950bccbdca2a6470732a27cfb3"},
-    {file = "tifffile-2025.1.10.tar.gz", hash = "sha256:baaf0a3b87bf7ec375fa1537503353f70497eabe1bdde590f2e41cc0346e612f"},
-]
-
-[package.dependencies]
-numpy = "*"
-
-[package.extras]
-all = ["defusedxml", "fsspec", "imagecodecs (>=2024.12.30)", "lxml", "matplotlib", "zarr (<3)"]
-codecs = ["imagecodecs (>=2024.12.30)"]
-plot = ["matplotlib"]
-test = ["cmapfile", "czifile", "dask", "defusedxml", "fsspec", "imagecodecs", "lfdfiles", "lxml", "ndtiff", "oiffile", "psdtags", "pytest", "roifile", "xarray", "zarr (<3)"]
-xml = ["defusedxml", "lxml"]
-zarr = ["fsspec", "zarr (<3)"]
 
 [[package]]
 name = "tomli"
@@ -3322,4 +3036,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.10,<4.0"
-content-hash = "523ea3f7c43ca1e01e354859852fc54f514dbb4eec2faa55c70849792569cda2"
+content-hash = "3a64b928e2af725e9e4f5f46b2080380db091ad2fcbf401590630cae69d2c4c6"
