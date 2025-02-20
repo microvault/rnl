@@ -247,16 +247,17 @@ import random
 import numpy as np
 import rclpy
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Pose, Twist
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import LaserScan
 from stable_baselines3 import PPO
-from geometry_msgs.msg import Pose
+
 
 def clamp(value, vmin, vmax):
     return max(vmin, min(value, vmax))
+
 
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
@@ -265,13 +266,17 @@ def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
     else:
         return dist
 
-def angle_to_goal(x: float, y: float, theta: float, goal_x: float, goal_y: float) -> float:
+
+def angle_to_goal(
+    x: float, y: float, theta: float, goal_x: float, goal_y: float
+) -> float:
     o_t = np.array([np.cos(theta), np.sin(theta)])
     g_t = np.array([goal_x - x, goal_y - y])
     cross_product = np.cross(o_t, g_t)
     dot_product = np.dot(o_t, g_t)
     alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
     return alpha
+
 
 class InferenceModel(Node):
     def __init__(self):
@@ -296,7 +301,9 @@ class InferenceModel(Node):
 
         # Metas de navegação
         self.goal_positions = [(0.35, 0.35), (0.35, 1.8), (1.8, 0.35), (1.8, 1.8)]
-        self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
+        self.goal_order = random.sample(
+            range(len(self.goal_positions)), len(self.goal_positions)
+        )
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
 
@@ -437,9 +444,13 @@ class InferenceModel(Node):
         if dist <= 0.5:
             self.goal_index += 1
             if self.goal_index >= len(self.goal_order):
-                self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
+                self.goal_order = random.sample(
+                    range(len(self.goal_positions)), len(self.goal_positions)
+                )
                 self.goal_index = 0
-            self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
+            self.goal_x, self.goal_y = self.goal_positions[
+                self.goal_order[self.goal_index]
+            ]
             self.get_logger().info(f"New goal: ({self.goal_x}, {self.goal_y})")
 
 
@@ -456,6 +467,7 @@ def main(args=None):
     finally:
         navigator.destroy_node()
         rclpy.shutdown()
+
 
 if __name__ == "__main__":
     main()

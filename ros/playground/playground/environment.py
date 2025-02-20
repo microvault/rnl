@@ -11,7 +11,6 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
 from sensor_msgs.msg import LaserScan
 from stable_baselines3 import PPO
-from geometry_msgs.msg import Pose
 
 
 def clamp(value, vmin, vmax):
