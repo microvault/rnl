@@ -1,8 +1,6 @@
 import functools
 import os
-from typing import Optional, Tuple
 
-import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
@@ -122,6 +120,35 @@ class Map2D:
 
         return new_map_grid
 
+    def get_subgrid_from_map(self, map_grid, border=10):
+        """
+        Extrai uma subgrade da grid onde há valores positivos e adiciona uma borda.
+
+        Parâmetros:
+          - map_grid: grid original (valores entre 0 e 1)
+          - border: tamanho da borda a ser adicionada
+
+        Retorna:
+          - subgrid_uint8: subgrade em uint8 com valores escalados (0-255) e borda.
+        """
+        # Encontra as colunas com qualquer valor > 0
+        idx = np.where(map_grid.sum(axis=0) > 0)[0]
+        if idx.size == 0:
+            return None
+        min_idx = np.min(idx)
+        max_idx = np.max(idx)
+        subgrid = map_grid[:, min_idx : max_idx + 1]
+        # Converte para uint8 (0 a 255)
+        subgrid_uint8 = (subgrid * 255).astype(np.uint8)
+        # Adiciona uma borda de tamanho fixo
+        subgrid_uint8 = np.pad(
+            subgrid_uint8,
+            pad_width=((border, border), (border, border)),
+            mode="constant",
+            constant_values=0,
+        )
+        return subgrid_uint8
+
     def divide_map_into_quadrants(
         self, map_grid: np.ndarray, quadrant: int
     ) -> np.ndarray:
@@ -149,93 +176,155 @@ class Map2D:
         else:
             raise ValueError("Quadrant must be 1, 2, 3, or 4.")
 
+    def erode(self, img, kernel, iterations=1):
+        """
+        Realiza erosão morfológica em uma imagem em escala de cinza.
+
+        A erosão diminui os objetos claros.
+        """
+        k_h, k_w = kernel.shape
+        pad_h, pad_w = k_h // 2, k_w // 2
+        out = img.copy()
+        for _ in range(iterations):
+            padded = np.pad(
+                out,
+                ((pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+                constant_values=255,
+            )
+            # Cria uma "sliding window view" da imagem
+            windows = np.lib.stride_tricks.sliding_window_view(padded, (k_h, k_w))
+            out = np.min(windows, axis=(-2, -1))
+        return out
+
+    def dilate(self, img, kernel, iterations=1):
+        """
+        Realiza dilatação morfológica em uma imagem em escala de cinza.
+
+        A dilatação expande os objetos claros.
+        """
+        k_h, k_w = kernel.shape
+        pad_h, pad_w = k_h // 2, k_w // 2
+        out = img.copy()
+        for _ in range(iterations):
+            padded = np.pad(
+                out,
+                ((pad_h, pad_h), (pad_w, pad_w)),
+                mode="constant",
+                constant_values=0,
+            )
+            windows = np.lib.stride_tricks.sliding_window_view(padded, (k_h, k_w))
+            out = np.max(windows, axis=(-2, -1))
+        return out
+
+    def connected_components(self, binary_img):
+        """
+        Rótula componentes conectados (8-conectividade) em uma imagem binária.
+
+        Retorna:
+          - labels: matriz com os rótulos dos componentes
+          - num_labels: número total de componentes encontrados
+        """
+        h, w = binary_img.shape
+        labels = np.zeros((h, w), dtype=np.int32)
+        label_counter = 1
+        for i in range(h):
+            for j in range(w):
+                if binary_img[i, j] > 0 and labels[i, j] == 0:
+                    stack = [(i, j)]
+                    labels[i, j] = label_counter
+                    while stack:
+                        x, y = stack.pop()
+                        for dx in [-1, 0, 1]:
+                            for dy in [-1, 0, 1]:
+                                nx, ny = x + dx, y + dy
+                                if 0 <= nx < h and 0 <= ny < w:
+                                    if binary_img[nx, ny] > 0 and labels[nx, ny] == 0:
+                                        labels[nx, ny] = label_counter
+                                        stack.append((nx, ny))
+                    label_counter += 1
+        return labels, label_counter - 1
+
+    def get_largest_component(self, binary_img):
+        """
+        Retorna a máscara da maior componente conectada na imagem binária.
+        """
+        labels, num_labels = self.connected_components(binary_img)
+        if num_labels < 1:
+            return None
+        # Calcula a área de cada componente
+        areas = np.array([np.sum(labels == l) for l in range(1, num_labels + 1)])
+        largest_component = np.argmax(areas) + 1  # Rótulos começam em 1
+        mask = np.zeros_like(binary_img, dtype=np.uint8)
+        mask[labels == largest_component] = 255
+        return mask
+
+    def closing_morphology(self, img, kernel, iterations=1):
+        """
+        Aplica fechamento morfológico: dilatação seguida de erosão.
+        """
+        dilated = self.dilate(img, kernel, iterations=iterations)
+        closed = self.erode(dilated, kernel, iterations=iterations)
+        return closed
+
+    def smooth_mask(self, img):
+        """
+        Realiza uma suavização simples na máscara usando operações morfológicas
+        com um kernel 1x1 (não altera muito, mas pode remover ruídos pequenos).
+        """
+        kernel_smooth = np.ones((1, 1), dtype=np.uint8)
+        opened = self.erode(img, kernel_smooth, iterations=1)
+        smoothed = self.dilate(opened, kernel_smooth, iterations=1)
+        return smoothed
+
+    # --- Função principal ---
     def initial_environment2d(
         self,
-        plot: bool = False,
-        kernel_size: Tuple[int, int] = (3, 3),
-        morph_iterations: int = 1,
-        approx_epsilon_factor: float = 0.01,
-        contour_retrieval_mode: int = cv2.RETR_TREE,
-        contour_approx_method: int = cv2.CHAIN_APPROX_SIMPLE,
-    ) -> Optional[np.ndarray]:
-        _map_grid = self._grid_map()
-        # new_map_grid = self._grid_map()
+        plot=False,
+        kernel_size=(3, 3),
+        morph_iterations=1,
+        approx_epsilon_factor=0.001,
+    ):
+        """
+        Prepara o ambiente 2D a partir da grid do mapa.
 
-        new_map_grid = self.divide_map_into_quadrants(_map_grid, 1)
+        Passos:
+        1. Extrai a subgrade da grid e adiciona borda.
+        2. Aplica operações morfológicas (erosão e dilatação) para remover ruídos.
+        3. Detecta a maior componente conectada.
+        4. Aplica fechamento morfológico e suavização.
+        5. (Opcional) Plota o resultado.
 
-        idx = np.where(new_map_grid.sum(axis=0) > 0)[0]
-        if idx.size == 0:
+        Retorna:
+        - A máscara final processada (contour_mask) ou None se não houver região.
+        """
+        # 1. Obter grid e extrair subgrid com borda
+        new_map_grid = self._grid_map()
+        subgrid_uint8 = self.get_subgrid_from_map(new_map_grid, border=10)
+        if subgrid_uint8 is None:
             return None
 
-        min_idx = np.min(idx)
-        max_idx = np.max(idx)
+        # 2. Definir kernel para morfologia e aplicar erosão/dilatação
+        kernel = np.ones(kernel_size, dtype=np.uint8)
+        eroded = self.erode(subgrid_uint8, kernel, iterations=morph_iterations)
+        dilated = self.dilate(eroded, kernel, iterations=morph_iterations)
 
-        subgrid = new_map_grid[:, min_idx : max_idx + 1]
-
-        subgrid_uint8 = (subgrid * 255).astype(np.uint8)
-
-        border_size = 10
-        subgrid_uint8 = cv2.copyMakeBorder(
-            subgrid_uint8,
-            top=border_size,
-            bottom=border_size,
-            left=border_size,
-            right=border_size,
-            borderType=cv2.BORDER_CONSTANT,
-            value=0,
-        )
-
-        kernel = np.ones(kernel_size, np.uint8)
-        eroded = cv2.erode(subgrid_uint8, kernel, iterations=morph_iterations)
-        dilated = cv2.dilate(eroded, kernel, iterations=morph_iterations)
-
-        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(
-            dilated, connectivity=8
-        )
-        if num_labels <= 1:
+        # 3. Extrair a maior componente conectada (imagem binária: valores > 0)
+        mask_component = self.get_largest_component(dilated)
+        if mask_component is None:
             return None
 
-        largest_component = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
-        mask = np.zeros_like(dilated, dtype=np.uint8)
-        mask[labels == largest_component] = 255
-
-        mask_closed = cv2.morphologyEx(
-            mask, cv2.MORPH_CLOSE, kernel, iterations=morph_iterations
+        # 4. Aplicar fechamento morfológico e suavização
+        mask_closed = self.closing_morphology(
+            mask_component, kernel, iterations=morph_iterations
         )
+        mask_smoothed = self.smooth_mask(mask_closed)
 
-        contours, hierarchy = cv2.findContours(
-            mask_closed, contour_retrieval_mode, contour_approx_method
-        )
-        if not contours:
-            return None
-
-        contour_mask = np.zeros_like(mask_closed, dtype=np.uint8)
-        for i, contour in enumerate(contours):
-            contour_int = contour.astype(np.int32)
-            epsilon = approx_epsilon_factor * cv2.arcLength(contour_int, True)
-            approx = cv2.approxPolyDP(contour_int, epsilon, True)
-            approx_int = approx.astype(np.int32)
-
-            if hierarchy[0][i][3] == -1:
-                cv2.fillPoly(contour_mask, [approx_int], 255)
-            else:
-                cv2.fillPoly(contour_mask, [approx_int], 0)
-
-        kernel_smooth = np.ones((1, 1), np.uint8)
-        contour_mask = cv2.morphologyEx(contour_mask, cv2.MORPH_OPEN, kernel_smooth)
-
+        # 5. Plot se solicitado
         if plot:
             plt.figure(figsize=(10, 10))
-            plt.imshow(contour_mask, cmap="gray")
+            plt.imshow(mask_smoothed, cmap="gray")
             plt.axis("off")
-            plt.savefig(
-                "contour.png", bbox_inches="tight", pad_inches=0
-            )  # Salva a imagem antes de mostrar
             plt.show()
 
-        return contour_mask
-
-
-# if __name__ == "__main__":
-#     map = Map2D("/Users/nicolasalan/microvault/rnl/data/map4", "map4")
-#     map.initial_environment2d(plot=True)
+        return mask_smoothed
