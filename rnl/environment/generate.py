@@ -1,13 +1,12 @@
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from numba import njit
 from shapely.geometry import LineString, Polygon
-from skimage import measure
 
+from rnl.engine.collisions import extract_segment_from_polygon
+from rnl.engine.polygons import find_contours, process
 from rnl.engine.world import GenerateWorld
 
 
@@ -61,7 +60,7 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        if self.mode == "easy-01" or self.mode == "easy-02":
+        if self.mode in ("easy-00", "easy-01", "easy-02"):
             width, height = grid_lenght + 1, grid_lenght + 1
 
             exterior = []
@@ -90,7 +89,7 @@ class Generator:
 
             path = Path.make_compound_path(
                 Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
 
             path_patch = PathPatch(
@@ -111,7 +110,8 @@ class Generator:
             border = self._map_border(m)
             map_grid = 1 - border
 
-            contours = measure.find_contours(map_grid, 0.5)
+            conts = find_contours(map_grid, 0.5)
+            contours = process(conts)
 
             height, width = map_grid.shape
             exterior = []
@@ -171,7 +171,7 @@ class Generator:
 
             path = Path.make_compound_path(
                 Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
 
             path_patch = PathPatch(
@@ -180,92 +180,5 @@ class Generator:
 
             return path_patch, segment, poly
 
-
-@njit
-def convert_to_segments(polygon):
-    segments = []
-    n = len(polygon)
-    for i in range(n):
-        x1, y1 = polygon[i]
-        x2, y2 = polygon[(i + 1) % n]
-        segments.append((x1, y1, x2, y2))
-    return segments
-
-
-@njit
-def extract_segment_from_polygon(stack: List) -> List:
-    """
-    Extracts line segments from a stack of polygons.
-
-    Parameters:
-    stack (List): List of polygons, each represented by a list of points.
-
-    Returns:
-    List: List of line segments extracted from the polygons.
-    """
-
-    assert len(stack) >= 1, "Stack must have at least 1 polygon."
-
-    total_segments = []
-    for polygon in stack:
-        segments = connect_polygon_points(polygon)
-        total_segments.extend(segments)
-
-    return convert_to_line_segments(total_segments)
-
-
-@njit
-def connect_polygon_points(polygon: np.ndarray) -> List:
-    """
-    Connects the points of a polygon to form line segments.
-
-    Parameters:
-    polygon (np.ndarray): The polygon represented by a list of points.
-
-    Returns:
-    List: List of line segments connecting the points of the polygon.
-    """
-
-    #                segment 1
-    # (point 1) +-----------------+ (point 2)
-    #           |                 |
-    # segment 4 |                 | segment 2
-    #           |                 |
-    # (point 4) +-----------------+ (point 3)
-    #                segment 3
-
-    assert len(polygon) >= 3, "Polygon must have at least 3 points."
-
-    num_points = len(polygon)
-    segments = []
-    for i in range(num_points):
-        current_point = polygon[i]
-        # wrap-around to close the polygon
-        next_point = polygon[(i + 1) % num_points]
-        segment = (current_point, next_point)
-        segments.append(segment)
-
-    return segments
-
-
-@njit
-def convert_to_line_segments(total_segments: List) -> List:
-    """
-    Converts a list of line segments into formed (x1, y1, x2, y2) representing start point, end point
-
-    Parameters:
-    total_segments (List): List of line segments.
-
-    Returns:
-    List: List of line segments converted into (x1, y1, x2, y2) format.
-    """
-
-    assert len(total_segments) >= 3, "Polygon must have at least 3 points."
-
-    line_segments = []
-    for segment in total_segments:
-        line_segments.append(
-            (segment[0][0], segment[0][1], segment[1][0], segment[1][1])
-        )
-
-    return line_segments
+        else:
+            raise ValueError(f"Modo {self.mode} não implementado.")
