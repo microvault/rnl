@@ -9,7 +9,6 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.training.learn import inference, probe_envs, training
-from pickle import INT
 
 
 def robot(
