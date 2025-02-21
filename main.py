@@ -13,7 +13,7 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.2,  # 4
+        threshold=0.1,  # 4
         collision=0.075,  # 2
         path_model="None",
         algorithm="PPO",
@@ -22,24 +22,24 @@ def main(arg):
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=5, # 5
+        num_rays=5,  # min 5 max 20
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=1,
-        grid_length=2,
-        folder_map="None",  # ./data/map4
-        name_map="None",
+        scalar=10,
+        grid_length=2.15,
+        folder_map="",  # ./data/map4
+        name_map="",  # map4
         max_timestep=1000,
-        mode="easy-01",  # easy-01, medium
+        mode="easy-00",  # easy-00, easy-01, easy-02, medium
         reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=True, debug=True, plot=False)
+    param_render = vault.render(controller=False, debug=False, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -84,8 +84,8 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            num_envs=10,
-            max_steps=10000,
+            num_envs=2,
+            max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,

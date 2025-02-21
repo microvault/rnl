@@ -6,7 +6,7 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 
 from rnl.engine.collisions import extract_segment_from_polygon
-from rnl.engine.polygons import find_contours, process
+from rnl.engine.polygons import find_contours, process, compute_polygon_diameter
 from rnl.engine.world import GenerateWorld
 
 
@@ -50,7 +50,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_lenght: int):
+    def world(self, grid_length: float, resolution: float = 0.01):
         """
         Generates a maze world.
 
@@ -61,46 +61,42 @@ class Generator:
         - List: List of LineString segments representing the maze segments.
         """
         if self.mode in ("easy-00", "easy-01", "easy-02"):
-            width, height = grid_lenght + 1, grid_lenght + 1
+            width = int(grid_length / resolution) + 1
+            height = int(grid_length / resolution) + 1
 
             exterior = []
+            # Borda superior
             for x in range(width):
-                exterior.append((x, height - 1))
+                exterior.append((x * resolution, (height - 1) * resolution))
+            # Borda direita
             for y in range(height - 2, -1, -1):
-                exterior.append((width - 1, y))
+                exterior.append(((width - 1) * resolution, y * resolution))
+            # Borda inferior
             for x in range(width - 2, -1, -1):
-                exterior.append((x, 0))
+                exterior.append((x * resolution, 0))
+            # Borda esquerda
             for y in range(1, height - 1):
-                exterior.append((0, y))
+                exterior.append((0, y * resolution))
 
-            interiors = []
-
-            poly = Polygon(exterior, holes=interiors).buffer(0)
+            poly = Polygon(exterior, holes=[]).buffer(0)
             if not poly.is_valid:
                 poly = poly.buffer(0)
                 if not poly.is_valid:
                     raise ValueError("Polígono inválido.")
 
             polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
-
             stack = [polygon]
-
             segments = extract_segment_from_polygon(stack)
-
             path = Path.make_compound_path(
                 Path(np.asarray(poly.exterior.coords)[:, :2]),
                 *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
-
-            path_patch = PathPatch(
-                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
-            )
-
+            path_patch = PathPatch(path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15))
             return path_patch, segments, poly
 
         elif self.mode == "medium":
             m = self.generate.generate_maze(
-                map_size=grid_lenght,
+                map_size=grid_length,
                 decimation=0.0,
                 min_blocks=0,
                 num_cells_togo=100,

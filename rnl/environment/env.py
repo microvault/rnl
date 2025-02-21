@@ -205,6 +205,8 @@ class NaviEnv(gym.Env):
             self.body.position.y,
             self.body.angle,
         )
+
+        print(f"X: {x}, Y: {y}, Theta: {theta}")
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
@@ -313,15 +315,16 @@ class NaviEnv(gym.Env):
 
         self.actions_list.append(action)
 
-        if action == 0:
-            vl = 0.10 * self.scalar
-            vr = 0.0
-        elif action == 1:
-            vl = 0.08 * self.scalar
-            vr = -0.36 * self.scalar
-        elif action == 2:
-            vl = 0.08 * self.scalar
-            vr = 0.36 * self.scalar
+        if self.mode == "easy-00":
+            if action == 0:
+                vl = 0.10 * self.scalar
+                vr = 0.0
+            elif action == 1:
+                vl = 0.08 * self.scalar
+                vr = -0.72 * self.scalar
+            elif action == 2:
+                vl = 0.08 * self.scalar
+                vr = 0.72 * self.scalar
 
         if vr > 0:
             self.turn_left_count += 1
@@ -464,19 +467,33 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
-                targets = np.array([[0.35, 0.35]])
+                targets = np.array([[0.35, 0.35], [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
+
+                try:
+                    theta = 4
+                    self.robot.reset_robot(self.body, x, y, theta)
+                except Exception as e:
+                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+                    raise
 
             if self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
-                targets = np.array([[0.35, 0.35]])#, [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
+                targets = np.array([[0.35, 0.35], [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
+
+                try:
+                    theta = np.random.uniform(0, 2 * np.pi)
+                    self.robot.reset_robot(self.body, x, y, theta)
+                except Exception as e:
+                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+                    raise
 
             elif self.mode == "easy-02":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
@@ -489,6 +506,13 @@ class NaviEnv(gym.Env):
                 ), np.random.uniform(0.35, 1.8)
                 x, y = np.random.uniform(0.35, 1.8), np.random.uniform(0.35, 1.8)
 
+                try:
+                    theta = np.random.uniform(0, 2 * np.pi)
+                    self.robot.reset_robot(self.body, x, y, theta)
+                except Exception as e:
+                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+                    raise
+
             elif self.mode == "medium":
                 self.new_map_path, self.segments, self.poly = self.create_world.world()
                 robot_pos, goal_pos = spawn_robot_and_goal(
@@ -499,6 +523,13 @@ class NaviEnv(gym.Env):
                 )
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
+
+                try:
+                    theta = np.random.uniform(0, 2 * np.pi)
+                    self.robot.reset_robot(self.body, x, y, theta)
+                except Exception as e:
+                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+                    raise
 
         except Exception as e:
             print(
@@ -516,12 +547,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao desenhar o cenário: {e}")
             raise
 
-        try:
-            theta = 4 #np.random.uniform(0, 2 * np.pi)
-            self.robot.reset_robot(self.body, x, y, theta)
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-            raise
 
         try:
             intersections, measurement = self.sensor.sensor(
