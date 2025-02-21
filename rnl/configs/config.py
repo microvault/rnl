@@ -5,7 +5,7 @@ from typing import List
 @dataclass
 class EnvConfig:
     scalar: int
-    grid_length: int
+    grid_length: float
     folder_map: str
     name_map: str
     timestep: int

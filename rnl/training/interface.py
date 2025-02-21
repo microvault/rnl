@@ -43,7 +43,7 @@ def sensor(
 
 def make(
     scalar: int,
-    grid_length: int,
+    grid_length: float,
     folder_map: str,
     name_map: str,
     max_timestep: int,
