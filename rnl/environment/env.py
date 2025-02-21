@@ -17,7 +17,7 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-
+from rnl.engine.polygons import compute_polygon_diameter
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -41,6 +41,7 @@ class NaviEnv(gym.Env):
 
         self.mode: str = env_config.mode
         self.grid_length = env_config.grid_length
+        self.poly = None
 
         if self.mode == "medium":
             self.create_world = CreateWorld(
@@ -73,12 +74,12 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = 2.35  # 9 !!!!!!
-        self.min_dist = 0.0  # 1,0 !!!!!!!!!!
+        self.max_dist = compute_polygon_diameter(self.poly)    # 9 !!!!!!
+        print(f"Max distance: {self.max_dist}")
+        self.min_dist = 0.0     # 1,0 !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
-        max_alpha, min_alpha = 3.15, 0.0
-        self.scaler_alpha.fit(np.array([[min_alpha], [max_alpha]]))
+        self.scaler_alpha.fit(np.array([[0.0], [3.5]]))
         # -- Environmental parameters -- #
         self.max_lidar = sensor_config.max_range
         self.pretrained_model = robot_config.path_model
@@ -148,7 +149,7 @@ class NaviEnv(gym.Env):
 
         self.steps_to_goal = 0
         self.steps_below_threshold = 0
-        self.min_distance_threshold = 0.2  # por exemplo
+        self.min_distance_threshold = 0.2
         self.turn_left_count = 0
         self.turn_right_count = 0
         self.steps_to_collision = None
@@ -472,7 +473,7 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
-                targets = np.array([[0.35, 0.35], [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
+                targets = np.array([[0.35, 0.35]])#, [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
@@ -516,7 +517,7 @@ class NaviEnv(gym.Env):
             raise
 
         try:
-            theta = np.random.uniform(0, 2 * np.pi)
+            theta = 4 #np.random.uniform(0, 2 * np.pi)
             self.robot.reset_robot(self.body, x, y, theta)
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
