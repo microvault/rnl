@@ -1,6 +1,26 @@
 import numpy as np
 from numba import njit, prange, typed
 
+def compute_polygon_diameter(poly) -> float:
+    """
+    Calcula a máxima distância (diâmetro) entre dois pontos do polígono.
+    Usa o convex hull do polígono para reduzir o número de pontos.
+    """
+    # Obtém o convex hull do polígono
+    convex = poly.convex_hull
+    pts = np.array(convex.exterior.coords)
+
+    max_dist = 0.0
+    n = len(pts)
+
+    # Busca dupla para calcular todas as distâncias entre os vértices
+    for i in range(n):
+        for j in range(i + 1, n):
+            dist = np.linalg.norm(pts[i] - pts[j])
+            if dist > max_dist:
+                max_dist = dist
+
+    return max_dist
 
 @njit(inline="always")
 def ray_cast(x: float, y: float, poly: np.ndarray) -> bool:
