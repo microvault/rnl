@@ -20,7 +20,6 @@ def robot(
     threshold: float,
     collision: float,
     path_model: str,
-    algorithm: str,
 ) -> RobotConfig:
     return RobotConfig(
         base_radius,
@@ -31,7 +30,6 @@ def robot(
         threshold,
         collision,
         path_model,
-        algorithm,
     )
 
 
@@ -80,9 +78,7 @@ class Trainer:
 
     def learn(
         self,
-        algorithm: str,
         max_timestep_global: int,
-        buffer_size: int,
         seed: int,
         hidden_size: List[int],
         batch_size: int,
@@ -109,10 +105,8 @@ class Trainer:
             mlp_activation=activation,
         )
         trainer_config = TrainerConfig(
-            algorithm=algorithm,
             max_timestep_global=max_timestep_global,
             seed=seed,
-            buffer_size=buffer_size,
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,

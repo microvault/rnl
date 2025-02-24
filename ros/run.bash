@@ -2,6 +2,11 @@
 source /opt/ros/humble/setup.bash
 source /usr/share/gazebo/setup.sh
 
+RUN pip uninstall -y numpy
+RUN pip install "numpy<2"
+RUN pip install --force-reinstall stable-baselines3
+
+
 # Primeiro instalar dependências
 rosdep install --from-paths src --ignore-src -r -y
 

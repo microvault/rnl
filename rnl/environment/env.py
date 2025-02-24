@@ -8,7 +8,6 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 from stable_baselines3 import PPO
-
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.rewards import get_reward
 from rnl.engine.spawn import spawn_robot_and_goal
@@ -18,6 +17,7 @@ from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
 from rnl.engine.polygons import compute_polygon_diameter
+
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -43,14 +43,14 @@ class NaviEnv(gym.Env):
         self.grid_length = env_config.grid_length
         self.poly = None
 
-        if self.mode == "medium":
+        if "medium" in self.mode:
             self.create_world = CreateWorld(
                 folder=env_config.folder_map,
                 name=env_config.name_map,
             )
-            self.new_map_path, self.segments, self.poly = self.create_world.world()
+            self.new_map_path, self.segments, self.poly = self.create_world.world(mode=self.mode)
 
-        elif self.mode in ("easy-00", "easy-01", "easy-02"):
+        elif "easy" in self.mode:
             self.generator = Generator(mode=self.mode)
             self.new_map_path, self.segments, self.poly = self.generator.world(
                 self.grid_length
@@ -75,7 +75,6 @@ class NaviEnv(gym.Env):
         )
         self.use_render = use_render
         self.max_dist = compute_polygon_diameter(self.poly)    # 9 !!!!!!
-        print(f"Max distance: {self.max_dist}")
         self.min_dist = 0.0     # 1,0 !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -110,8 +109,7 @@ class NaviEnv(gym.Env):
         self.last_states = np.zeros(state_size)
 
         if self.pretrained_model != "None":
-            if robot_config.algorithm == "PPO":
-                self.model = PPO.load(robot_config.path_model)
+            self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -175,10 +173,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = -0.005 * self.scalar
+            self.vr = -0.36 * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = 0.005 * self.scalar
+            self.vr = 0.36 * self.scalar
 
     def step_animation(self, i):
 
@@ -206,7 +204,6 @@ class NaviEnv(gym.Env):
             self.body.angle,
         )
 
-        print(f"X: {x}, Y: {y}, Theta: {theta}")
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
@@ -315,21 +312,15 @@ class NaviEnv(gym.Env):
 
         self.actions_list.append(action)
 
-        if self.mode == "easy-00":
-            if action == 0:
-                vl = 0.10 * self.scalar
-                vr = 0.0
-            elif action == 1:
-                vl = 0.08 * self.scalar
-                vr = -0.72 * self.scalar
-            elif action == 2:
-                vl = 0.08 * self.scalar
-                vr = 0.72 * self.scalar
-
-        if vr > 0:
-            self.turn_left_count += 1
-        elif vr < 0:
-            self.turn_right_count += 1
+        if action == 0:
+            vl = 0.10 * self.scalar
+            vr = 0.0
+        elif action == 1:
+            vl = 0.08 * self.scalar
+            vr = -0.72 * self.scalar
+        elif action == 2:
+            vl = 0.08 * self.scalar
+            vr = 0.72 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -406,45 +397,51 @@ class NaviEnv(gym.Env):
 
         self.last_states = states
 
-        if min(lidar_measurements) < self.min_distance_threshold:
-            self.steps_below_threshold += 1
-
-        # Verifica colisão
-        if collision and self.steps_to_collision is None:
-            self.steps_to_collision = self.timestep
-
-        if done:
-            self.steps_to_goal = self.timestep
-
         self.space.step(1 / 60)
 
         self.timestep += 1
 
         truncated = self.timestep >= self.max_timestep
 
-        # if self.debug:
-        info = {
-            "obstacle": obstacle,
-            "collision_score": collision_score,
-            "orientation_score": orientation_score,
-            "progress_score": progress_score,
-            "time_score": time_score,
-            "action": float(action),
-            "dist": float(dist_norm[0]),
-            "alpha": float(alpha_norm[0]),
-            "min_lidar": float(min(lidar_norm)),
-            "max_lidar": float(max(lidar_norm)),
-            "states": states,
-            "steps_below_threshold": self.steps_below_threshold,
-            "turn_left_count": self.turn_left_count,
-            "turn_right_count": self.turn_right_count,
-            "steps_to_collision": self.steps_to_collision,
-            "steps_to_goal": self.steps_to_goal,
-        }
-        return states, reward, done, truncated, info
+        if self.debug:
 
-        # else:
-        #     return states, reward, done, truncated, {}
+            if vr > 0:
+                self.turn_left_count += 1
+            elif vr < 0:
+                self.turn_right_count += 1
+
+            if min(lidar_measurements) < self.min_distance_threshold:
+                self.steps_below_threshold += 1
+
+            # Verifica colisão
+            if collision and self.steps_to_collision is None:
+                self.steps_to_collision = self.timestep
+
+            if done:
+                self.steps_to_goal = self.timestep
+
+            info = {
+                "obstacle": obstacle,
+                "collision_score": collision_score,
+                "orientation_score": orientation_score,
+                "progress_score": progress_score,
+                "time_score": time_score,
+                "action": float(action),
+                "dist": float(dist_norm[0]),
+                "alpha": float(alpha_norm[0]),
+                "min_lidar": float(min(lidar_norm)),
+                "max_lidar": float(max(lidar_norm)),
+                "states": states,
+                "steps_below_threshold": self.steps_below_threshold,
+                "turn_left_count": self.turn_left_count,
+                "turn_right_count": self.turn_right_count,
+                "steps_to_collision": self.steps_to_collision,
+                "steps_to_goal": self.steps_to_goal,
+            }
+            return states, reward, done, truncated, info
+
+        else:
+            return states, reward, done, truncated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         try:
@@ -467,13 +464,13 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
-                targets = np.array([[0.35, 0.35], [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
+                targets = np.array([[1.8, 0.35]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
 
                 try:
-                    theta = 4
+                    theta = 4.70
                     self.robot.reset_robot(self.body, x, y, theta)
                 except Exception as e:
                     print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
@@ -513,8 +510,28 @@ class NaviEnv(gym.Env):
                     print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
                     raise
 
-            elif self.mode == "medium":
-                self.new_map_path, self.segments, self.poly = self.create_world.world()
+            elif self.mode == "easy-03":
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
+
+                try:
+                    theta = np.random.uniform(0, 2 * np.pi)
+                    self.robot.reset_robot(self.body, x, y, theta)
+                except Exception as e:
+                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
+                    raise
+
+            elif "medium" in self.mode:
+                self.new_map_path, self.segments, self.poly = self.create_world.world(mode=self.mode)
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
                     robot_clearance=self.threshold,
@@ -575,6 +592,8 @@ class NaviEnv(gym.Env):
                 self.target_y,
             )
 
+
+
             self.initial_distance = dist
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao calcular distância/ângulo: {e}")
@@ -594,6 +613,7 @@ class NaviEnv(gym.Env):
             alpha_norm = self.scaler_alpha.transform(
                 np.array(alpha).reshape(1, -1)
             ).flatten()
+
         except Exception as e:
             print(f"[RESET-ERROR] Erro ao normalizar entradas (scalers): {e}")
             raise
@@ -667,11 +687,12 @@ class NaviEnv(gym.Env):
         """
         # ------ Create wordld ------ #
 
-        if self.mode in ("easy-00", "easy-01", "easy-02"):
+        if "easy" in self.mode:
+            print("Easy mode")
             ax.set_xlim(0, 2)
             ax.set_ylim(0, 2)
 
-        elif self.mode == "medium":
+        elif "medium" in self.mode:
             minx, miny, maxx, maxy = self.poly.bounds
             center_x = (minx + maxx) / 2.0
             center_y = (miny + maxy) / 2.0
@@ -805,13 +826,13 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if self.mode in ("easy-00", "easy-01", "easy-02"):
+        if "easy" in self.mode:
             x2 = x + 0.1 * np.cos(self.body.angle)
             y2 = y + 0.1 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
-        elif self.mode == "medium":
+        elif "medium" in self.mode:
             x2 = x + 2.0 * np.cos(self.body.angle)
             y2 = y + 2.0 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(

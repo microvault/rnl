@@ -57,7 +57,7 @@ class CreateWorld:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self):
+    def world(self, mode: str):
         """
         Generates a maze world.
 
@@ -69,7 +69,7 @@ class CreateWorld:
         """
         m = np.empty((0, 0))
 
-        contour_mask = self.map2d.initial_environment2d(plot=False)
+        contour_mask = self.map2d.initial_environment2d(plot=False, mode=mode)
         if contour_mask is None:
             raise ValueError("Failed to generate the contour mask.")
         m = contour_mask

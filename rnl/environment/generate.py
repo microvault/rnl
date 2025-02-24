@@ -6,7 +6,7 @@ from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
 
 from rnl.engine.collisions import extract_segment_from_polygon
-from rnl.engine.polygons import find_contours, process, compute_polygon_diameter
+from rnl.engine.polygons import find_contours, process
 from rnl.engine.world import GenerateWorld
 
 
@@ -94,7 +94,7 @@ class Generator:
             path_patch = PathPatch(path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15))
             return path_patch, segments, poly
 
-        elif self.mode == "medium":
+        elif self.mode == "easy-03":
             m = self.generate.generate_maze(
                 map_size=grid_length,
                 decimation=0.0,

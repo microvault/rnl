@@ -4,29 +4,31 @@
 - [ ] Integracao com ROS e Gazebo
 - [ ] Randomizar o mapa tambem com aqueles dois parametros do map2d
 - [ ] O LLM precisa modificar parametros especificos.
-- [ ] Utilizar mascara para multiplas entradas.
-- [ ] Criar um dataset de aprendizado por imitacao para acelerar o ambiente
 - [ ] Fazer finetune do modelo pre-treinaod e transfer learning
-- [ ] Ao mudar o peso, tipo aumentar ao maximo, era para ficar mais pesado e logo a velocidade diminuir certo.
-- [ ] Ao parar o robo de uma vez, era para ele continuar por um certo periodo andando certo ?
 - [ ] Mudar dinamicamente o timestep total de acordo com o tamanho do mapa
 - [ ] Existem muito parametros que sao repetidos e reduntantes.
 - [ ] O LLM modificar tambem o grau de treinamento, ou seja, ele ve se precisa intensificar o treinamento.
-- [ ] Colocar o modelo pre-treinado no pacote.
-- [ ] Criar um dataset com os mapas.
-- [ ] Randomizar os parametros do mapa
 - [ ] Testes no robo fisico
 - [ ] Adicionar graus de dificuldade no ambiente
 - [ ] Adicionar chamada para o LLM e ir modificando
 - [ ] Criar uma rede totalmente personalizada com pytorch
-- [ ] Adicionar o ambiente todo com taichi
 - [ ] Criar testes unitarios para o ambiente todo
 - [ ] Resolver questao de somente selecionar uma acao (viciado)
 - [ ] Adicionar callback personalizado com video e dados do robo
 - [ ] 1000000 steps/seg
-- [ ] Adicionar Flash Attention em Pytorch
 - [ ] Adicionar um ambiente de treinamento com o proprio ambiente
 - [ ] Randomizar:
       - Layout geral (paredes, corredores, aberturas)
       - Presença de agentes (pessoas, outros robôs, objetos em movimento)
 - [ ] As velocidades Linear e Angular estao invertidas *****************
+
+Somente essas dependencias
+- numba
+- numpy
+- python
+- gymnasium
+- torch
+- wandb
+- tdqm
+
+PPO, LSTM, MLP, GEMINI

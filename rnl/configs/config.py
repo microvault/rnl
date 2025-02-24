@@ -46,7 +46,6 @@ class RobotConfig:
     threshold: float
     collision: float
     path_model: str
-    algorithm: str
 
 
 @dataclass
@@ -57,9 +56,7 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
-    algorithm: str
     max_timestep_global: int
-    buffer_size: int
     seed: int
     batch_size: int
     lr: float

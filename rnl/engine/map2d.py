@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
 from yaml import SafeLoader, load
-
+import random
 
 class Map2D:
     def __init__(
@@ -284,6 +284,7 @@ class Map2D:
         kernel_size=(3, 3),
         morph_iterations=1,
         approx_epsilon_factor=0.001,
+        mode="medium-00",
     ):
         """
         Prepara o ambiente 2D a partir da grid do mapa.
@@ -299,7 +300,14 @@ class Map2D:
         - A máscara final processada (contour_mask) ou None se não houver região.
         """
         # 1. Obter grid e extrair subgrid com borda
-        new_map_grid = self._grid_map()
+        if mode == "medium-00":
+            num = random.randint(1, 4)
+            new_map_grid = self.divide_map_into_quadrants(self._grid_map(), num)
+        elif mode == "medium-01":
+            new_map_grid = self._grid_map()
+        else:
+            new_map_grid = self._grid_map()
+
         subgrid_uint8 = self.get_subgrid_from_map(new_map_grid, border=10)
         if subgrid_uint8 is None:
             return None

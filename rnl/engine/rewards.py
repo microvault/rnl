@@ -178,7 +178,6 @@ def get_reward(
     # else:
     #     return rew_coll_target, 0.0, 0.0, 0.0, 0.0, done
 
-
     # orientation_rewards = orientation_reward(alpha, scale_orientation)
     # orientation_score = normalize_module(orientation_rewards, 0, 1, -3, 0)  # 30%
 

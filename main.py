@@ -16,7 +16,6 @@ def main(arg):
         threshold=0.1,  # 4
         collision=0.075,  # 2
         path_model="None",
-        algorithm="PPO",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -29,17 +28,17 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=10,
-        grid_length=2.15,
+        scalar=100,
+        grid_length=2,
         folder_map="",  # ./data/map4
         name_map="",  # map4
-        max_timestep=1000,
+        max_timestep=10000,
         mode="easy-00",  # easy-00, easy-01, easy-02, medium
         reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=False, debug=True, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -52,10 +51,8 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            algorithm=args.algorithm,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
-            buffer_size=args.buffer_size,
             hidden_size=list(map(int, args.hidden_size.split(","))),
             activation=args.activation,
             batch_size=args.batch_size,
@@ -102,22 +99,12 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--algorithm",
-        type=str,
-    )
-
-    parser.add_argument(
         "--max_timestep_global",
         type=int,
     )
 
     parser.add_argument(
         "--seed",
-        type=int,
-    )
-
-    parser.add_argument(
-        "--buffer_size",
         type=int,
     )
 
@@ -156,11 +143,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--lr",
         type=float,
-    )
-
-    parser.add_argument(
-        "--learn_step",
-        type=int,
     )
 
     parser.add_argument(

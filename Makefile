@@ -4,22 +4,19 @@ IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
 
 MODE ?= learn
-ALGORITHM ?= PPO
-MAX_TIMESTEP_GLOBAL ?= 8_000_00
+MAX_TIMESTEP_GLOBAL ?= 3_000_00
 SEED ?= 1
-BUFFER_SIZE ?= 100000
-HIDDEN_SIZE ?= 40,40
+HIDDEN_SIZE ?= 40,30
 ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
-NUM_ENVS ?= 4
-DEVICE ?= cuda
+NUM_ENVS ?= 1
+DEVICE ?= mps
 CHECKPOINT ?= 13_02_2025
 LR ?= 0.0003
-LEARN_STEP ?= 512
 GAE_LAMBDA ?= 0.95
 ACTION_STD_INIT ?= 0.6
 CLIP_COEF ?= 0.2
-ENT_COEF ?= 0.0
+ENT_COEF ?= 0.05
 VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
@@ -28,16 +25,14 @@ TYPE_REWARD ?= time
 
 .PHONY: sim
 sim:
-	@poetry run python -m main sim --algorithm $(ALGORITHM)
+	@poetry run python -m main sim
 
 
 .PHONY: learn
 learn:
 	@poetry run python -m main $(MODE) \
-    	--algorithm $(ALGORITHM) \
     	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
     	--seed $(SEED) \
-    	--buffer_size $(BUFFER_SIZE) \
     	--hidden_size $(HIDDEN_SIZE) \
     	--activation $(ACTIVATION) \
     	--batch_size $(BATCH_SIZE) \
@@ -45,7 +40,6 @@ learn:
     	--device $(DEVICE) \
     	--checkpoint $(CHECKPOINT) \
     	--lr $(LR) \
-    	--learn_step $(LEARN_STEP) \
     	--gae_lambda $(GAE_LAMBDA) \
     	--action_std_init $(ACTION_STD_INIT) \
     	--clip_coef $(CLIP_COEF) \
@@ -59,10 +53,10 @@ learn:
 .PHONY: probe
 probe:
 	@poetry run python -m main run \
-    	--algorithm $(ALGORITHM) \
     	--num_envs $(NUM_ENVS) \
     	--device $(DEVICE) \
-    	--type_reward $(TYPE_REWARD)
+    	--type_reward $(TYPE_REWARD) \
+     	--type_reward $(TYPE_REWARD)
 
 
 .PHONY: test_without_coverage
@@ -105,23 +99,12 @@ build:
 	@docker build -f docker/Dockerfile -t rnl-docker-cuda .
 
 
-.PHONY: build-turtlebot
-build-turtlebot:
-		@docker build -f ros/turtlebot.Dockerfile -t turtlebot3-docker .
-
-.PHONY: run-turtlebot
-run-turtlebot:
-	@docker run -it --net=host -v ./playground:/turtlebot3_ws/src/playground:rw turtlebot3-docker
-
-
 .PHONY: train
 train:
 	@echo
 	@echo "MODE=$(MODE)"
-	@echo "ALGORITHM=$(ALGORITHM)"
 	@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
 	@echo "SEED=$(SEED)"
-	@echo "BUFFER_SIZE=$(BUFFER_SIZE)"
 	@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
 	@echo "ACTIVATION=$(ACTIVATION)"
 	@echo "BATCH_SIZE=$(BATCH_SIZE)"
@@ -129,7 +112,6 @@ train:
 	@echo "DEVICE=$(DEVICE)"
 	@echo "CHECKPOINT=$(CHECKPOINT)"
 	@echo "LR=$(LR)"
-	@echo "LEARN_STEP=$(LEARN_STEP)"
 	@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
 	@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
 	@echo "CLIP_COEF=$(CLIP_COEF)"
@@ -151,7 +133,6 @@ train:
 	-v $(PWD):/workdir \
 	rnl-docker-cuda \
 	--MODE $(MODE) \
-	--algorithm $(ALGORITHM) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
 	--seed $(SEED) \
 	--buffer_size $(BUFFER_SIZE) \
@@ -162,7 +143,6 @@ train:
 	--device $(DEVICE) \
 	--checkpoint $(CHECKPOINT) \
 	--lr $(LR) \
-	--learn_step $(LEARN_STEP) \
 	--gae_lambda $(GAE_LAMBDA) \
 	--action_std_init $(ACTION_STD_INIT) \
 	--clip_coef $(CLIP_COEF) \
