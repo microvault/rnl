@@ -1,6 +1,7 @@
 import numpy as np
 from numba import njit, prange, typed
 
+
 def compute_polygon_diameter(poly) -> float:
     """
     Calcula a máxima distância (diâmetro) entre dois pontos do polígono.
@@ -21,6 +22,7 @@ def compute_polygon_diameter(poly) -> float:
                 max_dist = dist
 
     return max_dist
+
 
 @njit(inline="always")
 def ray_cast(x: float, y: float, poly: np.ndarray) -> bool:
