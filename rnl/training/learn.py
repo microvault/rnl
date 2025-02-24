@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import wandb
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from torch import nn
+from torch.distributions import Categorical
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
-import wandb
+
 from rnl.algorithms.ppo import PPO as RL_PPO
 from rnl.configs.config import (
     EnvConfig,
@@ -18,8 +21,6 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-import torch
-from torch.distributions import Categorical
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 

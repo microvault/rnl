@@ -1,11 +1,12 @@
 import functools
 import os
+import random
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.pyplot import imread
 from yaml import SafeLoader, load
-import random
+
 
 class Map2D:
     def __init__(

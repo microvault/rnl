@@ -1,5 +1,7 @@
 import json
+
 import requests
+
 
 class LLMTrainingConfigurator:
     """
@@ -36,7 +38,7 @@ class LLMTrainingConfigurator:
         """
         headers = {
             "Authorization": f"Bearer {self.gemini_api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         payload = {"prompt": prompt, "max_tokens": 500}  # Ajuste conforme API
         # Exemplo de chamada (fictícia):
@@ -59,7 +61,7 @@ class LLMTrainingConfigurator:
             # Caso falhe, retorna um dicionário padrão ou mensagem de erro
             training_config = {
                 "status": "error",
-                "message": "Falha ao interpretar resposta da LLM"
+                "message": "Falha ao interpretar resposta da LLM",
             }
         return training_config
 
@@ -93,7 +95,7 @@ class LLMTrainingEvaluator:
         """
         headers = {
             "Authorization": f"Bearer {self.evaluator_api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         payload = {"prompt": prompt, "max_tokens": 300}
         # response = requests.post(self.evaluator_api_url, headers=headers, json=payload)
@@ -115,12 +117,16 @@ if __name__ == "__main__":
     context = {
         "environments": ["mapa_aleatorio_1", "mapa_aleatorio_2"],
         "actions": ["avancar", "recuar", "girar_esquerda", "girar_direita"],
-        "reward_functions": ["colisao_negativa", "distancia_objetivo_pos", "movimento_suave_bonus"]
+        "reward_functions": [
+            "colisao_negativa",
+            "distancia_objetivo_pos",
+            "movimento_suave_bonus",
+        ],
     }
 
     configurator = LLMTrainingConfigurator(
         gemini_api_url="https://api.gemini.fake/v1/completions",
-        gemini_api_key="MINHA_CHAVE_GEMINI"
+        gemini_api_key="MINHA_CHAVE_GEMINI",
     )
 
     # Exemplo: usuário quer curvas suaves e manter 1m das paredes
@@ -132,7 +138,7 @@ if __name__ == "__main__":
 
     evaluator = LLMTrainingEvaluator(
         evaluator_api_url="https://api.outroLLM.fake/v1/evaluate",
-        evaluator_api_key="MINHA_CHAVE_OUTRO_LLM"
+        evaluator_api_key="MINHA_CHAVE_OUTRO_LLM",
     )
 
     # Exemplo de estatísticas (coletadas depois do treino)
@@ -140,7 +146,7 @@ if __name__ == "__main__":
         "time_to_goal_mean": 12.4,
         "time_to_goal_std": 2.1,
         "distance_to_walls_mean": 1.02,
-        "collisions_count": 0
+        "collisions_count": 0,
     }
 
     evaluation_result = evaluator.evaluate_training(user_input, example_stats)
