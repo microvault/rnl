@@ -9,8 +9,9 @@ SEED ?= 1
 HIDDEN_SIZE ?= 40,30
 ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
-NUM_ENVS ?= 1
-DEVICE ?= mps
+NUM_ENVS ?= 8
+DEVICE ?= cpu
+LEARN_STEP ?= 512
 CHECKPOINT ?= 13_02_2025
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
@@ -40,6 +41,7 @@ learn:
     	--device $(DEVICE) \
     	--checkpoint $(CHECKPOINT) \
     	--lr $(LR) \
+        --learn_step $(LEARN_STEP) \
     	--gae_lambda $(GAE_LAMBDA) \
     	--action_std_init $(ACTION_STD_INIT) \
     	--clip_coef $(CLIP_COEF) \

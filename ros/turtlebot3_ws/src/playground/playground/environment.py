@@ -40,7 +40,9 @@ def distance_to_goal(
         return dist
 
 
-def angle_to_goal(x: float, y: float, theta: float, goal_x: float, goal_y: float) -> float:
+def angle_to_goal(
+    x: float, y: float, theta: float, goal_x: float, goal_y: float
+) -> float:
     # Usa np.abs e np.arctan2 do numpy para precisão
     o_t = np.array([np.cos(theta), np.sin(theta)], dtype=np.float64)
     g_t = np.array([goal_x - x, goal_y - y], dtype=np.float64)
@@ -76,7 +78,9 @@ class InferenceModel(Node):
 
         self.last_states = np.zeros(10)
         self.goal_positions = [(0.35, 0.35)]
-        self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
+        self.goal_order = random.sample(
+            range(len(self.goal_positions)), len(self.goal_positions)
+        )
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
         self.lidar_ranges = [0.0] * 5
@@ -84,8 +88,12 @@ class InferenceModel(Node):
 
         # Configuração dos subscribers e publisher
         qos_profile = QoSProfile(depth=10, reliability=QoSReliabilityPolicy.BEST_EFFORT)
-        self.scan_sub = self.create_subscription(LaserScan, "/scan", self.laser_callback, qos_profile)
-        self.odom_sub = self.create_subscription(Odometry, "/odom", self.odom_callback, qos_profile)
+        self.scan_sub = self.create_subscription(
+            LaserScan, "/scan", self.laser_callback, qos_profile
+        )
+        self.odom_sub = self.create_subscription(
+            Odometry, "/odom", self.odom_callback, qos_profile
+        )
         self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
 
         # Carrega o modelo treinado
@@ -162,29 +170,41 @@ class InferenceModel(Node):
         theta = 2.0 * math.atan2(z, w)
         dist = distance_to_goal(x, y, self.goal_x, self.goal_y, DIST_MAX)
         alpha = angle_to_goal(x, y, theta, self.goal_x, self.goal_y)
-        clamped_lidar = [float(clamp(val, LIDAR_MIN, LIDAR_MAX)) for val in self.lidar_ranges]
+        clamped_lidar = [
+            float(clamp(val, LIDAR_MIN, LIDAR_MAX)) for val in self.lidar_ranges
+        ]
         clamped_dist = float(clamp(dist, DIST_MIN, DIST_MAX))
         clamped_alpha = float(clamp(alpha, ALPHA_MIN, ALPHA_MAX))
         action_one_hot = np.eye(3)[self.action]
-        norm_lidar = (np.array(clamped_lidar, dtype=np.float32) - LIDAR_MIN) / (LIDAR_MAX - LIDAR_MIN)
+        norm_lidar = (np.array(clamped_lidar, dtype=np.float32) - LIDAR_MIN) / (
+            LIDAR_MAX - LIDAR_MIN
+        )
         norm_dist = np.array(clamped_dist, dtype=np.float32) / (DIST_MAX - DIST_MIN)
-        norm_alpha = (np.array(clamped_alpha, dtype=np.float32) / (ALPHA_MAX - ALPHA_MIN)) - FACTOR_REAL_ALPHA
+        norm_alpha = (
+            np.array(clamped_alpha, dtype=np.float32) / (ALPHA_MAX - ALPHA_MIN)
+        ) - FACTOR_REAL_ALPHA
 
         if norm_alpha < 0.0:
             norm_alpha = 0.0
 
         self.get_logger().info(f"Distância: {norm_dist}, Alpha: {norm_alpha}")
 
-        states = np.concatenate((norm_lidar,
-                                 np.array(action_one_hot, dtype=np.int16),
-                                 np.array([norm_dist], dtype=np.float32),
-                                 np.array([norm_alpha], dtype=np.float32)))
+        states = np.concatenate(
+            (
+                norm_lidar,
+                np.array(action_one_hot, dtype=np.int16),
+                np.array([norm_dist], dtype=np.float32),
+                np.array([norm_alpha], dtype=np.float32),
+            )
+        )
         self.last_states = states
 
         if dist <= 0.3:
             time.sleep(3)
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)
-            self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
+            self.goal_x, self.goal_y = self.goal_positions[
+                self.goal_order[self.goal_index]
+            ]
             self.get_logger().info(f"Novo objetivo: ({self.goal_x}, {self.goal_y})")
 
 

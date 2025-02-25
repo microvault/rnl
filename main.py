@@ -28,17 +28,17 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=100,
+        scalar=10,
         grid_length=2,
         folder_map="",  # ./data/map4
         name_map="",  # map4
-        max_timestep=10000,
-        mode="easy-00",  # easy-00, easy-01, easy-02, medium
+        max_timestep=1000,
+        mode="easy-01",  # easy-00, easy-01, easy-02, medium
         reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True, plot=False)
+    param_render = vault.render(controller=False, debug=False, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -81,7 +81,7 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            num_envs=2,
+            num_envs=10,
             max_steps=1000,
             robot_config=param_robot,
             sensor_config=param_sensor,
@@ -146,6 +146,11 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--learn_step",
+        type=int,
+    )
+
+    parser.add_argument(
         "--gae_lambda",
         type=float,
     )
@@ -205,4 +210,17 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
+    import cProfile
+    import os
+    import pstats
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     main(args)
+
+    profiler.disable()
+    stats = pstats.Stats(profiler)
+    stats.strip_dirs()  # remove caminhos longos
+    stats.sort_stats("cumtime")  # ordena pelo tempo acumulado
+    stats.print_stats(os.getcwd())  # mostra só funções do teu diretório

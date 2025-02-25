@@ -1,9 +1,9 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.distributions import Categorical
-import numpy as np
 
 # Configurar device
 # Check that MPS is available
@@ -29,15 +29,16 @@ torch.manual_seed(seed)
 
 # Hyperparâmetros ajustados
 learning_rate = 0.0003
-gamma         = 0.99
-GAE_LAMBDA    = 0.95      # Lambda do GAE
-CLIP_COEF     = 0.2       # Coeficiente de clipping
-ENT_COEF      = 0.05      # Coeficiente de entropia
-VF_COEF       = 0.5       # Coeficiente do valor
-MAX_GRAD_NORM = 0.5       # Clipping dos gradientes
-UPDATE_EPOCHS = 4         # Número de épocas de atualização
-T_horizon     = 10
-ACTION_STD_INIT = 0.6     # (não utilizado para ações discretas)
+gamma = 0.99
+GAE_LAMBDA = 0.95  # Lambda do GAE
+CLIP_COEF = 0.2  # Coeficiente de clipping
+ENT_COEF = 0.05  # Coeficiente de entropia
+VF_COEF = 0.5  # Coeficiente do valor
+MAX_GRAD_NORM = 0.5  # Clipping dos gradientes
+UPDATE_EPOCHS = 4  # Número de épocas de atualização
+T_horizon = 10
+ACTION_STD_INIT = 0.6  # (não utilizado para ações discretas)
+
 
 class PPO(nn.Module):
     def __init__(self, input_dim, hidden_dims, output_dim):
@@ -59,7 +60,7 @@ class PPO(nn.Module):
 
         # Cabeça de política e valor
         self.fc_pi = nn.Linear(trunk_out_dim, output_dim)
-        self.fc_v  = nn.Linear(trunk_out_dim, 1)
+        self.fc_v = nn.Linear(trunk_out_dim, 1)
 
         self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         self.to(device)
@@ -99,12 +100,12 @@ class PPO(nn.Module):
             prob_a_lst.append(prob_a)
             done_lst.append(0 if done else 1)
 
-        s         = torch.from_numpy(np.array(s_lst)).float().to(device)
-        a         = torch.from_numpy(np.array(a_lst)).long().to(device).unsqueeze(1)
-        r         = torch.from_numpy(np.array(r_lst)).float().to(device).unsqueeze(1)
-        s_prime   = torch.from_numpy(np.array(s_prime_lst)).float().to(device)
+        s = torch.from_numpy(np.array(s_lst)).float().to(device)
+        a = torch.from_numpy(np.array(a_lst)).long().to(device).unsqueeze(1)
+        r = torch.from_numpy(np.array(r_lst)).float().to(device).unsqueeze(1)
+        s_prime = torch.from_numpy(np.array(s_prime_lst)).float().to(device)
         done_mask = torch.from_numpy(np.array(done_lst)).float().to(device).unsqueeze(1)
-        prob_a    = torch.from_numpy(np.array(prob_a_lst)).float().to(device).unsqueeze(1)
+        prob_a = torch.from_numpy(np.array(prob_a_lst)).float().to(device).unsqueeze(1)
 
         self.data = []
         return s, a, r, s_prime, done_mask, prob_a

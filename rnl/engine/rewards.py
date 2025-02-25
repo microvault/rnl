@@ -4,6 +4,8 @@ import numpy as np
 from numba import njit
 from shapely.geometry import Point
 
+from rnl.engine.utils import medir_tempo
+
 
 @njit
 def normalize_module(value, min_val, max_val):

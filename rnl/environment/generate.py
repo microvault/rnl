@@ -91,7 +91,9 @@ class Generator:
                 Path(np.asarray(poly.exterior.coords)[:, :2]),
                 *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
-            path_patch = PathPatch(path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15))
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
             return path_patch, segments, poly
 
         elif self.mode == "easy-03":

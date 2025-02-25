@@ -14,14 +14,6 @@ class EnvConfig:
 
 
 @dataclass
-class CurriculumTargetPositionConfig:
-    total_steps: int
-    min_fraction: float
-    max_fraction: float
-    increase_smoothness: float
-
-
-@dataclass
 class RenderConfig:
     controller: bool
     debug: bool

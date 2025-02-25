@@ -8,7 +8,9 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 from stable_baselines3 import PPO
+
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
+from rnl.engine.polygons import compute_polygon_diameter
 from rnl.engine.rewards import get_reward
 from rnl.engine.spawn import spawn_robot_and_goal
 from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser
@@ -16,7 +18,6 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-from rnl.engine.polygons import compute_polygon_diameter
 
 
 class NaviEnv(gym.Env):
@@ -48,7 +49,9 @@ class NaviEnv(gym.Env):
                 folder=env_config.folder_map,
                 name=env_config.name_map,
             )
-            self.new_map_path, self.segments, self.poly = self.create_world.world(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.create_world.world(
+                mode=self.mode
+            )
 
         elif "easy" in self.mode:
             self.generator = Generator(mode=self.mode)
@@ -74,8 +77,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = compute_polygon_diameter(self.poly)    # 9 !!!!!!
-        self.min_dist = 0.0     # 1,0 !!!!!!!!!!
+        self.max_dist = compute_polygon_diameter(self.poly)  # 9 !!!!!!
+        self.min_dist = 0.0  # 1,0 !!!!!!!!!!
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         self.scaler_alpha.fit(np.array([[0.0], [3.5]]))
@@ -457,7 +460,6 @@ class NaviEnv(gym.Env):
         self.turn_right_count = 0
         self.steps_to_collision = None
         self.actions_list = []
-        self.timestep = 0
 
         try:
             if self.mode == "easy-00":
@@ -531,7 +533,9 @@ class NaviEnv(gym.Env):
                     raise
 
             elif "medium" in self.mode:
-                self.new_map_path, self.segments, self.poly = self.create_world.world(mode=self.mode)
+                self.new_map_path, self.segments, self.poly = self.create_world.world(
+                    mode=self.mode
+                )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
                     robot_clearance=self.threshold,
@@ -564,7 +568,6 @@ class NaviEnv(gym.Env):
             print(f"[RESET-ERROR] Erro ao desenhar o cenário: {e}")
             raise
 
-
         try:
             intersections, measurement = self.sensor.sensor(
                 x=self.body.position.x,
@@ -591,8 +594,6 @@ class NaviEnv(gym.Env):
                 self.target_x,
                 self.target_y,
             )
-
-
 
             self.initial_distance = dist
         except Exception as e:
