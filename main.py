@@ -13,7 +13,7 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.1,  # 4
+        threshold=0.3,  # 4
         collision=0.075,  # 2
         path_model="None",
     )
@@ -28,7 +28,7 @@ def main(arg):
 
     # 3.step -> config env
     param_env = vault.make(
-        scalar=10,
+        scalar=arg.scalar,
         grid_length=2,
         folder_map="",  # ./data/map4
         name_map="",  # map4
@@ -38,7 +38,7 @@ def main(arg):
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=False, plot=False)
+    param_render = vault.render(controller=arg.controller, debug=arg.debug, plot=False)
 
     if args.mode == "learn":
         # 5.step -> config train robot
@@ -91,11 +91,33 @@ def main(arg):
 
         model.execute()
 
+    elif args.mode == "training":
+        model = vault.Probe(
+            num_envs=10,
+            max_steps=100,
+            robot_config=param_robot,
+            sensor_config=param_sensor,
+            env_config=param_env,
+            render_config=param_render,
+        )
+
+        model.training()
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or setup environment.")
     parser.add_argument(
-        "mode", choices=["learn", "sim", "run"], help="Mode to run: 'train' or 'run'"
+        "mode", choices=["learn", "sim", "run", "training"], help="Mode"
     )
 
     parser.add_argument(
@@ -191,6 +213,21 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--controller",
+        type=str2bool,
+    )
+
+    parser.add_argument(
+        "--debug",
+        type=str2bool,
+    )
+
+    parser.add_argument(
+        "--scalar",
+        type=int,
+    )
+
+    parser.add_argument(
         "--type_reward",
         type=str,
         choices=[
@@ -210,17 +247,4 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    import cProfile
-    import os
-    import pstats
-
-    profiler = cProfile.Profile()
-    profiler.enable()
-
     main(args)
-
-    profiler.disable()
-    stats = pstats.Stats(profiler)
-    stats.strip_dirs()  # remove caminhos longos
-    stats.sort_stats("cumtime")  # ordena pelo tempo acumulado
-    stats.print_stats(os.getcwd())  # mostra só funções do teu diretório

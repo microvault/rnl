@@ -8,7 +8,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, probe_envs, training
+from rnl.training.learn import inference, probe_envs, probe_training, training
 
 
 def robot(
@@ -196,6 +196,24 @@ class Probe:
             raise ValueError("Error: Plot mode is not supported for training.")
 
         probe_envs(
+            self.num_envs,
+            self.max_steps,
+            self.robot_config,
+            self.sensor_config,
+            self.env_config,
+            self.render_config,
+        )
+
+        return None
+
+    def training(self) -> None:
+        if self.render_config.controller:
+            raise ValueError("Error: Controller mode is not supported for training.")
+
+        if self.render_config.plot:
+            raise ValueError("Error: Plot mode is not supported for training.")
+
+        probe_training(
             self.num_envs,
             self.max_steps,
             self.robot_config,

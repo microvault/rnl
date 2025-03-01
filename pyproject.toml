@@ -1,42 +1,45 @@
-[tool.poetry]
+[project]
 name = "rnl"
 version = "0.4.0"
 description = "RNL - Robot Navigation Learning"
-authors = ["Nicolasalan <grottimeireles@gmail.com>"]
-license = "LICENSE"
 readme = "README.md"
-packages = [{ include = "rnl" }]
+authors = [{ name = "Nicolasalan", email = "grottimeireles@gmail.com" }]
+license = { file = "LICENSE" }
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "gymnasium >=0.28.1, <0.30.0",
+    "matplotlib >=3.3",
+    "numpy >=1.24.2, <3.0.0",
+    "torch >=2.0.1, <3.0.0",
+    "pymunk ==6.11.0",
+    "tqdm >=4.65.0, <5.0.0",
+    "numba >=0.59.1, <0.61.0",
+    "shapely >=1.8, <3.0",
+    "scikit-learn >=1.6.0, <2.0.0",
+    "rtree >=1.3.0, <2.0.0",
+    "stable-baselines3 >=2.4.1, <3.0.0",
+    "wandb ==0.17.6",
+    "gym >=0.26.2, <1.0.0",
+    "tensorboard >=2.18.0, <3.0.0",
+    "agilerl >=2.0.3, <3.0.0",
+    "langchain-google-genai >=2.0.11, <3.0.0",
+]
 
-[tool.poetry.urls]
+[project.urls]
 documentation = "https://rnl.readthedocs.io"
 bugs = "https://github.com/microvault/rnl/issues"
 
-[tool.poetry.dependencies]
-python = ">=3.10,<4.0"
-gymnasium = ">=0.28.1,<0.30.0"
-matplotlib = ">=3.3"
-numpy = ">=1.24.2,<3.0.0"
-torch = "^2.0.1"
-pymunk = "6.11.0"
-tqdm = "^4.65.0"
-numba = ">=0.59.1,<0.61.0"
-shapely = ">=1.8,<3.0"
-scikit-learn = "^1.6.0"
-rtree = "^1.3.0"
-stable-baselines3 = "^2.4.1"
-wandb = "0.17.6"
-gym = "^0.26.2"
-tensorboard = "^2.18.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.0.0"
-pytest-cov = ">=4.1,<6.0"
-black = "^24.1.1"
-isort = "^5.13.2"
-ruff = ">=0.2.1,<0.7.0"
-codespell = "^2.2.6"
-commitizen = "^3.29.1"
-pre-commit = "^3.7.0"
+[dependency-groups]
+dev = [
+    "pytest >=8.0.0, <9.0.0",
+    "pytest-cov >=4.1, <6.0",
+    "black >=24.1.1, <25.0.0",
+    "isort >=5.13.2, <6.0.0",
+    "ruff >=0.2.1, <0.7.0",
+    "codespell >=2.2.6, <3.0.0",
+    "commitizen >=3.29.1, <4.0.0",
+    "pre-commit >=3.7.0, <4.0.0",
+]
 
 [tool.pytest.ini_options]
 pythonpath = "."
@@ -46,5 +49,5 @@ norecursedirs = ["ros/playground", "ros/turtlebot3_ws"]
 profile = "black"
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"

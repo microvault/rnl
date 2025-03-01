@@ -6,7 +6,6 @@ import numpy as np
 from rnl.configs.config import SensorConfig
 from rnl.engine.filter import SpatialIndex
 from rnl.engine.lidar import lidar_segments
-from rnl.engine.utils import medir_tempo
 
 
 @dataclass

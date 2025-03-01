@@ -7,7 +7,7 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-from stable_baselines3 import PPO
+# from stable_baselines3 import PPO
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.polygons import compute_polygon_diameter
@@ -18,6 +18,9 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+from rnl.configs.actions import ActionsConfig
+# from rnl.configs.rewards import RewardConfig
+# from rnl.configs.strategys import StrategyEnv
 
 
 class NaviEnv(gym.Env):
@@ -28,6 +31,7 @@ class NaviEnv(gym.Env):
         env_config: EnvConfig,
         render_config: RenderConfig,
         use_render: bool,
+        actions_cfg: ActionsConfig,
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
@@ -39,6 +43,8 @@ class NaviEnv(gym.Env):
         self.robot = Robot(robot_config)
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space)
+
+        self.actions_config = actions_cfg
 
         self.mode: str = env_config.mode
         self.grid_length = env_config.grid_length
@@ -165,11 +171,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.36 * self.scalar
+            self.vr = -0.24 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.36 * self.scalar
+            self.vr = 0.24 * self.scalar
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
@@ -185,9 +191,18 @@ class NaviEnv(gym.Env):
 
         if self.pretrained_model != "None" or not self.controller:
             if self.pretrained_model != "None":
-                self.action, _states = self.model.predict(self.last_states)
+                # self.action, _ = self.model.predict(self.last_states)
+                from agilerl.algorithms.ppo import PPO
+
+                checkpoint_path = "/Users/nicolasalan/microvault/rnl/NaviEnv-EvoHPO-PPO-02262025143452_0_50176.pt"
+                agent = PPO.load(checkpoint_path)
+                action, log_prob, _, value = agent.get_action(self.last_states)
+                self.action = int(action)
             else:
                 self.action = np.random.randint(0, 3)
+
+            # self.vl, self.vr = self.actions_config.get_speeds(self.action)
+            # print(f"Speeds: {self.vl}, {self.vr}")
 
             if self.action == 0:
                 self.vl = 0.10 * self.scalar
@@ -260,11 +275,7 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=i,
             threshold=self.threshold,
-            threshold_collision=self.collision,
-            scale_orientation=0.003,
-            scale_distance=0.1,
-            scale_time=0.001,
-            scale_obstacle=0.001,
+            threshold_collision=self.collision
         )
 
         reward = (
@@ -315,15 +326,26 @@ class NaviEnv(gym.Env):
 
         self.actions_list.append(action)
 
-        if action == 0:
-            vl = 0.10 * self.scalar
-            vr = 0.0
-        elif action == 1:
-            vl = 0.08 * self.scalar
-            vr = -0.72 * self.scalar
-        elif action == 2:
-            vl = 0.08 * self.scalar
-            vr = 0.72 * self.scalar
+        if self.mode == "easy-00":
+            if action == 0:
+                vl = 0.10 * self.scalar
+                vr = 0.0
+            elif action == 1:
+                vl = 0.08 * self.scalar
+                vr = -0.36 * self.scalar
+            elif action == 2:
+                vl = 0.08 * self.scalar
+                vr = 0.36 * self.scalar
+        else:
+            if action == 0:
+                vl = 0.10 * self.scalar
+                vr = 0.0
+            elif action == 1:
+                vl = 0.08 * self.scalar
+                vr = -0.72 * self.scalar
+            elif action == 2:
+                vl = 0.08 * self.scalar
+                vr = 0.72 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -346,7 +368,8 @@ class NaviEnv(gym.Env):
             self.target_y,
         )
 
-        collision, laser = min_laser(lidar_measurements, self.collision)
+        collision_array, laser = min_laser(lidar_measurements, self.collision)
+        collision = bool(np.any(collision_array))
 
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
@@ -387,11 +410,7 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=self.timestep,
             threshold=self.threshold,
-            threshold_collision=self.collision,
-            scale_orientation=0.003,
-            scale_distance=0.1,
-            scale_time=0.001,
-            scale_obstacle=0.001,
+            threshold_collision=self.collision
         )
 
         reward = (
@@ -408,21 +427,6 @@ class NaviEnv(gym.Env):
 
         if self.debug:
 
-            if vr > 0:
-                self.turn_left_count += 1
-            elif vr < 0:
-                self.turn_right_count += 1
-
-            if min(lidar_measurements) < self.min_distance_threshold:
-                self.steps_below_threshold += 1
-
-            # Verifica colisão
-            if collision and self.steps_to_collision is None:
-                self.steps_to_collision = self.timestep
-
-            if done:
-                self.steps_to_goal = self.timestep
-
             info = {
                 "obstacle": obstacle,
                 "collision_score": collision_score,
@@ -434,12 +438,6 @@ class NaviEnv(gym.Env):
                 "alpha": float(alpha_norm[0]),
                 "min_lidar": float(min(lidar_norm)),
                 "max_lidar": float(max(lidar_norm)),
-                "states": states,
-                "steps_below_threshold": self.steps_below_threshold,
-                "turn_left_count": self.turn_left_count,
-                "turn_right_count": self.turn_right_count,
-                "steps_to_collision": self.steps_to_collision,
-                "steps_to_goal": self.steps_to_goal,
             }
             return states, reward, done, truncated, info
 
@@ -466,13 +464,13 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
-                targets = np.array([[1.8, 0.35]])
+                targets = np.array([[0.35, 0.35], [1.8, 1.8]])
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
 
                 try:
-                    theta = 4.70
+                    theta = np.random.uniform(0, 2 * np.pi)
                     self.robot.reset_robot(self.body, x, y, theta)
                 except Exception as e:
                     print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")

@@ -60,7 +60,43 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        if self.mode in ("easy-00", "easy-01", "easy-02"):
+        if self.mode in ("easy-00"):
+            width = int(grid_length) + 1
+            height = int(grid_length) + 1
+
+            exterior = []
+            # Borda superior
+            for x in range(width):
+                exterior.append((x, (height - 1)))
+            # Borda direita
+            for y in range(height - 2, -1, -1):
+                exterior.append(((width - 1), y))
+            # Borda inferior
+            for x in range(width - 2, -1, -1):
+                exterior.append((x, 0))
+            # Borda esquerda
+            for y in range(1, height - 1):
+                exterior.append((0, y))
+
+            poly = Polygon(exterior, holes=[]).buffer(0)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("Polígono inválido.")
+
+            polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
+            stack = [polygon]
+            segments = extract_segment_from_polygon(stack)
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+            return path_patch, segments, poly
+
+        if self.mode in ("easy-01", "easy-02"):
             width = int(grid_length / resolution) + 1
             height = int(grid_length / resolution) + 1
 

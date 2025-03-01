@@ -9,7 +9,7 @@ SEED ?= 1
 HIDDEN_SIZE ?= 40,30
 ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
-NUM_ENVS ?= 8
+NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
 CHECKPOINT ?= 13_02_2025
@@ -22,16 +22,20 @@ VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
-TYPE_REWARD ?= time
+TYPE_REWARD ?= all
+SCALAR ?= 20
 
 .PHONY: sim
 sim:
-	@poetry run python -m main sim
+	@uv run python -m main sim \
+	    --controller True \
+     	--debug True \
+      	--scalar $(SCALAR)
 
 
 .PHONY: learn
 learn:
-	@poetry run python -m main $(MODE) \
+	@uv run python -m main $(MODE) \
     	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
     	--seed $(SEED) \
     	--hidden_size $(HIDDEN_SIZE) \
@@ -50,50 +54,64 @@ learn:
     	--max_grad_norm $(MAX_GRAD_NORM) \
     	--update_epochs $(UPDATE_EPOCHS) \
     	--name $(NAME) \
-    	--type_reward $(TYPE_REWARD)
+    	--type_reward $(TYPE_REWARD) \
+     	--controller False \
+      	--debug False \
+       	--scalar $(SCALAR)
 
 .PHONY: probe
 probe:
-	@poetry run python -m main run \
+	@uv run python -m main run \
     	--num_envs $(NUM_ENVS) \
     	--device $(DEVICE) \
     	--type_reward $(TYPE_REWARD) \
-     	--type_reward $(TYPE_REWARD)
+    	--controller False \
+     	--debug True \
+      	--scalar $(SCALAR)
+
+.PHONY: training
+training:
+	@uv run python -m main training \
+    	--device $(DEVICE) \
+    	--type_reward $(TYPE_REWARD) \
+    	--controller False \
+     	--debug False \
+      	--scalar $(SCALAR)
 
 
 .PHONY: test_without_coverage
 test_without_coverage:
-	@poetry run pytest -s -x -vv -p no:warnings
+	@uv run pytest -s -x -vv -p no:warnings
 
 
 .PHONY: test
 test:
-	@poetry run pytest -s -x --cov=rnl -vv -p no:warnings
+	@uv run pytest -s -x --cov=rnl -vv -p no:warnings
 
 
 .PHONY: plot_test
 plot_test:
-	@poetry run python tests/test_reward.py
+	@uv run python tests/test_reward.py
 
 
 .PHONY: post_test
 post_test:
-	@poetry run coverage html
+	@uv run coverage html
 
 
 .PHONY: publish
 publish:
-	@poetry publish --build -u __token__ -p $(RNL_PYPI_TOKEN)
+	@uv publish --build -u __token__ -p $(RNL_PYPI_TOKEN)
 
 
 .PHONY: install_with_dev
 install_with_dev:
-		@poetry install
+		@uv install
 
 
 .PHONY: install
 install:
-	@poetry install --without dev
+	@uv install --without dev
 
 
 .PHONY: build
@@ -164,10 +182,10 @@ push:
 	@docker tag $(IMAGE_NAME):$(VERSION) $(IMAGE_NAME):latest
 	@docker push $(IMAGE_NAME):latest
 
-POETRY=poetry
-BLACK=$(POETRY) run black
-ISORT=$(POETRY) run isort
-RUFF=$(POETRY) run ruff
+UV=uv
+BLACK=$(UV) run black
+ISORT=$(UV) run isort
+RUFF=$(UV) run ruff
 
 SRC_DIR=./
 
