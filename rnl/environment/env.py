@@ -7,8 +7,8 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-# from stable_baselines3 import PPO
 
+from rnl.configs.actions import ActionsConfig
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.engine.polygons import compute_polygon_diameter
 from rnl.engine.rewards import get_reward
@@ -18,7 +18,10 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-from rnl.configs.actions import ActionsConfig
+
+# from stable_baselines3 import PPO
+
+
 # from rnl.configs.rewards import RewardConfig
 # from rnl.configs.strategys import StrategyEnv
 
@@ -275,7 +278,7 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=i,
             threshold=self.threshold,
-            threshold_collision=self.collision
+            threshold_collision=self.collision,
         )
 
         reward = (
@@ -410,7 +413,7 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=self.timestep,
             threshold=self.threshold,
-            threshold_collision=self.collision
+            threshold_collision=self.collision,
         )
 
         reward = (

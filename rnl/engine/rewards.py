@@ -93,10 +93,10 @@ def get_reward(
     threshold_collision: float,
 ) -> Tuple[float, float, float, float, float, bool]:
     done = False
-    scale_orientation=0.003
-    scale_distance=0.1
-    scale_time=0.01
-    scale_obstacle=0.001
+    scale_orientation = 0.003
+    scale_distance = 0.1
+    scale_time = 0.01
+    scale_obstacle = 0.001
 
     rew_coll_target, done_coll_target = collision_and_target_reward(
         current_distance, threshold, collision, position_x, position_y, poly
