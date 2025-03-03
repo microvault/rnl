@@ -1,14 +1,17 @@
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import wandb
+from agilerl.utils.utils import create_population
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from torch import nn
-import torch
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
-from agilerl.utils.utils import create_population
-import wandb
+
+from rnl.configs.actions import FastActions, SlowActions
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -18,11 +21,9 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-import matplotlib.pyplot as plt
 from rnl.engine.utils import set_seed
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
-from rnl.configs.actions import FastActions, SlowActions
 
 
 def training(
@@ -68,7 +69,12 @@ def training(
     fast_actions = FastActions()
 
     env = NaviEnv(
-        robot_config, sensor_config, env_config, render_config, use_render=False, actions_cfg=fast_actions
+        robot_config,
+        sensor_config,
+        env_config,
+        render_config,
+        use_render=False,
+        actions_cfg=fast_actions,
     )
 
     print("\nCheck environment ...")
@@ -93,7 +99,12 @@ def training(
         fast_actions = FastActions()
 
         env = NaviEnv(
-            robot_config, sensor_config, env_config, render_config, use_render=False, actions_cfg=fast_actions
+            robot_config,
+            sensor_config,
+            env_config,
+            render_config,
+            use_render=False,
+            actions_cfg=fast_actions,
         )
         env = Monitor(env)
         return env
@@ -205,7 +216,9 @@ def inference(
     env.render()
 
 
-def probe_envs(num_envs, max_steps, robot_config, sensor_config, env_config, render_config):
+def probe_envs(
+    num_envs, max_steps, robot_config, sensor_config, env_config, render_config
+):
 
     # set_seed(6)  # Define a semente
 
@@ -233,8 +246,12 @@ def probe_envs(num_envs, max_steps, robot_config, sensor_config, env_config, ren
 
     # Cria e checa o ambiente
     env = NaviEnv(
-        robot_config, sensor_config, env_config, render_config,
-        use_render=False, actions_cfg=fast_actions
+        robot_config,
+        sensor_config,
+        env_config,
+        render_config,
+        use_render=False,
+        actions_cfg=fast_actions,
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -379,7 +396,12 @@ def probe_envs(num_envs, max_steps, robot_config, sensor_config, env_config, ren
         for idx, (title, data, color) in enumerate(step_metrics, start=1):
             ax = plt.subplot(rows, cols, idx)
             ax.plot(
-                steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5
+                steps_range,
+                data,
+                label=title,
+                color=color,
+                linestyle="-",
+                linewidth=1.5,
             )
             ax.set_ylabel(title, fontsize=8)
             ax.legend(fontsize=6)
@@ -438,8 +460,10 @@ def probe_envs(num_envs, max_steps, robot_config, sensor_config, env_config, ren
         plt.subplots_adjust(bottom=0.1)
         plt.show()
 
-def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config, render_config
-    ):
+
+def probe_training(
+    num_envs, max_steps, robot_config, sensor_config, env_config, render_config
+):
 
     set_seed(13)
 
@@ -465,7 +489,12 @@ def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config,
     fast_actions = FastActions()
 
     env = NaviEnv(
-        robot_config, sensor_config, env_config, render_config, use_render=False, actions_cfg=fast_actions
+        robot_config,
+        sensor_config,
+        env_config,
+        render_config,
+        use_render=False,
+        actions_cfg=fast_actions,
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -478,16 +507,9 @@ def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config,
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     NET_CONFIG = {
-        'latent_dim': 16,
-
-        'encoder_config': {
-          'hidden_size': [40]     # Observation encoder configuration
-        },
-
-        'head_config': {
-          'hidden_size': [40]     # Network head configuration
-        },
-
+        "latent_dim": 16,
+        "encoder_config": {"hidden_size": [40]},  # Observation encoder configuration
+        "head_config": {"hidden_size": [40]},  # Network head configuration
     }
 
     INIT_HP = {
@@ -531,20 +553,20 @@ def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config,
         device=device,
     )
 
-    from agilerl.training.train_on_policy import train_on_policy
-    from agilerl.hpo.tournament import TournamentSelection
     from agilerl.hpo.mutation import Mutations
+    from agilerl.hpo.tournament import TournamentSelection
+    from agilerl.training.train_on_policy import train_on_policy
 
     MUTATION_PARAMS = {
         # Relative probabilities
-        'NO_MUT': 0.4,                              # No mutation
-        'ARCH_MUT': 0.2,                            # Architecture mutation
-        'NEW_LAYER': 0.2,                           # New layer mutation
-        'PARAMS_MUT': 0.2,                          # Network parameters mutation
-        'ACT_MUT': 0,                               # Activation layer mutation
-        'RL_HP_MUT': 0.2,                           # Learning HP mutation
-        'MUT_SD': 0.1,                              # Mutation strength
-        'RAND_SEED': 1,                             # Random seed
+        "NO_MUT": 0.4,  # No mutation
+        "ARCH_MUT": 0.2,  # Architecture mutation
+        "NEW_LAYER": 0.2,  # New layer mutation
+        "PARAMS_MUT": 0.2,  # Network parameters mutation
+        "ACT_MUT": 0,  # Activation layer mutation
+        "RL_HP_MUT": 0.2,  # Learning HP mutation
+        "MUT_SD": 0.1,  # Mutation strength
+        "RAND_SEED": 1,  # Random seed
     }
 
     # tournament = TournamentSelection(
@@ -568,10 +590,10 @@ def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config,
 
     trained_pop, pop_fitnesses = train_on_policy(
         algo="PPO",
-        env=env,                              # Gym-style environment
+        env=env,  # Gym-style environment
         env_name="NaviEnv",  # Environment name
         pop=pop,  # Population of agents
-        swap_channels=INIT_HP['CHANNELS_LAST'],  # Swap image channel from last to first
+        swap_channels=INIT_HP["CHANNELS_LAST"],  # Swap image channel from last to first
         max_steps=1000000,  # Max number of training steps
         evo_steps=10000,  # Evolution frequency
         eval_steps=None,  # Number of steps in evaluation episode
@@ -582,5 +604,5 @@ def probe_training(num_envs, max_steps, robot_config, sensor_config, env_config,
         wandb_api_key="fb372890f5180a16a9cd2df5b9558e55493cd16c",
         # tournament=tournament,                     # Tournament selection object
         # mutation=mutations,
-        checkpoint=50000
+        checkpoint=50000,
     )

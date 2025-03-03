@@ -1,7 +1,8 @@
-import numpy as np
-from numba import njit
 import random
+
+import numpy as np
 import torch
+from numba import njit
 
 
 @njit
@@ -54,6 +55,7 @@ def safe_stats(data):
     if not clean_data:
         return 0.0, 0.0, 0.0
     return np.mean(clean_data), np.min(clean_data), np.max(clean_data)
+
 
 def set_seed(seed: int):
     random.seed(seed)
