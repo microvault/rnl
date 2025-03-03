@@ -1,5 +1,6 @@
 import rnl as vault
 
+
 def main():
     # 1.step -> config robot
     param_robot = vault.robot(

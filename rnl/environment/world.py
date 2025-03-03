@@ -136,7 +136,7 @@ class CreateWorld:
 
         path = Path.make_compound_path(
             Path(np.asarray(poly.exterior.coords)[:, :2]),
-            *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+            *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
         )
 
         path_patch = PathPatch(

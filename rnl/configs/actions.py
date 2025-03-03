@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Tuple
 
+
 # ========================================= #
 # 1. Classe base abstrata para as ações     #
 # ========================================= #
