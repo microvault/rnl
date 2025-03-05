@@ -4,23 +4,20 @@ import gymnasium as gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+from agilerl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-# from stable_baselines3 import PPO
-
+from rnl.configs.actions import ActionsConfig
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
+from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
-from rnl.engine.rewards import get_reward
 from rnl.engine.spawn import spawn_robot_and_goal
 from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-from rnl.configs.actions import ActionsConfig
-# from rnl.configs.rewards import RewardConfig
-# from rnl.configs.strategys import StrategyEnv
 
 
 class NaviEnv(gym.Env):
@@ -32,6 +29,7 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
         use_render: bool,
         actions_cfg: ActionsConfig,
+        reward_cfg: RewardConfig,
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
@@ -45,10 +43,22 @@ class NaviEnv(gym.Env):
         self.body = self.robot.create_robot(space=self.space)
 
         self.actions_config = actions_cfg
+        self.min_lr = robot_config.vel_linear[0]
+        self.max_lr = robot_config.vel_linear[1]
+        self.min_vr = robot_config.vel_angular[0]
+        self.max_vr = robot_config.vel_angular[1]
 
-        self.mode: str = env_config.mode
+        self.reward_config = reward_cfg
+
+        self.mode: str = "medium" # easy-00"
         self.grid_length = env_config.grid_length
         self.poly = None
+
+        if "hard" in self.mode:
+            self.generator = Generator(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                self.grid_length
+            )
 
         if "medium" in self.mode:
             self.create_world = CreateWorld(
@@ -66,7 +76,6 @@ class NaviEnv(gym.Env):
             )
 
         self.sensor = SensorRobot(sensor_config, self.segments)
-        self.reward_function = env_config.reward_function
 
         # ------------ Normalization ------------ #
         self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
@@ -83,8 +92,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = compute_polygon_diameter(self.poly)  # 9 !!!!!!
-        self.min_dist = 0.0  # 1,0 !!!!!!!!!!
+        self.max_dist = compute_polygon_diameter(self.poly)
+        self.min_dist = 0.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         self.scaler_alpha.fit(np.array([[0.0], [3.5]]))
@@ -106,7 +115,7 @@ class NaviEnv(gym.Env):
         self.last_theta: float = 0.0
         self.vl: float = 0.01
         self.vr: float = 0.01
-        self.action: int = 1
+        self.action: int = 0
         self.initial_distance: float = 0.0
         self.scalar = env_config.scalar
         self.current_fraction: float = 0.0
@@ -117,6 +126,7 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
 
+        self.model = None
         if self.pretrained_model != "None":
             self.model = PPO.load(robot_config.path_model)
 
@@ -154,14 +164,6 @@ class NaviEnv(gym.Env):
             if self.plot:
                 self._init_reward_plot()
 
-        self.steps_to_goal = 0
-        self.steps_below_threshold = 0
-        self.min_distance_threshold = 0.2
-        self.turn_left_count = 0
-        self.turn_right_count = 0
-        self.steps_to_collision = None
-        self.actions_list = []
-        self.reset()
 
     def on_key_press(self, event):
         if event.key == "up":
@@ -171,48 +173,39 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.24 * self.scalar
+            self.vr = -0.36 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.24 * self.scalar
+            self.vr = 0.36 * self.scalar
+
         # Control and test
         elif event.key == " ":
             self.vl = 0.0
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = -0.36 * self.scalar
+            self.vr = -0.005 * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = 0.36 * self.scalar
+            self.vr = 0.005 * self.scalar
 
     def step_animation(self, i):
 
         if self.pretrained_model != "None" or not self.controller:
-            if self.pretrained_model != "None":
-                # self.action, _ = self.model.predict(self.last_states)
-                from agilerl.algorithms.ppo import PPO
-
-                checkpoint_path = "/Users/nicolasalan/microvault/rnl/NaviEnv-EvoHPO-PPO-02262025143452_0_50176.pt"
-                agent = PPO.load(checkpoint_path)
-                action, log_prob, _, value = agent.get_action(self.last_states)
+            if self.pretrained_model != "None" and self.model is not None:
+                action, log_prob, _, value = self.model.get_action(self.last_states)
                 self.action = int(action)
             else:
                 self.action = np.random.randint(0, 3)
 
-            # self.vl, self.vr = self.actions_config.get_speeds(self.action)
-            # print(f"Speeds: {self.vl}, {self.vr}")
+        if not self.controller:
+            base_vl, base_vr = self.actions_config.get_speeds(
+                self.action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
+            )
 
-            if self.action == 0:
-                self.vl = 0.10 * self.scalar
-                self.vr = 0.0
-            elif self.action == 1:
-                self.vl = 0.08 * self.scalar
-                self.vr = -0.36 * self.scalar
-            elif self.action == 2:
-                self.vl = 0.08 * self.scalar
-                self.vr = 0.36 * self.scalar
+            self.vl = base_vl * self.scalar
+            self.vr = base_vr * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -246,6 +239,9 @@ class NaviEnv(gym.Env):
             np.array(alpha).reshape(1, -1)
         ).flatten()
 
+        if self.action > 2:
+            self.action = 0
+
         action_one_hot = np.eye(3)[self.action]
         states = np.concatenate(
             (
@@ -263,8 +259,7 @@ class NaviEnv(gym.Env):
             time_score,
             obstacle,
             done,
-        ) = get_reward(
-            self.reward_function,
+        ) = self.reward_config.get_reward(
             lidar_measurements,
             poly=self.poly,
             position_x=x,
@@ -275,7 +270,9 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=i,
             threshold=self.threshold,
-            threshold_collision=self.collision
+            threshold_collision=self.collision,
+            min_distance=self.min_dist,
+            max_distance=self.max_dist,
         )
 
         reward = (
@@ -320,32 +317,11 @@ class NaviEnv(gym.Env):
             self._stop()
 
     def step(self, action):
-
-        vl = 0.0
-        vr = 0.0
-
-        self.actions_list.append(action)
-
-        if self.mode == "easy-00":
-            if action == 0:
-                vl = 0.10 * self.scalar
-                vr = 0.0
-            elif action == 1:
-                vl = 0.08 * self.scalar
-                vr = -0.36 * self.scalar
-            elif action == 2:
-                vl = 0.08 * self.scalar
-                vr = 0.36 * self.scalar
-        else:
-            if action == 0:
-                vl = 0.10 * self.scalar
-                vr = 0.0
-            elif action == 1:
-                vl = 0.08 * self.scalar
-                vr = -0.72 * self.scalar
-            elif action == 2:
-                vl = 0.08 * self.scalar
-                vr = 0.72 * self.scalar
+        base_vl, base_vr = self.actions_config.get_speeds(
+            action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
+        )
+        vl = base_vl * self.scalar
+        vr = base_vr * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -398,8 +374,7 @@ class NaviEnv(gym.Env):
             time_score,
             obstacle,
             done,
-        ) = get_reward(
-            self.reward_function,
+        ) = self.reward_config.get_reward(
             lidar_measurements,
             poly=self.poly,
             position_x=x,
@@ -410,7 +385,9 @@ class NaviEnv(gym.Env):
             alpha=alpha,
             step=self.timestep,
             threshold=self.threshold,
-            threshold_collision=self.collision
+            threshold_collision=self.collision,
+            min_distance=self.min_dist,
+            max_distance=self.max_dist,
         )
 
         reward = (
@@ -428,8 +405,7 @@ class NaviEnv(gym.Env):
         if self.debug:
 
             info = {
-                "obstacle": obstacle,
-                "collision_score": collision_score,
+                "obstacle_score": obstacle,
                 "orientation_score": orientation_score,
                 "progress_score": progress_score,
                 "time_score": time_score,
@@ -445,19 +421,9 @@ class NaviEnv(gym.Env):
             return states, reward, done, truncated, {}
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
-        try:
-            super().reset(seed=seed, options=options)
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao chamar super().reset: {e}")
-            raise
+        super().reset(seed=seed, options=options)
 
         self.timestep = 0
-        self.steps_to_goal = 0
-        self.steps_below_threshold = 0
-        self.turn_left_count = 0
-        self.turn_right_count = 0
-        self.steps_to_collision = None
-        self.actions_list = []
 
         try:
             if self.mode == "easy-00":
@@ -469,14 +435,10 @@ class NaviEnv(gym.Env):
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
 
-                try:
-                    theta = np.random.uniform(0, 2 * np.pi)
-                    self.robot.reset_robot(self.body, x, y, theta)
-                except Exception as e:
-                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-                    raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
-            if self.mode == "easy-01":
+            elif self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
@@ -485,12 +447,8 @@ class NaviEnv(gym.Env):
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
 
-                try:
-                    theta = np.random.uniform(0, 2 * np.pi)
-                    self.robot.reset_robot(self.body, x, y, theta)
-                except Exception as e:
-                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-                    raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
             elif self.mode == "easy-02":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
@@ -503,12 +461,8 @@ class NaviEnv(gym.Env):
                 ), np.random.uniform(0.35, 1.8)
                 x, y = np.random.uniform(0.35, 1.8), np.random.uniform(0.35, 1.8)
 
-                try:
-                    theta = np.random.uniform(0, 2 * np.pi)
-                    self.robot.reset_robot(self.body, x, y, theta)
-                except Exception as e:
-                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-                    raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
             elif self.mode == "easy-03":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
@@ -523,12 +477,8 @@ class NaviEnv(gym.Env):
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
 
-                try:
-                    theta = np.random.uniform(0, 2 * np.pi)
-                    self.robot.reset_robot(self.body, x, y, theta)
-                except Exception as e:
-                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-                    raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
             elif "medium" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.create_world.world(
@@ -543,41 +493,33 @@ class NaviEnv(gym.Env):
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
 
-                try:
-                    theta = np.random.uniform(0, 2 * np.pi)
-                    self.robot.reset_robot(self.body, x, y, theta)
-                except Exception as e:
-                    print(f"[RESET-ERROR] Erro ao resetar o robô: {e}")
-                    raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
-        except Exception as e:
-            print(
-                f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}"
-            )
-            raise
+            elif "hard" in self.mode:
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+                self.sensor.update_map(self.segments)
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
 
-        try:
-            if self.use_render:
-                for patch in self.ax.patches:
-                    patch.remove()
-                self.ax.add_patch(self.new_map_path)
-                art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao desenhar o cenário: {e}")
-            raise
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
 
-        try:
             intersections, measurement = self.sensor.sensor(
                 x=self.body.position.x,
                 y=self.body.position.y,
                 theta=self.body.position.angle,
                 max_range=self.max_lidar,
             )
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao obter leituras do sensor: {e}")
-            raise
 
-        try:
             dist = distance_to_goal(
                 self.body.position.x,
                 self.body.position.y,
@@ -594,11 +536,7 @@ class NaviEnv(gym.Env):
             )
 
             self.initial_distance = dist
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao calcular distância/ângulo: {e}")
-            raise
 
-        try:
             self.current_rays = len(measurement)
             padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
             padded_lidar[: self.current_rays] = measurement[: self.current_rays]
@@ -613,11 +551,6 @@ class NaviEnv(gym.Env):
                 np.array(alpha).reshape(1, -1)
             ).flatten()
 
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao normalizar entradas (scalers): {e}")
-            raise
-
-        try:
             action = np.random.randint(0, 3)
             action_one_hot = np.eye(3)[action]
             min_lidar_norm = np.min(lidar_norm)
@@ -632,12 +565,12 @@ class NaviEnv(gym.Env):
             )
             self.last_states = states
 
-        except Exception as e:
-            print(f"[RESET-ERROR] Erro ao montar o array de estados: {e}")
-            raise
-
-        try:
             if self.use_render:
+                for patch in self.ax.patches:
+                    patch.remove()
+                self.ax.add_patch(self.new_map_path)
+                art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
+
                 self._plot_anim(
                     0,
                     intersections,
@@ -652,8 +585,11 @@ class NaviEnv(gym.Env):
                     self.action,
                     0.0,
                 )
+
         except Exception as e:
-            print(f"[RESET-ERROR] Erro ao plotar no final do reset: {e}")
+            print(
+                f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}"
+            )
             raise
 
         info = {}
@@ -687,7 +623,6 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if "easy" in self.mode:
-            print("Easy mode")
             ax.set_xlim(0, 2)
             ax.set_ylim(0, 2)
 
@@ -701,6 +636,10 @@ class NaviEnv(gym.Env):
 
             ax.set_xlim(center_x - width / 2, center_x + width / 2)
             ax.set_ylim(center_y - height / 2, center_y + height / 2)
+
+        elif "hard" in self.mode:
+            ax.set_xlim(.1, 16)
+            ax.set_ylim(.1, 16)
 
         ax.add_patch(self.new_map_path)
 
