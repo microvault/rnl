@@ -1,11 +1,16 @@
 import argparse
 import os
+os.environ["KMP_WARNINGS"] = "0"
+import warnings
+warnings.filterwarnings("ignore", message="Mean of empty slice")
+warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide")
 
 import rnl as vault
 
 
 def main(arg):
     wandb_key = os.environ.get("WANDB_API_KEY")
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
     # 1.step -> config robot
     param_robot = vault.robot(
         base_radius=0.105,
@@ -21,20 +26,18 @@ def main(arg):
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=5,  # min 5 max 20
+        num_rays=20,  # min 5 max 20
         min_range=0.0,
-        max_range=3.5,  # 3.5
+        max_range=30,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
         grid_length=2,
-        folder_map="",  # ./data/map4
-        name_map="",  # map4
-        max_timestep=1000,
-        mode="easy-01",  # easy-00, easy-01, easy-02, medium
-        reward_function=args.type_reward,  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
+        folder_map="./data/map4",  # ./data/map4
+        name_map="map4",  # map4
+        max_timestep=100000,
     )
 
     # 4.step -> config render
@@ -51,6 +54,7 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
+            use_agents=False,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
@@ -59,8 +63,10 @@ def main(arg):
             num_envs=args.num_envs,
             device=args.device,
             checkpoint=args.checkpoint,
+            checkpoint_path=args.checkpoint_path,
             use_wandb=True,
             wandb_api_key=str(wandb_key),
+            llm_api_key=str(gemini_api_key),
             lr=args.lr,
             learn_step=args.learn_step,
             gae_lambda=args.gae_lambda,
@@ -71,6 +77,11 @@ def main(arg):
             max_grad_norm=args.max_grad_norm,
             update_epochs=args.update_epochs,
             name=args.name,
+            save_path="model",
+            elite_path="model_elite",
+            overwrite_checkpoints=True,
+            save_elite=True,
+            evo_steps=2000,
         )
 
     elif args.mode == "sim":
@@ -81,43 +92,45 @@ def main(arg):
 
     elif args.mode == "run":
         model = vault.Probe(
-            num_envs=10,
-            max_steps=1000,
+            num_envs=args.num_envs,
+            max_steps=args.max_timestep_global,
             robot_config=param_robot,
             sensor_config=param_sensor,
             env_config=param_env,
             render_config=param_render,
+            seed=args.seed,
         )
 
         model.execute()
 
-    elif args.mode == "training":
-        model = vault.Probe(
-            num_envs=10,
-            max_steps=100,
-            robot_config=param_robot,
-            sensor_config=param_sensor,
-            env_config=param_env,
-            render_config=param_render,
-        )
+    # elif args.mode == "training":
+    #     model = vault.Probe(
+    #         num_envs=args.num_envs,
+    #         max_steps=args.max_timestep_global,
+    #         robot_config=param_robot,
+    #         sensor_config=param_sensor,
+    #         env_config=param_env,
+    #         render_config=param_render,
+    #     )
 
-        model.training()
+    #     model.training()
+
 
 def str2bool(v):
     if isinstance(v, bool):
         return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if v.lower() in ("yes", "true", "t", "y", "1"):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif v.lower() in ("no", "false", "f", "n", "0"):
         return False
     else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
+        raise argparse.ArgumentTypeError("Boolean value expected.")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or setup environment.")
     parser.add_argument(
-        "mode", choices=["learn", "sim", "run", "training"], help="Mode"
+        "mode", choices=["learn", "sim", "run"], help="Mode"
     )
 
     parser.add_argument(
@@ -159,6 +172,11 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--checkpoint",
+        type=int,
+    )
+
+    parser.add_argument(
+        "--checkpoint_path",
         type=str,
     )
 
