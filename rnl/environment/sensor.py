@@ -26,6 +26,7 @@ class SensorRobot:
 
         seg = self.spatial_index.filter_segments(x, y, self.max_range)
         if not seg:
+            print("No segments")
             return np.array([]), np.full(
                 self.sensor_config.num_rays, self.sensor_config.max_range
             )
@@ -36,3 +37,7 @@ class SensorRobot:
             )
 
         return np.array(inter_all), np.array(mea_all)
+
+    def update_map(self, new_map_segments):
+        self.map_segments = new_map_segments
+        self.spatial_index = SpatialIndex(self.map_segments)

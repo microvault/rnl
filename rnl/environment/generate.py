@@ -4,6 +4,7 @@ import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
+import os, json, random
 
 from rnl.engine.collisions import extract_segment_from_polygon
 from rnl.engine.polygons import find_contours, process
@@ -214,5 +215,48 @@ class Generator:
 
             return path_patch, segment, poly
 
+        elif self.mode == "hard":
+
+            json_dir = "/Users/nicolasalan/microvault/rnl/dataset/json"
+            files = [f for f in os.listdir(json_dir) if f.endswith(".json")]
+            if not files:
+                raise ValueError("No JSON files found in the dataset directory.")
+
+            random_file = random.choice(files)
+            file_path = os.path.join(json_dir, random_file)
+            print(f"Selected JSON file: {file_path}")
+
+            data = None
+            with open(file_path, "r") as f:
+                data = json.load(f)
+
+            if "verts" not in data:
+                raise ValueError("The selected JSON does not contain 'verts'.")
+
+            verts = np.array(data["verts"], dtype=np.float32)
+            if not np.allclose(verts[0], verts[-1]):
+                verts = np.vstack([verts, verts[0]])
+
+            poly = Polygon(verts).buffer(0)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("Invalid polygon generated from vertices.")
+
+            if poly.geom_type == "MultiPolygon":
+                poly = max(poly, key=lambda a: a.area)
+
+            processed_verts = np.array(poly.exterior.coords, dtype=np.float32)
+            stack = [processed_verts]
+            segments = extract_segment_from_polygon(stack)
+
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+            )
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+            return path_patch, segments, poly
         else:
             raise ValueError(f"Modo {self.mode} não implementado.")
