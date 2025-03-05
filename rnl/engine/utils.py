@@ -1,7 +1,18 @@
-import numpy as np
-from numba import njit
 import random
+
+import numpy as np
 import torch
+from numba import njit
+
+
+@njit
+def normalize_module(value, min_val, max_val):
+    if value < min_val:
+        return min_val
+    elif value > max_val:
+        return max_val
+    else:
+        return value
 
 
 @njit
@@ -55,6 +66,7 @@ def safe_stats(data):
         return 0.0, 0.0, 0.0
     return np.mean(clean_data), np.min(clean_data), np.max(clean_data)
 
+
 def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
@@ -64,3 +76,24 @@ def set_seed(seed: int):
         torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def clean_info(info: dict) -> dict:
+    """Remove as chaves indesejadas do dicionário de info."""
+    keys_to_remove = [
+        "final_observation",
+        "_final_observation",
+        "final_info",
+        "_final_info",
+    ]
+    return {k: v for k, v in info.items() if k not in keys_to_remove}
+
+def statistics(info_list, field):
+    values = [info[field] for info in info_list if field in info]
+    if not values:  # se a lista estiver vazia, retorne None ou valores padrão
+        return None, None, None, None
+    mean_value = np.mean(values)
+    min_value = np.min(values)
+    max_value = np.max(values)
+    std_deviation = np.std(values)
+    return mean_value, min_value, max_value, std_deviation
