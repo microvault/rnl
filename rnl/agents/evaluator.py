@@ -133,7 +133,7 @@ class LLMTrainingEvaluator:
 # Example usage:
 # if __name__ == "__main__":
 #     evaluator = LLMTrainingEvaluator(
-#         evaluator_api_key="AIzaSyC2gTeqruWUdSltxkzl5tpwHvlS4Ffx1bI"  # Replace with your valid API key
+#         evaluator_api_key=""  # Replace with your valid API key
 #     )
 
 #     # Example training metrics (collected after training)
