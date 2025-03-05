@@ -1,154 +1,160 @@
 import json
 
-import requests
-
-
-class LLMTrainingConfigurator:
-    """
-    Classe para gerar a configuração de treinamento a partir de:
-    1) JSON (ex.: definições de ações, recompensas, ambientes)
-    2) Entrada de usuário (texto livre)
-    Ela chama o LLM (ex.: Gemini) que retorna a estrutura de treino.
-    """
-
-    def __init__(self, gemini_api_url, gemini_api_key):
-        self.gemini_api_url = gemini_api_url
-        self.gemini_api_key = gemini_api_key
-
-    def build_prompt(self, user_input: str, context_json: dict) -> str:
-        """
-        Monta o prompt que será enviado à LLM (Gemini).
-        Pode incluir instruções sobre ações, recompensas e ambiente.
-        """
-        # Exemplo simples de prompt
-        base_info = json.dumps(context_json, indent=2)
-        prompt = (
-            f"Você é um assistente que configura treinos de RL para robôs.\n\n"
-            f"Contexto:\n{base_info}\n\n"
-            f"Requisito do usuário:\n{user_input}\n\n"
-            f"Retorne a configuração final de treinamento em formato JSON, "
-            f"incluindo: parâmetros de PPO, ambiente, ações, estados, e função de recompensa."
-        )
-        return prompt
-
-    def call_gemini(self, prompt: str) -> str:
-        """
-        Método que faria a chamada real pra API do Gemini.
-        Aqui está só como placeholder. Ajuste com requests ou client adequado.
-        """
-        headers = {
-            "Authorization": f"Bearer {self.gemini_api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {"prompt": prompt, "max_tokens": 500}  # Ajuste conforme API
-        # Exemplo de chamada (fictícia):
-        # response = requests.post(self.gemini_api_url, headers=headers, json=payload)
-        # return response.json()["generated_text"]
-        return "{ 'status': 'placeholder', 'training_config': 'Exemplo de saída' }"
-
-    def generate_training_config(self, user_input: str, context_json: dict) -> dict:
-        """
-        Gera a configuração de treinamento chamando a LLM com prompt adequado.
-        Retorna o JSON final (em dicionário Python).
-        """
-        prompt = self.build_prompt(user_input, context_json)
-        llm_response = self.call_gemini(prompt)
-
-        # Converter a resposta em dicionário se vier em JSON
-        try:
-            training_config = json.loads(llm_response)
-        except:
-            # Caso falhe, retorna um dicionário padrão ou mensagem de erro
-            training_config = {
-                "status": "error",
-                "message": "Falha ao interpretar resposta da LLM",
-            }
-        return training_config
+from google import genai
+from google.genai import types
 
 
 class LLMTrainingEvaluator:
     """
-    Classe para avaliar as métricas de treinamento (média, desvio padrão, etc.)
-    junto com a entrada do usuário. Decide se precisa ou não refazer o treino.
+    Class to evaluate training metrics (average, std deviation, etc.)
+    along with user input. Decides if retraining is necessary.
     """
 
-    def __init__(self, evaluator_api_url, evaluator_api_key):
-        self.evaluator_api_url = evaluator_api_url
+    def __init__(self, evaluator_api_key: str):
         self.evaluator_api_key = evaluator_api_key
 
-    def build_evaluation_prompt(self, user_input: str, stats: dict) -> str:
+    def build_evaluation_prompt(
+        self, context_json: dict, stats: dict, context: dict
+    ) -> str:
         """
-        Cria um prompt descrevendo as métricas e o comportamento desejado.
+        Creates a prompt describing the metrics and desired behavior.
         """
         stats_info = json.dumps(stats, indent=2)
+        base_info = json.dumps(context_json, indent=2)
+        context_info = json.dumps(context, indent=2)
+
         prompt = (
-            f"Aqui estão as métricas do treinamento:\n{stats_info}\n\n"
-            f"Requisito do usuário: {user_input}\n\n"
-            "Avalie se o comportamento aprendido atende ao requisito. "
-            "Responda se está satisfatório ou se deve refazer o treinamento."
+            "Você é um assistente para configurar o treinamento RL de robôs.\n\n"
+            f"Historico das ultimas avaliacoes: {context_info}\n\n"
+            "1. Configurações Básicas:\n"
+            f"   - Base de configurações: {base_info}\n"
+            f"   - Métricas de treinamento: {stats_info}\n\n"
+            "2. Detalhes das Métricas (Desvio padrão e média):\n"
+            "   - obstacle_score: penalidade quando o sensor lidar tem medicoes muito perto de obstaculos\n"
+            "   - orientation_score: maior recompensa se o robô estiver direcionado para o objetivo.\n"
+            "   - progress_score: diferença entre a posição inicial e a posição atual do robô em relação ao objetivo.\n"
+            "   - time_score: penalidade por tempo.\n"
+            "   - action: média das ações (0 = ir para frente, 1 = virar à direita, 2 = virar à esquerda).\n"
+            "   - dist: distância do robô ao objetivo.\n"
+            "   - alpha: ângulo do robô em relação ao objetivo.\n"
+            "   - min_lidar: menor medição do lidar.\n"
+            "   - max_lidar: maior medição do lidar.\n\n"
+            "3. Tarefa:\n"
+            "   Usando as métricas e a base de configurações, avalie e retorne em formato JSON:\n"
+            "     - Modifique a configuração da recompensa com a escala apropriada.\n"
+            "     - O tipo de ação.\n"
+            "     - O modo do ambiente.\n\n"
+            "O objetivo é ensinar o robô a chegar ao alvo sem colidir com obstáculos, usando apenas os estados (medições do lidar, ângulo alpha, "
+            "distância até o objetivo e a última ação tomada).\n"
+            "O robô deve ser capaz de aprender a melhor política de ação para maximizar a recompensa total.\n"
+            "Justifique suas escolhas no parametro 'justificativa'.\n"
         )
+
         return prompt
 
-    def call_evaluator_llm(self, prompt: str) -> str:
+    def call_evaluator_llm(self, prompt: str):
         """
-        Chamada placeholder para o LLM de avaliação.
+        Calls the Gemini LLM using the google.generativeai package.
         """
-        headers = {
-            "Authorization": f"Bearer {self.evaluator_api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {"prompt": prompt, "max_tokens": 300}
-        # response = requests.post(self.evaluator_api_url, headers=headers, json=payload)
-        # return response.json()["generated_text"]
-        return "Placeholder de avaliação: 'Treinamento satisfatório'"
+        client = genai.Client(api_key=self.evaluator_api_key)
 
-    def evaluate_training(self, user_input: str, stats: dict) -> str:
+        manual_schema = {
+            "type": "object",
+            "properties": {
+                "justify": {"type": "string"},
+                "strategy": {
+                    "type": "object",
+                    "properties": {
+                        "reward": {
+                            "type": "object",
+                            "properties": {
+                                "reward_type": {"type": "string"},
+                                "parameters": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "key": {"type": "string"},
+                                            "value": {"type": "number"},
+                                        },
+                                        "required": ["key", "value"],
+                                    },
+                                },
+                            },
+                            "required": ["reward_type", "parameters"],
+                        },
+                        "mode": {
+                            "type": "object",
+                            "properties": {"mode": {"type": "string"}},
+                            "required": ["mode"],
+                        },
+                        "action": {
+                            "type": "object",
+                            "properties": {
+                                "action_type": {"type": "string"},
+                            },
+                            "required": ["action_type"],
+                        },
+                    },
+                    "required": ["reward", "mode", "action"],
+                },
+            },
+            "required": ["strategy"],
+        }
+
+        response = client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=manual_schema,
+                temperature=0,
+                top_p=0.95,
+                top_k=20,
+                candidate_count=1,
+                seed=5,
+            ),
+        )
+
+        if response is not None:
+            return response.parsed
+        else:
+            raise ValueError("No candidates returned from Gemini API.")
+
+    def evaluate_training(self, context: dict, stats: dict, history: dict):
         """
-        Gera prompt, chama o LLM e retorna texto de avaliação.
+        Generates a prompt, calls the LLM, and returns the evaluation text.
         """
-        prompt = self.build_evaluation_prompt(user_input, stats)
+        prompt = self.build_evaluation_prompt(context, stats, history)
         llm_response = self.call_evaluator_llm(prompt)
         return llm_response
 
 
-# Exemplo de uso:
-if __name__ == "__main__":
-    # JSON com definições (ex.: tipos de ações, ambientes, funções de recompensa)
-    context = {
-        "environments": ["mapa_aleatorio_1", "mapa_aleatorio_2"],
-        "actions": ["avancar", "recuar", "girar_esquerda", "girar_direita"],
-        "reward_functions": [
-            "colisao_negativa",
-            "distancia_objetivo_pos",
-            "movimento_suave_bonus",
-        ],
-    }
+# Example usage:
+# if __name__ == "__main__":
+#     evaluator = LLMTrainingEvaluator(
+#         evaluator_api_key="AIzaSyC2gTeqruWUdSltxkzl5tpwHvlS4Ffx1bI"  # Replace with your valid API key
+#     )
 
-    configurator = LLMTrainingConfigurator(
-        gemini_api_url="https://api.gemini.fake/v1/completions",
-        gemini_api_key="MINHA_CHAVE_GEMINI",
-    )
+#     # Example training metrics (collected after training)
+#     example_stats = {
+#         "obstacle_score_mean": -0.00010759832713556042,
+#         "obstacle_score_std": 0.000239928065948947,
+#         "orientation_score_mean": 0.0012805782593126652,
+#         "orientation_score_std": 0.0008954319340984938,
+#         "progress_score_mean": -0.00410694868449611,
+#         "progress_score_std": 0.012642693778069883,
+#         "time_score_mean": -0.00937007874015748,
+#         "time_score_std": 0.0024294879717388206,
+#         "dist_mean": 0.38105717799003874,
+#         "dist_std": 0.160274870045089,
+#         "alpha_mean": 0.45790818174166853,
+#         "alpha_std": 0.2756886272246146,
+#         "min_lidar_mean": 0.16303590130368908,
+#         "min_lidar_std": 0.0877522568964114,
+#         "max_lidar_mean": 0.4204654638653039,
+#         "max_lidar_std": 0.1299746233048569
+#     }
 
-    # Exemplo: usuário quer curvas suaves e manter 1m das paredes
-    user_input = "Preciso de curvas suaves, manter 1m de distância dos obstáculos e chegar rápido ao destino."
-
-    training_config = configurator.generate_training_config(user_input, context)
-    print("[Configuração de Treinamento]:")
-    print(training_config)
-
-    evaluator = LLMTrainingEvaluator(
-        evaluator_api_url="https://api.outroLLM.fake/v1/evaluate",
-        evaluator_api_key="MINHA_CHAVE_OUTRO_LLM",
-    )
-
-    # Exemplo de estatísticas (coletadas depois do treino)
-    example_stats = {
-        "time_to_goal_mean": 12.4,
-        "time_to_goal_std": 2.1,
-        "distance_to_walls_mean": 1.02,
-        "collisions_count": 0,
-    }
-
-    evaluation_result = evaluator.evaluate_training(user_input, example_stats)
-    print("[Avaliação de Treinamento]:")
-    print(evaluation_result)
+#     evaluation_result = evaluator.evaluate_training(get_strategy_dict(), example_stats)
+#     print(evaluation_result)
