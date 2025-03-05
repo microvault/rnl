@@ -8,7 +8,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, probe_envs, probe_training, training
+from rnl.training.learn import inference, probe_envs, training
 
 
 def robot(
@@ -45,8 +45,6 @@ def make(
     folder_map: str,
     name_map: str,
     max_timestep: int,
-    mode: str,
-    reward_function: str,
 ) -> EnvConfig:
     return EnvConfig(
         scalar=scalar,
@@ -54,8 +52,6 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
-        mode=mode,
-        reward_function=reward_function,
     )
 
 
@@ -78,6 +74,7 @@ class Trainer:
 
     def learn(
         self,
+        use_agents: bool,
         max_timestep_global: int,
         seed: int,
         hidden_size: List[int],
@@ -85,9 +82,11 @@ class Trainer:
         num_envs: int,
         device: str,
         activation: str,
-        checkpoint: str,
+        checkpoint: int,
+        checkpoint_path: str,
         use_wandb: bool,
         wandb_api_key: str,
+        llm_api_key: str,
         lr: float,
         learn_step: int,
         gae_lambda: float,
@@ -98,6 +97,11 @@ class Trainer:
         max_grad_norm: float,
         update_epochs: int,
         name: str,
+        save_path: str,
+        elite_path: str,
+        overwrite_checkpoints: bool,
+        save_elite: bool,
+        evo_steps: int
     ) -> None:
 
         network_config = NetworkConfig(
@@ -105,14 +109,17 @@ class Trainer:
             mlp_activation=activation,
         )
         trainer_config = TrainerConfig(
+            use_agents=use_agents,
             max_timestep_global=max_timestep_global,
             seed=seed,
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,
             checkpoint=checkpoint,
+            checkpoint_path=checkpoint_path,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
+            llm_api_key=llm_api_key,
             lr=lr,
             learn_step=learn_step,
             gae_lambda=gae_lambda,
@@ -123,9 +130,14 @@ class Trainer:
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
             name=name,
+            save_path=save_path,
+            elite_path=elite_path,
+            overwrite_checkpoints=overwrite_checkpoints,
+            save_elite=save_elite,
+            evo_steps=evo_steps
         )
 
-        if self.render_config.debug:
+        if not self.render_config.debug:
             raise ValueError("Error: Debug mode is not supported for training.")
         if self.render_config.plot:
             raise ValueError("Error: Plot mode is not supported for training.")
@@ -133,12 +145,12 @@ class Trainer:
             raise ValueError("Error: Controller mode is not supported for training.")
 
         training(
-            trainer_config,
-            network_config,
             self.robot_config,
             self.sensor_config,
             self.env_config,
             self.render_config,
+            trainer_config,
+            network_config,
         )
 
         return None
@@ -172,12 +184,14 @@ class Simulation:
 class Probe:
     def __init__(
         self,
+        seed: int,
         num_envs: int,
         max_steps: int,
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
+
     ) -> None:
 
         self.num_envs = num_envs
@@ -186,6 +200,7 @@ class Probe:
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
+        self.seed = seed
 
     def execute(self) -> None:
 
@@ -202,24 +217,25 @@ class Probe:
             self.sensor_config,
             self.env_config,
             self.render_config,
+            self.seed,
         )
 
         return None
 
-    def training(self) -> None:
-        if self.render_config.controller:
-            raise ValueError("Error: Controller mode is not supported for training.")
+    # def training(self) -> None:
+    #     if self.render_config.controller:
+    #         raise ValueError("Error: Controller mode is not supported for training.")
 
-        if self.render_config.plot:
-            raise ValueError("Error: Plot mode is not supported for training.")
+    #     if self.render_config.plot:
+    #         raise ValueError("Error: Plot mode is not supported for training.")
 
-        probe_training(
-            self.num_envs,
-            self.max_steps,
-            self.robot_config,
-            self.sensor_config,
-            self.env_config,
-            self.render_config,
-        )
+    #     probe_training(
+    #         self.num_envs,
+    #         self.max_steps,
+    #         self.robot_config,
+    #         self.sensor_config,
+    #         self.env_config,
+    #         self.render_config,
+    #     )
 
-        return None
+    #     return None
