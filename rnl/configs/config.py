@@ -9,8 +9,6 @@ class EnvConfig:
     folder_map: str
     name_map: str
     timestep: int
-    mode: str
-    reward_function: str
 
 
 @dataclass
@@ -48,6 +46,7 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
+    use_agents: bool
     max_timestep_global: int
     seed: int
     batch_size: int
@@ -55,9 +54,11 @@ class TrainerConfig:
     num_envs: int
     device: str
     learn_step: int
-    checkpoint: str
+    checkpoint: int
+    checkpoint_path: str
     use_wandb: bool
     wandb_api_key: str
+    llm_api_key: str
     gae_lambda: float
     action_std_init: float
     clip_coef: float
@@ -66,6 +67,11 @@ class TrainerConfig:
     max_grad_norm: float
     update_epochs: int
     name: str
+    save_path: str
+    elite_path: str
+    overwrite_checkpoints: bool
+    save_elite: bool
+    evo_steps: int
 
 
 @dataclass
