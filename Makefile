@@ -12,7 +12,8 @@ BATCH_SIZE ?= 1024
 NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
-CHECKPOINT ?= 13_02_2025
+CHECKPOINT ?= 10000
+CHECKPOINT_PATH ?= 13_02_2025
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
 ACTION_STD_INIT ?= 0.6
@@ -23,15 +24,22 @@ MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
 TYPE_REWARD ?= all
-SCALAR ?= 20
+SCALAR ?= 1
+CONTROL ?= False
 
 .PHONY: sim
 sim:
 	@uv run python -m main sim \
-	    --controller True \
+	    --controller $(CONTROL) \
      	--debug True \
       	--scalar $(SCALAR)
 
+.PHONY: control
+control:
+	@uv run python -m main sim \
+	    --controller True \
+     	--debug True \
+      	--scalar $(SCALAR)
 
 .PHONY: learn
 learn:
@@ -44,6 +52,7 @@ learn:
     	--num_envs $(NUM_ENVS) \
     	--device $(DEVICE) \
     	--checkpoint $(CHECKPOINT) \
+        --checkpoint_path $(CHECKPOINT_PATH) \
     	--lr $(LR) \
         --learn_step $(LEARN_STEP) \
     	--gae_lambda $(GAE_LAMBDA) \
@@ -56,7 +65,7 @@ learn:
     	--name $(NAME) \
     	--type_reward $(TYPE_REWARD) \
      	--controller False \
-      	--debug False \
+      	--debug True \
        	--scalar $(SCALAR)
 
 .PHONY: probe
@@ -65,18 +74,22 @@ probe:
     	--num_envs $(NUM_ENVS) \
     	--device $(DEVICE) \
     	--type_reward $(TYPE_REWARD) \
+        --max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+        --num_envs $(NUM_ENVS) \
     	--controller False \
      	--debug True \
       	--scalar $(SCALAR)
 
-.PHONY: training
-training:
-	@uv run python -m main training \
-    	--device $(DEVICE) \
-    	--type_reward $(TYPE_REWARD) \
-    	--controller False \
-     	--debug False \
-      	--scalar $(SCALAR)
+# .PHONY: training
+# training:
+# 	@uv run python -m main training \
+#     	--device $(DEVICE) \
+#     	--type_reward $(TYPE_REWARD) \
+#         --max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+#         --num_envs $(NUM_ENVS) \
+#     	--controller False \
+#      	--debug True \
+#       	--scalar $(SCALAR)
 
 
 .PHONY: test_without_coverage
