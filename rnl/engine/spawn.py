@@ -1,10 +1,7 @@
+from numba.typed import List
 import random
-
 import numpy as np
-from numba import njit
 
-
-# @njit
 def _point_in_ring(px, py, ring):
     """
     Ray-casting para verificar se o ponto (px, py) está dentro
@@ -21,16 +18,16 @@ def _point_in_ring(px, py, ring):
             inside = not inside
     return inside
 
-
-# @njit
 def _point_in_polygon(px, py, exterior, holes):
     """
     Verifica se ponto está no polígono (exterior e 0+ buracos).
     """
     if not _point_in_ring(px, py, exterior):
         return False
-    for hole in holes:
-        if _point_in_ring(px, py, hole):
+    if len(holes) == 0:
+        return True
+    for i in range(len(holes)):
+        if _point_in_ring(px, py, holes[i]):
             return False
     return True
 
@@ -69,9 +66,13 @@ def spawn_robot_and_goal(
     minx_g, miny_g, maxx_g, maxy_g = safe_poly_goal.bounds
 
     def to_numba_format(shp):
+        if shp.geom_type == "MultiPolygon":
+            shp = max(shp.geoms, key=lambda g: g.area)
         ext = np.array(shp.exterior.coords, dtype=np.float64)
-        holes = [np.array(i.coords, dtype=np.float64) for i in shp.interiors]
-        return ext, holes
+        holes_list = List()
+        for interior in shp.interiors:
+            holes_list.append(np.array(interior.coords, dtype=np.float64))
+        return ext, holes_list
 
     if dataset:
         ext_robot, holes_robot = to_python_format(safe_poly_robot)
