@@ -98,9 +98,57 @@ class StrategyConfig:
 # Single function to build and return the final JSON configuration
 def get_strategy_dict() -> dict:
     modes: List[ModeConfig] = [
-        ModeConfig("easy-00", "Easy mode with basic settings"),
-        ModeConfig("easy-01", "Easy mode with varied targets"),
-        ModeConfig("medium", "Intermediate mode with more complex challenges"),
+        ModeConfig(
+            "easy-00",
+            "Objetivo entre 2 posições em mapa gerado 2x2. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        ),
+        ModeConfig(
+            "easy-01",
+            "Objetivo entre 4 posições em mapa gerado 2x2 fixo. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        ),
+        ModeConfig(
+            "easy-02",
+            "Objetivo livre no mapa gerado 2x2. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        ),
+        ModeConfig(
+            "easy-03",
+            "Objetivo livre em mapa gerado 5x5. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        ),
+        ModeConfig(
+            "easy-04",
+            "Objetivo livre em mapa gerado 10x10 com obstáculos. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        ),
+        ModeConfig(
+            "easy-05",
+            "Objetivo livre em mapas gerados de 2x2 até 10x10 com obstáculos. Robô inicia aleatório.",
+        ),
+        ModeConfig(
+            "medium-00",
+            "Objetivo aleatório em 1/8 do mapa real. Robô inicia aleatório (pos e ângulo).",
+        ),
+        ModeConfig(
+            "medium-01",
+            "Objetivo aleatório em 1/6 do mapa real. Robô inicia aleatório.",
+        ),
+        ModeConfig(
+            "medium-02",
+            "Objetivo aleatório em 1/4 do mapa real. Robô inicia aleatório.",
+        ),
+        ModeConfig(
+            "medium-03",
+            "Objetivo aleatório em 1/2 do mapa real. Robô inicia aleatório.",
+        ),
+        ModeConfig(
+            "medium-04",
+            "Objetivo livre em partes randômicas do mapa real. Robô inicia aleatório.",
+        ),
+        ModeConfig(
+            "medium-05", "Objetivo livre no mapa real completo. Robô inicia aleatório."
+        ),
+        ModeConfig(
+            "hard",
+            "Mapa real gerado e objetivo totalmente randômicos. Robô inicia aleatório.",
+        ),
     ]
 
     actions: List[ActionConfig] = [

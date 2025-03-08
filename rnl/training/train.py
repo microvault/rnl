@@ -1,19 +1,21 @@
 import json
+import time
 
 import numpy as np
+from agilerl.utils.utils import (
+    init_wandb,
+    save_population_checkpoint,
+    tournament_selection_and_mutation,
+)
 from tqdm import trange
-import time
+
 import wandb
 from rnl.configs.actions import get_actions_class
 from rnl.configs.rewards import RewardConfig
 from rnl.configs.strategys import get_strategy_dict
 from rnl.engine.utils import clean_info, statistics
 from rnl.engine.vector import make_vect_envs
-from agilerl.utils.utils import (
-    init_wandb,
-    save_population_checkpoint,
-    tournament_selection_and_mutation,
-)
+
 
 def training_loop(
     use_agents,
@@ -41,7 +43,7 @@ def training_loop(
     INIT_HP,
     MUT_P,
     wandb_api_key,
-    save_elite
+    save_elite,
 ):
     total_steps = 0
     infos_list = []
@@ -62,7 +64,6 @@ def training_loop(
             wandb_api_key=wandb_api_key,
             accelerator=None,
         )
-
 
     while np.less([agent.steps[-1] for agent in pop], max_steps).all():
         pop_episode_scores = []
@@ -145,7 +146,9 @@ def training_loop(
             for agent in pop
         ]
         print(f"Fitnesses: {['%.2f' % f for f in fitnesses]}")
-        print(f"5 fitness avgs: {['%.2f' % np.mean(agent.fitness[-5:]) for agent in pop]}")
+        print(
+            f"5 fitness avgs: {['%.2f' % np.mean(agent.fitness[-5:]) for agent in pop]}"
+        )
 
         if wb:
             wandb_dict = {
@@ -194,7 +197,11 @@ def training_loop(
             )
             # print("Resultado da avaliação LLM:", evaluation_result)
             try:
-                new_config = evaluation_result if isinstance(evaluation_result, dict) else json.loads(evaluation_result)
+                new_config = (
+                    evaluation_result
+                    if isinstance(evaluation_result, dict)
+                    else json.loads(evaluation_result)
+                )
             except Exception as e:
                 print("Erro ao parsear JSON da avaliação LLM:", e)
                 new_config = {}
@@ -203,7 +210,7 @@ def training_loop(
                 history_entry = {
                     "stats": stats,
                     "justify": evaluation_result["justify"],
-                    "config": new_config
+                    "config": new_config,
                 }
                 justificativas_history.append(history_entry)
                 # Mantém apenas os 5 últimos itens
@@ -243,7 +250,8 @@ def training_loop(
                     )
                     parameters_list = reward_info.get("parameters", [])
                     new_params = {
-                        param.get("key"): param.get("value") for param in parameters_list
+                        param.get("key"): param.get("value")
+                        for param in parameters_list
                     }
                     reward_instance = RewardConfig(
                         reward_type=new_reward_type,
@@ -252,7 +260,9 @@ def training_loop(
                     )
                     # print(f"Novo reward configurado: {new_reward_type}, parâmetros: {new_params}")
                 else:
-                    print("Nenhuma nova configuração de reward retornada, mantendo o atual")
+                    print(
+                        "Nenhuma nova configuração de reward retornada, mantendo o atual"
+                    )
 
                 # Recria o ambiente com os novos parâmetros
                 env = make_vect_envs(

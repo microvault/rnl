@@ -348,7 +348,6 @@ def training(
     render_config: RenderConfig,
     trainer_config: TrainerConfig,
     network_config: NetworkConfig,
-
 ):
 
     config_dict = {
@@ -395,8 +394,12 @@ def training(
 
     NET_CONFIG = {
         "latent_dim": 16,
-        "encoder_config": {"hidden_size": [network_config.hidden_size[0]]},  # Observation encoder configuration
-        "head_config": {"hidden_size": [network_config.hidden_size[1]]},  # Network head configuration
+        "encoder_config": {
+            "hidden_size": [network_config.hidden_size[0]]
+        },  # Observation encoder configuration
+        "head_config": {
+            "hidden_size": [network_config.hidden_size[1]]
+        },  # Network head configuration
     }
 
     INIT_HP = {
@@ -473,9 +476,7 @@ def training(
         device=trainer_config.device,
     )
 
-    evaluator = LLMTrainingEvaluator(
-        evaluator_api_key=trainer_config.llm_api_key
-    )
+    evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
 
     env = training_loop(
         trainer_config.use_agents,

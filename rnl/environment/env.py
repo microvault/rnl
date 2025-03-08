@@ -8,6 +8,7 @@ from agilerl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
+
 from rnl.configs.actions import ActionsConfig
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
@@ -172,7 +173,6 @@ class NaviEnv(gym.Env):
 
             if self.plot:
                 self._init_reward_plot()
-
 
     def on_key_press(self, event):
         if event.key == "up":
@@ -477,7 +477,6 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
-
             elif "medium" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.create_world.world(
                     mode=self.mode
@@ -644,8 +643,8 @@ class NaviEnv(gym.Env):
             ax.set_ylim(center_y - height / 2, center_y + height / 2)
 
         elif "hard" in self.mode:
-            ax.set_xlim(.1, 16)
-            ax.set_ylim(.1, 16)
+            ax.set_xlim(0.1, 16)
+            ax.set_ylim(0.1, 16)
 
         ax.add_patch(self.new_map_path)
 
@@ -782,7 +781,6 @@ class NaviEnv(gym.Env):
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=2
             )[0]
-
 
         plt.draw()
 

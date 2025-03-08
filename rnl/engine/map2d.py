@@ -150,7 +150,7 @@ class Map2D:
         )
         return subgrid_uint8
 
-    def divide_map(self, map_grid, mode='fixed', fraction=None, region=None):
+    def divide_map(self, map_grid, mode="fixed", fraction=None, region=None):
         """
         Retorna uma região do mapa com base na fração especificada ou de forma aleatória.
 
@@ -163,20 +163,30 @@ class Map2D:
         Retorna:
         - np.ndarray: A região escolhida do mapa.
         """
-        mapping = {1/8: (2, 4), 1/6: (2, 3), 1/4: (2, 2), 1/2: (2, 1), 1: (1, 1)}
+        mapping = {
+            1 / 8: (2, 4),
+            1 / 6: (2, 3),
+            1 / 4: (2, 2),
+            1 / 2: (2, 1),
+            1: (1, 1),
+        }
 
-        if mode == 'random':
+        if mode == "random":
             fraction = random.choice(list(mapping.keys()))
             rows, cols = mapping[fraction]
             total = rows * cols
             region = random.randint(1, total)
-        elif mode == 'fixed':
+        elif mode == "fixed":
             if fraction not in mapping:
-                raise ValueError("Em 'fixed', fraction deve ser um dos: 1/8, 1/6, 1/4, 1/2, 1")
+                raise ValueError(
+                    "Em 'fixed', fraction deve ser um dos: 1/8, 1/6, 1/4, 1/2, 1"
+                )
             rows, cols = mapping[fraction]
             total = rows * cols
             if region is None or region < 1 or region > total:
-                raise ValueError(f"Para a fração {fraction}, region deve ser entre 1 e {total}")
+                raise ValueError(
+                    f"Para a fração {fraction}, region deve ser entre 1 e {total}"
+                )
         else:
             raise ValueError("mode deve ser 'fixed' ou 'random'")
 
@@ -320,17 +330,29 @@ class Map2D:
         """
         # 1. Obter grid e extrair subgrid com borda
         if mode == "medium-00":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/8, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="fixed", fraction=1 / 8, region=1
+            )
         elif mode == "medium-01":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/6, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="fixed", fraction=1 / 6, region=1
+            )
         elif mode == "medium-02":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/4, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="fixed", fraction=1 / 4, region=1
+            )
         elif mode == "medium-03":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/2, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="fixed", fraction=1 / 2, region=1
+            )
         elif mode == "medium-04":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="fixed", fraction=1, region=1
+            )
         elif mode == "medium-05":
-            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='random', fraction=1, region=1)
+            new_map_grid = self.divide_map(
+                map_grid=self._grid_map(), mode="random", fraction=1, region=1
+            )
         else:
             new_map_grid = self._grid_map()
 

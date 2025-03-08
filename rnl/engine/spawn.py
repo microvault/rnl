@@ -1,6 +1,8 @@
-from numba.typed import List
 import random
+
 import numpy as np
+from numba.typed import List
+
 
 def _point_in_ring(px, py, ring):
     """
@@ -18,6 +20,7 @@ def _point_in_ring(px, py, ring):
             inside = not inside
     return inside
 
+
 def _point_in_polygon(px, py, exterior, holes):
     """
     Verifica se ponto está no polígono (exterior e 0+ buracos).
@@ -31,6 +34,7 @@ def _point_in_polygon(px, py, exterior, holes):
             return False
     return True
 
+
 def to_python_format(shp):
     """
     Converte o shapely polygon para listas de coordenadas.
@@ -41,6 +45,7 @@ def to_python_format(shp):
     ext = list(shp.exterior.coords)
     holes = [list(interior.coords) for interior in shp.interiors]
     return ext, holes
+
 
 def spawn_robot_and_goal(
     poly,

@@ -88,6 +88,7 @@ def clean_info(info: dict) -> dict:
     ]
     return {k: v for k, v in info.items() if k not in keys_to_remove}
 
+
 def statistics(info_list, field):
     values = [info[field] for info in info_list if field in info]
     if not values:  # se a lista estiver vazia, retorne None ou valores padrão

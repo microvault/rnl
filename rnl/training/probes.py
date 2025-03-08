@@ -22,8 +22,10 @@ def poly():
 
     return poly
 
+
 def check_enviromnet():
     pass
+
 
 def test_spawn_robot_and_goal(poly, request):
     iterations = 100000

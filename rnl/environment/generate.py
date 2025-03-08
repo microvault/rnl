@@ -1,10 +1,12 @@
+import json
+import os
+import random
 from dataclasses import dataclass
 
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
-import os, json, random
 
 from rnl.engine.collisions import extract_segment_from_polygon
 from rnl.engine.polygons import find_contours, process
@@ -244,7 +246,7 @@ class Generator:
 
             path = Path.make_compound_path(
                 Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors]
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
             path_patch = PathPatch(
                 path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)

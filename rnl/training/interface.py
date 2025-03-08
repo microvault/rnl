@@ -101,7 +101,7 @@ class Trainer:
         elite_path: str,
         overwrite_checkpoints: bool,
         save_elite: bool,
-        evo_steps: int
+        evo_steps: int,
     ) -> None:
 
         network_config = NetworkConfig(
@@ -134,7 +134,7 @@ class Trainer:
             elite_path=elite_path,
             overwrite_checkpoints=overwrite_checkpoints,
             save_elite=save_elite,
-            evo_steps=evo_steps
+            evo_steps=evo_steps,
         )
 
         if not self.render_config.debug:
@@ -191,7 +191,6 @@ class Probe:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-
     ) -> None:
 
         self.num_envs = num_envs
