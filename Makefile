@@ -4,7 +4,7 @@ IMAGE = $(IMAGE_NAME):$(TAG)
 VERSION = 1.1
 
 MODE ?= learn
-MAX_TIMESTEP_GLOBAL ?= 3_000_00
+MAX_TIMESTEP_GLOBAL ?= 20000
 SEED ?= 1
 HIDDEN_SIZE ?= 40,30
 ACTIVATION ?= ReLU
@@ -13,7 +13,7 @@ NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
 CHECKPOINT ?= 10000
-CHECKPOINT_PATH ?= 13_02_2025
+CHECKPOINT_PATH ?= 07_03_2025
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
 ACTION_STD_INIT ?= 0.6
@@ -31,13 +31,6 @@ CONTROL ?= False
 sim:
 	@uv run python -m main sim \
 	    --controller $(CONTROL) \
-     	--debug True \
-      	--scalar $(SCALAR)
-
-.PHONY: control
-control:
-	@uv run python -m main sim \
-	    --controller True \
      	--debug True \
       	--scalar $(SCALAR)
 
@@ -79,17 +72,6 @@ probe:
     	--controller False \
      	--debug True \
       	--scalar $(SCALAR)
-
-# .PHONY: training
-# training:
-# 	@uv run python -m main training \
-#     	--device $(DEVICE) \
-#     	--type_reward $(TYPE_REWARD) \
-#         --max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
-#         --num_envs $(NUM_ENVS) \
-#     	--controller False \
-#      	--debug True \
-#       	--scalar $(SCALAR)
 
 
 .PHONY: test_without_coverage
