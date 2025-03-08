@@ -66,16 +66,12 @@ class Generator:
             height = int(grid_length) + 1
 
             exterior = []
-            # Borda superior
             for x in range(width):
                 exterior.append((x, (height - 1)))
-            # Borda direita
             for y in range(height - 2, -1, -1):
                 exterior.append(((width - 1), y))
-            # Borda inferior
             for x in range(width - 2, -1, -1):
                 exterior.append((x, 0))
-            # Borda esquerda
             for y in range(1, height - 1):
                 exterior.append((0, y))
 
@@ -97,21 +93,17 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        if self.mode in ("easy-01", "easy-02"):
+        if self.mode in ("easy-01", "easy-02", "easy-03"):
             width = int(grid_length / resolution) + 1
             height = int(grid_length / resolution) + 1
 
             exterior = []
-            # Borda superior
             for x in range(width):
                 exterior.append((x * resolution, (height - 1) * resolution))
-            # Borda direita
             for y in range(height - 2, -1, -1):
                 exterior.append(((width - 1) * resolution, y * resolution))
-            # Borda inferior
             for x in range(width - 2, -1, -1):
                 exterior.append((x * resolution, 0))
-            # Borda esquerda
             for y in range(1, height - 1):
                 exterior.append((0, y * resolution))
 
@@ -133,9 +125,9 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        elif self.mode == "easy-03":
+        elif self.mode == "easy-04":
             m = self.generate.generate_maze(
-                map_size=grid_length,
+                map_size=int(grid_length),
                 decimation=0.0,
                 min_blocks=0,
                 num_cells_togo=100,
