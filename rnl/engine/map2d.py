@@ -150,32 +150,50 @@ class Map2D:
         )
         return subgrid_uint8
 
-    def divide_map_into_quadrants(
-        self, map_grid: np.ndarray, quadrant: int
-    ) -> np.ndarray:
+    def divide_map(self, map_grid, mode='fixed', fraction=None, region=None):
         """
-        Returns one of the four quadrants of the map_grid.
+        Retorna uma região do mapa com base na fração especificada ou de forma aleatória.
 
-        Parameters:
-            map_grid (np.ndarray): The occupancy grid map.
-            quadrant (int): The quadrant number (1, 2, 3, or 4).
+        Parâmetros:
+        - map_grid (np.ndarray): O mapa.
+        - mode (str): 'fixed' ou 'random'.
+        - fraction (float): Em 'fixed', deve ser um dos valores: 1/8, 1/6, 1/4, 1/2, 1.
+        - region (int): Em 'fixed', número da região desejada (1-indexado).
 
-        Returns:
-            np.ndarray: The specified quadrant of the map.
+        Retorna:
+        - np.ndarray: A região escolhida do mapa.
         """
-        height, width = map_grid.shape
-        mid_height, mid_width = height // 2, width // 2
+        mapping = {1/8: (2, 4), 1/6: (2, 3), 1/4: (2, 2), 1/2: (2, 1), 1: (1, 1)}
 
-        if quadrant == 1:
-            return map_grid[:mid_height, :mid_width]
-        elif quadrant == 2:
-            return map_grid[:mid_height, mid_width:]
-        elif quadrant == 3:
-            return map_grid[mid_height:, :mid_width]
-        elif quadrant == 4:
-            return map_grid[mid_height:, mid_width:]
+        if mode == 'random':
+            fraction = random.choice(list(mapping.keys()))
+            rows, cols = mapping[fraction]
+            total = rows * cols
+            region = random.randint(1, total)
+        elif mode == 'fixed':
+            if fraction not in mapping:
+                raise ValueError("Em 'fixed', fraction deve ser um dos: 1/8, 1/6, 1/4, 1/2, 1")
+            rows, cols = mapping[fraction]
+            total = rows * cols
+            if region is None or region < 1 or region > total:
+                raise ValueError(f"Para a fração {fraction}, region deve ser entre 1 e {total}")
         else:
-            raise ValueError("Quadrant must be 1, 2, 3, or 4.")
+            raise ValueError("mode deve ser 'fixed' ou 'random'")
+
+        height, width = map_grid.shape
+        row_height = height // rows
+        col_width = width // cols
+
+        region_index = region - 1
+        row_idx = region_index // cols
+        col_idx = region_index % cols
+
+        start_row = row_idx * row_height
+        end_row = (row_idx + 1) * row_height if row_idx < rows - 1 else height
+        start_col = col_idx * col_width
+        end_col = (col_idx + 1) * col_width if col_idx < cols - 1 else width
+
+        return map_grid[start_row:end_row, start_col:end_col]
 
     def erode(self, img, kernel, iterations=1):
         """
@@ -302,10 +320,17 @@ class Map2D:
         """
         # 1. Obter grid e extrair subgrid com borda
         if mode == "medium-00":
-            num = random.randint(1, 4)
-            new_map_grid = self.divide_map_into_quadrants(self._grid_map(), num)
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/8, region=1)
         elif mode == "medium-01":
-            new_map_grid = self._grid_map()
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/6, region=1)
+        elif mode == "medium-02":
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/4, region=1)
+        elif mode == "medium-03":
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1/2, region=1)
+        elif mode == "medium-04":
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='fixed', fraction=1, region=1)
+        elif mode == "medium-05":
+            new_map_grid = self.divide_map(map_grid=self._grid_map(), mode='random', fraction=1, region=1)
         else:
             new_map_grid = self._grid_map()
 
