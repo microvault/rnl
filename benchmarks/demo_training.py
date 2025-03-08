@@ -1,5 +1,6 @@
 import rnl as vault
 
+
 def main():
     # 1.step -> config robot
     param_robot = vault.robot(
@@ -28,8 +29,6 @@ def main():
         folder_map="",  # ./data/map4
         name_map="",  # map4
         max_timestep=1000,
-        mode="easy-01",  # easy-00, easy-01, easy-02, medium
-        reward_function="time",  # [time, distance, orientation, obstacle, all, any, distance_orientation, distance_time, orientation_time, distance_orientation_time, distance_obstacle, orientation_obstacle]
     )
 
     # 4.step -> config render
