@@ -50,7 +50,7 @@ class NaviEnv(gym.Env):
 
         self.reward_config = reward_cfg
 
-        self.mode: str = "medium" # easy-00"
+        self.mode: str = "medium-05"
         self.grid_length = env_config.grid_length
         self.poly = None
 
@@ -65,15 +65,24 @@ class NaviEnv(gym.Env):
                 folder=env_config.folder_map,
                 name=env_config.name_map,
             )
+
             self.new_map_path, self.segments, self.poly = self.create_world.world(
                 mode=self.mode
             )
 
         elif "easy" in self.mode:
-            self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(
-                self.grid_length
-            )
+            if self.mode == "easy-03":
+                self.grid_length = 5
+                self.generator = Generator(mode=self.mode)
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+            else:
+                self.generator = Generator(mode=self.mode)
+                self.grid_length = 10
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
 
         self.sensor = SensorRobot(sensor_config, self.segments)
 
@@ -450,21 +459,7 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
-            elif self.mode == "easy-02":
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-
-                # random target
-                self.target_x, self.target_y = np.random.uniform(
-                    0.35, 1.8
-                ), np.random.uniform(0.35, 1.8)
-                x, y = np.random.uniform(0.35, 1.8), np.random.uniform(0.35, 1.8)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode == "easy-03":
+            elif self.mode in ("easy-02", "easy-03", "easy-04"):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
@@ -477,13 +472,17 @@ class NaviEnv(gym.Env):
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
 
+                self.sensor.update_map(self.segments)
+
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
+
 
             elif "medium" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.create_world.world(
                     mode=self.mode
                 )
+                self.sensor.update_map(self.segments)
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
                     robot_clearance=self.threshold,
@@ -623,8 +622,15 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if "easy" in self.mode:
-            ax.set_xlim(0, 2)
-            ax.set_ylim(0, 2)
+            if self.mode == "easy-03":
+                ax.set_xlim(0, 5)
+                ax.set_ylim(0, 5)
+            if self.mode == "easy-04":
+                ax.set_xlim(0, 10)
+                ax.set_ylim(0, 10)
+            else:
+                ax.set_xlim(0, 2)
+                ax.set_ylim(0, 2)
 
         elif "medium" in self.mode:
             minx, miny, maxx, maxy = self.poly.bounds
@@ -777,6 +783,7 @@ class NaviEnv(gym.Env):
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=2
             )[0]
 
+
         plt.draw()
 
     def log_reward(
@@ -804,11 +811,9 @@ class NaviEnv(gym.Env):
         self.time_line.set_data(range(current_step), self.time_scores)
         self.total_reward_line.set_data(range(current_step), self.rewards)
 
-        # Update x-axis limit if necessary
         if current_step > self.reward_ax.get_xlim()[1]:
             self.reward_ax.set_xlim(0, current_step + 10)
 
-        # Optionally, adjust the y-axis based on data
         all_rewards = (
             self.obstacle_scores
             + self.collision_scores
