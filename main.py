@@ -1,7 +1,9 @@
 import argparse
 import os
+
 os.environ["KMP_WARNINGS"] = "0"
 import warnings
+
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide")
 
@@ -129,9 +131,7 @@ def str2bool(v):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or setup environment.")
-    parser.add_argument(
-        "mode", choices=["learn", "sim", "run"], help="Mode"
-    )
+    parser.add_argument("mode", choices=["learn", "sim", "run"], help="Mode")
 
     parser.add_argument(
         "--max_timestep_global",

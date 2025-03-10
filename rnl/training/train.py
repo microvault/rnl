@@ -2,6 +2,7 @@ import json
 import time
 
 import numpy as np
+import wandb
 from agilerl.utils.utils import (
     init_wandb,
     save_population_checkpoint,
@@ -9,7 +10,6 @@ from agilerl.utils.utils import (
 )
 from tqdm import trange
 
-import wandb
 from rnl.configs.actions import get_actions_class
 from rnl.configs.rewards import RewardConfig
 from rnl.configs.strategys import get_strategy_dict
