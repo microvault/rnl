@@ -32,7 +32,7 @@ def main():
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True, plot=False)
+    param_render = vault.render(controller=False, debug=True)
 
     # 5.step -> config train robot
     model = vault.Simulation(param_robot, param_sensor, param_env, param_render)

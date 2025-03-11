@@ -55,7 +55,7 @@ def make(
     )
 
 
-def render(controller: bool, debug: bool, plot: bool) -> RenderConfig:
+def render(controller: bool, debug: bool, plot: bool = False) -> RenderConfig:
     return RenderConfig(controller, debug, plot)
 
 

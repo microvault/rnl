@@ -51,7 +51,7 @@ class NaviEnv(gym.Env):
 
         self.reward_config = reward_cfg
 
-        self.mode: str = "medium-05"
+        self.mode: str = "easy-01"
         self.grid_length = env_config.grid_length
         self.poly = None
 
