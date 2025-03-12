@@ -15,6 +15,7 @@ def make_vect_envs(
     use_render: bool,
     actions_type: get_actions_class,
     reward_type: RewardConfig,
+    mode: str
 ):
     """Returns async-vectorized gym environments with custom parameters.
 
@@ -36,6 +37,7 @@ def make_vect_envs(
                 use_render,
                 actions_cfg=actions_type,
                 reward_cfg=reward_type,
+                mode=mode,
             )
             env.reset(seed=13 + i)
             return env

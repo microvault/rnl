@@ -127,7 +127,7 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        elif self.mode == "easy-04":
+        elif self.mode == "easy-04" or self.mode == "easy-05":
             m = self.generate.generate_maze(
                 map_size=int(grid_length),
                 decimation=0.0,

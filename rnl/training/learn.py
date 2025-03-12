@@ -74,6 +74,7 @@ def inference(
         },
         description="Reward baseado em todos os fatores",
     )
+    mode = "hard"
 
     env = NaviEnv(
         robot_config,
@@ -83,6 +84,7 @@ def inference(
         use_render=True,
         actions_cfg=actions_type,
         reward_cfg=reward_instance,
+        mode=mode,
     )
 
     env.render()
@@ -91,7 +93,7 @@ def inference(
 def probe_envs(
     num_envs, max_steps, robot_config, sensor_config, env_config, render_config, seed
 ):
-    set_seed(seed)
+    # set_seed(seed)
 
     probe_config = ProbeEnvConfig(num_envs=num_envs, max_steps=max_steps)
     config_dict = {
@@ -123,6 +125,8 @@ def probe_envs(
         description="Reward baseado em todos os fatores",
     )
 
+    mode = "easy-01"
+
     env = NaviEnv(
         robot_config,
         sensor_config,
@@ -131,6 +135,7 @@ def probe_envs(
         use_render=False,
         actions_cfg=actions_type,
         reward_cfg=reward_instance,
+        mode=mode,
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -168,6 +173,7 @@ def probe_envs(
             use_render=False,
             actions_type=actions_type,
             reward_type=reward_instance,
+            mode=mode
         )
 
         obs, info = env.reset()
@@ -379,6 +385,7 @@ def training(
         },
         description="Reward baseado em todos os fatores",
     )
+    mode = "easy-01"
 
     env = NaviEnv(
         robot_config,
@@ -388,6 +395,7 @@ def training(
         use_render=False,
         actions_cfg=actions_type,
         reward_cfg=reward_instance,
+        mode=mode,
     )
     print("\nCheck environment ...")
     check_env(env)
@@ -441,6 +449,7 @@ def training(
         use_render=False,
         actions_type=actions_type,
         reward_type=reward_instance,
+        mode=mode,
     )
 
     observation_space = env.single_observation_space

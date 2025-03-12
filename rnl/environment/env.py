@@ -31,6 +31,7 @@ class NaviEnv(gym.Env):
         use_render: bool,
         actions_cfg: ActionsConfig,
         reward_cfg: RewardConfig,
+        mode: str,
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
@@ -51,14 +52,15 @@ class NaviEnv(gym.Env):
 
         self.reward_config = reward_cfg
 
-        self.mode: str = "easy-01"
-        self.grid_length = env_config.grid_length
+        self.mode: str = mode
+        self.grid_length = None
         self.poly = None
 
         if "hard" in self.mode:
+            self.grid_lengt = 0
             self.generator = Generator(mode=self.mode)
             self.new_map_path, self.segments, self.poly = self.generator.world(
-                self.grid_length
+                self.grid_lengt
             )
 
         if "medium" in self.mode:
@@ -72,8 +74,21 @@ class NaviEnv(gym.Env):
             )
 
         elif "easy" in self.mode:
-            if self.mode == "easy-03":
+            if self.mode in ("easy-00", "easy-01", "easy-02"):
+                self.grid_length = 2
+
+                self.generator = Generator(mode=self.mode)
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+            elif self.mode == "easy-03":
                 self.grid_length = 5
+                self.generator = Generator(mode=self.mode)
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+            elif self.mode == "easy-05":
+                self.grid_length = 10
                 self.generator = Generator(mode=self.mode)
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
@@ -477,6 +492,27 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
+            elif self.mode in ("easy-05"):
+                self.grid_length = round(np.random.choice(np.arange(2, 10.05, 0.05)), 2)
+                print(self.grid_length)
+
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
             elif "medium" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.create_world.world(
                     mode=self.mode
@@ -621,15 +657,8 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if "easy" in self.mode:
-            if self.mode == "easy-03":
-                ax.set_xlim(0, 5)
-                ax.set_ylim(0, 5)
-            if self.mode == "easy-04":
-                ax.set_xlim(0, 10)
-                ax.set_ylim(0, 10)
-            else:
-                ax.set_xlim(0, 2)
-                ax.set_ylim(0, 2)
+            ax.set_xlim(0, int(self.grid_length))
+            ax.set_ylim(0, int(self.grid_length))
 
         elif "medium" in self.mode:
             minx, miny, maxx, maxy = self.poly.bounds
@@ -770,14 +799,28 @@ class NaviEnv(gym.Env):
             self.heading_line.remove()
 
         if "easy" in self.mode:
-            x2 = x + 0.1 * np.cos(self.body.angle)
-            y2 = y + 0.1 * np.sin(self.body.angle)
+            if self.mode == "easy-03":
+                x2 = x + 0.2 * np.cos(self.body.angle)
+                y2 = y + 0.2 * np.sin(self.body.angle)
+            elif self.mode == "easy-04":
+                x2 = x + 0.4 * np.cos(self.body.angle)
+                y2 = y + 0.4 * np.sin(self.body.angle)
+            else:
+                x2 = x + 0.1 * np.cos(self.body.angle)
+                y2 = y + 0.1 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
         elif "medium" in self.mode:
             x2 = x + 2.0 * np.cos(self.body.angle)
             y2 = y + 2.0 * np.sin(self.body.angle)
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=2
+            )[0]
+
+        elif "hard" in self.mode:
+            x2 = x + 1.0 * np.cos(self.body.angle)
+            y2 = y + 1.0 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=2
             )[0]

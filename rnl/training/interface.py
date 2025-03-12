@@ -41,14 +41,12 @@ def sensor(
 
 def make(
     scalar: int,
-    grid_length: float,
     folder_map: str,
     name_map: str,
     max_timestep: int,
 ) -> EnvConfig:
     return EnvConfig(
         scalar=scalar,
-        grid_length=grid_length,
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
