@@ -149,24 +149,28 @@ train:
 	rnl-docker-cuda \
 	--MODE $(MODE) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
-	--seed $(SEED) \
-	--buffer_size $(BUFFER_SIZE) \
-	--hidden_size $(HIDDEN_SIZE) \
-	--activation $(ACTIVATION) \
-	--batch_size $(BATCH_SIZE) \
-	--num_envs $(NUM_ENVS) \
-	--device $(DEVICE) \
-	--checkpoint $(CHECKPOINT) \
-	--lr $(LR) \
-	--gae_lambda $(GAE_LAMBDA) \
-	--action_std_init $(ACTION_STD_INIT) \
-	--clip_coef $(CLIP_COEF) \
-	--ent_coef $(ENT_COEF) \
-	--vf_coef $(VF_COEF) \
-	--max_grad_norm $(MAX_GRAD_NORM) \
-	--update_epochs $(UPDATE_EPOCHS) \
-	--name $(NAME) \
-	--type_reward $(TYPE_REWARD)
+   	--seed $(SEED) \
+   	--hidden_size $(HIDDEN_SIZE) \
+   	--activation $(ACTIVATION) \
+   	--batch_size $(BATCH_SIZE) \
+   	--num_envs $(NUM_ENVS) \
+   	--device $(DEVICE) \
+   	--checkpoint $(CHECKPOINT) \
+    --checkpoint_path $(CHECKPOINT_PATH) \
+   	--lr $(LR) \
+    --learn_step $(LEARN_STEP) \
+   	--gae_lambda $(GAE_LAMBDA) \
+   	--action_std_init $(ACTION_STD_INIT) \
+   	--clip_coef $(CLIP_COEF) \
+   	--ent_coef $(ENT_COEF) \
+   	--vf_coef $(VF_COEF) \
+   	--max_grad_norm $(MAX_GRAD_NORM) \
+   	--update_epochs $(UPDATE_EPOCHS) \
+   	--name $(NAME) \
+   	--type_reward $(TYPE_REWARD) \
+   	--controller False \
+   	--debug False \
+   	--scalar $(SCALAR)
 
 .PHONY: clean
 clean:
