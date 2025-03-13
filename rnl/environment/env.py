@@ -9,6 +9,7 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
 
+from shapely.geometry import Point
 from rnl.configs.actions import ActionsConfig
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
@@ -53,7 +54,7 @@ class NaviEnv(gym.Env):
         self.reward_config = reward_cfg
 
         self.mode: str = mode
-        self.grid_length = None
+        self.grid_length = 2
         self.poly = None
 
         if "hard" in self.mode:
@@ -117,11 +118,12 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = compute_polygon_diameter(self.poly)
-        self.min_dist = 0.0
+        self.max_dist = compute_polygon_diameter(self.poly) * 0.8 # fator
+        self.min_dist = 0.0 # robot_config.threshold
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
-        self.scaler_alpha.fit(np.array([[0.0], [3.5]]))
+        self.min_alpha, self.max_alpha = 0.0, 3.5 * 0.89
+        self.scaler_alpha.fit(np.array([[self.min_alpha], [self.max_alpha]]))
         # -- Environmental parameters -- #
         self.max_lidar = sensor_config.max_range
         self.pretrained_model = robot_config.path_model
@@ -156,6 +158,7 @@ class NaviEnv(gym.Env):
             self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
+            print(self.use_render)
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
             )
@@ -197,11 +200,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.36 * self.scalar
+            self.vr = -0.72 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.36 * self.scalar
+            self.vr = 0.72 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -215,6 +218,21 @@ class NaviEnv(gym.Env):
             self.vr = 0.005 * self.scalar
 
     def step_animation(self, i):
+
+        # self.vl = 0.0
+        # self.vr = 0.0
+
+        # self.action = np.random.randint(0, 3)
+
+        # if self.action == 0:
+        #     self.vl = 0.10 * self.scalar
+        #     self.vr = 0.0
+        # elif self.action == 1:
+        #     self.vl = 0.08 * self.scalar
+        #     self.vr = -0.36 * self.scalar
+        # elif self.action == 2:
+        #     self.vl = 0.08 * self.scalar
+        #     self.vr = 0.36 * self.scalar
 
         if self.pretrained_model != "None" or not self.controller:
             if self.pretrained_model != "None" and self.model is not None:
@@ -251,6 +269,7 @@ class NaviEnv(gym.Env):
             self.body.angle,
             self.target_x,
             self.target_y,
+            self.max_alpha
         )
         collision, laser = min_laser(lidar_measurements, self.collision)
 
@@ -288,16 +307,17 @@ class NaviEnv(gym.Env):
             poly=self.poly,
             position_x=x,
             position_y=y,
-            current_distance=dist,
             initial_distance=self.initial_distance,
+            current_distance=dist_norm[0],
             collision=collision,
-            alpha=alpha,
+            alpha=alpha_norm[0],
             step=i,
             threshold=self.threshold,
             threshold_collision=self.collision,
             min_distance=self.min_dist,
             max_distance=self.max_dist,
         )
+
 
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
@@ -315,11 +335,13 @@ class NaviEnv(gym.Env):
             self.target_x,
             self.target_y,
             reward,
+            orientation_score,
+            progress_score,
+            obstacle,
             alpha_norm[0],
             min_lidar_norm,
             dist_norm[0],
             self.action,
-            obstacle,
         )
 
         self.space.step(1 / 60)
@@ -341,12 +363,26 @@ class NaviEnv(gym.Env):
             self._stop()
 
     def step(self, action):
-        base_vl, base_vr = self.actions_config.get_speeds(
-            action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
-        )
-        vl = base_vl * self.scalar
-        vr = base_vr * self.scalar
+        # base_vl, base_vr = self.actions_config.get_speeds(
+        #     action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
+        # )
+        # vl = base_vl * self.scalar
+        # vr = base_vr * self.scalar
 
+        vl = 0.0
+        vr = 0.0
+
+        if action == 0:
+            vl = 0.10 * self.scalar
+            vr = 0.0
+        elif action == 1:
+            vl = 0.08 * self.scalar
+            vr = -0.08 * self.scalar
+        elif action == 2:
+            vl = 0.08 * self.scalar
+            vr = 0.08 * self.scalar
+
+        # print("Action: ", action)
         self.robot.move_robot(self.space, self.body, vl, vr)
 
         x, y, theta = (
@@ -354,6 +390,8 @@ class NaviEnv(gym.Env):
             self.body.position.y,
             self.body.angle,
         )
+
+        # print("x: ", x, "y: ", y)
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
@@ -366,6 +404,7 @@ class NaviEnv(gym.Env):
             self.body.angle,
             self.target_x,
             self.target_y,
+            self.max_alpha
         )
 
         collision_array, laser = min_laser(lidar_measurements, self.collision)
@@ -391,6 +430,10 @@ class NaviEnv(gym.Env):
             )
         )
 
+        # print("states: ", states)
+        # print()
+
+
         (
             collision_score,
             orientation_score,
@@ -404,9 +447,9 @@ class NaviEnv(gym.Env):
             position_x=x,
             position_y=y,
             initial_distance=self.initial_distance,
-            current_distance=dist,
+            current_distance=dist_norm[0],
             collision=collision,
-            alpha=alpha,
+            alpha=alpha_norm[0],
             step=self.timestep,
             threshold=self.threshold,
             threshold_collision=self.collision,
@@ -417,14 +460,21 @@ class NaviEnv(gym.Env):
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
         )
+        # print("reward: ", reward)
+        # print()
 
         self.last_states = states
 
         self.space.step(1 / 60)
 
         self.timestep += 1
+        # print("timestep: ", self.timestep)
+        # print()
 
         truncated = self.timestep >= self.max_timestep
+
+        # print("truncated: ", truncated)
+        # print()
 
         if self.debug:
 
@@ -439,6 +489,9 @@ class NaviEnv(gym.Env):
                 "min_lidar": float(min(lidar_norm)),
                 "max_lidar": float(max(lidar_norm)),
             }
+            # print("collision: ", collision)
+            # print()
+            # print("done: ", done)
             return states, reward, done, truncated, info
 
         else:
@@ -448,6 +501,8 @@ class NaviEnv(gym.Env):
         super().reset(seed=seed, options=options)
 
         self.timestep = 0
+        # print("reset")
+        # print()
 
         try:
             if self.mode == "easy-00":
@@ -458,6 +513,8 @@ class NaviEnv(gym.Env):
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
+
+                self.sensor.update_map(self.segments)
 
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
@@ -567,6 +624,7 @@ class NaviEnv(gym.Env):
                 self.body.position.angle,
                 self.target_x,
                 self.target_y,
+                self.max_alpha
             )
 
             self.initial_distance = dist
@@ -613,11 +671,13 @@ class NaviEnv(gym.Env):
                     self.target_x,
                     self.target_y,
                     0.0,
+                    0.0,
+                    0.0,
+                    0.0,
                     alpha_norm,
                     min_lidar_norm,
                     dist_norm,
                     self.action,
-                    0.0,
                 )
 
         except Exception as e:
@@ -701,7 +761,7 @@ class NaviEnv(gym.Env):
 
         if self.debug:
             self.label = self.ax.text(
-                0.5, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0, 0.0)
+                0.1, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)
             )
 
             self.label.set_fontsize(14)
@@ -714,11 +774,13 @@ class NaviEnv(gym.Env):
     def _get_label(
         timestep: int,
         score: float,
+        score_angle: float,
+        score_distance: float,
+        score_obstacle: float,
         state_angle: float,
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
-        obstacle: float,
     ) -> str:
         """
         Generates a label for the environment.
@@ -738,14 +800,18 @@ class NaviEnv(gym.Env):
 
         line1 = "Environment:\n"
         line2 = "Time Step:".ljust(14) + f"{timestep}\n"
-        line3 = "Reward: ".ljust(14) + f"{score}\n"
-        line4 = "Distance: ".ljust(14) + f"{state_distance:.2f}\n"
-        line5 = "Angle:".ljust(14) + f"{state_angle:.2f}\n"
-        line6 = "Lidar:".ljust(14) + f"{state_min_max_lidar:.2f}\n"
-        line7 = "Action:".ljust(14) + f"{action}\n"
-        line8 = "Obstacle:".ljust(14) + f"{obstacle}\n"
+        space1 = "------\n"
+        line3 = "R. total.: ".ljust(14) + f"{score:.4f}\n"
+        line4 = "R. angle: ".ljust(14) + f"{score_angle:.4f}\n"
+        line5 = "R. dist.: ".ljust(14) + f"{score_distance:.4f}\n"
+        line6 = "R. obst.: ".ljust(14) + f"{score_obstacle:.4f}\n"
+        space2 = "------\n"
+        line7 = "Distance: ".ljust(14) + f"{state_distance:.4f}\n"
+        line8 = "Angle:".ljust(14) + f"{state_angle:.4f}\n"
+        line9 = "Lidar:".ljust(14) + f"{state_min_max_lidar:.4f}\n"
+        line10 = "Action:".ljust(14) + f"{action}\n"
 
-        return line1 + line2 + line3 + line4 + line5 + line6 + line7 + line8
+        return line1 + line2 + space1 + line3 + line4 + line5 + line6  + space2 + line7 + line8 + line9 + line10
 
     def _plot_anim(
         self,
@@ -756,11 +822,13 @@ class NaviEnv(gym.Env):
         target_x: float,
         target_y: float,
         score: float,
+        score_angle: float,
+        score_distance: float,
+        score_obstacle: float,
         state_angle: float,
         state_min_max_lidar: float,
         state_distance: float,
         action: int,
-        obstacle,
     ) -> None:
 
         if self.debug:
@@ -768,11 +836,13 @@ class NaviEnv(gym.Env):
                 self._get_label(
                     i,
                     score,
+                    score_angle,
+                    score_distance,
+                    score_obstacle,
                     state_angle,
                     state_min_max_lidar,
                     state_distance,
                     action,
-                    obstacle,
                 )
             )
 

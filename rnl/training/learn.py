@@ -19,11 +19,169 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.rewards import RewardConfig
-from rnl.engine.utils import clean_info, set_seed
+from rnl.engine.utils import clean_info, set_seed, calculate_batch_nsteps
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.train import training_loop
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
 
+ACTION_TYPE = get_actions_class("SurgeActions")()
+REWARD_TYPE = RewardConfig(
+    reward_type="time",
+    params={
+        "scale_orientation": 0.02,
+        "scale_distance": 0.06,
+        "scale_time": 0.01,
+        "scale_obstacle": 0.001,
+    },
+    description="Reward baseado em todos os fatores",
+)
+
+# ENV_TYPE = "easy-00"
+# ENV_TYPE = "easy-01"
+ENV_TYPE = "easy-01"
+
+from torch import nn
+from wandb.integration.sb3 import WandbCallback
+import wandb
+
+from stable_baselines3 import PPO as Agent
+
+def training_sb3(
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    render_config: RenderConfig,
+    trainer_config: TrainerConfig,
+    network_config: NetworkConfig,
+):
+    config_dict = {
+        "Trainer Config": trainer_config.__dict__,
+        "Network Config": network_config.__dict__,
+        "Robot Config": robot_config.__dict__,
+        "Sensor Config": sensor_config.__dict__,
+        "Env Config": env_config.__dict__,
+        "Render Config": render_config.__dict__,
+    }
+
+    table_width = 45
+    horizontal_line = "-" * table_width
+    print(horizontal_line)
+
+    for config_name, config_values in config_dict.items():
+        print(f"| {config_name + '/':<41} |")
+        print(horizontal_line)
+        for key, value in config_values.items():
+            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        print(horizontal_line)
+
+    if trainer_config.use_wandb:
+        run = wandb.init(
+            name="mode_sb3",
+            project=trainer_config.name,
+            config=config_dict,
+            sync_tensorboard=True,
+            monitor_gym=True,
+            save_code=False,
+        )
+
+    env = NaviEnv(
+        robot_config,
+        sensor_config,
+        env_config,
+        render_config,
+        use_render=False,
+        actions_cfg=ACTION_TYPE,
+        reward_cfg=REWARD_TYPE,
+        mode=ENV_TYPE,
+    )
+
+    print("\nCheck environment ...")
+    check_env(env)
+
+    activation_fn_map = {
+        "ReLU": nn.ReLU,
+        "LeakyReLU": nn.LeakyReLU,
+    }
+    activation_fn = activation_fn_map[network_config.mlp_activation]
+
+    policy_kwargs_on_policy = dict(
+        activation_fn=activation_fn,
+        net_arch=dict(
+            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        ),
+    )
+
+    def make_env():
+        env = NaviEnv(
+            robot_config,
+            sensor_config,
+            env_config,
+            render_config,
+            use_render=False,
+            actions_cfg=ACTION_TYPE,
+            reward_cfg=REWARD_TYPE,
+            mode=ENV_TYPE,
+        )
+        env = Monitor(env)
+        return env
+
+    # Parallel environments
+    vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+
+    total_batch, n_steps = calculate_batch_nsteps(trainer_config.num_envs, trainer_config.batch_size)
+
+    print("Batch size: ", total_batch, "n_steps: ", n_steps)
+    print("\nInitiate PPO training ...")
+
+    if trainer_config.use_wandb:
+        model = Agent(
+            "MlpPolicy",
+            vec_env,
+            batch_size=total_batch,
+            verbose=1,
+            learning_rate=trainer_config.lr,
+            policy_kwargs=policy_kwargs_on_policy,
+            n_steps=n_steps,
+            vf_coef=trainer_config.vf_coef,
+            ent_coef=trainer_config.ent_coef,
+            device=trainer_config.device,
+            tensorboard_log=f"runs/{run.id}",
+            max_grad_norm=trainer_config.max_grad_norm,
+            n_epochs=trainer_config.update_epochs,
+            seed=trainer_config.seed,
+        )
+
+        model.learn(
+            total_timesteps=trainer_config.max_timestep_global,
+            callback=WandbCallback(
+                gradient_save_freq=100,
+                model_save_path=f"model_ppo/{run.id}",
+                verbose=2,
+            ),
+        )
+        run.finish()
+
+    else:
+        model = Agent(
+            "MlpPolicy",
+            vec_env,
+            batch_size=total_batch,
+            verbose=1,
+            learning_rate=trainer_config.lr,
+            policy_kwargs=policy_kwargs_on_policy,
+            n_steps=n_steps,
+            vf_coef=trainer_config.vf_coef,
+            ent_coef=trainer_config.ent_coef,
+            device=trainer_config.device,
+            max_grad_norm=trainer_config.max_grad_norm,
+            n_epochs=trainer_config.update_epochs,
+            seed=trainer_config.seed,
+        )
+
+        model.learn(total_timesteps=trainer_config.max_timestep_global)
 
 def inference(
     robot_config: RobotConfig,
@@ -63,28 +221,15 @@ def inference(
             print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
         print(horizontal_line)
 
-    actions_type = get_actions_class("BalancedActions")()
-    reward_instance = RewardConfig(
-        reward_type="all",
-        params={
-            "scale_orientation": 0.003,
-            "scale_distance": 0.1,
-            "scale_time": 0.01,
-            "scale_obstacle": 0.001,
-        },
-        description="Reward baseado em todos os fatores",
-    )
-    mode = "hard"
-
     env = NaviEnv(
         robot_config,
         sensor_config,
         env_config,
         render_config,
         use_render=True,
-        actions_cfg=actions_type,
-        reward_cfg=reward_instance,
-        mode=mode,
+        actions_cfg=ACTION_TYPE,
+        reward_cfg=REWARD_TYPE,
+        mode=ENV_TYPE,
     )
 
     env.render()
@@ -113,30 +258,17 @@ def probe_envs(
             print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
         print(horizontal_line)
 
-    actions_type = get_actions_class("BalancedActions")()
-    reward_instance = RewardConfig(
-        reward_type="all",
-        params={
-            "scale_orientation": 0.003,
-            "scale_distance": 0.1,
-            "scale_time": 0.01,
-            "scale_obstacle": 0.001,
-        },
-        description="Reward baseado em todos os fatores",
-    )
-
-    mode = "easy-01"
-
     env = NaviEnv(
         robot_config,
         sensor_config,
         env_config,
         render_config,
         use_render=False,
-        actions_cfg=actions_type,
-        reward_cfg=reward_instance,
-        mode=mode,
+        actions_cfg=ACTION_TYPE,
+        reward_cfg=REWARD_TYPE,
+        mode=ENV_TYPE,
     )
+
     print("\nCheck environment ...")
     check_env(env)
 
@@ -150,18 +282,18 @@ def probe_envs(
 
         rewards = []
 
-        pbar = trange(max_steps, desc="Probe envs", unit="step")
-        for step in pbar:
+        for step in range(max_steps):
             if robot_config.path_model != "None" and model is not None:
                 actions, _ = model.predict(obs)
             else:
                 actions = env.action_space.sample()
 
             obs, reward, terminated, truncated, infos = env.step(actions)
-
-            # armazena as recompensas
-            print("Step: ", step, "Reward: ", reward)
+            print("Step:", step, "reward: ", reward)
             rewards.append(reward)
+
+            if terminated or truncated:
+                obs, _ = env.reset()
 
     else:
         env = make_vect_envs(
@@ -171,9 +303,9 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            actions_type=actions_type,
-            reward_type=reward_instance,
-            mode=mode
+            actions_type=ACTION_TYPE,
+            reward_type=REWARD_TYPE,
+            mode=ENV_TYPE
         )
 
         obs, info = env.reset()
@@ -374,29 +506,17 @@ def training(
             print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
         print(horizontal_line)
 
-    actions_type = get_actions_class("BalancedActions")()
-    reward_instance = RewardConfig(
-        reward_type="time",
-        params={
-            "scale_orientation": 0.003,
-            "scale_distance": 0.1,
-            "scale_time": 0.01,
-            "scale_obstacle": 0.001,
-        },
-        description="Reward baseado em todos os fatores",
-    )
-    mode = "easy-01"
-
     env = NaviEnv(
         robot_config,
         sensor_config,
         env_config,
         render_config,
         use_render=False,
-        actions_cfg=actions_type,
-        reward_cfg=reward_instance,
-        mode=mode,
+        actions_cfg=ACTION_TYPE,
+        reward_cfg=REWARD_TYPE,
+        mode=ENV_TYPE,
     )
+
     print("\nCheck environment ...")
     check_env(env)
 
@@ -447,9 +567,9 @@ def training(
         env_config=env_config,
         render_config=render_config,
         use_render=False,
-        actions_type=actions_type,
-        reward_type=reward_instance,
-        mode=mode,
+        actions_type=ACTION_TYPE,
+        reward_type=REWARD_TYPE,
+        mode=ENV_TYPE,
     )
 
     observation_space = env.single_observation_space
@@ -487,31 +607,50 @@ def training(
 
     evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
 
-    env = training_loop(
-        trainer_config.use_agents,
-        trainer_config.num_envs,
-        trainer_config.max_timestep_global,
-        trainer_config.evo_steps,
-        None,
-        1,
-        env,
-        pop,
-        tournament,
-        mutations,
-        evaluator,
-        robot_config,
-        sensor_config,
-        env_config,
-        render_config,
-        actions_type,
-        reward_instance,
-        trainer_config.use_wandb,
-        trainer_config.save_path,
-        trainer_config.elite_path,
-        trainer_config.checkpoint,
-        trainer_config.overwrite_checkpoints,
-        INIT_HP,
-        MUTATION_PARAMS,
-        trainer_config.wandb_api_key,
-        trainer_config.save_elite,
+    from agilerl.training.train_on_policy import train_on_policy
+
+
+    trained_pop, pop_fitnesses = train_on_policy(
+        algo="PPO",
+        env=env,                              # Gym-style environment
+        env_name="NaviEnv",  # Environment name
+        pop=pop,  # Population of agents
+        swap_channels=False,  # Swap image channel from last to first
+        max_steps=200000,  # Max number of training steps
+        evo_steps=10000,  # Evolution frequency
+        eval_steps=None,  # Number of steps in evaluation episode
+        eval_loop=1,  # Number of evaluation episodes
+        target=200.,  # Target score for early stopping
+        tournament=tournament,  # Tournament selection object
+        mutation=mutations,  # Mutations object
+        wb=True,  # Weights and Biases tracking
     )
+
+    # env = training_loop(
+    #     trainer_config.use_agents,
+    #     trainer_config.num_envs,
+    #     trainer_config.max_timestep_global,
+    #     trainer_config.evo_steps,
+    #     None,
+    #     1,
+    #     env,
+    #     pop,
+    #     tournament,
+    #     mutations,
+    #     evaluator,
+    #     robot_config,
+    #     sensor_config,
+    #     env_config,
+    #     render_config,
+    #     ACTION_TYPE,
+    #     REWARD_TYPE,
+    #     trainer_config.use_wandb,
+    #     trainer_config.save_path,
+    #     trainer_config.elite_path,
+    #     trainer_config.checkpoint,
+    #     trainer_config.overwrite_checkpoints,
+    #     INIT_HP,
+    #     MUTATION_PARAMS,
+    #     trainer_config.wandb_api_key,
+    #     trainer_config.save_elite,
+    # )

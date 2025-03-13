@@ -26,7 +26,7 @@ class SensorRobot:
 
         seg = self.spatial_index.filter_segments(x, y, self.max_range)
         if not seg:
-            print("No segments")
+            # print("No segments")
             return np.array([]), np.full(
                 self.sensor_config.num_rays, self.sensor_config.max_range
             )

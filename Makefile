@@ -6,7 +6,7 @@ VERSION = 1.1
 MODE ?= learn
 MAX_TIMESTEP_GLOBAL ?= 20000
 SEED ?= 1
-HIDDEN_SIZE ?= 40,30
+HIDDEN_SIZE ?= 128,64
 ACTIVATION ?= ReLU
 BATCH_SIZE ?= 1024
 NUM_ENVS ?= 16
@@ -58,7 +58,7 @@ learn:
     	--name $(NAME) \
     	--type_reward $(TYPE_REWARD) \
      	--controller False \
-      	--debug True \
+      	--debug False \
        	--scalar $(SCALAR)
 
 .PHONY: probe

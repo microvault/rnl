@@ -20,17 +20,17 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.3,  # 4
-        collision=0.075,  # 2
+        threshold=0.1,  # 4 # 0.03
+        collision=0.075,  # 2 # 0.075
         path_model="None",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
-        num_rays=20,  # min 5 max 20
+        num_rays=5,  # min 5 max 20
         min_range=0.0,
-        max_range=30,  # 3.5
+        max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
@@ -38,7 +38,7 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map4",  # ./data/map4
         name_map="map4",  # map4
-        max_timestep=100000,
+        max_timestep=1000,
     )
 
     # 4.step -> config render
@@ -78,8 +78,8 @@ def main(arg):
             max_grad_norm=args.max_grad_norm,
             update_epochs=args.update_epochs,
             name=args.name,
-            save_path="model",
-            elite_path="model_elite",
+            save_path="./models/agile/model",
+            elite_path="./models/agile/model_elite",
             overwrite_checkpoints=True,
             save_elite=True,
             evo_steps=2000,
@@ -103,19 +103,6 @@ def main(arg):
         )
 
         model.execute()
-
-    # elif args.mode == "training":
-    #     model = vault.Probe(
-    #         num_envs=args.num_envs,
-    #         max_steps=args.max_timestep_global,
-    #         robot_config=param_robot,
-    #         sensor_config=param_sensor,
-    #         env_config=param_env,
-    #         render_config=param_render,
-    #     )
-
-    #     model.training()
-
 
 def str2bool(v):
     if isinstance(v, bool):

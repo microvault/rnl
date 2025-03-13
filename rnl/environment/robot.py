@@ -47,6 +47,7 @@ class Robot:
         Create and add the robot to the given pymunk space.
         """
         body = pymunk.Body(self.mass, self.moment_of_inertia)
+        print("position x: ", position_x, "position y: ", position_y)
         body.position = (position_x, position_y)
         body.damping = 0.9
         body.angular_damping = 0.9

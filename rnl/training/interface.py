@@ -8,7 +8,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, probe_envs, training
+from rnl.training.learn import inference, probe_envs, training, training_sb3
 
 
 def robot(
@@ -135,14 +135,14 @@ class Trainer:
             evo_steps=evo_steps,
         )
 
-        if not self.render_config.debug:
-            raise ValueError("Error: Debug mode is not supported for training.")
+        # if not self.render_config.debug:
+        #     raise ValueError("Error: Debug mode is not supported for training.")
         if self.render_config.plot:
             raise ValueError("Error: Plot mode is not supported for training.")
         if self.render_config.controller:
             raise ValueError("Error: Controller mode is not supported for training.")
 
-        training(
+        training_sb3(
             self.robot_config,
             self.sensor_config,
             self.env_config,

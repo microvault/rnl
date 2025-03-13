@@ -28,7 +28,7 @@ def distance_to_goal(
 
 # @njit # !!!!!!
 def angle_to_goal(
-    x: float, y: float, theta: float, goal_x: float, goal_y: float
+    x: float, y: float, theta: float, goal_x: float, goal_y: float, max_value: float
 ) -> float:
     o_t = np.array([np.cos(theta), np.sin(theta)])
     g_t = np.array([goal_x - x, goal_y - y])
@@ -38,7 +38,11 @@ def angle_to_goal(
 
     alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
 
-    return alpha
+    if alpha >= max_value:
+        return max_value
+
+    else:
+        return alpha
 
 
 @njit
@@ -98,3 +102,34 @@ def statistics(info_list, field):
     max_value = np.max(values)
     std_deviation = np.std(values)
     return mean_value, min_value, max_value, std_deviation
+
+def calculate_batch_nsteps(n_env: int, desired_batch_total: int):
+    """
+    Calculates and returns the total batch size and n_steps ensuring:
+      total_batch = n_steps * n_env
+    If the desired_batch_total is not divisible by n_env,
+    it will be adjusted to the nearest lower multiple.
+
+    Parameters:
+      n_env (int): Number of environments.
+      desired_batch_total (int): Desired total batch size (should be large).
+
+    Returns:
+      total_batch (int): Adjusted total batch size.
+      n_steps (int): Number of steps per environment.
+    """
+    # Adjust desired_batch_total to be divisible by n_env
+    if desired_batch_total % n_env != 0:
+        total_batch = (desired_batch_total // n_env) * n_env
+    else:
+        total_batch = desired_batch_total
+
+    n_steps = total_batch // n_env
+    return total_batch, n_steps
+
+
+# Example usage:
+n_env = 4
+desired_batch_total = 1024  # for example
+total_batch, n_steps = calculate_batch_nsteps(n_env, desired_batch_total)
+print(f"Total batch: {total_batch}, n_steps per environment: {n_steps}")

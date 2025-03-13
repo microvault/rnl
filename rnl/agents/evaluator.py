@@ -48,6 +48,7 @@ class LLMTrainingEvaluator:
             "distância até o objetivo e a última ação tomada).\n"
             "O robô deve ser capaz de aprender a melhor política de ação para maximizar a recompensa total.\n"
             "Justifique suas escolhas no parametro 'justificativa'.\n"
+            "Alem disso avalie se o agente esta pronto para o proximo nivel de dificuldade do ambiente.\n"
         )
 
         return prompt
