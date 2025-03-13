@@ -23,7 +23,6 @@ VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
 UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
-TYPE_REWARD ?= all
 SCALAR ?= 1
 CONTROL ?= False
 

@@ -144,7 +144,7 @@ def training_sb3(
             verbose=1,
             learning_rate=trainer_config.lr,
             policy_kwargs=policy_kwargs_on_policy,
-            n_steps=n_steps,
+            n_steps=512,
             vf_coef=trainer_config.vf_coef,
             ent_coef=trainer_config.ent_coef,
             device=trainer_config.device,
