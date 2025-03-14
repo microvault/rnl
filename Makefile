@@ -55,7 +55,6 @@ learn:
     	--max_grad_norm $(MAX_GRAD_NORM) \
     	--update_epochs $(UPDATE_EPOCHS) \
     	--name $(NAME) \
-    	--type_reward $(TYPE_REWARD) \
      	--controller False \
       	--debug False \
        	--scalar $(SCALAR)

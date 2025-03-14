@@ -377,10 +377,10 @@ class NaviEnv(gym.Env):
             vr = 0.0
         elif action == 1:
             vl = 0.08 * self.scalar
-            vr = -0.08 * self.scalar
+            vr = -0.36 * self.scalar
         elif action == 2:
             vl = 0.08 * self.scalar
-            vr = 0.08 * self.scalar
+            vr = 0.36 * self.scalar
 
         # print("Action: ", action)
         self.robot.move_robot(self.space, self.body, vl, vr)
