@@ -8,7 +8,7 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import inference, probe_envs, training, training_sb3
+from rnl.training.learn import inference, probe_envs, training
 
 
 def robot(
@@ -142,7 +142,7 @@ class Trainer:
         if self.render_config.controller:
             raise ValueError("Error: Controller mode is not supported for training.")
 
-        training_sb3(
+        training(
             self.robot_config,
             self.sensor_config,
             self.env_config,

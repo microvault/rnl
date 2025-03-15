@@ -65,7 +65,7 @@ def main(arg):
             device=args.device,
             checkpoint=args.checkpoint,
             checkpoint_path=args.checkpoint_path,
-            use_wandb=True,
+            use_wandb=False,
             wandb_api_key=str(wandb_key),
             llm_api_key=str(gemini_api_key),
             lr=args.lr,

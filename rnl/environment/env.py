@@ -8,19 +8,27 @@ from agilerl.algorithms.ppo import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
-
-from shapely.geometry import Point
-from rnl.configs.actions import ActionsConfig
+# from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
 from rnl.engine.spawn import spawn_robot_and_goal
-from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser
+from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser, clean_info
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
 
+REWARD_TYPE = RewardConfig(
+    reward_type="time",
+    params={
+        "scale_orientation": 0.02,
+        "scale_distance": 0.06,
+        "scale_time": 0.01,
+        "scale_obstacle": 0.001,
+    },
+    description="Reward baseado em todos os fatores",
+)
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -30,8 +38,6 @@ class NaviEnv(gym.Env):
         env_config: EnvConfig,
         render_config: RenderConfig,
         use_render: bool,
-        actions_cfg: ActionsConfig,
-        reward_cfg: RewardConfig,
         mode: str,
     ):
         super().__init__()
@@ -45,17 +51,21 @@ class NaviEnv(gym.Env):
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space)
 
-        self.actions_config = actions_cfg
         self.min_lr = robot_config.vel_linear[0]
         self.max_lr = robot_config.vel_linear[1]
         self.min_vr = robot_config.vel_angular[0]
         self.max_vr = robot_config.vel_angular[1]
 
-        self.reward_config = reward_cfg
+        self.reward_config = REWARD_TYPE
 
         self.mode: str = mode
         self.grid_length = 2
         self.poly = None
+        self.infos_list = []
+        self.steps_to_goal = 0
+        self.steps_to_collision = 0
+        self.goal_reached = False
+        self.collision_happened = False
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -200,11 +210,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.72 * self.scalar
+            self.vr = -0.36 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.72 * self.scalar
+            self.vr = 0.36 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -219,21 +229,6 @@ class NaviEnv(gym.Env):
 
     def step_animation(self, i):
 
-        # self.vl = 0.0
-        # self.vr = 0.0
-
-        # self.action = np.random.randint(0, 3)
-
-        # if self.action == 0:
-        #     self.vl = 0.10 * self.scalar
-        #     self.vr = 0.0
-        # elif self.action == 1:
-        #     self.vl = 0.08 * self.scalar
-        #     self.vr = -0.36 * self.scalar
-        # elif self.action == 2:
-        #     self.vl = 0.08 * self.scalar
-        #     self.vr = 0.36 * self.scalar
-
         if self.pretrained_model != "None" or not self.controller:
             if self.pretrained_model != "None" and self.model is not None:
                 action, log_prob, _, value = self.model.get_action(self.last_states)
@@ -242,12 +237,15 @@ class NaviEnv(gym.Env):
                 self.action = np.random.randint(0, 3)
 
         if not self.controller:
-            base_vl, base_vr = self.actions_config.get_speeds(
-                self.action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
-            )
-
-            self.vl = base_vl * self.scalar
-            self.vr = base_vr * self.scalar
+            if self.action == 0:
+                self.vl = 0.08 * self.scalar
+                self.vr = 0.0
+            elif self.action == 1:
+                self.vl = 0.08 * self.scalar
+                self.vr = -0.36 * self.scalar
+            elif self.action == 2:
+                self.vl = 0.08 * self.scalar
+                self.vr = 0.36 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -318,7 +316,6 @@ class NaviEnv(gym.Env):
             max_distance=self.max_dist,
         )
 
-
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
         )
@@ -363,12 +360,6 @@ class NaviEnv(gym.Env):
             self._stop()
 
     def step(self, action):
-        # base_vl, base_vr = self.actions_config.get_speeds(
-        #     action, self.min_lr, self.max_lr, self.min_vr, self.max_vr
-        # )
-        # vl = base_vl * self.scalar
-        # vr = base_vr * self.scalar
-
         vl = 0.0
         vr = 0.0
 
@@ -377,12 +368,11 @@ class NaviEnv(gym.Env):
             vr = 0.0
         elif action == 1:
             vl = 0.08 * self.scalar
-            vr = -0.36 * self.scalar
+            vr = -0.72 * self.scalar
         elif action == 2:
             vl = 0.08 * self.scalar
-            vr = 0.36 * self.scalar
+            vr = 0.72 * self.scalar
 
-        # print("Action: ", action)
         self.robot.move_robot(self.space, self.body, vl, vr)
 
         x, y, theta = (
@@ -391,7 +381,6 @@ class NaviEnv(gym.Env):
             self.body.angle,
         )
 
-        # print("x: ", x, "y: ", y)
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
@@ -430,10 +419,6 @@ class NaviEnv(gym.Env):
             )
         )
 
-        # print("states: ", states)
-        # print()
-
-
         (
             collision_score,
             orientation_score,
@@ -460,23 +445,21 @@ class NaviEnv(gym.Env):
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
         )
-        # print("reward: ", reward)
-        # print()
-
         self.last_states = states
 
         self.space.step(1 / 60)
 
         self.timestep += 1
-        # print("timestep: ", self.timestep)
-        # print()
 
         truncated = self.timestep >= self.max_timestep
 
-        # print("truncated: ", truncated)
-        # print()
-
         if self.debug:
+
+            if collision:
+                self.steps_to_collision = self.timestep
+
+            if reward == 1:
+                self.steps_to_goal = self.timestep
 
             info = {
                 "obstacle_score": obstacle,
@@ -489,20 +472,30 @@ class NaviEnv(gym.Env):
                 "min_lidar": float(min(lidar_norm)),
                 "max_lidar": float(max(lidar_norm)),
             }
-            # print("collision: ", collision)
-            # print()
-            # print("done: ", done)
+            info = clean_info(info)
+            self.infos_list.append(info)
             return states, reward, done, truncated, info
 
         else:
             return states, reward, done, truncated, {}
 
+    def get_infos(self):
+        infos = self.infos_list.copy()
+        self.infos_list.clear()
+        return infos
+
+    def update_strategy(self, new_action_type, new_reward_type, new_params):
+        pass
+        # self.actions_config = new_action_type
+
+        # self.reward_config = RewardConfig(
+        #     reward_type=new_reward_type,
+        #     params=new_params,
+        #     description=f"Reward configurado para {new_reward_type}",
+        # )
+
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed, options=options)
-
-        self.timestep = 0
-        # print("reset")
-        # print()
 
         try:
             if self.mode == "easy-00":
@@ -686,8 +679,21 @@ class NaviEnv(gym.Env):
             )
             raise
 
-        info = {}
-        return states, info
+        if self.debug:
+            info = {
+                "steps_to_goal": self.steps_to_goal,
+                "steps_to_collision": self.steps_to_collision,
+            }
+            self.steps_to_goal = 0
+            self.steps_to_collision = 0
+            self.timestep = 0
+
+            return states, info
+
+        else:
+            info = {}
+
+            return states, info
 
     def render(self, mode="human"):
         self.ani = animation.FuncAnimation(

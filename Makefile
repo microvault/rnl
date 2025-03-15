@@ -56,7 +56,7 @@ learn:
     	--update_epochs $(UPDATE_EPOCHS) \
     	--name $(NAME) \
      	--controller False \
-      	--debug False \
+      	--debug True \
        	--scalar $(SCALAR)
 
 .PHONY: probe

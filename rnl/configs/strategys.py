@@ -78,17 +78,15 @@ class ChoiceConfig:
 
 # Main Strategy class, where reward, mode and action are required
 class StrategyConfig:
-    def __init__(self, reward: ChoiceConfig, mode: ChoiceConfig, action: ChoiceConfig):
-        if not reward or not mode or not action:
+    def __init__(self, mode: ChoiceConfig, action: ChoiceConfig):
+        if not mode or not action:
             raise ValueError("reward, mode and action are required")
-        self.reward = reward
         self.mode = mode
         self.action = action
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "strategy": {
-                "reward": self.reward.to_dict(),
                 "mode": self.mode.to_dict(),
                 "action": self.action.to_dict(),
             }
@@ -186,70 +184,10 @@ def get_strategy_dict() -> dict:
         ),  # 15% da velocidade normal
     ]
 
-    rewards: List[RewardConfig] = [
-        RewardConfig("time", {"scale_time": 0.01}, "Recompensa negativa a cada step"),
-        RewardConfig(
-            "distance",
-            {"scale_distance": 0.1},
-            "Recompensa com base na diferenca entre a distancia inicial (reset) e a posicao atual em relacao ao objetivo",
-        ),
-        RewardConfig(
-            "orientation",
-            {"scale_orientation": 0.003},
-            "Recompensa positiva do robo em relacao ao objetivo",
-        ),
-        RewardConfig(
-            "any",
-            {},
-            "Somente a recompensa negativa -1 quando colide e +1 quando chega ao objetivo",
-        ),
-        RewardConfig(
-            "distance_orientation",
-            {"scale_distance": 0.1, "scale_orientation": 0.003},
-            "Combinacao de distancia e orientacao",
-        ),
-        RewardConfig(
-            "distance_time",
-            {"scale_distance": 0.1, "scale_time": 0.01},
-            "Combinacao de distancia e tempo",
-        ),
-        RewardConfig(
-            "orientation_time",
-            {"scale_orientation": 0.003, "scale_time": 0.01},
-            "Combinacao de orientacao e tempo",
-        ),
-        RewardConfig(
-            "distance_orientation_time",
-            {"scale_distance": 0.1, "scale_orientation": 0.003, "scale_time": 0.01},
-            "Reward based on distance, orientation and time",
-        ),
-        RewardConfig(
-            "distance_obstacle",
-            {"scale_distance": 0.1, "scale_obstacle": 0.001},
-            "Reward based on distance and obstacles",
-        ),
-        RewardConfig(
-            "orientation_obstacle",
-            {"scale_orientation": 0.003, "scale_obstacle": 0.001},
-            "Reward based on orientation and obstacles",
-        ),
-        RewardConfig(
-            "all",
-            {
-                "scale_distance": 0.1,
-                "scale_orientation": 0.003,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.001,
-            },
-            "Reward based on all factors",
-        ),
-    ]
-
-    reward_choice = ChoiceConfig(rewards, required=True)
     mode_choice = ChoiceConfig(modes, required=True)
     action_choice = ChoiceConfig(actions, required=True)
 
     strategy = StrategyConfig(
-        reward=reward_choice, mode=mode_choice, action=action_choice
+        mode=mode_choice, action=action_choice
     )
     return strategy.to_dict()

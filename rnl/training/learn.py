@@ -1,14 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from agilerl.hpo.mutation import Mutations
-from agilerl.hpo.tournament import TournamentSelection
-from agilerl.utils.utils import create_population
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 from tqdm import trange
-
 from rnl.agents.evaluator import LLMTrainingEvaluator
-from rnl.configs.actions import get_actions_class
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -18,29 +13,17 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.configs.rewards import RewardConfig
-from rnl.engine.utils import clean_info, set_seed, calculate_batch_nsteps
+from rnl.configs.strategys import get_strategy_dict
+from rnl.training.callback import DynamicTrainingCallback
+from rnl.engine.utils import clean_info
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
-from rnl.training.train import training_loop
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 
-ACTION_TYPE = get_actions_class("SurgeActions")()
-REWARD_TYPE = RewardConfig(
-    reward_type="time",
-    params={
-        "scale_orientation": 0.02,
-        "scale_distance": 0.06,
-        "scale_time": 0.01,
-        "scale_obstacle": 0.001,
-    },
-    description="Reward baseado em todos os fatores",
-)
-
 # ENV_TYPE = "easy-00"
 # ENV_TYPE = "easy-01"
-ENV_TYPE = "easy-01"
+ENV_TYPE = "easy-03"
 
 from torch import nn
 from wandb.integration.sb3 import WandbCallback
@@ -48,7 +31,7 @@ import wandb
 
 from stable_baselines3 import PPO as Agent
 
-def training_sb3(
+def training(
     robot_config: RobotConfig,
     sensor_config: SensorConfig,
     env_config: EnvConfig,
@@ -86,14 +69,14 @@ def training_sb3(
             save_code=False,
         )
 
+    evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
+
     env = NaviEnv(
         robot_config,
         sensor_config,
         env_config,
         render_config,
         use_render=False,
-        actions_cfg=ACTION_TYPE,
-        reward_cfg=REWARD_TYPE,
         mode=ENV_TYPE,
     )
 
@@ -121,8 +104,6 @@ def training_sb3(
             env_config,
             render_config,
             use_render=False,
-            actions_cfg=ACTION_TYPE,
-            reward_cfg=REWARD_TYPE,
             mode=ENV_TYPE,
         )
         env = Monitor(env)
@@ -131,20 +112,17 @@ def training_sb3(
     # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
 
-    total_batch, n_steps = calculate_batch_nsteps(trainer_config.num_envs, trainer_config.batch_size)
-
-    print("Batch size: ", total_batch, "n_steps: ", n_steps)
     print("\nInitiate PPO training ...")
 
     if trainer_config.use_wandb:
         model = Agent(
             "MlpPolicy",
             vec_env,
-            batch_size=total_batch,
+            batch_size=trainer_config.batch_size,
             verbose=1,
             learning_rate=trainer_config.lr,
             policy_kwargs=policy_kwargs_on_policy,
-            n_steps=512,
+            n_steps=trainer_config.learn_step,
             vf_coef=trainer_config.vf_coef,
             ent_coef=trainer_config.ent_coef,
             device=trainer_config.device,
@@ -168,11 +146,11 @@ def training_sb3(
         model = Agent(
             "MlpPolicy",
             vec_env,
-            batch_size=total_batch,
+            batch_size=trainer_config.batch_size,
             verbose=1,
             learning_rate=trainer_config.lr,
             policy_kwargs=policy_kwargs_on_policy,
-            n_steps=n_steps,
+            n_steps=trainer_config.learn_step,
             vf_coef=trainer_config.vf_coef,
             ent_coef=trainer_config.ent_coef,
             device=trainer_config.device,
@@ -181,7 +159,14 @@ def training_sb3(
             seed=trainer_config.seed,
         )
 
-        model.learn(total_timesteps=trainer_config.max_timestep_global)
+        callback = DynamicTrainingCallback(
+                    evaluator=evaluator,
+                    justificativas_history=[],
+                    get_strategy_dict_func=get_strategy_dict,
+                    check_freq=100
+                )
+
+        model.learn(total_timesteps=trainer_config.max_timestep_global, callback=callback)
 
 def inference(
     robot_config: RobotConfig,
@@ -227,8 +212,6 @@ def inference(
         env_config,
         render_config,
         use_render=True,
-        actions_cfg=ACTION_TYPE,
-        reward_cfg=REWARD_TYPE,
         mode=ENV_TYPE,
     )
 
@@ -248,6 +231,7 @@ def probe_envs(
         "Render Config": render_config.__dict__,
         "Probe Config": probe_config.__dict__,
     }
+
     table_width = 45
     horizontal_line = "-" * table_width
     print(horizontal_line)
@@ -264,8 +248,6 @@ def probe_envs(
         env_config,
         render_config,
         use_render=False,
-        actions_cfg=ACTION_TYPE,
-        reward_cfg=REWARD_TYPE,
         mode=ENV_TYPE,
     )
 
@@ -303,8 +285,6 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            actions_type=ACTION_TYPE,
-            reward_type=REWARD_TYPE,
             mode=ENV_TYPE
         )
 
@@ -477,180 +457,3 @@ def probe_envs(
         plt.tight_layout()
         plt.subplots_adjust(bottom=0.1)
         plt.show()
-
-
-def training(
-    robot_config: RobotConfig,
-    sensor_config: SensorConfig,
-    env_config: EnvConfig,
-    render_config: RenderConfig,
-    trainer_config: TrainerConfig,
-    network_config: NetworkConfig,
-):
-
-    config_dict = {
-        "Trainer Config": trainer_config.__dict__,
-        "Network Config": network_config.__dict__,
-        "Robot Config": robot_config.__dict__,
-        "Sensor Config": sensor_config.__dict__,
-        "Env Config": env_config.__dict__,
-        "Render Config": render_config.__dict__,
-    }
-    table_width = 45
-    horizontal_line = "-" * table_width
-    print(horizontal_line)
-    for name, cfg in config_dict.items():
-        print(f"| {name + '/':<41} |")
-        print(horizontal_line)
-        for key, value in cfg.items():
-            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
-        print(horizontal_line)
-
-    env = NaviEnv(
-        robot_config,
-        sensor_config,
-        env_config,
-        render_config,
-        use_render=False,
-        actions_cfg=ACTION_TYPE,
-        reward_cfg=REWARD_TYPE,
-        mode=ENV_TYPE,
-    )
-
-    print("\nCheck environment ...")
-    check_env(env)
-
-    NET_CONFIG = {
-        "latent_dim": 16,
-        "encoder_config": {
-            "hidden_size": [network_config.hidden_size[0]]
-        },  # Observation encoder configuration
-        "head_config": {
-            "hidden_size": [network_config.hidden_size[1]]
-        },  # Network head configuration
-    }
-
-    INIT_HP = {
-        "POP_SIZE": 4,  # Population size
-        "BATCH_SIZE": trainer_config.batch_size,  # Batch size
-        "LR": trainer_config.lr,  # Learning rate
-        "LEARN_STEP": trainer_config.learn_step,  # Learning frequency
-        "GAMMA": 0.99,  # Discount factor
-        "GAE_LAMBDA": trainer_config.gae_lambda,  # Lambda for general advantage estimation
-        "ACTION_STD_INIT": trainer_config.action_std_init,  # Initial action standard deviation
-        "CLIP_COEF": trainer_config.clip_coef,  # Surrogate clipping coefficient
-        "ENT_COEF": trainer_config.ent_coef,  # Entropy coefficient
-        "VF_COEF": trainer_config.vf_coef,  # Value function coefficient
-        "MAX_GRAD_NORM": trainer_config.max_grad_norm,  # Maximum norm for gradient clipping
-        "TARGET_KL": None,  # Target KL divergence threshold
-        "UPDATE_EPOCHS": trainer_config.update_epochs,  # Number of policy update epochs
-        "TOURN_SIZE": 2,
-        "ELITISM": True,  # Elitism in tournament selection
-        "CHANNELS_LAST": False,
-    }
-
-    MUTATION_PARAMS = {
-        "NO_MUT": 0.4,  # No mutation
-        "ARCH_MUT": 0.2,  # Architecture mutation
-        "NEW_LAYER": 0.2,  # New layer mutation
-        "PARAMS_MUT": 0.2,  # Network parameters mutation
-        "ACT_MUT": 0,  # Activation layer mutation
-        "RL_HP_MUT": 0.2,  # Learning HP mutation
-        "MUT_SD": 0.1,  # Mutation strength
-        "RAND_SEED": trainer_config.seed,  # Random seed
-    }
-
-    env = make_vect_envs(
-        num_envs=trainer_config.num_envs,
-        robot_config=robot_config,
-        sensor_config=sensor_config,
-        env_config=env_config,
-        render_config=render_config,
-        use_render=False,
-        actions_type=ACTION_TYPE,
-        reward_type=REWARD_TYPE,
-        mode=ENV_TYPE,
-    )
-
-    observation_space = env.single_observation_space
-    action_space = env.single_action_space
-
-    pop = create_population(
-        algo="PPO",  # RL algorithm
-        observation_space=observation_space,  # State dimension
-        action_space=action_space,  # Action dimension
-        net_config=NET_CONFIG,  # Network configuration
-        INIT_HP=INIT_HP,  # Initial hyperparameters
-        population_size=INIT_HP["POP_SIZE"],  # Population size
-        num_envs=trainer_config.num_envs,  # Number of vectorized envs
-        device=trainer_config.device,
-    )
-
-    tournament = TournamentSelection(
-        tournament_size=INIT_HP["TOURN_SIZE"],  # Tournament selection size
-        elitism=INIT_HP["ELITISM"],  # Elitism in tournament selection
-        population_size=INIT_HP["POP_SIZE"],  # Population size
-        eval_loop=1,  # Evaluate using last N fitness scores
-    )
-
-    mutations = Mutations(
-        no_mutation=MUTATION_PARAMS["NO_MUT"],  # No mutation
-        architecture=MUTATION_PARAMS["ARCH_MUT"],  # Architecture mutation
-        new_layer_prob=MUTATION_PARAMS["NEW_LAYER"],  # New layer mutation
-        parameters=MUTATION_PARAMS["PARAMS_MUT"],  # Network parameters mutation
-        activation=MUTATION_PARAMS["ACT_MUT"],  # Activation layer mutation
-        rl_hp=MUTATION_PARAMS["RL_HP_MUT"],  # Learning HP mutation
-        mutation_sd=MUTATION_PARAMS["MUT_SD"],  # Mutation strength
-        rand_seed=MUTATION_PARAMS["RAND_SEED"],  # Random seed
-        device=trainer_config.device,
-    )
-
-    evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
-
-    from agilerl.training.train_on_policy import train_on_policy
-
-
-    trained_pop, pop_fitnesses = train_on_policy(
-        algo="PPO",
-        env=env,                              # Gym-style environment
-        env_name="NaviEnv",  # Environment name
-        pop=pop,  # Population of agents
-        swap_channels=False,  # Swap image channel from last to first
-        max_steps=200000,  # Max number of training steps
-        evo_steps=10000,  # Evolution frequency
-        eval_steps=None,  # Number of steps in evaluation episode
-        eval_loop=1,  # Number of evaluation episodes
-        target=200.,  # Target score for early stopping
-        tournament=tournament,  # Tournament selection object
-        mutation=mutations,  # Mutations object
-        wb=True,  # Weights and Biases tracking
-    )
-
-    # env = training_loop(
-    #     trainer_config.use_agents,
-    #     trainer_config.num_envs,
-    #     trainer_config.max_timestep_global,
-    #     trainer_config.evo_steps,
-    #     None,
-    #     1,
-    #     env,
-    #     pop,
-    #     tournament,
-    #     mutations,
-    #     evaluator,
-    #     robot_config,
-    #     sensor_config,
-    #     env_config,
-    #     render_config,
-    #     ACTION_TYPE,
-    #     REWARD_TYPE,
-    #     trainer_config.use_wandb,
-    #     trainer_config.save_path,
-    #     trainer_config.elite_path,
-    #     trainer_config.checkpoint,
-    #     trainer_config.overwrite_checkpoints,
-    #     INIT_HP,
-    #     MUTATION_PARAMS,
-    #     trainer_config.wandb_api_key,
-    #     trainer_config.save_elite,
-    # )
