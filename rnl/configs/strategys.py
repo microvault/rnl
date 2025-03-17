@@ -187,7 +187,5 @@ def get_strategy_dict() -> dict:
     mode_choice = ChoiceConfig(modes, required=True)
     action_choice = ChoiceConfig(actions, required=True)
 
-    strategy = StrategyConfig(
-        mode=mode_choice, action=action_choice
-    )
+    strategy = StrategyConfig(mode=mode_choice, action=action_choice)
     return strategy.to_dict()

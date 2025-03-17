@@ -1,6 +1,7 @@
 import gymnasium as gym
+
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.environment.env import NaviEnv
-from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
 
 
 def create_env(num_envs):
@@ -12,25 +13,11 @@ def create_env(num_envs):
         weight=5.0,
         threshold=0.5,
         collision=0.3,
-        path_model="None"
+        path_model="None",
     )
-    sensor_config = SensorConfig(
-        fov=240.0,
-        num_rays=36,
-        min_range=0.1,
-        max_range=5.0
-    )
-    env_config = EnvConfig(
-        scalar=30,
-        folder_map="",
-        name_map="",
-        timestep=1000
-    )
-    render_config = RenderConfig(
-        controller=False,
-        debug=True,
-        plot=False
-    )
+    sensor_config = SensorConfig(fov=240.0, num_rays=36, min_range=0.1, max_range=5.0)
+    env_config = EnvConfig(scalar=30, folder_map="", name_map="", timestep=1000)
+    render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     def make_env(i):
         def _init():
@@ -40,7 +27,7 @@ def create_env(num_envs):
                 env_config,
                 render_config,
                 False,
-                mode="easy-00"
+                mode="easy-00",
             )
             env.reset(seed=13 + i)
             return env
@@ -48,6 +35,7 @@ def create_env(num_envs):
         return _init
 
     return gym.vector.AsyncVectorEnv([make_env(i) for i in range(num_envs)])
+
 
 def make_env():
     robot_config = RobotConfig(
@@ -66,25 +54,11 @@ def make_env():
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
-    env_config = EnvConfig(
-        scalar=100,
-        folder_map="",
-        name_map="",
-        timestep=1000
-    )
-    render_config = RenderConfig(
-        controller=False,
-        debug=True,
-        plot=False
-    )
+    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000)
+    render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     env = NaviEnv(
-        robot_config,
-        sensor_config,
-        env_config,
-        render_config,
-        False,
-        mode="easy-00"
+        robot_config, sensor_config, env_config, render_config, False, mode="easy-00"
     )
 
     return env
