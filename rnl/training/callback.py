@@ -1,7 +1,10 @@
-from stable_baselines3.common.callbacks import BaseCallback
-from rnl.agents.evaluate import statistics, evaluate_agent
 import json
+
+from stable_baselines3.common.callbacks import BaseCallback
+
+from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.training.utils import make_env
+
 
 class DynamicTrainingCallback(BaseCallback):
     def __init__(
@@ -9,7 +12,7 @@ class DynamicTrainingCallback(BaseCallback):
         evaluator,
         justificativas_history,
         get_strategy_dict_func,
-        check_freq=10000
+        check_freq=10000,
     ):
         super().__init__(verbose=0)
         self.evaluator = evaluator
@@ -26,7 +29,9 @@ class DynamicTrainingCallback(BaseCallback):
         if self.n_calls % self.check_freq == 0:
             eval_env = make_env()
             evaluation_results = evaluate_agent(self.model, eval_env)
-            self.logger.record("rollout/evaluation_results", json.dumps(evaluation_results))
+            self.logger.record(
+                "rollout/evaluation_results", json.dumps(evaluation_results)
+            )
             # Coleta infos de cada env
             infos_list = []
             for i in range(self.model.n_envs):
@@ -59,32 +64,37 @@ class DynamicTrainingCallback(BaseCallback):
                             {"key": "scale_distance", "value": 0.1},
                             {"key": "scale_orientation", "value": 0.003},
                             {"key": "scale_time", "value": 0.001},
-                            {"key": "scale_obstacle", "value": 0.01}
-                        ]
+                            {"key": "scale_obstacle", "value": 0.01},
+                        ],
                     },
                     "mode": {"mode": "easy-00"},
-                    "action": {"action_type": "BalancedActions"}
+                    "action": {"action_type": "BalancedActions"},
                 },
-                "justify": "Dado que o robô está aprendendo a navegar em ambientes simples (easy-00), e as métricas mostram um progresso razoável, mas com espaço para melhorias na orientação e na prevenção de obstáculos, sugiro ajustar a recompensa para 'all' com um aumento na escala da distância e orientação para incentivar o robô a se mover mais eficientemente em direção ao objetivo e manter um alinhamento melhor. Reduzi a penalidade por tempo para permitir que o robô explore mais sem ser excessivamente penalizado. Aumentei a penalidade por obstaculos para ele aprender a desviar. Mudar para o modo 'easy-03' aumenta a complexidade do ambiente, preparando o robô para desafios maiores. A ação 'BalancedActions' oferece um bom compromisso entre velocidade e controle, adequado para esta fase de aprendizado."
+                "justify": "Dado que o robô está aprendendo a navegar em ambientes simples (easy-00), e as métricas mostram um progresso razoável, mas com espaço para melhorias na orientação e na prevenção de obstáculos, sugiro ajustar a recompensa para 'all' com um aumento na escala da distância e orientação para incentivar o robô a se mover mais eficientemente em direção ao objetivo e manter um alinhamento melhor. Reduzi a penalidade por tempo para permitir que o robô explore mais sem ser excessivamente penalizado. Aumentei a penalidade por obstaculos para ele aprender a desviar. Mudar para o modo 'easy-03' aumenta a complexidade do ambiente, preparando o robô para desafios maiores. A ação 'BalancedActions' oferece um bom compromisso entre velocidade e controle, adequado para esta fase de aprendizado.",
             }
             # print(json.dumps(stats, indent=4))
             # self.evaluator.evaluate_training(
-                # self.get_strategy_dict(), stats, self.justificativas_history
+            # self.get_strategy_dict(), stats, self.justificativas_history
             # )
             # print(evaluation_result)
             try:
-                new_config = (evaluation_result if isinstance(evaluation_result, dict)
-                              else json.loads(evaluation_result))
+                new_config = (
+                    evaluation_result
+                    if isinstance(evaluation_result, dict)
+                    else json.loads(evaluation_result)
+                )
             except Exception as e:
                 print("Erro ao parsear JSON:", e)
                 new_config = {}
 
             # Salva justificativa
             if "justify" in new_config:
-                self.justificativas_history.append({
-                    "justify": new_config["justify"],
-                    "config": new_config,
-                })
+                self.justificativas_history.append(
+                    {
+                        "justify": new_config["justify"],
+                        "config": new_config,
+                    }
+                )
                 # Mantém histórico curto
                 if len(self.justificativas_history) > 5:
                     self.justificativas_history.pop(0)
@@ -107,10 +117,7 @@ class DynamicTrainingCallback(BaseCallback):
 
                 # Chama método interno do env que você definir para atualizar
                 self.training_env.env_method(
-                    "update_strategy",
-                    new_action_type,
-                    new_reward_type,
-                    new_params
+                    "update_strategy", new_action_type, new_reward_type, new_params
                 )
 
         return True

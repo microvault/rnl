@@ -2,7 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
 from tqdm import trange
+
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
@@ -14,22 +17,20 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.strategys import get_strategy_dict
-from rnl.training.callback import DynamicTrainingCallback
 from rnl.engine.utils import clean_info
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.monitor import Monitor
+from rnl.training.callback import DynamicTrainingCallback
 
 # ENV_TYPE = "easy-00"
 # ENV_TYPE = "easy-01"
 ENV_TYPE = "easy-03"
 
+import wandb
+from stable_baselines3 import PPO as Agent
 from torch import nn
 from wandb.integration.sb3 import WandbCallback
-import wandb
 
-from stable_baselines3 import PPO as Agent
 
 def training(
     robot_config: RobotConfig,
@@ -160,13 +161,16 @@ def training(
         )
 
         callback = DynamicTrainingCallback(
-                    evaluator=evaluator,
-                    justificativas_history=[],
-                    get_strategy_dict_func=get_strategy_dict,
-                    check_freq=100
-                )
+            evaluator=evaluator,
+            justificativas_history=[],
+            get_strategy_dict_func=get_strategy_dict,
+            check_freq=100,
+        )
 
-        model.learn(total_timesteps=trainer_config.max_timestep_global, callback=callback)
+        model.learn(
+            total_timesteps=trainer_config.max_timestep_global, callback=callback
+        )
+
 
 def inference(
     robot_config: RobotConfig,
@@ -285,7 +289,7 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=ENV_TYPE
+            mode=ENV_TYPE,
         )
 
         obs, info = env.reset()

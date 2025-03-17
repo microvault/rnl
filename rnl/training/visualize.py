@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-import numpy as np
-import time
-import rerun as rr
 import argparse
+import time
+
+import numpy as np
+import rerun as rr
+
 from rnl.engine.utils import create_env
 
 
@@ -30,10 +32,11 @@ def log_map_segments(env, env_index, offset_x=0.0):
             f"env_{env_index}/map_segment_{idx}",
             rr.LineStrips3D(
                 seg_3d_wrapped,
-                radii=0.05,          # tente aumentar o radius se necessário
-                colors=[(255, 192, 203)]  # rosa
-            )
+                radii=0.05,  # tente aumentar o radius se necessário
+                colors=[(255, 192, 203)],  # rosa
+            ),
         )
+
 
 def main():
     parser = argparse.ArgumentParser("Multi-Environment Training (3D)")
@@ -67,8 +70,8 @@ def main():
                 rr.Points3D(
                     np.array([[pos[0] + offset, pos[1], 0.0]], dtype=np.float32),
                     radii=[0.105],
-                    colors=[(0, 0, 255)]
-                )
+                    colors=[(0, 0, 255)],
+                ),
             )
             # Log do alvo
             rr.log(
@@ -76,8 +79,8 @@ def main():
                 rr.Points3D(
                     np.array([[target[0] + offset, target[1], 0.0]], dtype=np.float32),
                     radii=[0.05],
-                    colors=[(0, 255, 0)]
-                )
+                    colors=[(0, 255, 0)],
+                ),
             )
 
             if done or truncated:
@@ -87,6 +90,7 @@ def main():
         time.sleep(0.01)
 
     rr.script_teardown(args)
+
 
 if __name__ == "__main__":
     main()

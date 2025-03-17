@@ -11,7 +11,7 @@ def make_vect_envs(
     env_config: EnvConfig,
     render_config: RenderConfig,
     use_render: bool,
-    mode: str
+    mode: str,
 ):
     """Returns async-vectorized gym environments with custom parameters.
 
