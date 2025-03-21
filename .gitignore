@@ -845,3 +845,5 @@ pip-selfcheck.json
 /TODO.md
 /dataset
 *.pdf
+/model_ppo
+*.rrd

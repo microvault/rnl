@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from stable_baselines3 import PPO
+from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.env_checker import check_env
 from tqdm import trange
 from rnl.agents.evaluator import LLMTrainingEvaluator
@@ -20,16 +20,24 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
-
-# ENV_TYPE = "easy-00"
-# ENV_TYPE = "easy-01"
-ENV_TYPE = "easy-03"
-
+from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from wandb.integration.sb3 import WandbCallback
+from rnl.configs.rewards import RewardConfig
 import wandb
 
-from stable_baselines3 import PPO as Agent
+ENV_TYPE = "medium-07"
+POLICY = "PPO"
+REWARD_TYPE = RewardConfig(
+    reward_type="time",
+    params={
+        "scale_orientation": 0.02,
+        "scale_distance": 0.06,
+        "scale_time": 0.01,
+        "scale_obstacle": 0.001,
+    },
+    description="Reward baseado em todos os fatores",
+)
 
 def training(
     robot_config: RobotConfig,
@@ -39,6 +47,16 @@ def training(
     trainer_config: TrainerConfig,
     network_config: NetworkConfig,
 ):
+    extra_info = {
+        "Type mode": ENV_TYPE,
+        "Type policy": POLICY,
+        "reward_type": REWARD_TYPE.reward_type,
+        "scale_orientation": REWARD_TYPE.params["scale_orientation"],
+        "scale_distance": REWARD_TYPE.params["scale_distance"],
+        "scale_time": REWARD_TYPE.params["scale_time"],
+        "scale_obstacle": REWARD_TYPE.params["scale_obstacle"],
+    }
+
     config_dict = {
         "Trainer Config": trainer_config.__dict__,
         "Network Config": network_config.__dict__,
@@ -48,6 +66,8 @@ def training(
         "Render Config": render_config.__dict__,
     }
 
+    config_dict.update(extra_info)
+
     table_width = 45
     horizontal_line = "-" * table_width
     print(horizontal_line)
@@ -55,8 +75,11 @@ def training(
     for config_name, config_values in config_dict.items():
         print(f"| {config_name + '/':<41} |")
         print(horizontal_line)
-        for key, value in config_values.items():
-            print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        if isinstance(config_values, dict):
+            for key, value in config_values.items():
+                print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        else:
+            print(f"|    {str(config_values).ljust(20)} | {' '.ljust(15)}|")
         print(horizontal_line)
 
     if trainer_config.use_wandb:
@@ -78,6 +101,7 @@ def training(
         render_config,
         use_render=False,
         mode=ENV_TYPE,
+        type_reward=REWARD_TYPE
     )
 
     print("\nCheck environment ...")
@@ -97,6 +121,11 @@ def training(
         ),
     )
 
+    policy_kwargs_off_policy = dict(
+            activation_fn=activation_fn,
+            net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        )
+
     def make_env():
         env = NaviEnv(
             robot_config,
@@ -105,6 +134,7 @@ def training(
             render_config,
             use_render=False,
             mode=ENV_TYPE,
+            type_reward=REWARD_TYPE,
         )
         env = Monitor(env)
         return env
@@ -115,49 +145,120 @@ def training(
     print("\nInitiate PPO training ...")
 
     if trainer_config.use_wandb:
-        model = Agent(
-            "MlpPolicy",
-            vec_env,
-            batch_size=trainer_config.batch_size,
-            verbose=1,
-            learning_rate=trainer_config.lr,
-            policy_kwargs=policy_kwargs_on_policy,
-            n_steps=trainer_config.learn_step,
-            vf_coef=trainer_config.vf_coef,
-            ent_coef=trainer_config.ent_coef,
-            device=trainer_config.device,
-            tensorboard_log=f"runs/{run.id}",
-            max_grad_norm=trainer_config.max_grad_norm,
-            n_epochs=trainer_config.update_epochs,
-            seed=trainer_config.seed,
-        )
+        model = None
+        if POLICY == "PPO":
+            model = PPO(
+                "MlpPolicy",
+                vec_env,
+                batch_size=trainer_config.batch_size,
+                verbose=1,
+                learning_rate=trainer_config.lr,
+                policy_kwargs=policy_kwargs_on_policy,
+                n_steps=trainer_config.learn_step,
+                vf_coef=trainer_config.vf_coef,
+                ent_coef=trainer_config.ent_coef,
+                device=trainer_config.device,
+                tensorboard_log=f"runs/{run.id}",
+                max_grad_norm=trainer_config.max_grad_norm,
+                n_epochs=trainer_config.update_epochs,
+                seed=trainer_config.seed,
+            )
+        elif POLICY == "A2C":
+                model = A2C(
+                    "MlpPolicy",
+                    vec_env,
+                    verbose=1,
+                    learning_rate=trainer_config.lr,
+                    n_steps=trainer_config.learn_step,
+                    gae_lambda=trainer_config.gae_lambda,
+                    ent_coef=trainer_config.ent_coef,
+                    vf_coef=trainer_config.vf_coef,
+                    max_grad_norm=trainer_config.max_grad_norm,
+                    seed=trainer_config.seed,
+                    tensorboard_log=f"runs/{run.id}",
+                    policy_kwargs=policy_kwargs_on_policy,
+                    device=trainer_config.device,
+                )
+                print("\nInitiate A2C training ...")
 
-        model.learn(
-            total_timesteps=trainer_config.max_timestep_global,
-            callback=WandbCallback(
-                gradient_save_freq=100,
-                model_save_path=f"model_ppo/{run.id}",
-                verbose=2,
-            ),
-        )
-        run.finish()
+        elif POLICY == "DQN":
+            env = DummyVecEnv([make_env])
+            model = DQN(
+                "MlpPolicy",
+                env,
+                learning_rate=trainer_config.lr,
+                batch_size=trainer_config.batch_size,
+                buffer_size=1000000,
+                verbose=1,
+                tensorboard_log=f"runs/{run.id}",
+                device=trainer_config.device,
+                policy_kwargs=policy_kwargs_off_policy,
+                seed=trainer_config.seed,
+            )
+
+            print("\nInitiate DQN training ...")
+
+        if model is not None:
+            model.learn(
+                total_timesteps=trainer_config.max_timestep_global,
+                callback=WandbCallback(
+                    gradient_save_freq=100,
+                    model_save_path=f"model_ppo/{run.id}",
+                    verbose=2,
+                ),
+            )
+            run.finish()
 
     else:
-        model = Agent(
-            "MlpPolicy",
-            vec_env,
-            batch_size=trainer_config.batch_size,
-            verbose=1,
-            learning_rate=trainer_config.lr,
-            policy_kwargs=policy_kwargs_on_policy,
-            n_steps=trainer_config.learn_step,
-            vf_coef=trainer_config.vf_coef,
-            ent_coef=trainer_config.ent_coef,
-            device=trainer_config.device,
-            max_grad_norm=trainer_config.max_grad_norm,
-            n_epochs=trainer_config.update_epochs,
-            seed=trainer_config.seed,
-        )
+        if POLICY == "PPO":
+            model = PPO(
+                "MlpPolicy",
+                vec_env,
+                batch_size=trainer_config.batch_size,
+                verbose=1,
+                learning_rate=trainer_config.lr,
+                policy_kwargs=policy_kwargs_on_policy,
+                n_steps=trainer_config.learn_step,
+                vf_coef=trainer_config.vf_coef,
+                ent_coef=trainer_config.ent_coef,
+                device=trainer_config.device,
+                max_grad_norm=trainer_config.max_grad_norm,
+                n_epochs=trainer_config.update_epochs,
+                seed=trainer_config.seed,
+            )
+
+        elif POLICY == "A2C":
+                model = A2C(
+                    "MlpPolicy",
+                    vec_env,
+                    verbose=1,
+                    learning_rate=trainer_config.lr,
+                    n_steps=trainer_config.learn_step,
+                    gae_lambda=trainer_config.gae_lambda,
+                    ent_coef=trainer_config.ent_coef,
+                    vf_coef=trainer_config.vf_coef,
+                    max_grad_norm=trainer_config.max_grad_norm,
+                    seed=trainer_config.seed,
+                    policy_kwargs=policy_kwargs_on_policy,
+                    device=trainer_config.device,
+                )
+                print("\nInitiate A2C training ...")
+
+        elif POLICY == "DQN":
+            env = DummyVecEnv([make_env])
+            model = DQN(
+                "MlpPolicy",
+                env,
+                learning_rate=trainer_config.lr,
+                batch_size=trainer_config.batch_size,
+                buffer_size=1000000,
+                verbose=1,
+                device=trainer_config.device,
+                policy_kwargs=policy_kwargs_off_policy,
+                seed=trainer_config.seed,
+            )
+
+            print("\nInitiate DQN training ...")
 
         callback = DynamicTrainingCallback(
                     evaluator=evaluator,
@@ -213,6 +314,7 @@ def inference(
         render_config,
         use_render=True,
         mode=ENV_TYPE,
+        type_reward=REWARD_TYPE,
     )
 
     env.render()
@@ -249,6 +351,7 @@ def probe_envs(
         render_config,
         use_render=False,
         mode=ENV_TYPE,
+        type_reward=REWARD_TYPE,
     )
 
     print("\nCheck environment ...")
@@ -285,7 +388,8 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=ENV_TYPE
+            mode=ENV_TYPE,
+            type_reward=REWARD_TYPE,
         )
 
         obs, info = env.reset()

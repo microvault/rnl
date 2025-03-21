@@ -73,8 +73,8 @@ class Map2D:
         min_y = np.min(idx[0])
         max_y = np.max(idx[0])
 
-        dist_x = (max_x - min_x) + 1
-        dist_y = (max_y - min_y) + 1
+        dist_x = (max_x - min_x)# + 1
+        dist_y = (max_y - min_y)# + 1
 
         if (max_y - min_y) != (max_x - min_x):
             dist_y = max_y - min_y
@@ -384,3 +384,28 @@ class Map2D:
             plt.show()
 
         return mask_smoothed
+
+    def raw_map_mask(self, plot=False, border=10):
+        """Retorna e plota a máscara crua (sem processamento)."""
+        # Gera a grid bruta
+        raw_grid = self._grid_map()
+        # Extrai a subgrid com borda
+        subgrid_uint8 = self.get_subgrid_from_map(raw_grid, border=border)
+
+        if subgrid_uint8 is None:
+            return None
+
+        if plot:
+            plt.imshow(subgrid_uint8, cmap='gray')
+            plt.axis('off')
+            plt.show()
+
+        return subgrid_uint8
+
+# if __name__ == "__main__":
+#     map2d = Map2D(
+#         folder="/Users/nicolasalan/microvault/rnl/data/map5", name="map5"
+#     )
+#     contour_mask = map2d.initial_environment2d(plot=True, mode="medium-07")
+
+#     # raw_mask = map2d.raw_map_mask(plot=True, border=10)

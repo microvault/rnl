@@ -19,16 +19,7 @@ from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
 
-REWARD_TYPE = RewardConfig(
-    reward_type="time",
-    params={
-        "scale_orientation": 0.02,
-        "scale_distance": 0.06,
-        "scale_time": 0.01,
-        "scale_obstacle": 0.001,
-    },
-    description="Reward baseado em todos os fatores",
-)
+
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -38,6 +29,7 @@ class NaviEnv(gym.Env):
         env_config: EnvConfig,
         render_config: RenderConfig,
         use_render: bool,
+        type_reward: RewardConfig,
         mode: str,
     ):
         super().__init__()
@@ -56,7 +48,7 @@ class NaviEnv(gym.Env):
         self.min_vr = robot_config.vel_angular[0]
         self.max_vr = robot_config.vel_angular[1]
 
-        self.reward_config = REWARD_TYPE
+        self.reward_config = type_reward
 
         self.mode: str = mode
         self.grid_length = 2
@@ -168,7 +160,6 @@ class NaviEnv(gym.Env):
             self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
-            print(self.use_render)
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
             )
@@ -210,11 +201,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.36 * self.scalar
+            self.vr = -0.22 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.36 * self.scalar
+            self.vr = 0.22 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -254,6 +245,8 @@ class NaviEnv(gym.Env):
             self.body.position.y,
             self.body.angle,
         )
+
+        print("x: ", x, "y: ", y)
 
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
@@ -368,10 +361,10 @@ class NaviEnv(gym.Env):
             vr = 0.0
         elif action == 1:
             vl = 0.08 * self.scalar
-            vr = -0.72 * self.scalar
+            vr = -0.36 * self.scalar
         elif action == 2:
             vl = 0.08 * self.scalar
-            vr = 0.72 * self.scalar
+            vr = 0.36 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -544,7 +537,6 @@ class NaviEnv(gym.Env):
 
             elif self.mode in ("easy-05"):
                 self.grid_length = round(np.random.choice(np.arange(2, 10.05, 0.05)), 2)
-                print(self.grid_length)
 
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length

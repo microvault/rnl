@@ -1,7 +1,7 @@
 from stable_baselines3.common.callbacks import BaseCallback
 from rnl.agents.evaluate import statistics, evaluate_agent
 import json
-from rnl.training.utils import make_env
+from rnl.training.utils import make_environemnt
 
 class DynamicTrainingCallback(BaseCallback):
     def __init__(
@@ -24,7 +24,7 @@ class DynamicTrainingCallback(BaseCallback):
 
         use_agents = True
         if self.n_calls % self.check_freq == 0:
-            eval_env = make_env()
+            eval_env = make_environemnt()
             evaluation_results = evaluate_agent(self.model, eval_env)
             self.logger.record("rollout/evaluation_results", json.dumps(evaluation_results))
             # Coleta infos de cada env

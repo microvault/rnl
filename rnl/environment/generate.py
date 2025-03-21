@@ -218,7 +218,6 @@ class Generator:
 
             random_file = random.choice(files)
             file_path = os.path.join(json_dir, random_file)
-            print(f"Selected JSON file: {file_path}")
 
             data = None
             with open(file_path, "r") as f:

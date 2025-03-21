@@ -17,4 +17,4 @@ export LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/humble/lib/libgazebo_ros_factory.
 export GAZEBO_PLUGIN_PATH=/usr/local/lib:$GAZEBO_PLUGIN_PATH
 
 
-ros2 launch turtlebot3_gazebo turtlebot3_house.launch.py
+ros2 launch playground turtlebot_sim_world.launch.py

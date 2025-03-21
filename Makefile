@@ -6,9 +6,9 @@ VERSION = 1.1
 MODE ?= learn
 MAX_TIMESTEP_GLOBAL ?= 20000
 SEED ?= 1
-HIDDEN_SIZE ?= 128,64
+HIDDEN_SIZE ?= 20,10
 ACTIVATION ?= ReLU
-BATCH_SIZE ?= 1024
+BATCH_SIZE ?= 8
 NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
@@ -64,7 +64,6 @@ probe:
 	@uv run python -m main run \
     	--num_envs $(NUM_ENVS) \
     	--device $(DEVICE) \
-    	--type_reward $(TYPE_REWARD) \
         --max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
         --num_envs $(NUM_ENVS) \
     	--controller False \

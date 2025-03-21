@@ -2,7 +2,7 @@ import gymnasium as gym
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.environment.env import NaviEnv
-
+from rnl.configs.rewards import RewardConfig
 
 def make_vect_envs(
     num_envs: int,
@@ -11,6 +11,7 @@ def make_vect_envs(
     env_config: EnvConfig,
     render_config: RenderConfig,
     use_render: bool,
+    type_reward: RewardConfig,
     mode: str
 ):
     """Returns async-vectorized gym environments with custom parameters.
@@ -31,9 +32,8 @@ def make_vect_envs(
                 env_config,
                 render_config,
                 use_render,
-                actions_cfg=actions_type,
-                reward_cfg=reward_type,
                 mode=mode,
+                type_reward=type_reward,
             )
             env.reset(seed=13 + i)
             return env

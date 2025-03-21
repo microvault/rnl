@@ -2452,7 +2452,7 @@ requires-dist = [
     { name = "gymnasium", specifier = ">=0.28.1,<0.30.0" },
     { name = "matplotlib", specifier = ">=3.3" },
     { name = "numba", specifier = ">=0.59.1,<0.61.0" },
-    { name = "numpy", specifier = ">=1.24.2,<3.0.0" },
+    { name = "numpy", specifier = ">=1.26.4" },
     { name = "pymunk", specifier = "==6.11.0" },
     { name = "rerun-sdk", specifier = ">=0.22.1" },
     { name = "rtree", specifier = ">=1.3.0,<2.0.0" },

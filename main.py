@@ -30,15 +30,15 @@ def main(arg):
         fov=270,
         num_rays=5,  # min 5 max 20
         min_range=0.0,
-        max_range=3.5,  # 3.5
+        max_range=10.0,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map4",  # ./data/map4
-        name_map="map4",  # map4
-        max_timestep=1000,
+        folder_map="./data/map5",  # ./data/map4
+        name_map="map5",  # map4
+        max_timestep=100000, # 1000
     )
 
     # 4.step -> config render
@@ -65,7 +65,7 @@ def main(arg):
             device=args.device,
             checkpoint=args.checkpoint,
             checkpoint_path=args.checkpoint_path,
-            use_wandb=False,
+            use_wandb=True,
             wandb_api_key=str(wandb_key),
             llm_api_key=str(gemini_api_key),
             lr=args.lr,

@@ -3,35 +3,30 @@ import numpy as np
 import time
 import rerun as rr
 import argparse
-from rnl.engine.utils import create_env
+from rnl.training.utils import create_single_env
+
+import os
+
+os.environ["KMP_WARNINGS"] = "0"
 
 
-def log_map_segments(env, env_index, offset_x=0.0):
-    """
-    Converte os segmentos 2D do mapa para 3D e plota cada um em rosa.
-    Cada segmento é embrulhado num array extra para ter o shape (1, N, 3).
-    """
+def log_map_segments(env, env_index, offset_x=0.0, offset_y=0.0):
     segments = env.segments
-    if not segments:
-        print(f"Env {env_index} sem segmentos!")
-        return
-
     for idx, seg in enumerate(segments):
-        seg_np = np.array(seg)
-        if seg_np.ndim != 2 or seg_np.shape[1] != 2:
-            continue
+        x0, y0, x1, y1 = seg
+        seg_2d = np.array([[x0, y0], [x1, y1]])
+        seg_2d[:, 0] += offset_x
+        seg_2d[:, 1] += offset_y
 
-        # Aplica offset e acrescenta a coordenada z=0
-        seg_2d = seg_np + np.array([offset_x, 0])
         seg_3d = np.hstack((seg_2d, np.zeros((seg_2d.shape[0], 1))))
-        # Embrulha para ter shape (1, N, 3)
-        seg_3d_wrapped = np.array([seg_3d])
+        seg_3d_wrapped = seg_3d[np.newaxis, ...]
+
         rr.log(
             f"env_{env_index}/map_segment_{idx}",
             rr.LineStrips3D(
                 seg_3d_wrapped,
-                radii=0.05,          # tente aumentar o radius se necessário
-                colors=[(255, 192, 203)]  # rosa
+                radii=0.05,
+                colors=[(255, 192, 203)]
             )
         )
 
@@ -41,40 +36,56 @@ def main():
     args = parser.parse_args()
     rr.script_setup(args, "Multi-Environment Training - 3D")
 
-    num_envs = 1
-    envs = [create_env(i) for i in range(num_envs)]
+    num_envs = 100
+    rows = 6
+    cols = 10
 
-    # Reset e log do mapa para cada ambiente (aplicando offset para separar visualmente)
+    envs = [create_single_env(i) for i in range(num_envs)]
+
+    # Posiciona e desenha cada ambiente
     for i, env in enumerate(envs):
+        row = i // cols
+        col = i % cols
+        offset_x = col * 5.0
+        offset_y = row * 5.0
         env.reset()
-        offset = i * 5.0
-        log_map_segments(env, i, offset_x=offset)
+        log_map_segments(env, i, offset_x=offset_x, offset_y=offset_y)
 
-    total_steps = 50
+    total_steps = 500
     for step in range(total_steps):
         rr.set_time_sequence("frame", step)
         for i, env in enumerate(envs):
+            row = i // cols
+            col = i % cols
+            offset_x = col * 5.0
+            offset_y = row * 5.0
+
             action = np.random.randint(0, 3)
             state, reward, done, truncated, info = env.step(action)
 
-            pos = (env.body.position.x, env.body.position.y)
-            target = (env.target_x, env.target_y)
-            offset = i * 5.0
+            pos = (
+                env.body.position.x + offset_x,
+                env.body.position.y + offset_y,
+            )
+            target = (
+                env.target_x + offset_x,
+                env.target_y + offset_y,
+            )
 
-            # Log do robô
+            # Robô
             rr.log(
                 f"env_{i}/robot",
                 rr.Points3D(
-                    np.array([[pos[0] + offset, pos[1], 0.0]], dtype=np.float32),
+                    np.array([[pos[0], pos[1], 0.0]], dtype=np.float32),
                     radii=[0.105],
                     colors=[(0, 0, 255)]
                 )
             )
-            # Log do alvo
+            # Alvo
             rr.log(
                 f"env_{i}/target",
                 rr.Points3D(
-                    np.array([[target[0] + offset, target[1], 0.0]], dtype=np.float32),
+                    np.array([[target[0], target[1], 0.0]], dtype=np.float32),
                     radii=[0.05],
                     colors=[(0, 255, 0)]
                 )
@@ -82,7 +93,7 @@ def main():
 
             if done or truncated:
                 env.reset()
-                log_map_segments(env, i, offset_x=offset)
+                log_map_segments(env, i, offset_x=offset_x, offset_y=offset_y)
 
         time.sleep(0.01)
 
