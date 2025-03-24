@@ -10,8 +10,11 @@ setup(
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/turtlebot_sim_world.launch.py"]),
-        ("share/" + package_name + "/launch", ["launch/turtlebot_real_world.launch.py"]),
-        ("share/" + package_name + "/worlds", ["worlds/my_world.world"]), # !!
+        (
+            "share/" + package_name + "/launch",
+            ["launch/turtlebot_real_world.launch.py"],
+        ),
+        ("share/" + package_name + "/worlds", ["worlds/my_world.world"]),  # !!
         ("share/" + package_name + "/worlds", ["worlds/target.sdf"]),
         ("share/" + package_name + "/models", ["models/model.zip"]),
     ],

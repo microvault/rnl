@@ -38,7 +38,7 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map5",  # ./data/map4
         name_map="map5",  # map4
-        max_timestep=100000, # 1000
+        max_timestep=100000,  # 1000
     )
 
     # 4.step -> config render
@@ -103,6 +103,7 @@ def main(arg):
         )
 
         model.execute()
+
 
 def str2bool(v):
     if isinstance(v, bool):
