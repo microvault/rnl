@@ -73,8 +73,8 @@ class Map2D:
         min_y = np.min(idx[0])
         max_y = np.max(idx[0])
 
-        dist_x = (max_x - min_x)# + 1
-        dist_y = (max_y - min_y)# + 1
+        dist_x = max_x - min_x  # + 1
+        dist_y = max_y - min_y  # + 1
 
         if (max_y - min_y) != (max_x - min_x):
             dist_y = max_y - min_y
@@ -396,11 +396,12 @@ class Map2D:
             return None
 
         if plot:
-            plt.imshow(subgrid_uint8, cmap='gray')
-            plt.axis('off')
+            plt.imshow(subgrid_uint8, cmap="gray")
+            plt.axis("off")
             plt.show()
 
         return subgrid_uint8
+
 
 # if __name__ == "__main__":
 #     map2d = Map2D(

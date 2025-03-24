@@ -1,8 +1,9 @@
-import math
 import argparse
-
+import math
 from datetime import datetime
+
 from rnl.environment.world import CreateWorld
+
 
 def generate_gazebo_world_with_walls(segments):
     """
@@ -92,12 +93,11 @@ def main():
     # Usa o método world para obter segmentos (modo exemplo)
     _, segments_from_world, _ = create_world.world(mode="medium-07")
     # Se não houver segmentos, usa uma lista padrão
-    segments = segments_from_world if segments_from_world else [
-        (0, 0, 5, 0),
-        (5, 0, 5, 5),
-        (5, 5, 0, 5),
-        (0, 5, 0, 0)
-    ]
+    segments = (
+        segments_from_world
+        if segments_from_world
+        else [(0, 0, 5, 0), (5, 0, 5, 5), (5, 5, 0, 5), (0, 5, 0, 0)]
+    )
 
     generate_gazebo_world_with_walls(segments)
 

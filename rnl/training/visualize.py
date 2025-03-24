@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-import numpy as np
-import time
-import rerun as rr
 import argparse
-from rnl.training.utils import create_single_env
-
 import os
+import time
+
+import numpy as np
+import rerun as rr
+
+from rnl.training.utils import create_single_env
 
 os.environ["KMP_WARNINGS"] = "0"
 
@@ -23,12 +24,9 @@ def log_map_segments(env, env_index, offset_x=0.0, offset_y=0.0):
 
         rr.log(
             f"env_{env_index}/map_segment_{idx}",
-            rr.LineStrips3D(
-                seg_3d_wrapped,
-                radii=0.05,
-                colors=[(255, 192, 203)]
-            )
+            rr.LineStrips3D(seg_3d_wrapped, radii=0.05, colors=[(255, 192, 203)]),
         )
+
 
 def main():
     parser = argparse.ArgumentParser("Multi-Environment Training (3D)")
@@ -78,8 +76,8 @@ def main():
                 rr.Points3D(
                     np.array([[pos[0], pos[1], 0.0]], dtype=np.float32),
                     radii=[0.105],
-                    colors=[(0, 0, 255)]
-                )
+                    colors=[(0, 0, 255)],
+                ),
             )
             # Alvo
             rr.log(
@@ -87,8 +85,8 @@ def main():
                 rr.Points3D(
                     np.array([[target[0], target[1], 0.0]], dtype=np.float32),
                     radii=[0.05],
-                    colors=[(0, 255, 0)]
-                )
+                    colors=[(0, 255, 0)],
+                ),
             )
 
             if done or truncated:
@@ -98,6 +96,7 @@ def main():
         time.sleep(0.01)
 
     rr.script_teardown(args)
+
 
 if __name__ == "__main__":
     main()
