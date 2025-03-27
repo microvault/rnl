@@ -80,7 +80,6 @@ class Trainer:
         num_envs: int,
         device: str,
         activation: str,
-        checkpoint: int,
         checkpoint_path: str,
         use_wandb: bool,
         wandb_api_key: str,
@@ -88,18 +87,11 @@ class Trainer:
         lr: float,
         learn_step: int,
         gae_lambda: float,
-        action_std_init: float,
-        clip_coef: float,
         ent_coef: float,
         vf_coef: float,
         max_grad_norm: float,
         update_epochs: int,
         name: str,
-        save_path: str,
-        elite_path: str,
-        overwrite_checkpoints: bool,
-        save_elite: bool,
-        evo_steps: int,
     ) -> None:
 
         network_config = NetworkConfig(
@@ -113,7 +105,6 @@ class Trainer:
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,
-            checkpoint=checkpoint,
             checkpoint_path=checkpoint_path,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
@@ -121,18 +112,11 @@ class Trainer:
             lr=lr,
             learn_step=learn_step,
             gae_lambda=gae_lambda,
-            action_std_init=action_std_init,
-            clip_coef=clip_coef,
             ent_coef=ent_coef,
             vf_coef=vf_coef,
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
             name=name,
-            save_path=save_path,
-            elite_path=elite_path,
-            overwrite_checkpoints=overwrite_checkpoints,
-            save_elite=save_elite,
-            evo_steps=evo_steps,
         )
 
         # if not self.render_config.debug:
@@ -218,21 +202,3 @@ class Probe:
         )
 
         return None
-
-    # def training(self) -> None:
-    #     if self.render_config.controller:
-    #         raise ValueError("Error: Controller mode is not supported for training.")
-
-    #     if self.render_config.plot:
-    #         raise ValueError("Error: Plot mode is not supported for training.")
-
-    #     probe_training(
-    #         self.num_envs,
-    #         self.max_steps,
-    #         self.robot_config,
-    #         self.sensor_config,
-    #         self.env_config,
-    #         self.render_config,
-    #     )
-
-    #     return None

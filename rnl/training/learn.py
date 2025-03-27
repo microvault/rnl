@@ -26,7 +26,7 @@ from wandb.integration.sb3 import WandbCallback
 from rnl.configs.rewards import RewardConfig
 import wandb
 
-ENV_TYPE = "medium-07"
+ENV_TYPE = "visualize"
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
     reward_type="time",
@@ -34,7 +34,7 @@ REWARD_TYPE = RewardConfig(
         "scale_orientation": 0.02,
         "scale_distance": 0.06,
         "scale_time": 0.01,
-        "scale_obstacle": 0.001,
+        "scale_obstacle": 0.004,
     },
     description="Reward baseado em todos os fatores",
 )
@@ -203,7 +203,7 @@ def training(
                 total_timesteps=trainer_config.max_timestep_global,
                 callback=WandbCallback(
                     gradient_save_freq=100,
-                    model_save_path=f"model_ppo/{run.id}",
+                    model_save_path=trainer_config.checkpoint_path,
                     verbose=2,
                 ),
             )
@@ -420,6 +420,7 @@ def probe_envs(
                 actions, _states = model.predict(obs)
             else:
                 actions = env.action_space.sample()
+
             obs, rewards, terminated, truncated, infos = env.step(actions)
             ep_rewards += np.array(rewards)
             ep_lengths += 1

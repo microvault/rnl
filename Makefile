@@ -25,6 +25,7 @@ UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
 SCALAR ?= 1
 CONTROL ?= False
+USE_WANDB ?= False
 
 .PHONY: sim
 sim:
@@ -55,6 +56,7 @@ learn:
     	--max_grad_norm $(MAX_GRAD_NORM) \
     	--update_epochs $(UPDATE_EPOCHS) \
     	--name $(NAME) \
+        --use_wandb $(USE_WANDB) \
      	--controller False \
       	--debug True \
        	--scalar $(SCALAR)
@@ -109,6 +111,10 @@ install:
 .PHONY: build
 build:
 	@docker build -f docker/Dockerfile -t rnl-docker-cuda .
+
+.PHONY: visualize
+visualize:
+	@uv run rnl/training/visualize.py --save output_map.rrd
 
 
 .PHONY: train

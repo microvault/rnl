@@ -53,7 +53,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_length: float, resolution: float = 0.01):
+    def world(self, grid_length: float, resolution: float = 0.01, porcentage_obstacle: float = 0.0):
         """
         Generates a maze world.
 
@@ -128,6 +128,170 @@ class Generator:
             return path_patch, segments, poly
 
         elif self.mode == "easy-04" or self.mode == "easy-05":
+            m = self.generate.generate_maze(
+                map_size=int(grid_length),
+                decimation=1000.0, # 1000.0
+                min_blocks=0,
+                num_cells_togo=100,
+                no_mut=True,
+            )
+
+            border = self._map_border(m)
+            map_grid = 1 - border
+
+            conts = find_contours(map_grid, 0.5)
+            contours = process(conts)
+
+            height, width = map_grid.shape
+            exterior = []
+
+            """
+            #---------1---------#
+            |                   |
+            |                   |
+            4                   2
+            |                   |
+            |                   |
+            #---------3---------#
+            """
+
+            # 1
+            for x in range(width):
+                exterior.append((x, height - 1))
+
+            # 2
+            for y in range(height - 2, -1, -1):
+                exterior.append((width - 1, y))
+
+            # 3
+            for x in range(width - 2, -1, -1):
+                exterior.append((x, 0))
+
+            # 4
+            for y in range(1, height - 1):
+                exterior.append((0, y))
+
+            interiors = []
+            segments = []
+
+            for n, contour in enumerate(contours):
+                poly = []
+                for idx, vertex in enumerate(contour):
+                    poly.append((vertex[1], vertex[0]))
+
+                interiors.append(poly)
+
+                interior_segment = LineString(poly)
+                segments.append(interior_segment)
+
+            exterior_segment = LineString(exterior + [exterior[0]])
+            segments.insert(0, exterior_segment)
+
+            stacks = [self.line_to_np_stack(line) for line in segments]
+
+            segment = extract_segment_from_polygon(stacks)
+
+            poly = Polygon(exterior, holes=interiors).buffer(0)
+
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("The polygon is not valid.")
+
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+
+            return path_patch, segment, poly
+
+        elif self.mode == "visualize":
+            m = self.generate.generate_maze(
+                map_size=int(grid_length),
+                decimation=0.0,
+                min_blocks=0,
+                num_cells_togo=100,
+                no_mut=True,
+            )
+
+            border = self._map_border(m)
+            map_grid = 1 - border
+
+            conts = find_contours(map_grid, 0.5)
+            contours = process(conts)
+
+            height, width = map_grid.shape
+            exterior = []
+
+            """
+            #---------1---------#
+            |                   |
+            |                   |
+            4                   2
+            |                   |
+            |                   |
+            #---------3---------#
+            """
+
+            # 1
+            for x in range(width):
+                exterior.append((x, height - 1))
+
+            # 2
+            for y in range(height - 2, -1, -1):
+                exterior.append((width - 1, y))
+
+            # 3
+            for x in range(width - 2, -1, -1):
+                exterior.append((x, 0))
+
+            # 4
+            for y in range(1, height - 1):
+                exterior.append((0, y))
+
+            interiors = []
+            segments = []
+
+            for n, contour in enumerate(contours):
+                poly = []
+                for idx, vertex in enumerate(contour):
+                    poly.append((vertex[1], vertex[0]))
+
+                interiors.append(poly)
+
+                interior_segment = LineString(poly)
+                segments.append(interior_segment)
+
+            exterior_segment = LineString(exterior + [exterior[0]])
+            segments.insert(0, exterior_segment)
+
+            stacks = [self.line_to_np_stack(line) for line in segments]
+
+            segment = extract_segment_from_polygon(stacks)
+
+            poly = Polygon(exterior, holes=interiors).buffer(0)
+
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("The polygon is not valid.")
+
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+
+            return path_patch, segment, poly
+
+        elif self.mode == "train-mode":
             m = self.generate.generate_maze(
                 map_size=int(grid_length),
                 decimation=0.0,
@@ -237,7 +401,16 @@ class Generator:
                     raise ValueError("Invalid polygon generated from vertices.")
 
             if poly.geom_type == "MultiPolygon":
-                poly = max(poly, key=lambda a: a.area)
+                poly_corrigido = poly.buffer(0)
+                if poly_corrigido.is_valid and poly_corrigido.geom_type != "MultiPolygon":
+                    poly = poly_corrigido
+                else:
+                    # Se continuar sendo MultiPolygon, seleciona o maior polígono válido
+                    valid_polys = [p for p in poly.geoms if p.is_valid]
+                    if valid_polys:
+                        poly = max(valid_polys, key=lambda a: a.area)
+                    else:
+                        raise ValueError("Nenhum polígono válido foi gerado dos vértices.")
 
             processed_verts = np.array(poly.exterior.coords, dtype=np.float32)
             stack = [processed_verts]

@@ -2,14 +2,21 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory("playground")
     world_file = os.path.join(pkg_dir, "worlds", "my_world.world")
     target_file = os.path.join(pkg_dir, "worlds", "target.sdf")
+
+    # Declara argumento para usar sim_time
+    use_sim_time_arg = DeclareLaunchArgument(
+        "use_sim_time", default_value="true", description="Utilizar clock da simulação"
+    )
+    use_sim_time = LaunchConfiguration("use_sim_time")
 
     x_pose = "2.0"
     y_pose = "2.0"
@@ -22,7 +29,11 @@ def generate_launch_description():
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(gazebo_launch_file),
-        launch_arguments={"world": world_file, "playback_speed": "4.0"}.items(),
+        launch_arguments={
+            "world": world_file,
+            "playback_speed": "4.0",
+            "use_sim_time": use_sim_time
+        }.items(),
     )
 
     turtlebot3_launch_file = os.path.join(
@@ -37,6 +48,7 @@ def generate_launch_description():
             "y_pose": y_pose,
             "z_pose": z_pose,
             "yaw": yaw,
+            "use_sim_time": use_sim_time
         }.items(),
     )
 
@@ -44,18 +56,14 @@ def generate_launch_description():
         package="gazebo_ros",
         executable="spawn_entity.py",
         arguments=[
-            "-entity",
-            "target",
-            "-file",
-            target_file,
-            "-x",
-            "0.0",
-            "-y",
-            "0.0",
-            "-z",
-            "0.001",
+            "-entity", "target",
+            "-file", target_file,
+            "-x", "0.0",
+            "-y", "0.0",
+            "-z", "0.001",
         ],
         output="screen",
+        parameters=[{"use_sim_time": True}]
     )
 
-    return LaunchDescription([gazebo, turtlebot3, target])
+    return LaunchDescription([use_sim_time_arg, gazebo, turtlebot3, target])

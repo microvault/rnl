@@ -53,24 +53,16 @@ class TrainerConfig:
     num_envs: int
     device: str
     learn_step: int
-    checkpoint: int
     checkpoint_path: str
     use_wandb: bool
     wandb_api_key: str
     llm_api_key: str
     gae_lambda: float
-    action_std_init: float
-    clip_coef: float
     ent_coef: float
     vf_coef: float
     max_grad_norm: float
     update_epochs: int
     name: str
-    save_path: str
-    elite_path: str
-    overwrite_checkpoints: bool
-    save_elite: bool
-    evo_steps: int
 
 
 @dataclass

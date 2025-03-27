@@ -847,3 +847,4 @@ pip-selfcheck.json
 *.pdf
 /model_ppo
 *.rrd
+*.gv

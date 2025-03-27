@@ -18,6 +18,7 @@ services:
     ipc: host
     volumes:
       - ./src/playground:/turtlebot3_ws/src/playground:rw
+      - ./setup.bash:/turtlebot3_ws/setup.bash:rw
       - ./run.bash:/turtlebot3_ws/run.bash:rw
     depends_on:
       - xserver

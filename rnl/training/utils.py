@@ -159,7 +159,7 @@ def create_single_env(i):
         env_config,
         render_config,
         False,
-        mode="easy-00",
+        mode="visualize",
         type_reward=type_reward,
     )
     env.reset(seed=13 + i)

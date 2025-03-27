@@ -4,7 +4,7 @@ import gymnasium as gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from agilerl.algorithms.ppo import PPO
+from stable_baselines3 import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 from sklearn.preprocessing import MinMaxScaler
@@ -102,6 +102,20 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
+
+        elif "visualize" in self.mode:
+            self.generator = Generator(mode=self.mode)
+            self.grid_length = 3
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                self.grid_length
+            )
+
+        elif "train-mode" in self.mode:
+            self.generator = Generator(mode=self.mode)
+            self.grid_length = 5
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                self.grid_length
+            )
 
         self.sensor = SensorRobot(sensor_config, self.segments)
 
@@ -201,11 +215,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.22 * self.scalar
+            self.vr = -0.36 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.22 * self.scalar
+            self.vr = 0.36 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -222,7 +236,7 @@ class NaviEnv(gym.Env):
 
         if self.pretrained_model != "None" or not self.controller:
             if self.pretrained_model != "None" and self.model is not None:
-                action, log_prob, _, value = self.model.get_action(self.last_states)
+                action, _states = self.model.predict(self.last_states)
                 self.action = int(action)
             else:
                 self.action = np.random.randint(0, 3)
@@ -245,8 +259,6 @@ class NaviEnv(gym.Env):
             self.body.position.y,
             self.body.angle,
         )
-
-        print("x: ", x, "y: ", y)
 
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
@@ -555,6 +567,48 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
+            elif self.mode in ("visualize"):
+                if self.timestep % 10 == 0:
+                    self.new_map_path, self.segments, self.poly = self.generator.world(
+                        self.grid_length
+                    )
+
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
+            elif self.mode in ("train-mode"):
+                self.grid_length = round(np.random.choice(np.arange(2, 5.05, 0.05)), 2)
+
+                print("grid_length: ", self.grid_length)
+
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
             elif "medium" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.create_world.world(
                     mode=self.mode
@@ -718,6 +772,14 @@ class NaviEnv(gym.Env):
             ax.set_xlim(0, int(self.grid_length))
             ax.set_ylim(0, int(self.grid_length))
 
+        elif "train-mode" in self.mode:
+            ax.set_xlim(0, int(self.grid_length))
+            ax.set_ylim(0, int(self.grid_length))
+
+        elif "visualize" in self.mode:
+            ax.set_xlim(0, int(3))
+            ax.set_ylim(0, int(3))
+
         elif "medium" in self.mode:
             minx, miny, maxx, maxy = self.poly.bounds
             center_x = (minx + maxx) / 2.0
@@ -879,6 +941,21 @@ class NaviEnv(gym.Env):
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
+
+        elif "train-mode" in self.mode:
+            x2 = x + 0.1 * np.cos(self.body.angle)
+            y2 = y + 0.1 * np.sin(self.body.angle)
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+            )[0]
+
+        elif "visualize" in self.mode:
+            x2 = x + 0.1 * np.cos(self.body.angle)
+            y2 = y + 0.1 * np.sin(self.body.angle)
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+            )[0]
+
         elif "medium" in self.mode:
             x2 = x + 2.0 * np.cos(self.body.angle)
             y2 = y + 2.0 * np.sin(self.body.angle)
