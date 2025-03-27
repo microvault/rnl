@@ -26,10 +26,12 @@ from wandb.integration.sb3 import WandbCallback
 from rnl.configs.rewards import RewardConfig
 import wandb
 
-ENV_TYPE = "visualize"
+ENV_TYPE = "train-mode"
+PORCENTAGE_OBSTACLE = 40.0
+MAP_SIZE = 2
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
-    reward_type="time",
+    reward_type="all",
     params={
         "scale_orientation": 0.02,
         "scale_distance": 0.06,
@@ -101,7 +103,9 @@ def training(
         render_config,
         use_render=False,
         mode=ENV_TYPE,
-        type_reward=REWARD_TYPE
+        type_reward=REWARD_TYPE,
+        porcentage_obstacle=PORCENTAGE_OBSTACLE,
+        map_size=MAP_SIZE,
     )
 
     print("\nCheck environment ...")
@@ -135,6 +139,8 @@ def training(
             use_render=False,
             mode=ENV_TYPE,
             type_reward=REWARD_TYPE,
+            porcentage_obstacle=PORCENTAGE_OBSTACLE,
+            map_size=MAP_SIZE,
         )
         env = Monitor(env)
         return env
@@ -260,12 +266,17 @@ def training(
 
             print("\nInitiate DQN training ...")
 
-        callback = DynamicTrainingCallback(
-                    evaluator=evaluator,
-                    justificativas_history=[],
-                    get_strategy_dict_func=get_strategy_dict,
-                    check_freq=100
-                )
+        if trainer_config.use_agents:
+            callback = DynamicTrainingCallback(
+                evaluator=evaluator,
+                justificativas_history=[],
+                get_strategy_dict_func=get_strategy_dict,
+                check_freq=100
+            )
+
+        else:
+            callback = None
+
 
         model.learn(total_timesteps=trainer_config.max_timestep_global, callback=callback)
 

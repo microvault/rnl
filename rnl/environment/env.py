@@ -19,8 +19,6 @@ from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
 
-
-
 class NaviEnv(gym.Env):
     def __init__(
         self,
@@ -30,7 +28,9 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
         use_render: bool,
         type_reward: RewardConfig,
-        mode: str,
+        porcentage_obstacle: Optional[float] = None,
+        map_size: Optional[int] = None,
+        mode: str = "train-mode",
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
@@ -58,6 +58,8 @@ class NaviEnv(gym.Env):
         self.steps_to_collision = 0
         self.goal_reached = False
         self.collision_happened = False
+        self.map_size = map_size
+        self.porcentage_obstacle = porcentage_obstacle
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -112,10 +114,12 @@ class NaviEnv(gym.Env):
 
         elif "train-mode" in self.mode:
             self.generator = Generator(mode=self.mode)
-            self.grid_length = 5
-            self.new_map_path, self.segments, self.poly = self.generator.world(
-                self.grid_length
-            )
+            if self.map_size is not None:
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.map_size
+                )
+            else:
+                raise ValueError("map_size é obrigatório para o modo train-mode")
 
         self.sensor = SensorRobot(sensor_config, self.segments)
 
@@ -489,15 +493,23 @@ class NaviEnv(gym.Env):
         self.infos_list.clear()
         return infos
 
-    def update_strategy(self, new_action_type, new_reward_type, new_params):
-        pass
-        # self.actions_config = new_action_type
+    def update_strategy(self, new_map_size, new_porcentage_obstacle, new_reward_type, new_params):
+        self.map_size = new_map_size
+        self.porcentage_obstacle = new_porcentage_obstacle
 
-        # self.reward_config = RewardConfig(
-        #     reward_type=new_reward_type,
-        #     params=new_params,
-        #     description=f"Reward configurado para {new_reward_type}",
-        # )
+        self.reward_config = RewardConfig(
+            reward_type="all",
+            params=new_params,
+            description=f"Reward configurado para {new_reward_type}",
+        )
+
+        print("\n!!Novo tamanho do mapa e porcentagem de obstáculos!!\n")
+        print(f"Mapa: {self.map_size}")
+        print(f"Porcentagem de obstáculos: {self.porcentage_obstacle}")
+
+        print("\n!!Novo tipo de recompensa!!\n")
+        print(f"Tipo: {new_reward_type}")
+        print(f"Parâmetros: {new_params}")
 
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed, options=options)
@@ -588,12 +600,14 @@ class NaviEnv(gym.Env):
                 self.robot.reset_robot(self.body, x, y, theta)
 
             elif self.mode in ("train-mode"):
-                self.grid_length = round(np.random.choice(np.arange(2, 5.05, 0.05)), 2)
+                if self.map_size is None:
+                    raise ValueError("map_size é obrigatório para o modo train-mode")
 
-                print("grid_length: ", self.grid_length)
+                if self.porcentage_obstacle is None:
+                    raise ValueError("porcentage_obstacle é obrigatório para o modo train-mode")
 
                 self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
+                    grid_length=self.map_size, porcentage_obstacle=self.porcentage_obstacle
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,

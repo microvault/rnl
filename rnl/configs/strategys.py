@@ -8,20 +8,43 @@ class BaseConfig(ABC):
     def to_dict(self) -> Dict[str, Any]:
         pass
 
+class DomainConfig(BaseConfig):
+    def __init__(
+        self,
+        obstacle_percentage: int,
+        obstacle_percentage_description: str,
+        map_size: float,
+        map_size_description: str,
+    ):
+        if not isinstance(obstacle_percentage, int):
+            raise ValueError("obstacle_percentage deve ser um int")
+        if obstacle_percentage < 0 or obstacle_percentage > 100:
+            raise ValueError("obstacle_percentage deve estar entre 0 e 100")
+        if not obstacle_percentage_description:
+            raise ValueError("obstacle_percentage_description é obrigatório")
+        if not isinstance(map_size, float):
+            raise ValueError("map_size deve ser um float")
+        if map_size <= 0:
+            raise ValueError("map_size deve ser maior que zero")
+        if not map_size_description:
+            raise ValueError("map_size_description é obrigatório")
 
-# Configuration for modes with description
-class ModeConfig(BaseConfig):
-    def __init__(self, mode: str, description: str):
-        if not mode:
-            raise ValueError("mode is required")
-        if not description:
-            raise ValueError("description is required")
-        self.mode = mode
-        self.description = description
+        self.obstacle_percentage = obstacle_percentage
+        self.obstacle_percentage_description = obstacle_percentage_description
+        self.map_size = map_size
+        self.map_size_description = map_size_description
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"mode": self.mode, "description": self.description}
-
+        return {
+            "obstacle_percentage": {
+                "value": self.obstacle_percentage,
+                "description": self.obstacle_percentage_description,
+            },
+            "map_size": {
+                "value": self.map_size,
+                "description": self.map_size_description,
+            },
+        }
 
 # Configuration for actions with description
 class ActionConfig(BaseConfig):
@@ -78,116 +101,95 @@ class ChoiceConfig:
 
 # Main Strategy class, where reward, mode and action are required
 class StrategyConfig:
-    def __init__(self, mode: ChoiceConfig, action: ChoiceConfig):
-        if not mode or not action:
+    def __init__(self, reward: ChoiceConfig, mode: ChoiceConfig):
+        if not reward or not mode:
             raise ValueError("reward, mode and action are required")
+        self.reward = reward
         self.mode = mode
-        self.action = action
 
     def to_dict(self) -> Dict[str, Any]:
         return {
             "strategy": {
+                "reward": self.reward.to_dict(),
                 "mode": self.mode.to_dict(),
-                "action": self.action.to_dict(),
             }
         }
 
 
 # Single function to build and return the final JSON configuration
 def get_strategy_dict() -> dict:
-    modes: List[ModeConfig] = [
-        ModeConfig(
-            "easy-00",
-            "Objetivo entre 2 posições em mapa gerado 2x2. Robô inicia aleatório (pos e ângulo 0°-360°).",
+    domains: List[DomainConfig] = [
+        DomainConfig(0, "Sem obstáculos", 1.0, "Mapa 1x1"),
+        DomainConfig(25, "Poucos obstáculos", 2.0, "Mapa 2x2"),
+        DomainConfig(50, "Obstáculos moderados", 3.0, "Mapa 3x3"),
+        DomainConfig(75, "Muitos obstáculos", 4.0, "Mapa 4x4"),
+        DomainConfig(100, "Máximo de obstáculos", 5.0, "Mapa 5x5"),
+    ]
+
+    rewards: List[RewardConfig] = [
+        RewardConfig("time", {"scale_time": 0.01}, "Recompensa negativa a cada step"),
+        RewardConfig(
+            "distance",
+            {"scale_distance": 0.1},
+            "Recompensa dada quando mais perto o robô chega ao objetivo",
         ),
-        ModeConfig(
-            "easy-01",
-            "Objetivo entre 4 posições em mapa gerado 2x2 fixo. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        RewardConfig(
+            "orientation",
+            {"scale_orientation": 0.003},
+            "Recompensa positiva se o robo estiver em direcao ao objetivo",
         ),
-        ModeConfig(
-            "easy-02",
-            "Objetivo livre no mapa gerado 2x2. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        RewardConfig(
+            "any",
+            {},
+            "Somente a recompensa negativa -1 quando colide e +1 quando chega ao objetivo",
         ),
-        ModeConfig(
-            "easy-03",
-            "Objetivo livre em mapa gerado 5x5. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        RewardConfig(
+            "distance_orientation",
+            {"scale_distance": 0.1, "scale_orientation": 0.003},
+            "Combinacao de distancia e orientacao",
         ),
-        ModeConfig(
-            "easy-04",
-            "Objetivo livre em mapa gerado 10x10 com obstáculos. Robô inicia aleatório (pos e ângulo 0°-360°).",
+        RewardConfig(
+            "distance_time",
+            {"scale_distance": 0.1, "scale_time": 0.01},
+            "Combinacao de distancia e tempo",
         ),
-        ModeConfig(
-            "easy-05",
-            "Objetivo livre em mapas gerados de 2x2 até 10x10 com obstáculos. Robô inicia aleatório.",
+        RewardConfig(
+            "orientation_time",
+            {"scale_orientation": 0.003, "scale_time": 0.01},
+            "Combinacao de orientacao e tempo",
         ),
-        ModeConfig(
-            "medium-00",
-            "Objetivo aleatório em 1/8 do mapa real. Robô inicia aleatório (pos e ângulo).",
+        RewardConfig(
+            "distance_orientation_time",
+            {"scale_distance": 0.1, "scale_orientation": 0.003, "scale_time": 0.01},
+            "Reward based on distance, orientation and time",
         ),
-        ModeConfig(
-            "medium-01",
-            "Objetivo aleatório em 1/6 do mapa real. Robô inicia aleatório.",
+        RewardConfig(
+            "distance_obstacle",
+            {"scale_distance": 0.1, "scale_obstacle": 0.001},
+            "Reward based on distance and obstacles",
         ),
-        ModeConfig(
-            "medium-02",
-            "Objetivo aleatório em 1/4 do mapa real. Robô inicia aleatório.",
+        RewardConfig(
+            "orientation_obstacle",
+            {"scale_orientation": 0.003, "scale_obstacle": 0.001},
+            "Reward based on orientation and obstacles",
         ),
-        ModeConfig(
-            "medium-03",
-            "Objetivo aleatório em 1/2 do mapa real. Robô inicia aleatório.",
-        ),
-        ModeConfig(
-            "medium-04",
-            "Objetivo livre em partes randômicas do mapa real. Robô inicia aleatório.",
-        ),
-        ModeConfig(
-            "medium-05", "Objetivo livre no mapa real completo. Robô inicia aleatório."
-        ),
-        ModeConfig(
-            "hard",
-            "Mapa real gerado e objetivo totalmente randômicos. Robô inicia aleatório.",
+        RewardConfig(
+            "all",
+            {
+                "scale_distance": 0.1,
+                "scale_orientation": 0.003,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.001,
+            },
+            "Reward based on all factors",
         ),
     ]
 
-    actions: List[ActionConfig] = [
-        ActionConfig(
-            "UltraSlowActions",
-            "Ações ultra-lentas para máxima precisão e controle em ambientes críticos",
-        ),  # 3% da velocidade normal
-        ActionConfig(
-            "UltraFastActions",
-            "Ações ultra-rápidas para respostas imediatas em situações de alta urgência, maximizando a performance",
-        ),  # 70% da velocidade normal
-        ActionConfig(
-            "BalancedActions",
-            "Ações equilibradas que combinam velocidade moderada com estabilidade, garantindo desempenho consistente",
-        ),  # 40% da velocidade normal
-        ActionConfig(
-            "ReactiveActions",
-            "Ações reativas que se adaptam instantaneamente a mudanças do ambiente, otimizando a precisão durante as manobras",
-        ),  # 35% da velocidade normal
-        ActionConfig(
-            "SurgeActions",
-            "Ações em surto para acelerações intensas em momentos críticos, impulsionando a resposta dinâmica",
-        ),  # 80% da velocidade normal
-        ActionConfig(
-            "SteadyActions",
-            "Ações constantes que mantêm uma velocidade estável para trajetórias suaves e seguras",
-        ),  # 25% da velocidade normal
-        ActionConfig(
-            "DriftActions",
-            "Ações de drift que proporcionam curvas dinâmicas e controladas, combinando agilidade e segurança em manobras acentuadas",
-        ),  # 30% da velocidade normal
-        ActionConfig(
-            "PrecisionCurveActions",
-            "Ações de curva precisas que ajustam a velocidade ideal para cada ângulo, garantindo máxima aderência e controle",
-        ),  # 15% da velocidade normal
-    ]
-
-    mode_choice = ChoiceConfig(modes, required=True)
-    action_choice = ChoiceConfig(actions, required=True)
+    reward_choice = ChoiceConfig(rewards, required=True)
+    domain_choice = ChoiceConfig(domains, required=True)
 
     strategy = StrategyConfig(
-        mode=mode_choice, action=action_choice
+        reward=reward_choice, mode=domain_choice
     )
+
     return strategy.to_dict()

@@ -484,7 +484,7 @@ class LLMTrainingEvaluator:
         prompt = (
             "Você é um assistente para configurar o treinamento RL de robôs.\n\n"
             f"Historico das ultimas avaliacoes: {context_info}\n\n"
-            f"Codigo do ambiente: {code_str}\n\n"
+            # f"Codigo do ambiente: {code_str}\n\n"
             "**1. Configurações Básicas:**\n"
             f"   - Base de configurações: {base_info}\n"
             f"   - Métricas de treinamento: {stats_info}\n\n"
@@ -500,21 +500,20 @@ class LLMTrainingEvaluator:
             "   - orientation_score: maior recompensa se o robô estiver direcionado para o objetivo.\n"
             "   - progress_score: diferença entre a posição inicial e a posição atual do robô em relação ao objetivo.\n"
             "   - time_score: penalidade por tempo.\n"
-            "   - action: média das ações (0 = ir para frente, 1 = virar à direita, 2 = virar à esquerda).\n"
-            "   - dist: distância do robô ao objetivo.\n"
-            "   - alpha: ângulo do robô em relação ao objetivo.\n"
             "   - min_lidar: menor medição do lidar.\n"
-            "   - max_lidar: maior medição do lidar.\n\n"
             "**4. Tarefa:**\n"
             "   Usando as métricas e a base de configurações, avalie e retorne em formato JSON:\n"
-            "     - Precisa avaliar se o agente pode passar para o proximo nivel com base na recompensa e nas metricas. \n"
-            "     - Escolha o nivel do ambiente e justifique.\n\n"
+            "     - Precisa avaliar se o agente esta conseguindo chegar ao objetivo com base na metrica de F(pi), leve em consideracao as metricas e recompensas\n"
+            "     - Escolha o o tamanho do mapa de 1 a 5 de tamanho, se for 1 é mais facil e assim por diante até chegar no 5 que é maior\n\n"
+            "     - Escolha a porcentagem de obstaculos que varia de 0% a 50%. 0% é sem obstaculos e 50% é com muitos obstaculos\n\n"
+            "     - Escolha a escala da recompensa e se vai ser positivo ou nao\n"
             "**Observações**\n"
-            "O objetivo é ensinar o robô a chegar ao alvo sem colidir com obstáculos, usando apenas os estados (medições do lidar, ângulo alpha, "
+            "* O objetivo é ensinar o robô a chegar ao alvo sem colidir com obstáculos, usando apenas os estados (medições do lidar, ângulo alpha, "
             "distância até o objetivo e a última ação tomada).\n"
-            "O robô deve ser capaz de aprender a melhor política de ação para maximizar a recompensa total.\n"
-            "Justifique suas escolhas no parametro 'justify'.\n"
-            "Avalie se o agente esta pronto para o proximo nivel de dificuldade do ambiente.\n"
+            "* O robô deve ser capaz de aprender a melhor política de ação para maximizar a recompensa total.\n"
+            "* Justifique suas escolhas no parametro 'justify'.\n"
+            "* Avalie se o agente esta pronto para o proximo nivel de dificuldade do ambiente.\n"
+            "* Sempre responda em portugues nas avaliacoes\n"
         )
 
         return prompt
@@ -529,10 +528,51 @@ class LLMTrainingEvaluator:
             "type": "object",
             "properties": {
                 "justify": {"type": "string"},
-                "mode": {
+                "strategy": {
                     "type": "object",
-                    "properties": {"mode": {"type": "string"}},
-                    "required": ["mode"],
+                    "properties": {
+                        "reward": {
+                            "type": "object",
+                            "properties": {
+                                "reward_type": {"type": "string"},
+                                "parameters": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "key": {"type": "string"},
+                                            "value": {"type": "number"},
+                                        },
+                                        "required": ["key", "value"],
+                                    },
+                                },
+                            },
+                            "required": ["reward_type", "parameters"],
+                        },
+                        "domain": {
+                            "type": "object",
+                            "properties": {
+                                "obstacle_percentage": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {"type": "integer"},
+                                        "description": {"type": "string"},
+                                    },
+                                    "required": ["value", "description"],
+                                },
+                                "map_size": {
+                                    "type": "object",
+                                    "properties": {
+                                        "value": {"type": "number"},
+                                        "description": {"type": "string"},
+                                    },
+                                    "required": ["value", "description"],
+                                },
+                            },
+                            "required": ["obstacle_percentage", "map_size"],
+                        },
+                    },
+                    "required": ["reward", "domain"],
                 },
             },
             "required": ["strategy"],

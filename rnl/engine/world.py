@@ -13,35 +13,34 @@ class GenerateWorld:
         map_size: int,
         decimation: float,
         min_blocks: int,
-        num_cells_togo: int,
         no_mut: bool,
+        porcentage_obstacle: float
     ) -> np.ndarray:
-        return generate_maze(map_size, decimation, min_blocks, num_cells_togo, no_mut)
-
+        return generate_maze(map_size, decimation, min_blocks, no_mut, porcentage_obstacle)
 
 @njit(parallel=True)
 def generate_maze(
     map_size: int,
     decimation: float,
     min_blocks: int,
-    num_cells_togo: int,
     no_mut: bool,
+    porcentage_obstacle: float,
 ) -> np.ndarray:
     """
-    Generates a maze using Kruskal's algorithm.
+    Gera um labirinto usando o algoritmo de Kruskal.
 
-    Parameters:
-    map_size (int): The size of the maze.
-    decimation (float): The probability of removing blocks.
-    min_blocks (int): The minimum number of blocks to keep.
-    num_cells_togo (int): The number of cells to remove.
+    Parâmetros:
+    map_size (int): Tamanho do labirinto.
+    decimation (float): Probabilidade de remover blocos (não utilizado na lógica atual).
+    min_blocks (int): Número mínimo de blocos (obstáculos) a manter.
+    no_mut (bool): Flag para controlar o método de mutação.
+    porcentage_obstaculo (float): Porcentagem desejada de obstáculos (0 a 100).
 
-    Returns:
-    np.ndarray: The generated maze represented as a binary array.
+    Retorna:
+    np.ndarray: Labirinto gerado representado como uma matriz binária.
     """
     m = (map_size - 1) // 2
     n = (map_size - 1) // 2
-    maze = np.ones((map_size, map_size))
     maze = np.ones((map_size, map_size))
     for i in range(m):
         for j in range(n):
@@ -70,13 +69,13 @@ def generate_maze(
                 else:
                     maze[2 * (n - m), 2 * i + 1] = 0
             else:
-                if i != j and npr.randint(3) != 0:
+                if i != j and np.random.randint(0, 3) != 0:
                     R[j] = R[i]
                     L[R[j]] = j
                     R[i] = i + 1
                     L[R[i]] = i
                     maze[2 * (n - m) - 1, 2 * i + 2] = 0
-                if i != L[i] and npr.randint(3) != 0:
+                if i != L[i] and np.random.randint(0, 3) != 0:
                     L[R[i]] = L[i]
                     R[L[i]] = R[i]
                     L[i] = i
@@ -87,7 +86,7 @@ def generate_maze(
 
     for i in range(n):
         j = L[i + 1]
-        if i != j and (i == L[i] or npr.randint(3) != 0):
+        if i != j and (i == L[i] or np.random.randint(0, 3) != 0):
             R[j] = R[i]
             L[R[j]] = j
             R[i] = i + 1
@@ -99,20 +98,22 @@ def generate_maze(
         L[i] = i
         R[i] = i
 
-    # ----- Generate Map -----
-    index_ones = np.arange(map_size * map_size)[maze.flatten() == 1]
+    # ----- Ajusta a porcentagem de obstáculos -----
+    total_cells = map_size * map_size
+    # Calcula a quantidade desejada de obstáculos
+    desired_obstacles = int(round(porcentage_obstacle / 100.0 * total_cells))
+    if desired_obstacles < min_blocks:
+        desired_obstacles = min_blocks
 
-    if index_ones.size < min_blocks:
-        raise ValueError("Minimum number of blocks cannot be placed.")
-
-    reserve = min(index_ones.size, min_blocks)
-    num_cells_togo = min(num_cells_togo, index_ones.size - reserve)
-
-    for _ in range(num_cells_togo):
-        blocks_remove = np.random.randint(0, map_size**2)
-        row_index = blocks_remove // map_size
-        col_index = blocks_remove % map_size
-        maze[row_index, col_index] = 0
+    current_obstacles = np.sum(maze == 1)
+    # Enquanto houver obstáculos a mais que o desejado, remova aleatoriamente
+    while current_obstacles > desired_obstacles:
+        idx = np.random.randint(0, total_cells)
+        row_index = idx // map_size
+        col_index = idx % map_size
+        if maze[row_index, col_index] == 1:
+            maze[row_index, col_index] = 0
+            current_obstacles -= 1
 
     return maze
 

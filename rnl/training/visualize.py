@@ -64,7 +64,7 @@ def main():
     args = parser.parse_args()
     rr.script_setup(args, "Multi-Environment Training - 3D")
 
-    num_envs = 50
+    num_envs = 10
     rows = 6
     cols = 10
 
@@ -87,7 +87,7 @@ def main():
         log_robot_and_target(env, i, offset_x=offset_x, offset_y=offset_y)
 
     # 4) Loop de steps
-    total_steps = 5000
+    total_steps = 1000
     for step in range(total_steps):
         rr.set_time_sequence("frame", step)
 

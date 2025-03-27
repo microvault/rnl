@@ -53,7 +53,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_length: float, resolution: float = 0.01, porcentage_obstacle: float = 0.0):
+    def world(self, grid_length: float, resolution: float = 0.01, porcentage_obstacle: float = 40.0):
         """
         Generates a maze world.
 
@@ -132,8 +132,8 @@ class Generator:
                 map_size=int(grid_length),
                 decimation=1000.0, # 1000.0
                 min_blocks=0,
-                num_cells_togo=100,
                 no_mut=True,
+                porcentage_obstacle=porcentage_obstacle,
             )
 
             border = self._map_border(m)
@@ -214,8 +214,8 @@ class Generator:
                 map_size=int(grid_length),
                 decimation=0.0,
                 min_blocks=0,
-                num_cells_togo=100,
                 no_mut=True,
+                porcentage_obstacle=porcentage_obstacle,
             )
 
             border = self._map_border(m)
@@ -294,10 +294,10 @@ class Generator:
         elif self.mode == "train-mode":
             m = self.generate.generate_maze(
                 map_size=int(grid_length),
-                decimation=0.0,
+                decimation=100.0,
                 min_blocks=0,
-                num_cells_togo=100,
                 no_mut=True,
+                porcentage_obstacle=porcentage_obstacle,
             )
 
             border = self._map_border(m)
