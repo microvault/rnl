@@ -136,6 +136,9 @@ train:
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo "USE_WANDB=$(USE_WANDB)"
+	@echo "SCALAR=$(SCALAR)"
+	@echo "CONTROL=$(CONTROL)"
 	@echo "AGENTS=$(AGENTS)"
 	@echo
 	@docker run -d \
@@ -190,6 +193,9 @@ train-without:
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo "USE_WANDB=$(USE_WANDB)"
+	@echo "SCALAR=$(SCALAR)"
+	@echo "CONTROL=$(CONTROL)"
 	@echo "AGENTS=$(AGENTS)"
 	@echo
 	@docker run \
