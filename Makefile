@@ -215,8 +215,6 @@ train-without:
    	--lr $(LR) \
     --learn_step $(LEARN_STEP) \
    	--gae_lambda $(GAE_LAMBDA) \
-   	--action_std_init $(ACTION_STD_INIT) \
-   	--clip_coef $(CLIP_COEF) \
    	--ent_coef $(ENT_COEF) \
    	--vf_coef $(VF_COEF) \
    	--max_grad_norm $(MAX_GRAD_NORM) \
