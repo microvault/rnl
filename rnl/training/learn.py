@@ -31,7 +31,7 @@ PORCENTAGE_OBSTACLE = 40.0
 MAP_SIZE = 2.0
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
-    reward_type="all",
+    reward_type="time",
     params={
         "scale_orientation": 0.02,
         "scale_distance": 0.06,

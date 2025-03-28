@@ -786,12 +786,16 @@ class NaviEnv(gym.Env):
             ax.set_ylim(0, int(self.grid_length))
 
         elif "train-mode" in self.mode:
-            ax.set_xlim(0, int(self.grid_length))
-            ax.set_ylim(0, int(self.grid_length))
+            if self.map_size is not None:
+                ax.set_xlim(0, int(self.map_size/0.5))
+                ax.set_ylim(0, int(self.map_size/0.5))
+            else:
+                ax.set_xlim(0, 5)
+                ax.set_ylim(0, 5)
 
         elif "visualize" in self.mode:
-            ax.set_xlim(0, int(3))
-            ax.set_ylim(0, int(3))
+            ax.set_xlim(0, 3)
+            ax.set_ylim(0, 3)
 
         elif "medium" in self.mode:
             minx, miny, maxx, maxy = self.poly.bounds
