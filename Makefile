@@ -16,8 +16,6 @@ CHECKPOINT ?= 10000
 CHECKPOINT_PATH ?= 07_03_2025
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
-ACTION_STD_INIT ?= 0.6
-CLIP_COEF ?= 0.2
 ENT_COEF ?= 0.05
 VF_COEF ?= 0.5
 MAX_GRAD_NORM ?= 0.5
@@ -26,6 +24,7 @@ NAME ?= rnl-v1
 SCALAR ?= 1
 CONTROL ?= False
 USE_WANDB ?= True
+AGENTS ?= False
 
 .PHONY: sim
 sim:
@@ -131,15 +130,13 @@ train:
 	@echo "CHECKPOINT=$(CHECKPOINT)"
 	@echo "LR=$(LR)"
 	@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
-	@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
-	@echo "CLIP_COEF=$(CLIP_COEF)"
 	@echo "ENT_COEF=$(ENT_COEF)"
 	@echo "VF_COEF=$(VF_COEF)"
 	@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
-	@echo "TYPE_REWARD=$(TYPE_REWARD)"
+	@echo "AGENTS=$(AGENTS)"
 	@echo
 	@docker run -d \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
@@ -151,6 +148,7 @@ train:
 	-v $(PWD):/workdir \
 	rnl-docker-cuda \
 	--MODE $(MODE) \
+	--agents $(AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
    	--seed $(SEED) \
    	--hidden_size $(HIDDEN_SIZE) \
@@ -163,14 +161,11 @@ train:
    	--lr $(LR) \
     --learn_step $(LEARN_STEP) \
    	--gae_lambda $(GAE_LAMBDA) \
-   	--action_std_init $(ACTION_STD_INIT) \
-   	--clip_coef $(CLIP_COEF) \
    	--ent_coef $(ENT_COEF) \
    	--vf_coef $(VF_COEF) \
    	--max_grad_norm $(MAX_GRAD_NORM) \
    	--update_epochs $(UPDATE_EPOCHS) \
    	--name $(NAME) \
-   	--type_reward $(TYPE_REWARD) \
    	--controller False \
    	--debug False \
    	--scalar $(SCALAR)
@@ -189,15 +184,13 @@ train-without:
 	@echo "CHECKPOINT=$(CHECKPOINT)"
 	@echo "LR=$(LR)"
 	@echo "GAE_LAMBDA=$(GAE_LAMBDA)"
-	@echo "ACTION_STD_INIT=$(ACTION_STD_INIT)"
-	@echo "CLIP_COEF=$(CLIP_COEF)"
 	@echo "ENT_COEF=$(ENT_COEF)"
 	@echo "VF_COEF=$(VF_COEF)"
 	@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
-	@echo "TYPE_REWARD=$(TYPE_REWARD)"
+	@echo "AGENTS=$(AGENTS)"
 	@echo
 	@docker run \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
@@ -209,6 +202,7 @@ train-without:
 	-v $(PWD):/workdir \
 	rnl-docker-cuda \
 	--MODE $(MODE) \
+	--agents $(AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
    	--seed $(SEED) \
    	--hidden_size $(HIDDEN_SIZE) \
@@ -228,7 +222,6 @@ train-without:
    	--max_grad_norm $(MAX_GRAD_NORM) \
    	--update_epochs $(UPDATE_EPOCHS) \
    	--name $(NAME) \
-   	--type_reward $(TYPE_REWARD) \
    	--controller False \
    	--debug False \
    	--scalar $(SCALAR)

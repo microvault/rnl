@@ -55,7 +55,7 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            use_agents=False,
+            use_agents=args.agents,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
@@ -110,6 +110,11 @@ def str2bool(v):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train or setup environment.")
     parser.add_argument("mode", choices=["learn", "sim", "run"], help="Mode")
+
+    parser.add_argument(
+        "--agents",
+        type=str2bool,
+    )
 
     parser.add_argument(
         "--max_timestep_global",
@@ -170,16 +175,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--gae_lambda",
-        type=float,
-    )
-
-    parser.add_argument(
-        "--action_std_init",
-        type=float,
-    )
-
-    parser.add_argument(
-        "--clip_coef",
         type=float,
     )
 
