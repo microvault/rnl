@@ -13,8 +13,8 @@ COPY data ./data
 COPY main.py ./
 COPY pyproject.toml ./
 
-# Instala o uv e usa ele pra instalar as dependências definidas no pyproject.toml
-RUN pip install uv && uv install
+# Instala o uv e usa ele para instalar as dependências definidas no pyproject.toml
+RUN pip install uv && uv pip install . --root-user-action=ignore
 
 ENTRYPOINT ["bash", "-c", "apt-get update -qq && apt-get install -y -qq --no-install-recommends libgl1 libglib2.0-0 && python -m main $@"]
 CMD ["learn"]
