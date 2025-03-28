@@ -53,7 +53,7 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_length: float, resolution: float = 0.01, porcentage_obstacle: float = 40.0):
+    def world(self, grid_length: float, resolution: float = 0.05, porcentage_obstacle: float = 40.0):
         """
         Generates a maze world.
 

@@ -26,7 +26,7 @@ from wandb.integration.sb3 import WandbCallback
 from rnl.configs.rewards import RewardConfig
 import wandb
 
-ENV_TYPE = "train-mode"
+ENV_TYPE = "easy-04"
 PORCENTAGE_OBSTACLE = 40.0
 MAP_SIZE = 2
 POLICY = "PPO"
@@ -266,11 +266,14 @@ def training(
 
             print("\nInitiate DQN training ...")
 
+        print(config_dict)
+
         if trainer_config.use_agents:
             callback = DynamicTrainingCallback(
                 evaluator=evaluator,
                 justificativas_history=[],
                 get_strategy_dict_func=get_strategy_dict,
+                get_parameter_train=config_dict,
                 check_freq=100
             )
 

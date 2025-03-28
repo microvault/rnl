@@ -14,7 +14,7 @@ class LLMTrainingEvaluator:
         self.evaluator_api_key = evaluator_api_key
 
     def build_evaluation_prompt(
-        self, context_json: dict, stats: dict, context: dict
+        self, context_json: dict, stats: dict, context: dict, parameter_train: dict
     ) -> str:
         """
         Creates a prompt describing the metrics and desired behavior.
@@ -24,6 +24,8 @@ class LLMTrainingEvaluator:
         base_info = json.dumps(context_json, indent=2)
 
         context_info = json.dumps(context, indent=2)
+
+        parameter_of_train = json.dumps(parameter_train, indent=2)
 
         code_str = """
         class NaviEnv(gym.Env):
@@ -482,38 +484,65 @@ class LLMTrainingEvaluator:
         """
 
         prompt = (
-            "Você é um assistente para configurar o treinamento RL de robôs.\n\n"
-            f"Historico das ultimas avaliacoes: {context_info}\n\n"
-            # f"Codigo do ambiente: {code_str}\n\n"
-            "**1. Configurações Básicas:**\n"
-            f"   - Base de configurações: {base_info}\n"
-            f"   - Métricas de treinamento: {stats_info}\n\n"
-            f"   - F(pi) consiste na porcentagem de acerto de o agente chegar ao objetivo em 10 epsodios: {stats_info}\n\n"
-            "**2. Contexto sobre as estados / recompensas / ambiente: **\n"
-            "   - Todos os estados varia de 0 a 1. Ou seja todos sao nromalizados para esses valores.\n"
-            "   - A recompensa varia de -1 a 1 independente do scale selecionado\n"
-            "   - O Alpha: varia de 0 a 1. 0 significa que o robo esta em direcao ao objetivo e 1 esta ao contrario do objetivo,\n"
-            "   - O Dist: varia de 0 a 1. Quando mais proximo de 0 mais perto o robo esta do objetivo.\n"
-            "   - O timestep maximo do ambiente é 1000."
-            "**3. Detalhes das Métricas (Desvio padrão e média):**\n"
-            "   - obstacle_score: penalidade quando o sensor lidar tem medicoes muito perto de obstaculos\n"
-            "   - orientation_score: maior recompensa se o robô estiver direcionado para o objetivo.\n"
-            "   - progress_score: diferença entre a posição inicial e a posição atual do robô em relação ao objetivo.\n"
-            "   - time_score: penalidade por tempo.\n"
-            "   - min_lidar: menor medição do lidar.\n"
-            "**4. Tarefa:**\n"
-            "   Usando as métricas e a base de configurações, avalie e retorne em formato JSON:\n"
-            "     - Precisa avaliar se o agente esta conseguindo chegar ao objetivo com base na metrica de F(pi), leve em consideracao as metricas e recompensas\n"
-            "     - Escolha o o tamanho do mapa de 1 a 5 de tamanho, se for 1 é mais facil e assim por diante até chegar no 5 que é maior\n\n"
-            "     - Escolha a porcentagem de obstaculos que varia de 0% a 50%. 0% é sem obstaculos e 50% é com muitos obstaculos\n\n"
-            "     - Escolha a escala da recompensa e se vai ser positivo ou nao\n"
-            "**Observações**\n"
-            "* O objetivo é ensinar o robô a chegar ao alvo sem colidir com obstáculos, usando apenas os estados (medições do lidar, ângulo alpha, "
-            "distância até o objetivo e a última ação tomada).\n"
-            "* O robô deve ser capaz de aprender a melhor política de ação para maximizar a recompensa total.\n"
-            "* Justifique suas escolhas no parametro 'justify'.\n"
-            "* Avalie se o agente esta pronto para o proximo nivel de dificuldade do ambiente.\n"
-            "* Sempre responda em portugues nas avaliacoes\n"
+            "Você é um controlador especialista em treinamento RL para navegação robótica. Sua tarefa é ajustar parâmetros "
+            "de treinamento com base no desempenho histórico do agente.\n\n"
+
+            "## Contexto Técnico:\n"
+            "1. **Estados Normalizados (0-1):\n"
+            "   - Lidar: 5 medições de distância\n"
+            "   - Alpha: Orientação relativa ao objetivo (0 = alinhado, 1 = oposto)\n"
+            "   - Dist: Distância normalizada ao objetivo (0 = no objetivo)\n"
+            "   - Última ação executada\n\n"
+
+            "2. **Sistema de Recompensas (-1 a 1):\n"
+            "   - obstacle_score: Penalidade por proximidade a obstáculos\n"
+            "   - orientation_score: Recompensa por orientação correta\n"
+            "   - progress_score: Progresso em direção ao objetivo\n"
+            "   - time_score: Penalidade por tempo decorrido\n\n"
+
+            "3. **Métrica Chave:**\n"
+            f"   - F(pi): {stats.get('success_rate', 0)}% de sucesso (chegar ao objetivo em 10 episódios)\n\n"
+
+            "## Histórico de Treinamento:\n"
+            f"{context_info}\n\n"
+
+            "## Tarefa de Ajuste:\n"
+            "Analise os dados e retorne JSON estritamente no seguinte formato:\n"
+            """{
+                "strategy": {
+                    "reward": {
+                        "reward_type": "adaptive",
+                        "parameters": [
+                            {"key": "scale", "value": float(0.5-2.0)},
+                            {"key": "sign", "value": "positivo/negativo"}
+                        ]
+                    },
+                    "domain": {
+                        "obstacle_percentage": {
+                            "value": int(0-50),
+                            "description": "Justificativa da densidade"
+                        },
+                        "map_size": {
+                            "value": float(1-5),
+                            "description": "Justificativa do tamanho"
+                        }
+                    }
+                },
+                "justify": "Análise técnica em português (150 caracteres)"
+            }"""
+
+            "\n\n## Regras de Decisão:\n"
+            "1. Nível Atual: Mapa tamanho {current_map_size} com {current_obstacles}% obstáculos\n"
+            "2. Se F(pi) > 75% por 3 avaliações consecutivas: Aumente dificuldade\n"
+            "3. Se F(pi) < 60%: Reduza mapa ou obstáculos\n"
+            "4. Desvio padrão > 0.2 em recompensas: Mantenha configuração\n"
+            "5. Priorize segurança: Aumento máximo de 20% obstáculos por ajuste\n\n"
+
+            "## Dados Atuais para Análise:\n"
+            f"- Configuração Base: {base_info}\n"
+            f"- Métricas Detalhadas: {stats_info}\n"
+            f"- Histórico Completo: {context_info}\n"
+            f"- Parâmetros de Treinamento: {parameter_of_train}\n\n"
         )
 
         return prompt
@@ -597,10 +626,10 @@ class LLMTrainingEvaluator:
         else:
             raise ValueError("No candidates returned from Gemini API.")
 
-    def evaluate_training(self, context: dict, stats: dict, history: dict):
+    def evaluate_training(self, context: dict, stats: dict, history: dict, parameter_train: dict):
         """
         Generates a prompt, calls the LLM, and returns the evaluation text.
         """
-        prompt = self.build_evaluation_prompt(context, stats, history)
+        prompt = self.build_evaluation_prompt(context, stats, history, parameter_train)
         llm_response = self.call_evaluator_llm(prompt)
         return llm_response

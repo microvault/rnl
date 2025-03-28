@@ -9,6 +9,7 @@ class DynamicTrainingCallback(BaseCallback):
         evaluator,
         justificativas_history,
         get_strategy_dict_func,
+        get_parameter_train,
         check_freq=100
     ):
         super().__init__(verbose=0)
@@ -16,6 +17,7 @@ class DynamicTrainingCallback(BaseCallback):
         self.check_freq = check_freq
         self.justificativas_history = justificativas_history
         self.get_strategy_dict = get_strategy_dict_func
+        self.parameter_train = get_parameter_train
 
     def _on_rollout_start(self) -> None:
         pass
@@ -49,7 +51,7 @@ class DynamicTrainingCallback(BaseCallback):
 
             print(json.dumps(stats, indent=4))
             evaluation_result = self.evaluator.evaluate_training(
-                self.get_strategy_dict(), stats, self.justificativas_history
+                self.get_strategy_dict(), stats, self.justificativas_history, self.parameter_train
             )
             print(evaluation_result)
             try:
