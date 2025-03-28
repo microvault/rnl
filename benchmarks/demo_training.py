@@ -25,7 +25,6 @@ def main():
     # 3.step -> config env
     param_env = vault.make(
         scalar=50,
-        grid_length=2,
         folder_map="",  # ./data/map4
         name_map="",  # map4
         max_timestep=1000,

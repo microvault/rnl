@@ -1,5 +1,3 @@
-# V.A.U.L.T. - Versatile Autonomous Unified Learning Toolkit
-
 <div align="center">
      <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="MicroVault">
 </div>
@@ -46,7 +44,7 @@ param_robot = vault.robot(
     wheel_distance=0.16,  # (m)
     weight=1.0,  # robot (kg)
     threshold=1.0,  # distance for obstacle avoidance (m)
-    collision=0.5, 
+    collision=0.5,
     path_model="None",
 )
 
@@ -61,13 +59,13 @@ param_sensor = vault.sensor(
 # 3.step -> config env
 param_env = vault.make(
     scale=100,
-    folder_map="None",  
+    folder_map="None",
     name_map="None",
     max_timestep=10000,
-    mode="easy-01", 
+    mode="easy-01",
 )
 
-# 4. step -> config render 
+# 4. step -> config render
 param_render = vault.render(controller=False, debug=True, plot=False)
 
 # 5.step -> config train robot
@@ -116,7 +114,7 @@ param_robot = vault.robot(
     wheel_distance=0.16,  # (m)
     weight=1.0,  # robot (kg)
     threshold=1.0,  # distance for obstacle avoidance (m)
-    collision=0.5, 
+    collision=0.5,
     path_model="None",
 )
 
@@ -131,10 +129,10 @@ param_sensor = vault.sensor(
 # 3.step -> config env
 param_env = vault.make(
     scale=100,
-    folder_map="None",  
+    folder_map="None",
     name_map="None",
     max_timestep=10000,
-    mode="easy-01", 
+    mode="easy-01",
 )
 
 # 4.step -> config render
