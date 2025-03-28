@@ -1,7 +1,6 @@
 from typing import List, Tuple
 
-from rtree import index
-
+from rnl.engine.utils import Index, Property
 from rnl.engine.collisions import filter_list_segment
 
 
@@ -13,9 +12,9 @@ class SpatialIndex:
         Parameters:
         - segments: List of map segments, each defined by (x1, y1, x2, y2).
         """
-        p = index.Property()
+        p = Property()
         p.dimension = 2
-        self.idx = index.Index(properties=p)
+        self.idx = Index(properties=p)
         for i, seg in enumerate(segments):
             x1, y1, x2, y2 = seg
             xmin, xmax = min(x1, x2), max(x1, x2)

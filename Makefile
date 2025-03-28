@@ -25,7 +25,7 @@ UPDATE_EPOCHS ?= 10
 NAME ?= rnl-v1
 SCALAR ?= 1
 CONTROL ?= False
-USE_WANDB ?= False
+USE_WANDB ?= True
 
 .PHONY: sim
 sim:

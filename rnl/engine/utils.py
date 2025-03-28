@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 from numba import njit
-
+from typing import Tuple, Optional, List
 
 @njit
 def normalize_module(value, min_val, max_val):
@@ -106,3 +106,68 @@ def clean_info(info: dict) -> dict:
             cleaned[key] = val
 
     return cleaned
+
+
+class CustomMinMaxScaler:
+    def __init__(self, feature_range=(0, 1)):
+        self.feature_range = feature_range
+        self.data_min = None
+        self.data_max = None
+        self.scale_ = None
+        self.min_ = None
+
+    def fit(self, X):
+        X = np.array(X)
+        self.data_min = np.min(X, axis=0)
+        self.data_max = np.max(X, axis=0)
+        data_range = self.data_max - self.data_min
+        data_range[data_range == 0] = 1
+        self.scale_ = (self.feature_range[1] - self.feature_range[0]) / data_range
+        self.min_ = self.feature_range[0] - self.data_min * self.scale_
+        return self
+
+    def transform(self, X):
+        X = np.array(X)
+        return X * self.scale_ + self.min_
+
+    def fit_transform(self, X):
+        return self.fit(X).transform(X)
+
+class Property:
+    def __init__(self):
+        self.dimension = 2
+
+class Index:
+    def __init__(self, properties: Optional[Property] = None):
+        self.properties = properties if properties is not None else Property()
+        self.items = []  # cada item é uma tupla: (id, bbox, obj opcional)
+
+    def insert(self, id: int, bbox: Tuple[float, float, float, float], obj=None):
+        """
+        Insere um item no índice.
+        bbox: (xmin, ymin, xmax, ymax)
+        """
+        self.items.append((id, bbox, obj))
+
+    def intersection(self, bbox: Tuple[float, float, float, float], objects: bool = False) -> List:
+        """
+        Retorna os ids (ou objetos, se objects=True) dos itens que intersectam com o bbox.
+        """
+        results = []
+        for id, ibox, obj in self.items:
+            if self._intersect(ibox, bbox):
+                results.append(obj if objects else id)
+        return results
+
+    def _intersect(self, bbox1: Tuple[float, float, float, float], bbox2: Tuple[float, float, float, float]) -> bool:
+        xmin1, ymin1, xmax1, ymax1 = bbox1
+        xmin2, ymin2, xmax2, ymax2 = bbox2
+        if xmax1 < xmin2 or xmax2 < xmin1:
+            return False
+        if ymax1 < ymin2 or ymax2 < ymin1:
+            return False
+        return True
+
+    def __iter__(self):
+        for id, bbox, obj in self.items:
+            yield id

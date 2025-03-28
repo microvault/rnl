@@ -12,6 +12,8 @@ def make_vect_envs(
     render_config: RenderConfig,
     use_render: bool,
     type_reward: RewardConfig,
+    porcentage_obstacle: float,
+    map_size: float,
     mode: str
 ):
     """Returns async-vectorized gym environments with custom parameters.
@@ -34,6 +36,8 @@ def make_vect_envs(
                 use_render,
                 mode=mode,
                 type_reward=type_reward,
+                porcentage_obstacle=porcentage_obstacle,
+                map_size=map_size,
             )
             env.reset(seed=13 + i)
             return env

@@ -55,7 +55,7 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
-            use_agents=True,
+            use_agents=False,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),

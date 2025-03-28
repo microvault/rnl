@@ -7,13 +7,12 @@ import numpy as np
 from stable_baselines3 import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from sklearn.preprocessing import MinMaxScaler
 # from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
 from rnl.engine.spawn import spawn_robot_and_goal
-from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser, clean_info
+from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser, clean_info, CustomMinMaxScaler
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
@@ -29,7 +28,7 @@ class NaviEnv(gym.Env):
         use_render: bool,
         type_reward: RewardConfig,
         porcentage_obstacle: Optional[float] = None,
-        map_size: Optional[int] = None,
+        map_size: Optional[float] = None,
         mode: str = "train-mode",
     ):
         super().__init__()
@@ -124,9 +123,9 @@ class NaviEnv(gym.Env):
         self.sensor = SensorRobot(sensor_config, self.segments)
 
         # ------------ Normalization ------------ #
-        self.scaler_lidar = MinMaxScaler(feature_range=(0, 1))
-        self.scaler_dist = MinMaxScaler(feature_range=(0, 1))
-        self.scaler_alpha = MinMaxScaler(feature_range=(0, 1))
+        self.scaler_lidar = CustomMinMaxScaler(feature_range=(0, 1))
+        self.scaler_dist = CustomMinMaxScaler(feature_range=(0, 1))
+        self.scaler_alpha = CustomMinMaxScaler(feature_range=(0, 1))
 
         max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
         self.scaler_lidar.fit(

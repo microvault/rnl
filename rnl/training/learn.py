@@ -26,9 +26,9 @@ from wandb.integration.sb3 import WandbCallback
 from rnl.configs.rewards import RewardConfig
 import wandb
 
-ENV_TYPE = "easy-04"
+ENV_TYPE = "train-mode"
 PORCENTAGE_OBSTACLE = 40.0
-MAP_SIZE = 2
+MAP_SIZE = 2.0
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
     reward_type="all",
@@ -89,7 +89,7 @@ def training(
             name="mode_sb3",
             project=trainer_config.name,
             config=config_dict,
-            sync_tensorboard=True,
+            sync_tensorboard=False,
             monitor_gym=True,
             save_code=False,
         )
@@ -164,7 +164,6 @@ def training(
                 vf_coef=trainer_config.vf_coef,
                 ent_coef=trainer_config.ent_coef,
                 device=trainer_config.device,
-                tensorboard_log=f"runs/{run.id}",
                 max_grad_norm=trainer_config.max_grad_norm,
                 n_epochs=trainer_config.update_epochs,
                 seed=trainer_config.seed,
@@ -181,7 +180,6 @@ def training(
                     vf_coef=trainer_config.vf_coef,
                     max_grad_norm=trainer_config.max_grad_norm,
                     seed=trainer_config.seed,
-                    tensorboard_log=f"runs/{run.id}",
                     policy_kwargs=policy_kwargs_on_policy,
                     device=trainer_config.device,
                 )
@@ -196,7 +194,6 @@ def training(
                 batch_size=trainer_config.batch_size,
                 buffer_size=1000000,
                 verbose=1,
-                tensorboard_log=f"runs/{run.id}",
                 device=trainer_config.device,
                 policy_kwargs=policy_kwargs_off_policy,
                 seed=trainer_config.seed,
@@ -266,8 +263,6 @@ def training(
 
             print("\nInitiate DQN training ...")
 
-        print(config_dict)
-
         if trainer_config.use_agents:
             callback = DynamicTrainingCallback(
                 evaluator=evaluator,
@@ -279,7 +274,6 @@ def training(
 
         else:
             callback = None
-
 
         model.learn(total_timesteps=trainer_config.max_timestep_global, callback=callback)
 
@@ -329,6 +323,8 @@ def inference(
         use_render=True,
         mode=ENV_TYPE,
         type_reward=REWARD_TYPE,
+        porcentage_obstacle=PORCENTAGE_OBSTACLE,
+        map_size=MAP_SIZE,
     )
 
     env.render()
@@ -366,6 +362,8 @@ def probe_envs(
         use_render=False,
         mode=ENV_TYPE,
         type_reward=REWARD_TYPE,
+        porcentage_obstacle=PORCENTAGE_OBSTACLE,
+        map_size=MAP_SIZE,
     )
 
     print("\nCheck environment ...")
@@ -404,6 +402,8 @@ def probe_envs(
             use_render=False,
             mode=ENV_TYPE,
             type_reward=REWARD_TYPE,
+            porcentage_obstacle=PORCENTAGE_OBSTACLE,
+            map_size=MAP_SIZE,
         )
 
         obs, info = env.reset()
