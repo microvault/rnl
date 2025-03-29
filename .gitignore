@@ -848,3 +848,5 @@ pip-selfcheck.json
 /model_ppo
 *.rrd
 *.gv
+/papers
+.benchmarks

@@ -13,7 +13,7 @@ NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
 CHECKPOINT ?= 10000
-CHECKPOINT_PATH ?= 07_03_2025
+CHECKPOINT_PATH ?= recurrent_ppo_network
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
 ENT_COEF ?= 0.05
@@ -25,6 +25,9 @@ SCALAR ?= 1
 CONTROL ?= False
 USE_WANDB ?= True
 AGENTS ?= False
+PRETRAINED ?= None
+
+MAP_NAME ?= map6
 
 .PHONY: sim
 sim:
@@ -48,8 +51,6 @@ learn:
     	--lr $(LR) \
         --learn_step $(LEARN_STEP) \
     	--gae_lambda $(GAE_LAMBDA) \
-    	--action_std_init $(ACTION_STD_INIT) \
-    	--clip_coef $(CLIP_COEF) \
     	--ent_coef $(ENT_COEF) \
     	--vf_coef $(VF_COEF) \
     	--max_grad_norm $(MAX_GRAD_NORM) \
@@ -57,6 +58,7 @@ learn:
     	--name $(NAME) \
         --use_wandb $(USE_WANDB) \
      	--controller False \
+        --pretrained $(PRETRAINED) \
       	--debug True \
        	--scalar $(SCALAR)
 
@@ -76,6 +78,11 @@ probe:
 test_without_coverage:
 	@uv run pytest -s -x -vv -p no:warnings
 
+.PHONY: gazebo
+gazebo:
+	@uv run python rnl/engine/generate.py \
+	--folder ./data/$(MAP_NAME) \
+    --name $(MAP_NAME) \
 
 .PHONY: test
 test:
@@ -136,13 +143,16 @@ train:
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo "GEMINI_API_KEY=$(GEMINI_API_KEY)"
 	@echo "USE_WANDB=$(USE_WANDB)"
 	@echo "SCALAR=$(SCALAR)"
 	@echo "CONTROL=$(CONTROL)"
 	@echo "AGENTS=$(AGENTS)"
+	@echo "PRETRAINED $(PRETRAINED)"
 	@echo
 	@docker run -d \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
+	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
 	--gpus all \
 	--network host \
 	--privileged \
@@ -170,6 +180,7 @@ train:
    	--update_epochs $(UPDATE_EPOCHS) \
    	--name $(NAME) \
    	--controller False \
+    --pretrained $(PRETRAINED) \
    	--debug False \
    	--scalar $(SCALAR)
 
@@ -193,13 +204,16 @@ train-without:
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
+	@echo "GEMINI_API_KEY=$(GEMINI_API_KEY)"
 	@echo "USE_WANDB=$(USE_WANDB)"
 	@echo "SCALAR=$(SCALAR)"
 	@echo "CONTROL=$(CONTROL)"
 	@echo "AGENTS=$(AGENTS)"
+	@echo "PRETRAINED $(PRETRAINED)"
 	@echo
 	@docker run \
 	-e WANDB_API_KEY=$(WANDB_API_KEY) \
+	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
 	--gpus all \
 	--network host \
 	--privileged \
@@ -227,6 +241,7 @@ train-without:
    	--update_epochs $(UPDATE_EPOCHS) \
    	--name $(NAME) \
    	--controller False \
+    --pretrained $(PRETRAINED) \
    	--debug False \
    	--scalar $(SCALAR)
 
