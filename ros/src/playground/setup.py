@@ -11,6 +11,7 @@ setup(
         ("share/" + package_name, ["package.xml"]),
         ("share/" + package_name + "/launch", ["launch/turtlebot_sim_world.launch.py"]),
         ("share/" + package_name + "/launch", ["launch/turtlebot_real_world.launch.py"]),
+        ("share/" + package_name + "/launch", ["launch/mapping.launch.py"]),
         ("share/" + package_name + "/worlds", ["worlds/my_world.world"]), # !!
         ("share/" + package_name + "/worlds", ["worlds/target.sdf"]),
         ("share/" + package_name + "/models", ["models/model.zip"]),
@@ -26,6 +27,7 @@ setup(
         "console_scripts": [
             "sim_environment = playground.sim_environment:main",
             "real_environment = playground.real_environment:main",
+            "mapping = playground.mapping:main",
         ],
     },
 )

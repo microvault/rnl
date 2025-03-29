@@ -20,6 +20,8 @@ services:
       - ./src/playground:/turtlebot3_ws/src/playground:rw
       - ./setup.bash:/turtlebot3_ws/setup.bash:rw
       - ./run.bash:/turtlebot3_ws/run.bash:rw
+      - ./kill.bash:/turtlebot3_ws/kill.bash:rw
+      - ./teleop.bash:/turtlebot3_ws/teleop.bash:rw
     depends_on:
       - xserver
     volumes_from:

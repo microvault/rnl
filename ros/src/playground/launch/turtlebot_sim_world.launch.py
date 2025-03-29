@@ -18,8 +18,8 @@ def generate_launch_description():
     )
     use_sim_time = LaunchConfiguration("use_sim_time")
 
-    x_pose = "2.0"
-    y_pose = "2.0"
+    x_pose = "0.0"
+    y_pose = "0.0"
     z_pose = "0.2"
     yaw = "1.57"
 
@@ -65,5 +65,4 @@ def generate_launch_description():
         output="screen",
         parameters=[{"use_sim_time": True}]
     )
-
     return LaunchDescription([use_sim_time_arg, gazebo, turtlebot3, target])
