@@ -24,10 +24,12 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from wandb.integration.sb3 import WandbCallback
 from rnl.configs.rewards import RewardConfig
+from sb3_contrib import RecurrentPPO
+from stable_baselines3.common.callbacks import CheckpointCallback
 import wandb
 
-ENV_TYPE = "train-mode"
-PORCENTAGE_OBSTACLE = 40.0
+ENV_TYPE = "medium"
+PORCENTAGE_OBSTACLE = 30.0
 MAP_SIZE = 2.0
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
@@ -86,12 +88,12 @@ def training(
 
     if trainer_config.use_wandb:
         run = wandb.init(
-            name="mode_sb3",
+            name="rnl-test",
             project=trainer_config.name,
             config=config_dict,
             sync_tensorboard=False,
             monitor_gym=True,
-            save_code=False,
+            save_code=True,
         )
 
     evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
@@ -123,12 +125,20 @@ def training(
             pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
             vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
         ),
+        # n_lstm_layers=1,
+        # lstm_hidden_size=40,
     )
 
     policy_kwargs_off_policy = dict(
             activation_fn=activation_fn,
             net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
         )
+
+    checkpoint_callback = CheckpointCallback(
+        save_freq=10000,  # Salva a cada 1000 timesteps
+        save_path='./checkpoints/',  # Diretório onde os modelos serão salvos
+        name_prefix='ppo_model'  # Prefixo do nome do arquivo do modelo
+    )
 
     def make_env():
         env = NaviEnv(
@@ -150,9 +160,30 @@ def training(
 
     print("\nInitiate PPO training ...")
 
-    if trainer_config.use_wandb:
+    if trainer_config.pretrained != "None":
+        print("Pre trained model")
+        model = PPO.load(trainer_config.pretrained)
+    else:
         model = None
+
+    if trainer_config.use_wandb:
         if POLICY == "PPO":
+            # print("Recurrent PPO")
+            # model = RecurrentPPO(
+            #     "MlpLstmPolicy",
+            #     vec_env,
+            #     batch_size=trainer_config.batch_size,
+            #     verbose=1,
+            #     learning_rate=trainer_config.lr,
+            #     policy_kwargs=policy_kwargs_on_policy,
+            #     n_steps=trainer_config.learn_step,
+            #     vf_coef=trainer_config.vf_coef,
+            #     ent_coef=trainer_config.ent_coef,
+            #     device=trainer_config.device,
+            #     max_grad_norm=trainer_config.max_grad_norm,
+            #     n_epochs=trainer_config.update_epochs,
+            #     seed=trainer_config.seed,
+            # )
             model = PPO(
                 "MlpPolicy",
                 vec_env,
@@ -214,6 +245,23 @@ def training(
 
     else:
         if POLICY == "PPO":
+            # print("Recurrent PPO")
+            # model = RecurrentPPO(
+            #     "MlpLstmPolicy",
+            #     vec_env,
+            #     batch_size=trainer_config.batch_size,
+            #     verbose=1,
+            #     learning_rate=trainer_config.lr,
+            #     policy_kwargs=policy_kwargs_on_policy,
+            #     n_steps=trainer_config.learn_step,
+            #     vf_coef=trainer_config.vf_coef,
+            #     ent_coef=trainer_config.ent_coef,
+            #     device=trainer_config.device,
+            #     max_grad_norm=trainer_config.max_grad_norm,
+            #     n_epochs=trainer_config.update_epochs,
+            #     seed=trainer_config.seed,
+            # )
+
             model = PPO(
                 "MlpPolicy",
                 vec_env,
@@ -275,7 +323,8 @@ def training(
         else:
             callback = None
 
-        model.learn(total_timesteps=trainer_config.max_timestep_global, callback=callback)
+        model.learn(total_timesteps=trainer_config.max_timestep_global, callback=checkpoint_callback)
+        # model.save("ppo_recurrent")
 
 def inference(
     robot_config: RobotConfig,

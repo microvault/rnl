@@ -62,10 +62,10 @@ def generate_gazebo_world_with_walls(segments):
 
     sdf_world = sdf_header + models + sdf_footer
 
-    file_name = f"my_gazebo_world_{filename_timestamp}.world"
+    file_name = "../rnl/ros/src/playground/worlds/my_world.world"
     with open(file_name, "w") as f:
         f.write(sdf_world)
-    print("Arquivo de mundo gerado:", file_name)
+    print("File: ", file_name)
 
 
 def main():
@@ -90,17 +90,23 @@ def main():
     )
 
     # Usa o método world para obter segmentos (modo exemplo)
-    _, segments_from_world, _ = create_world.world(mode="medium-07")
-    # Se não houver segmentos, usa uma lista padrão
-    segments = segments_from_world if segments_from_world else [
-        (0, 0, 5, 0),
-        (5, 0, 5, 5),
-        (5, 5, 0, 5),
-        (0, 5, 0, 0)
-    ]
+    _, segments_from_world, _ = create_world.world(mode="medium")
 
-    generate_gazebo_world_with_walls(segments)
+    # Redimensiona e centraliza
+    xs = [seg[0] for seg in segments_from_world] + [seg[2] for seg in segments_from_world]
+    ys = [seg[1] for seg in segments_from_world] + [seg[3] for seg in segments_from_world]
+    center_x, center_y = (min(xs) + max(xs))/2, (min(ys) + max(ys))/2
+    scale = 0.2
 
+    new_segments = []
+    for x1, y1, x2, y2 in segments_from_world:
+        nx1 = (x1 - center_x) * scale
+        ny1 = (y1 - center_y) * scale
+        nx2 = (x2 - center_x) * scale
+        ny2 = (y2 - center_y) * scale
+        new_segments.append((nx1, ny1, nx2, ny2))
+
+    generate_gazebo_world_with_walls(new_segments)
 
 if __name__ == "__main__":
     main()

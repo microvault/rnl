@@ -45,6 +45,7 @@ class NetworkConfig:
 
 @dataclass
 class TrainerConfig:
+    pretrained: str
     use_agents: bool
     max_timestep_global: int
     seed: int

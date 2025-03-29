@@ -17,6 +17,7 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+from sb3_contrib import RecurrentPPO
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -59,6 +60,8 @@ class NaviEnv(gym.Env):
         self.collision_happened = False
         self.map_size = map_size
         self.porcentage_obstacle = porcentage_obstacle
+        self.lstm_states = None
+        self.episode_starts = np.ones((1,), dtype=bool)
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -240,20 +243,21 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None" or not self.controller:
             if self.pretrained_model != "None" and self.model is not None:
                 action, _states = self.model.predict(self.last_states)
+                # action, self.lstm_states = self.model.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts)
                 self.action = int(action)
             else:
                 self.action = np.random.randint(0, 3)
 
         if not self.controller:
             if self.action == 0:
-                self.vl = 0.08 * self.scalar
+                self.vl = 0.10 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
                 self.vl = 0.08 * self.scalar
-                self.vr = -0.36 * self.scalar
+                self.vr = -0.22 * self.scalar
             elif self.action == 2:
                 self.vl = 0.08 * self.scalar
-                self.vr = 0.36 * self.scalar
+                self.vr = 0.22 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 

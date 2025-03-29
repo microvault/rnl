@@ -72,6 +72,7 @@ class Trainer:
 
     def learn(
         self,
+        pretrained: str,
         use_agents: bool,
         max_timestep_global: int,
         seed: int,
@@ -99,6 +100,7 @@ class Trainer:
             mlp_activation=activation,
         )
         trainer_config = TrainerConfig(
+            pretrained=pretrained,
             use_agents=use_agents,
             max_timestep_global=max_timestep_global,
             seed=seed,
