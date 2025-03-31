@@ -1,8 +1,18 @@
 import matplotlib.pyplot as plt
 import numpy as np
+
+# from sb3_contrib import RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
+from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.vec_env import DummyVecEnv
+from torch import nn
 from tqdm import trange
+from wandb.integration.sb3 import WandbCallback
+
+import wandb
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
@@ -13,22 +23,15 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
+from rnl.configs.rewards import RewardConfig
 from rnl.configs.strategys import get_strategy_dict
-from rnl.training.callback import DynamicTrainingCallback
 from rnl.engine.utils import clean_info
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.vec_env import DummyVecEnv
-from torch import nn
-from wandb.integration.sb3 import WandbCallback
-from rnl.configs.rewards import RewardConfig
-from sb3_contrib import RecurrentPPO
-from stable_baselines3.common.callbacks import CheckpointCallback
-import wandb
+from rnl.network.model import CustomActorCriticPolicy
+from rnl.training.callback import DynamicTrainingCallback
 
-ENV_TYPE = "medium"
+ENV_TYPE = "easy-00"
 PORCENTAGE_OBSTACLE = 30.0
 MAP_SIZE = 2.0
 POLICY = "PPO"
@@ -42,6 +45,7 @@ REWARD_TYPE = RewardConfig(
     },
     description="Reward baseado em todos os fatores",
 )
+
 
 def training(
     robot_config: RobotConfig,
@@ -130,14 +134,8 @@ def training(
     )
 
     policy_kwargs_off_policy = dict(
-            activation_fn=activation_fn,
-            net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
-        )
-
-    checkpoint_callback = CheckpointCallback(
-        save_freq=10000,  # Salva a cada 1000 timesteps
-        save_path='./checkpoints/',  # Diretório onde os modelos serão salvos
-        name_prefix='ppo_model'  # Prefixo do nome do arquivo do modelo
+        activation_fn=activation_fn,
+        net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
     )
 
     def make_env():
@@ -200,21 +198,21 @@ def training(
                 seed=trainer_config.seed,
             )
         elif POLICY == "A2C":
-                model = A2C(
-                    "MlpPolicy",
-                    vec_env,
-                    verbose=1,
-                    learning_rate=trainer_config.lr,
-                    n_steps=trainer_config.learn_step,
-                    gae_lambda=trainer_config.gae_lambda,
-                    ent_coef=trainer_config.ent_coef,
-                    vf_coef=trainer_config.vf_coef,
-                    max_grad_norm=trainer_config.max_grad_norm,
-                    seed=trainer_config.seed,
-                    policy_kwargs=policy_kwargs_on_policy,
-                    device=trainer_config.device,
-                )
-                print("\nInitiate A2C training ...")
+            model = A2C(
+                "MlpPolicy",
+                vec_env,
+                verbose=1,
+                learning_rate=trainer_config.lr,
+                n_steps=trainer_config.learn_step,
+                gae_lambda=trainer_config.gae_lambda,
+                ent_coef=trainer_config.ent_coef,
+                vf_coef=trainer_config.vf_coef,
+                max_grad_norm=trainer_config.max_grad_norm,
+                seed=trainer_config.seed,
+                policy_kwargs=policy_kwargs_on_policy,
+                device=trainer_config.device,
+            )
+            print("\nInitiate A2C training ...")
 
         elif POLICY == "DQN":
             env = DummyVecEnv([make_env])
@@ -261,9 +259,11 @@ def training(
             #     n_epochs=trainer_config.update_epochs,
             #     seed=trainer_config.seed,
             # )
+            #
+            # model = PPO(CustomActorCriticPolicy, "CartPole-v1", verbose=1)
 
             model = PPO(
-                "MlpPolicy",
+                CustomActorCriticPolicy,  # "MlpPolicy",
                 vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=1,
@@ -279,21 +279,21 @@ def training(
             )
 
         elif POLICY == "A2C":
-                model = A2C(
-                    "MlpPolicy",
-                    vec_env,
-                    verbose=1,
-                    learning_rate=trainer_config.lr,
-                    n_steps=trainer_config.learn_step,
-                    gae_lambda=trainer_config.gae_lambda,
-                    ent_coef=trainer_config.ent_coef,
-                    vf_coef=trainer_config.vf_coef,
-                    max_grad_norm=trainer_config.max_grad_norm,
-                    seed=trainer_config.seed,
-                    policy_kwargs=policy_kwargs_on_policy,
-                    device=trainer_config.device,
-                )
-                print("\nInitiate A2C training ...")
+            model = A2C(
+                "MlpPolicy",
+                vec_env,
+                verbose=1,
+                learning_rate=trainer_config.lr,
+                n_steps=trainer_config.learn_step,
+                gae_lambda=trainer_config.gae_lambda,
+                ent_coef=trainer_config.ent_coef,
+                vf_coef=trainer_config.vf_coef,
+                max_grad_norm=trainer_config.max_grad_norm,
+                seed=trainer_config.seed,
+                policy_kwargs=policy_kwargs_on_policy,
+                device=trainer_config.device,
+            )
+            print("\nInitiate A2C training ...")
 
         elif POLICY == "DQN":
             env = DummyVecEnv([make_env])
@@ -317,14 +317,22 @@ def training(
                 justificativas_history=[],
                 get_strategy_dict_func=get_strategy_dict,
                 get_parameter_train=config_dict,
-                check_freq=100
+                check_freq=100,
             )
 
         else:
-            callback = None
+            callback = CheckpointCallback(
+                save_freq=10000,  # Salva a cada 1000 timesteps
+                save_path="./checkpoints/",  # Diretório onde os modelos serão salvos
+                name_prefix="ppo_model_com_obstaculo",  # Prefixo do nome do arquivo do modelo
+            )
 
-        model.learn(total_timesteps=trainer_config.max_timestep_global, callback=checkpoint_callback)
+        model.learn(
+            total_timesteps=trainer_config.max_timestep_global,
+            callback=callback,
+        )
         # model.save("ppo_recurrent")
+
 
 def inference(
     robot_config: RobotConfig,

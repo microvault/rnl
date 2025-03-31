@@ -1,8 +1,9 @@
-import math
 import argparse
-
+import math
 from datetime import datetime
+
 from rnl.environment.world import CreateWorld
+
 
 def generate_gazebo_world_with_walls(segments):
     """
@@ -10,7 +11,6 @@ def generate_gazebo_world_with_walls(segments):
     """
     now = datetime.now()
     timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
-    filename_timestamp = now.strftime("%Y-%m-%d_%H-%M-%S")
 
     sdf_header = f"""<?xml version="1.0" ?>
 <!-- Gerado em: {timestamp_str} -->
@@ -93,9 +93,13 @@ def main():
     _, segments_from_world, _ = create_world.world(mode="medium")
 
     # Redimensiona e centraliza
-    xs = [seg[0] for seg in segments_from_world] + [seg[2] for seg in segments_from_world]
-    ys = [seg[1] for seg in segments_from_world] + [seg[3] for seg in segments_from_world]
-    center_x, center_y = (min(xs) + max(xs))/2, (min(ys) + max(ys))/2
+    xs = [seg[0] for seg in segments_from_world] + [
+        seg[2] for seg in segments_from_world
+    ]
+    ys = [seg[1] for seg in segments_from_world] + [
+        seg[3] for seg in segments_from_world
+    ]
+    center_x, center_y = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
     scale = 0.2
 
     new_segments = []
@@ -107,6 +111,7 @@ def main():
         new_segments.append((nx1, ny1, nx2, ny2))
 
     generate_gazebo_world_with_walls(new_segments)
+
 
 if __name__ == "__main__":
     main()

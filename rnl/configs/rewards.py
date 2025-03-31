@@ -49,7 +49,6 @@ def prog_reward(
     scale_factor: float,
 ) -> float:
 
-
     # A recompensa é negativa: quanto maior o normalized, mais longe está e maior a penalização.
     reward = -scale_factor * current_distance
     return reward

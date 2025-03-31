@@ -1,11 +1,12 @@
-import rclpy
-from rclpy.node import Node
-import numpy as np
-import matplotlib.pyplot as plt
-
-from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import Odometry
 import math
+
+import matplotlib.pyplot as plt
+import numpy as np
+import rclpy
+from nav_msgs.msg import Odometry
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
+
 
 class LidarOdomGridMapper(Node):
     def __init__(self, grid_size=300, resolution=0.1):
@@ -13,7 +14,7 @@ class LidarOdomGridMapper(Node):
         grid_size: tamanho da matriz (grid_size x grid_size)
         resolution: metros por célula
         """
-        super().__init__('mapping')
+        super().__init__("mapping")
 
         # Parâmetros do grid
         self.grid_size = grid_size
@@ -31,26 +32,20 @@ class LidarOdomGridMapper(Node):
 
         # Matplotlib em modo interativo
         plt.ion()
-        self.fig, self.ax = plt.subplots(figsize=(6,6))
+        self.fig, self.ax = plt.subplots(figsize=(6, 6))
 
         # Subscreve o tópico /scan (LIDAR)
         self.laser_sub = self.create_subscription(
-            LaserScan,
-            '/scan',
-            self.lidar_callback,
-            10
+            LaserScan, "/scan", self.lidar_callback, 10
         )
 
         # Subscreve o tópico /odom (pose do robô)
         self.odom_sub = self.create_subscription(
-            Odometry,
-            '/odom',
-            self.odom_callback,
-            10
+            Odometry, "/odom", self.odom_callback, 10
         )
 
     def odom_callback(self, msg):
-        """ Recebe a pose do robô (x, y, yaw). """
+        """Recebe a pose do robô (x, y, yaw)."""
         # Pega x e y
         self.robot_x = msg.pose.pose.position.x
         self.robot_y = msg.pose.pose.position.y
@@ -63,7 +58,7 @@ class LidarOdomGridMapper(Node):
         self.robot_yaw = math.atan2(siny_cosp, cosy_cosp)
 
     def lidar_callback(self, msg):
-        """ Processa leitura LIDAR, projeta cada raio no mapa global e atualiza grid. """
+        """Processa leitura LIDAR, projeta cada raio no mapa global e atualiza grid."""
         # Constrói array de ângulos
         angles = np.arange(msg.angle_min, msg.angle_max, msg.angle_increment)
         ranges = np.array(msg.ranges)
@@ -85,14 +80,20 @@ class LidarOdomGridMapper(Node):
 
         # Plot do grid (interativo)
         self.ax.clear()
-        self.ax.imshow(self.grid, cmap='gray', origin='lower',
-                       extent=[-self.origin_x*self.resolution,
-                               (self.grid_size-self.origin_x)*self.resolution,
-                               -self.origin_y*self.resolution,
-                               (self.grid_size-self.origin_y)*self.resolution])
-        self.ax.set_title('Mapeamento 2D (usando /odom como ref.)')
-        self.ax.set_xlabel('X (m)')
-        self.ax.set_ylabel('Y (m)')
+        self.ax.imshow(
+            self.grid,
+            cmap="gray",
+            origin="lower",
+            extent=[
+                -self.origin_x * self.resolution,
+                (self.grid_size - self.origin_x) * self.resolution,
+                -self.origin_y * self.resolution,
+                (self.grid_size - self.origin_y) * self.resolution,
+            ],
+        )
+        self.ax.set_title("Mapeamento 2D (usando /odom como ref.)")
+        self.ax.set_xlabel("X (m)")
+        self.ax.set_ylabel("Y (m)")
         self.ax.grid(True)
 
         plt.draw()
@@ -100,14 +101,17 @@ class LidarOdomGridMapper(Node):
 
     def destroy_node(self):
         # Salva o array em .npy
-        np.save('src/playground/occupancy_map.npy', self.grid)
-        self.get_logger().info('Mapa salvo em occupancy_map.npy')
+        np.save("src/playground/occupancy_map.npy", self.grid)
+        self.get_logger().info("Mapa salvo em occupancy_map.npy")
 
         # Salva também em PNG usando o matplotlib
-        plt.imsave('./src/playground/occupancy_map.png', self.grid, cmap='gray', origin='lower')
-        self.get_logger().info('Mapa salvo em occupancy_map.png')
+        plt.imsave(
+            "./src/playground/occupancy_map.png", self.grid, cmap="gray", origin="lower"
+        )
+        self.get_logger().info("Mapa salvo em occupancy_map.png")
 
         super().destroy_node()
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -116,5 +120,6 @@ def main(args=None):
     node.destroy_node()
     rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -1,7 +1,9 @@
 import gymnasium as gym
-from rnl.environment.env import NaviEnv
-from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
+
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
+from rnl.environment.env import NaviEnv
+
 
 def create_env(num_envs):
     robot_config = RobotConfig(
@@ -12,25 +14,11 @@ def create_env(num_envs):
         weight=5.0,
         threshold=0.5,
         collision=0.3,
-        path_model="None"
+        path_model="None",
     )
-    sensor_config = SensorConfig(
-        fov=240.0,
-        num_rays=36,
-        min_range=0.1,
-        max_range=5.0
-    )
-    env_config = EnvConfig(
-        scalar=30,
-        folder_map="",
-        name_map="",
-        timestep=1000
-    )
-    render_config = RenderConfig(
-        controller=False,
-        debug=True,
-        plot=False
-    )
+    sensor_config = SensorConfig(fov=240.0, num_rays=36, min_range=0.1, max_range=5.0)
+    env_config = EnvConfig(scalar=30, folder_map="", name_map="", timestep=1000)
+    render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
         reward_type="time",
@@ -61,6 +49,7 @@ def create_env(num_envs):
 
     return gym.vector.AsyncVectorEnv([make_envs(i) for i in range(num_envs)])
 
+
 def make_environemnt():
     robot_config = RobotConfig(
         base_radius=0.105,
@@ -78,17 +67,8 @@ def make_environemnt():
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
-    env_config = EnvConfig(
-        scalar=100,
-        folder_map="",
-        name_map="",
-        timestep=1000
-    )
-    render_config = RenderConfig(
-        controller=False,
-        debug=True,
-        plot=False
-    )
+    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000)
+    render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
         reward_type="time",
@@ -113,6 +93,7 @@ def make_environemnt():
 
     return env
 
+
 def create_single_env(i):
     robot_config = RobotConfig(
         base_radius=0.105,
@@ -130,17 +111,8 @@ def create_single_env(i):
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
-    env_config = EnvConfig(
-        scalar=100,
-        folder_map="",
-        name_map="",
-        timestep=1000
-    )
-    render_config = RenderConfig(
-        controller=False,
-        debug=True,
-        plot=False
-    )
+    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000)
+    render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
         reward_type="time",

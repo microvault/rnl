@@ -20,4 +20,5 @@ export LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/humble/lib/libgazebo_ros_factory.
 export GAZEBO_PLUGIN_PATH=/usr/local/lib:$GAZEBO_PLUGIN_PATH
 
 # ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=src/playground/maps/$MAP_NAME/$MAP_NAME.yaml
-ros2 launch playground mapping.launch.py
+# ros2 launch playground mapping.launch.py
+ros2 launch playground localization.launch.py

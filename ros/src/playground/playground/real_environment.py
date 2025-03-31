@@ -155,7 +155,6 @@ def main(args=None):
         rclpy.shutdown()
 
 
-
 def clamp(value, vmin, vmax):
     return max(vmin, min(value, vmax))
 

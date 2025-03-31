@@ -53,7 +53,12 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
-    def world(self, grid_length: float, resolution: float = 0.05, porcentage_obstacle: float = 40.0):
+    def world(
+        self,
+        grid_length: float,
+        resolution: float = 0.05,
+        porcentage_obstacle: float = 40.0,
+    ):
         """
         Generates a maze world.
 
@@ -63,6 +68,91 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
+        if self.mode in ("easy-10"):
+
+            # map_grid = np.array([[0, 0, 0],
+            #                      [0, 1, 0],
+            #                      [0, 0, 0]])
+
+            # conts = find_contours(map_grid, 0.5)
+            # contours = process(conts)
+
+            # height, width = map_grid.shape
+            # exterior = []
+
+            # # 1
+            # for x in range(width):
+            #     exterior.append((x, height))
+
+            # # 2
+            # for y in range(height, -1, -1):
+            #     exterior.append((width, y))
+
+            # # 3
+            # for x in range(width, -1, -1):
+            #     exterior.append((x, 0))
+
+            # # 4
+            # for y in range(1, height):
+            #     exterior.append((0, y))
+
+            # interiors = []
+            # segments = []
+
+            # for n, contour in enumerate(contours):
+            #     poly = []
+            #     for idx, vertex in enumerate(contour):
+            #         poly.append((vertex[1], vertex[0]))
+
+            #     interiors.append(poly)
+
+            #     interior_segment = LineString(poly)
+            #     segments.append(interior_segment)
+
+            # exterior_segment = LineString(exterior + [exterior[0]])
+            # segments.insert(0, exterior_segment)
+
+            # stacks = [self.line_to_np_stack(line) for line in segments]
+
+            # segment = extract_segment_from_polygon(stacks)
+
+            # Defina as coordenadas do quadrado externo
+            exterior = [(0, 0), (3, 0), (3, 3), (0, 3)]
+
+            # Defina as coordenadas do quadrado interno
+            interior = [(1, 1), (2, 1), (2, 2), (1, 2)]
+
+            # Crie as LineStrings (exterior + interior)
+            segments = []
+            exterior_segment = LineString(exterior + [exterior[0]])
+            segments.append(exterior_segment)
+
+            interior_segment = LineString(interior + [interior[0]])
+            segments.append(interior_segment)
+
+            # Exemplo de como converter cada segment em seu formato (caso precise)
+            stacks = [self.line_to_np_stack(line) for line in segments]
+            segment = extract_segment_from_polygon(stacks)
+
+            # Construa seu polígono final se precisar
+            poly = Polygon(exterior, holes=[interior])
+
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("The polygon is not valid.")
+
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+
+            return path_patch, segment, poly
+
         if self.mode in ("easy-00"):
             width = int(grid_length) + 1
             height = int(grid_length) + 1
@@ -130,7 +220,7 @@ class Generator:
         elif self.mode == "easy-04" or self.mode == "easy-05":
             m = self.generate.generate_maze(
                 map_size=int(grid_length),
-                decimation=1000.0, # 1000.0
+                decimation=1000.0,  # 1000.0
                 min_blocks=0,
                 no_mut=True,
                 porcentage_obstacle=porcentage_obstacle,
@@ -402,7 +492,10 @@ class Generator:
 
             if poly.geom_type == "MultiPolygon":
                 poly_corrigido = poly.buffer(0)
-                if poly_corrigido.is_valid and poly_corrigido.geom_type != "MultiPolygon":
+                if (
+                    poly_corrigido.is_valid
+                    and poly_corrigido.geom_type != "MultiPolygon"
+                ):
                     poly = poly_corrigido
                 else:
                     # Se continuar sendo MultiPolygon, seleciona o maior polígono válido
@@ -410,7 +503,9 @@ class Generator:
                     if valid_polys:
                         poly = max(valid_polys, key=lambda a: a.area)
                     else:
-                        raise ValueError("Nenhum polígono válido foi gerado dos vértices.")
+                        raise ValueError(
+                            "Nenhum polígono válido foi gerado dos vértices."
+                        )
 
             processed_verts = np.array(poly.exterior.coords, dtype=np.float32)
             stack = [processed_verts]

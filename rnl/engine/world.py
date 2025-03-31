@@ -1,5 +1,4 @@
 import numpy as np
-import numpy.random as npr
 from numba import njit, types
 from numba.typed import List
 
@@ -14,9 +13,12 @@ class GenerateWorld:
         decimation: float,
         min_blocks: int,
         no_mut: bool,
-        porcentage_obstacle: float
+        porcentage_obstacle: float,
     ) -> np.ndarray:
-        return generate_maze(map_size, decimation, min_blocks, no_mut, porcentage_obstacle)
+        return generate_maze(
+            map_size, decimation, min_blocks, no_mut, porcentage_obstacle
+        )
+
 
 @njit(parallel=True)
 def generate_maze(

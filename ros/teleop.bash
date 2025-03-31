@@ -18,3 +18,4 @@ export LD_LIBRARY_PATH=/usr/local/lib:/opt/ros/humble/lib/libgazebo_ros_factory.
 export GAZEBO_PLUGIN_PATH=/usr/local/lib:$GAZEBO_PLUGIN_PATH
 
 ros2 run turtlebot3_teleop teleop_keyboard
+# ros2 topic echo /amcl_pose

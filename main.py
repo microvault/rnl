@@ -1,13 +1,13 @@
 import argparse
 import os
+import warnings
+
+import rnl as vault
 
 os.environ["KMP_WARNINGS"] = "0"
-import warnings
 
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide")
-
-import rnl as vault
 
 
 def main(arg):
@@ -22,7 +22,7 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
-        path_model="/Users/nicolasalan/microvault/rnl/checkpoints/ppo_model_960000_steps.zip",
+        path_model="None",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -38,7 +38,7 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map6",  # ./data/map4
         name_map="map6",  # map4
-        max_timestep=1000, # 1000
+        max_timestep=1000,  # 1000
     )
 
     # 4.step -> config render
@@ -96,6 +96,7 @@ def main(arg):
         )
 
         model.execute()
+
 
 def str2bool(v):
     if isinstance(v, bool):

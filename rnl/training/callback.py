@@ -1,7 +1,10 @@
-from stable_baselines3.common.callbacks import BaseCallback
-from rnl.agents.evaluate import statistics, evaluate_agent
 import json
+
+from stable_baselines3.common.callbacks import BaseCallback
+
+from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.training.utils import make_environemnt
+
 
 class DynamicTrainingCallback(BaseCallback):
     def __init__(
@@ -10,7 +13,7 @@ class DynamicTrainingCallback(BaseCallback):
         justificativas_history,
         get_strategy_dict_func,
         get_parameter_train,
-        check_freq=100
+        check_freq=100,
     ):
         super().__init__(verbose=0)
         self.evaluator = evaluator
@@ -28,7 +31,9 @@ class DynamicTrainingCallback(BaseCallback):
             eval_env = make_environemnt()
             evaluation_results = evaluate_agent(self.model, eval_env)
             print(evaluation_results)
-            self.logger.record("rollout/evaluation_results", json.dumps(evaluation_results))
+            self.logger.record(
+                "rollout/evaluation_results", json.dumps(evaluation_results)
+            )
             # Coleta infos de cada env
             infos_list = []
             for i in range(self.model.n_envs):
@@ -51,21 +56,29 @@ class DynamicTrainingCallback(BaseCallback):
 
             print(json.dumps(stats, indent=4))
             evaluation_result = self.evaluator.evaluate_training(
-                self.get_strategy_dict(), stats, self.justificativas_history, self.parameter_train
+                self.get_strategy_dict(),
+                stats,
+                self.justificativas_history,
+                self.parameter_train,
             )
             print(evaluation_result)
             try:
-                new_config = (evaluation_result if isinstance(evaluation_result, dict)
-                              else json.loads(evaluation_result))
+                new_config = (
+                    evaluation_result
+                    if isinstance(evaluation_result, dict)
+                    else json.loads(evaluation_result)
+                )
             except Exception as e:
                 print("Erro ao parsear JSON:", e)
                 new_config = {}
 
             if "justify" in new_config:
-                self.justificativas_history.append({
-                    "justify": new_config["justify"],
-                    "config": new_config,
-                })
+                self.justificativas_history.append(
+                    {
+                        "justify": new_config["justify"],
+                        "config": new_config,
+                    }
+                )
                 # Mantém histórico curto
                 if len(self.justificativas_history) > 5:
                     self.justificativas_history.pop(0)
@@ -84,7 +97,9 @@ class DynamicTrainingCallback(BaseCallback):
                 # Extraindo informações do domain (map size e obstacle percentage)
                 domain_info = strategy.get("domain", {})
                 new_map_size = domain_info.get("map_size", {}).get("value", None)
-                new_obstacle_percentage = domain_info.get("obstacle_percentage", {}).get("value", None)
+                new_obstacle_percentage = domain_info.get(
+                    "obstacle_percentage", {}
+                ).get("value", None)
 
                 # Chama o método update_strategy do ambiente, passando os 3 novos parâmetros
                 self.training_env.env_method(
@@ -92,7 +107,7 @@ class DynamicTrainingCallback(BaseCallback):
                     new_map_size,
                     new_obstacle_percentage,
                     new_reward_type,
-                    new_params
+                    new_params,
                 )
 
         return True

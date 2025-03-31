@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
-from rnl.engine.utils import Index, Property
 from rnl.engine.collisions import filter_list_segment
+from rnl.engine.utils import Index, Property
 
 
 class SpatialIndex:

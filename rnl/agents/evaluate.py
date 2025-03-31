@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def statistics(info_list, field):
     values = [info[field] for info in info_list if field in info]
     if not values:  # se a lista estiver vazia, retorne None ou valores padrão
@@ -9,6 +10,7 @@ def statistics(info_list, field):
     max_value = np.max(values)
     std_deviation = np.std(values)
     return mean_value, min_value, max_value, std_deviation
+
 
 def evaluate_agent(agent, env, num_episodes=10):
     """

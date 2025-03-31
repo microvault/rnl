@@ -1,9 +1,10 @@
 import random
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
 from numba import njit
-from typing import Tuple, Optional, List
+
 
 @njit
 def normalize_module(value, min_val, max_val):
@@ -133,9 +134,11 @@ class CustomMinMaxScaler:
     def fit_transform(self, X):
         return self.fit(X).transform(X)
 
+
 class Property:
     def __init__(self):
         self.dimension = 2
+
 
 class Index:
     def __init__(self, properties: Optional[Property] = None):
@@ -149,7 +152,9 @@ class Index:
         """
         self.items.append((id, bbox, obj))
 
-    def intersection(self, bbox: Tuple[float, float, float, float], objects: bool = False) -> List:
+    def intersection(
+        self, bbox: Tuple[float, float, float, float], objects: bool = False
+    ) -> List:
         """
         Retorna os ids (ou objetos, se objects=True) dos itens que intersectam com o bbox.
         """
@@ -159,7 +164,11 @@ class Index:
                 results.append(obj if objects else id)
         return results
 
-    def _intersect(self, bbox1: Tuple[float, float, float, float], bbox2: Tuple[float, float, float, float]) -> bool:
+    def _intersect(
+        self,
+        bbox1: Tuple[float, float, float, float],
+        bbox2: Tuple[float, float, float, float],
+    ) -> bool:
         xmin1, ymin1, xmax1, ymax1 = bbox1
         xmin2, ymin2, xmax2, ymax2 = bbox2
         if xmax1 < xmin2 or xmax2 < xmin1:

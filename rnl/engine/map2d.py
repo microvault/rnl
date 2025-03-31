@@ -73,8 +73,8 @@ class Map2D:
         min_y = np.min(idx[0])
         max_y = np.max(idx[0])
 
-        dist_x = (max_x - min_x)# + 1
-        dist_y = (max_y - min_y)# + 1
+        dist_x = max_x - min_x  # + 1
+        dist_y = max_y - min_y  # + 1
 
         if (max_y - min_y) != (max_x - min_x):
             dist_y = max_y - min_y
@@ -282,7 +282,9 @@ class Map2D:
         if num_labels < 1:
             return None
         # Calcula a área de cada componente
-        areas = np.array([np.sum(labels == l) for l in range(1, num_labels + 1)])
+        areas = np.array(
+            [np.sum(labels == label) for label in range(1, num_labels + 1)]
+        )
         largest_component = np.argmax(areas) + 1  # Rótulos começam em 1
         mask = np.zeros_like(binary_img, dtype=np.uint8)
         mask[labels == largest_component] = 255
@@ -396,11 +398,12 @@ class Map2D:
             return None
 
         if plot:
-            plt.imshow(subgrid_uint8, cmap='gray')
-            plt.axis('off')
+            plt.imshow(subgrid_uint8, cmap="gray")
+            plt.axis("off")
             plt.show()
 
         return subgrid_uint8
+
 
 # if __name__ == "__main__":
 #     map2d = Map2D(

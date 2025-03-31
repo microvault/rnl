@@ -2,10 +2,11 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+
 
 def generate_launch_description():
     pkg_dir = get_package_share_directory("playground")
@@ -32,7 +33,7 @@ def generate_launch_description():
         launch_arguments={
             "world": world_file,
             "playback_speed": "4.0",
-            "use_sim_time": use_sim_time
+            "use_sim_time": use_sim_time,
         }.items(),
     )
 
@@ -48,7 +49,7 @@ def generate_launch_description():
             "y_pose": y_pose,
             "z_pose": z_pose,
             "yaw": yaw,
-            "use_sim_time": use_sim_time
+            "use_sim_time": use_sim_time,
         }.items(),
     )
 
@@ -56,13 +57,18 @@ def generate_launch_description():
         package="gazebo_ros",
         executable="spawn_entity.py",
         arguments=[
-            "-entity", "target",
-            "-file", target_file,
-            "-x", "0.0",
-            "-y", "0.0",
-            "-z", "0.001",
+            "-entity",
+            "target",
+            "-file",
+            target_file,
+            "-x",
+            "0.0",
+            "-y",
+            "0.0",
+            "-z",
+            "0.001",
         ],
         output="screen",
-        parameters=[{"use_sim_time": True}]
+        parameters=[{"use_sim_time": True}],
     )
     return LaunchDescription([use_sim_time_arg, gazebo, turtlebot3, target])

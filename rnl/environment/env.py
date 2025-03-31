@@ -4,20 +4,29 @@ import gymnasium as gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from stable_baselines3 import PPO
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
+
+# from sb3_contrib import RecurrentPPO
+from stable_baselines3 import PPO
+
 # from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
 from rnl.engine.spawn import spawn_robot_and_goal
-from rnl.engine.utils import angle_to_goal, distance_to_goal, min_laser, clean_info, CustomMinMaxScaler
+from rnl.engine.utils import (
+    CustomMinMaxScaler,
+    angle_to_goal,
+    clean_info,
+    distance_to_goal,
+    min_laser,
+)
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
-from sb3_contrib import RecurrentPPO
+
 
 class NaviEnv(gym.Env):
     def __init__(
@@ -81,7 +90,7 @@ class NaviEnv(gym.Env):
             )
 
         elif "easy" in self.mode:
-            if self.mode in ("easy-00", "easy-01", "easy-02"):
+            if self.mode in ("easy-00", "easy-10", "easy-01", "easy-02"):
                 self.grid_length = 2
 
                 self.generator = Generator(mode=self.mode)
@@ -140,8 +149,8 @@ class NaviEnv(gym.Env):
             )
         )
         self.use_render = use_render
-        self.max_dist = compute_polygon_diameter(self.poly) * 0.8 # fator
-        self.min_dist = 0.0 # robot_config.threshold
+        self.max_dist = compute_polygon_diameter(self.poly) * 0.8  # fator
+        self.min_dist = 0.0  # robot_config.threshold
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         self.min_alpha, self.max_alpha = 0.0, 3.5 * 0.89
@@ -279,7 +288,7 @@ class NaviEnv(gym.Env):
             self.body.angle,
             self.target_x,
             self.target_y,
-            self.max_alpha
+            self.max_alpha,
         )
         collision, laser = min_laser(lidar_measurements, self.collision)
 
@@ -405,7 +414,7 @@ class NaviEnv(gym.Env):
             self.body.angle,
             self.target_x,
             self.target_y,
-            self.max_alpha
+            self.max_alpha,
         )
 
         collision_array, laser = min_laser(lidar_measurements, self.collision)
@@ -496,7 +505,9 @@ class NaviEnv(gym.Env):
         self.infos_list.clear()
         return infos
 
-    def update_strategy(self, new_map_size, new_porcentage_obstacle, new_reward_type, new_params):
+    def update_strategy(
+        self, new_map_size, new_porcentage_obstacle, new_reward_type, new_params
+    ):
         self.map_size = new_map_size
         self.porcentage_obstacle = new_porcentage_obstacle
 
@@ -526,6 +537,25 @@ class NaviEnv(gym.Env):
                 choice = targets[np.random.randint(0, len(targets))]
                 self.target_x, self.target_y = choice[0], choice[1]
                 x, y = 1.07, 1.07
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
+            elif self.mode == "easy-10":
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    self.grid_length
+                )
+
+                targets = np.array([[2.5, 2.5], [0.5, 0.5]])
+                choice = targets[np.random.randint(0, len(targets))]
+                self.target_x, self.target_y = choice[0], choice[1]
+
+                if np.array_equal(choice, np.array([0.5, 0.5])):
+                    x, y = 2.5, 2.5
+                else:
+                    x, y = 0.5, 0.5
 
                 self.sensor.update_map(self.segments)
 
@@ -607,10 +637,13 @@ class NaviEnv(gym.Env):
                     raise ValueError("map_size é obrigatório para o modo train-mode")
 
                 if self.porcentage_obstacle is None:
-                    raise ValueError("porcentage_obstacle é obrigatório para o modo train-mode")
+                    raise ValueError(
+                        "porcentage_obstacle é obrigatório para o modo train-mode"
+                    )
 
                 self.new_map_path, self.segments, self.poly = self.generator.world(
-                    grid_length=self.map_size, porcentage_obstacle=self.porcentage_obstacle
+                    grid_length=self.map_size,
+                    porcentage_obstacle=self.porcentage_obstacle,
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
@@ -680,7 +713,7 @@ class NaviEnv(gym.Env):
                 self.body.position.angle,
                 self.target_x,
                 self.target_y,
-                self.max_alpha
+                self.max_alpha,
             )
 
             self.initial_distance = dist
@@ -789,10 +822,14 @@ class NaviEnv(gym.Env):
             ax.set_xlim(0, int(self.grid_length))
             ax.set_ylim(0, int(self.grid_length))
 
+        if "easy-10" in self.mode:
+            ax.set_xlim(0, 4)
+            ax.set_ylim(0, 4)
+
         elif "train-mode" in self.mode:
             if self.map_size is not None:
-                ax.set_xlim(0, int(self.map_size/0.5))
-                ax.set_ylim(0, int(self.map_size/0.5))
+                ax.set_xlim(0, int(self.map_size / 0.5))
+                ax.set_ylim(0, int(self.map_size / 0.5))
             else:
                 ax.set_xlim(0, 5)
                 ax.set_ylim(0, 5)
@@ -892,7 +929,20 @@ class NaviEnv(gym.Env):
         line9 = "Lidar:".ljust(14) + f"{state_min_max_lidar:.4f}\n"
         line10 = "Action:".ljust(14) + f"{action}\n"
 
-        return line1 + line2 + space1 + line3 + line4 + line5 + line6  + space2 + line7 + line8 + line9 + line10
+        return (
+            line1
+            + line2
+            + space1
+            + line3
+            + line4
+            + line5
+            + line6
+            + space2
+            + line7
+            + line8
+            + line9
+            + line10
+        )
 
     def _plot_anim(
         self,

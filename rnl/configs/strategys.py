@@ -8,6 +8,7 @@ class BaseConfig(ABC):
     def to_dict(self) -> Dict[str, Any]:
         pass
 
+
 class DomainConfig(BaseConfig):
     def __init__(
         self,
@@ -45,6 +46,7 @@ class DomainConfig(BaseConfig):
                 "description": self.map_size_description,
             },
         }
+
 
 # Configuration for actions with description
 class ActionConfig(BaseConfig):
@@ -188,8 +190,6 @@ def get_strategy_dict() -> dict:
     reward_choice = ChoiceConfig(rewards, required=True)
     domain_choice = ChoiceConfig(domains, required=True)
 
-    strategy = StrategyConfig(
-        reward=reward_choice, mode=domain_choice
-    )
+    strategy = StrategyConfig(reward=reward_choice, mode=domain_choice)
 
     return strategy.to_dict()
