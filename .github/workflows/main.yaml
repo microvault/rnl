@@ -18,11 +18,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Update pip and install poetry
-        run: python -m pip install --upgrade pip && pip install poetry
+      - name: Update pip and install uv
+        run: python -m pip install --upgrade pip && pip install uv
 
-      - name: Update poetry.lock
-        run: poetry lock
+      - name: Update uv.lock
+        run: uv lock
 
       - name: Install dependencies
         run: make install_with_dev
@@ -43,11 +43,11 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Update pip and install poetry
-        run: python -m pip install --upgrade pip && pip install poetry
+      - name: Update pip and install uv
+        run: python -m pip install --upgrade pip && pip install uv
 
-      - name: Update poetry.lock
-        run: poetry lock
+      - name: Update uv.lock
+        run: uv lock
 
       - name: Install dependencies
         run: make install_with_dev
@@ -68,13 +68,13 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Update pip and install poetry
+      - name: Update pip and install uv
         run: |
           python -m pip install --upgrade pip
-          python -m pip install poetry
+          python -m pip install uv
 
-      - name: Update poetry.lock
-        run: poetry lock
+      - name: Update uv.lock
+        run: uv lock
 
       - name: Install dependencies
         run: make install_with_dev
