@@ -27,7 +27,7 @@ USE_WANDB ?= True
 AGENTS ?= False
 PRETRAINED ?= None
 
-MAP_NAME ?= map6
+MAP_NAME ?= map
 
 .PHONY: sim
 sim:
