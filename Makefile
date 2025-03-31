@@ -13,7 +13,7 @@ NUM_ENVS ?= 16
 DEVICE ?= cpu
 LEARN_STEP ?= 512
 CHECKPOINT ?= 10000
-CHECKPOINT_PATH ?= recurrent_ppo_network
+CHECKPOINT_PATH ?= ppo_policy_network
 LR ?= 0.0003
 GAE_LAMBDA ?= 0.95
 ENT_COEF ?= 0.05
@@ -106,12 +106,12 @@ publish:
 
 .PHONY: install_with_dev
 install_with_dev:
-		@uv install
+	@uv sync
 
 
 .PHONY: install
 install:
-	@uv install --without dev
+	@uv sync --no-group dev
 
 
 .PHONY: build
