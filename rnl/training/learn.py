@@ -31,12 +31,13 @@ from rnl.environment.env import NaviEnv
 from rnl.network.model import CustomActorCriticPolicy
 from rnl.training.callback import DynamicTrainingCallback
 
-ENV_TYPE = "easy-00"
-PORCENTAGE_OBSTACLE = 30.0
+ENV_TYPE = "train-mode"
+PORCENTAGE_OBSTACLE = 20.0
 MAP_SIZE = 2.0
 POLICY = "PPO"
+NAME_CHECKPOINT="simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
-    reward_type="time",
+    reward_type="time_obstacle",
     params={
         "scale_orientation": 0.02,
         "scale_distance": 0.06,
@@ -246,7 +247,7 @@ def training(
             # print("Recurrent PPO")
             # model = RecurrentPPO(
             #     "MlpLstmPolicy",
-            #     vec_env,
+            #     vec_env,tg
             #     batch_size=trainer_config.batch_size,
             #     verbose=1,
             #     learning_rate=trainer_config.lr,
@@ -263,7 +264,7 @@ def training(
             # model = PPO(CustomActorCriticPolicy, "CartPole-v1", verbose=1)
 
             model = PPO(
-                CustomActorCriticPolicy,  # "MlpPolicy",
+                "MlpPolicy",  # "MlpPolicy", # CustomActorCriticPolicy
                 vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=1,
@@ -311,6 +312,7 @@ def training(
 
             print("\nInitiate DQN training ...")
 
+        print(trainer_config.use_agents)
         if trainer_config.use_agents:
             callback = DynamicTrainingCallback(
                 evaluator=evaluator,
@@ -322,9 +324,9 @@ def training(
 
         else:
             callback = CheckpointCallback(
-                save_freq=10000,  # Salva a cada 1000 timesteps
+                save_freq=100000,  # Salva a cada 1000 timesteps
                 save_path="./checkpoints/",  # Diretório onde os modelos serão salvos
-                name_prefix="ppo_model_com_obstaculo",  # Prefixo do nome do arquivo do modelo
+                name_prefix=NAME_CHECKPOINT,  # Prefixo do nome do arquivo do modelo
             )
 
         model.learn(

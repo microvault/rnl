@@ -1,34 +1,35 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import pytest
 from matplotlib.lines import Line2D
 from shapely.geometry import Point, Polygon
 
 from rnl.engine.spawn import spawn_robot_and_goal
 from rnl.environment.world import CreateWorld
+from rnl.environment.generate import Generator
 
 
 def is_inside_polygon(point, polygon: Polygon):
     return polygon.contains(Point(point))
 
-
-@pytest.fixture
-def poly():
+def poly_with_map():
     generator = CreateWorld(
-        folder="/Users/nicolasalan/microvault/rnl/data/map4",
-        name="map4",
+        folder="/Users/nicolasalan/microvault/rnl/data/map6",
+        name="map6",
     )
-    _, _, poly = generator.world()
+    _, _, poly = generator.world(mode="medium")
+
+    return poly
+
+def poly():
+    generator = Generator(mode="easy-10")
+    grid_length = 4
+    _, _, poly = generator.world(grid_length)
 
     return poly
 
 
-def check_enviromnet():
-    pass
-
-
-def test_spawn_robot_and_goal(poly, request):
-    iterations = 100000
+def test_spawn_robot_and_goal(poly):
+    iterations = 10000
 
     robot_x = []
     robot_y = []
@@ -41,9 +42,9 @@ def test_spawn_robot_and_goal(poly, request):
     for _ in range(iterations):
         robot_pos, goal_pos = spawn_robot_and_goal(
             poly=poly,
-            robot_clearance=4.0,
-            goal_clearance=2.0,
-            min_robot_goal_dist=4.0,
+            robot_clearance=0.4,
+            goal_clearance=0.4,
+            min_robot_goal_dist=0.8,
         )
 
         assert is_inside_polygon(
@@ -105,6 +106,10 @@ def test_spawn_robot_and_goal(poly, request):
     plt.legend(
         handles=plt.gca().get_legend_handles_labels()[0] + [min_proxy, max_proxy]
     )
-    plt.title(f"Posições do Robô e Objetivo no Polígono {poly}")
 
     plt.show()
+
+
+if __name__ == "__main__":
+    polygon = poly()
+    test_spawn_robot_and_goal(polygon)

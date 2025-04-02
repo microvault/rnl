@@ -24,7 +24,7 @@ NAME ?= rnl-v1
 SCALAR ?= 1
 CONTROL ?= False
 USE_WANDB ?= True
-AGENTS ?= False
+USE_AGENTS ?= False
 PRETRAINED ?= None
 
 MAP_NAME ?= map
@@ -57,6 +57,7 @@ learn:
     	--update_epochs $(UPDATE_EPOCHS) \
     	--name $(NAME) \
         --use_wandb $(USE_WANDB) \
+        --agent $(USE_AGENTS) \
      	--controller False \
         --pretrained $(PRETRAINED) \
       	--debug True \
@@ -73,6 +74,9 @@ probe:
      	--debug True \
       	--scalar $(SCALAR)
 
+.PHONY: probe-spawn
+probe-spawn:
+	@uv run python rnl/training/probes.py
 
 .PHONY: test_without_coverage
 test_without_coverage:
@@ -147,7 +151,7 @@ train:
 	@echo "USE_WANDB=$(USE_WANDB)"
 	@echo "SCALAR=$(SCALAR)"
 	@echo "CONTROL=$(CONTROL)"
-	@echo "AGENTS=$(AGENTS)"
+	@echo "USE_AGENTS=$(USE_AGENTS)"
 	@echo "PRETRAINED $(PRETRAINED)"
 	@echo
 	@docker run -d \
@@ -161,7 +165,7 @@ train:
 	-v $(PWD):/workdir \
 	rnl-docker-cuda \
 	--MODE $(MODE) \
-	--agents $(AGENTS) \
+	--agent $(USE_AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
    	--seed $(SEED) \
    	--hidden_size $(HIDDEN_SIZE) \
@@ -208,7 +212,7 @@ train-without:
 	@echo "USE_WANDB=$(USE_WANDB)"
 	@echo "SCALAR=$(SCALAR)"
 	@echo "CONTROL=$(CONTROL)"
-	@echo "AGENTS=$(AGENTS)"
+	@echo "USE_AGENTS=$(USE_AGENTS)"
 	@echo "PRETRAINED $(PRETRAINED)"
 	@echo
 	@docker run \
@@ -222,7 +226,7 @@ train-without:
 	-v $(PWD):/workdir \
 	rnl-docker-cuda \
 	--MODE $(MODE) \
-	--agents $(AGENTS) \
+	--agent $(USE_AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
    	--seed $(SEED) \
    	--hidden_size $(HIDDEN_SIZE) \

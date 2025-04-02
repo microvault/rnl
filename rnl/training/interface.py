@@ -21,6 +21,24 @@ def robot(
     collision: float,
     path_model: str,
 ) -> RobotConfig:
+
+    parameter = {
+        "Base radius": base_radius,
+        "Wheel distance": wheel_distance,
+        "Weight": weight,
+    }
+
+    for name, value in parameter.items():
+        if value <= 0:
+            raise ValueError(f"Error: {name} must be greater than 0.")
+
+    if threshold < 0:
+        raise ValueError("Error: Threshold must be greater than or equal to 0.")
+    if collision < 0:
+        raise ValueError("Error: Collision must be greater than or equal to 0.")
+    if path_model == "":
+        path_model = "None"
+
     return RobotConfig(
         base_radius,
         vel_linear,
@@ -36,6 +54,23 @@ def robot(
 def sensor(
     fov: float, num_rays: int, min_range: float, max_range: float
 ) -> SensorConfig:
+    if min_range < 0 or max_range < 0:
+        raise ValueError("Error: Minimum/Maximum range must be greater than or equal to 0.")
+    if num_rays < 0:
+        raise ValueError("Error: Number of rays must be greater than or equal to 0.")
+    if fov < 0 or fov > 360:
+        raise ValueError("Error: Field of view must be between 0 and 360 degrees.")
+    if min_range > max_range:
+        raise ValueError("Error: Minimum range must be less than or equal to maximum range.")
+    if min_range == max_range:
+        raise ValueError("Error: Minimum range cannot be equal to maximum range.")
+    if num_rays == 0:
+        raise ValueError("Error: Number of rays cannot be equal to 0.")
+    if fov == 0:
+        raise ValueError("Error: Field of view cannot be equal to 0.")
+    if num_rays > 10:
+        raise ValueError("Error: Number of rays must be less than or equal to 10.")
+
     return SensorConfig(fov, num_rays, min_range, max_range)
 
 
@@ -45,6 +80,12 @@ def make(
     name_map: str,
     max_timestep: int,
 ) -> EnvConfig:
+
+    if scalar < 0 or scalar > 100:
+        raise ValueError("Error: Scalar must be between 0 and 100.")
+    if max_timestep < 0:
+        raise ValueError("Error: Maximum timestep must be greater than 0.")
+
     return EnvConfig(
         scalar=scalar,
         folder_map=folder_map,
@@ -94,6 +135,27 @@ class Trainer:
         update_epochs: int,
         name: str,
     ) -> None:
+
+        if seed < 0:
+            raise ValueError("Error: Seed must be greater than or equal to 0.")
+        if max_timestep_global < 0:
+            raise ValueError("Error: Maximum timestep must be greater than 0.")
+        if batch_size < 0:
+            raise ValueError("Error: Batch size must be greater than 0.")
+        if num_envs < 0:
+            raise ValueError("Error: Number of environments must be greater than 0.")
+        if learn_step < 0:
+            raise ValueError("Error: Learning step must be greater than 0.")
+        if gae_lambda < 0:
+            raise ValueError("Error: GAE lambda must be greater than 0.")
+        if ent_coef < 0:
+            raise ValueError("Error: Entropy coefficient must be greater than 0.")
+        if vf_coef < 0:
+            raise ValueError("Error: Value function coefficient must be greater than 0.")
+        if max_grad_norm < 0:
+            raise ValueError("Error: Maximum gradient norm must be greater than 0.")
+        if update_epochs < 0:
+            raise ValueError("Error: Update epochs must be greater than 0.")
 
         network_config = NetworkConfig(
             hidden_size=hidden_size,
@@ -176,6 +238,13 @@ class Probe:
         env_config: EnvConfig,
         render_config: RenderConfig,
     ) -> None:
+
+        if seed < 0:
+            raise ValueError("Error: Seed must be greater than or equal to 0.")
+        if max_steps < 0:
+            raise ValueError("Error: Maximum steps must be greater than 0.")
+        if num_envs < 0:
+            raise ValueError("Error: Number of environments must be greater than 0.")
 
         self.num_envs = num_envs
         self.max_steps = max_steps

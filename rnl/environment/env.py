@@ -38,7 +38,7 @@ class NaviEnv(gym.Env):
         use_render: bool,
         type_reward: RewardConfig,
         porcentage_obstacle: Optional[float] = None,
-        map_size: Optional[float] = None,
+        map_size: Optional[float] = 40.0,
         mode: str = "train-mode",
     ):
         super().__init__()
@@ -65,12 +65,12 @@ class NaviEnv(gym.Env):
         self.infos_list = []
         self.steps_to_goal = 0
         self.steps_to_collision = 0
-        self.goal_reached = False
-        self.collision_happened = False
         self.map_size = map_size
         self.porcentage_obstacle = porcentage_obstacle
         self.lstm_states = None
         self.episode_starts = np.ones((1,), dtype=bool)
+        self.steps_unsafe_area = 0
+        self.steps_command_angular = 0
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -263,10 +263,10 @@ class NaviEnv(gym.Env):
                 self.vr = 0.0
             elif self.action == 1:
                 self.vl = 0.08 * self.scalar
-                self.vr = -0.22 * self.scalar
+                self.vr = -0.36 * self.scalar
             elif self.action == 2:
                 self.vl = 0.08 * self.scalar
-                self.vr = 0.22 * self.scalar
+                self.vr = 0.36 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -388,9 +388,11 @@ class NaviEnv(gym.Env):
             vl = 0.10 * self.scalar
             vr = 0.0
         elif action == 1:
+            self.steps_command_angular += 1
             vl = 0.08 * self.scalar
             vr = -0.36 * self.scalar
         elif action == 2:
+            self.steps_command_angular += 1
             vl = 0.08 * self.scalar
             vr = 0.36 * self.scalar
 
@@ -419,6 +421,11 @@ class NaviEnv(gym.Env):
 
         collision_array, laser = min_laser(lidar_measurements, self.collision)
         collision = bool(np.any(collision_array))
+
+        # zona de inseguranca (min lazer)
+        if laser < (self.collision + 0.5):
+            self.steps_unsafe_area += 1
+
 
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
@@ -575,13 +582,20 @@ class NaviEnv(gym.Env):
                 self.robot.reset_robot(self.body, x, y, theta)
 
             elif self.mode in ("easy-02", "easy-03", "easy-04"):
+
+                if self.porcentage_obstacle is None:
+                    raise ValueError(
+                        "porcentage_obstacle é obrigatório para o modo train-mode"
+                    )
+
                 self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
+                    grid_length=self.grid_length,
+                    porcentage_obstacle=self.porcentage_obstacle
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
+                    robot_clearance=self.threshold+0.4,
+                    goal_clearance=self.collision+0.4,
                     min_robot_goal_dist=0.03,
                 )
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
@@ -678,7 +692,7 @@ class NaviEnv(gym.Env):
 
             elif "hard" in self.mode:
                 self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
+                    self.grid_length,
                 )
                 self.sensor.update_map(self.segments)
                 robot_pos, goal_pos = spawn_robot_and_goal(
@@ -779,10 +793,17 @@ class NaviEnv(gym.Env):
             info = {
                 "steps_to_goal": self.steps_to_goal,
                 "steps_to_collision": self.steps_to_collision,
+                "steps_unsafe_area": self.steps_unsafe_area,
+                "steps_command_angular": self.steps_command_angular,
+                "total_timestep": self.timestep,
             }
+            # colocar algo de path planning A* ou Dijkstra e mostrar quantos steps foram necessários
+
             self.steps_to_goal = 0
             self.steps_to_collision = 0
             self.timestep = 0
+            self.steps_unsafe_area = 0
+            self.steps_command_angular = 0
 
             return states, info
 

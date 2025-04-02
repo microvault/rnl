@@ -22,7 +22,7 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
-        path_model="None",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]

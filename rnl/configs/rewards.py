@@ -154,6 +154,8 @@ class RewardConfig:
             )
         elif self.reward_type == "distance_obstacle":
             return rew_coll_target, 0.0, progress_reward, 0.0, obstacle_reward, False
+        elif self.reward_type == "time_obstacle":
+            return rew_coll_target, 0.0, 0.0, time_reward, obstacle_reward, False
         elif self.reward_type == "orientation_obstacle":
             return rew_coll_target, orient_reward, 0.0, 0.0, obstacle_reward, False
         else:

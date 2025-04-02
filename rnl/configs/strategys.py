@@ -176,6 +176,11 @@ def get_strategy_dict() -> dict:
             "Reward based on orientation and obstacles",
         ),
         RewardConfig(
+            "time_obstacle",
+            {"scale_time": 0.01, "scale_obstacle": 0.001},
+            "Reward based on orientation and obstacles",
+        ),
+        RewardConfig(
             "all",
             {
                 "scale_distance": 0.1,
