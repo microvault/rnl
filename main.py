@@ -1,13 +1,7 @@
 import argparse
 import os
-import warnings
 
 import rnl as vault
-
-os.environ["KMP_WARNINGS"] = "0"
-
-warnings.filterwarnings("ignore", message="Mean of empty slice")
-warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide")
 
 
 def main(arg):
@@ -60,6 +54,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
+            type_model="MlpPolicy",
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
@@ -76,6 +71,7 @@ def main(arg):
             max_grad_norm=args.max_grad_norm,
             update_epochs=args.update_epochs,
             name=args.name,
+            verbose=args.verbose,
         )
 
     elif args.mode == "sim":
@@ -217,6 +213,11 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--debug",
+        type=str2bool,
+    )
+
+    parser.add_argument(
+        "--verbose",
         type=str2bool,
     )
 
