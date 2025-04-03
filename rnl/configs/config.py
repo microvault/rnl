@@ -41,6 +41,7 @@ class RobotConfig:
 class NetworkConfig:
     hidden_size: List[int]
     mlp_activation: str
+    type_model: str
 
 
 @dataclass
@@ -64,6 +65,7 @@ class TrainerConfig:
     max_grad_norm: float
     update_epochs: int
     name: str
+    verbose: bool
 
 
 @dataclass

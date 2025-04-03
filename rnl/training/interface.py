@@ -8,6 +8,8 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
+from rnl.network.model import CustomActorCriticPolicy
+
 from rnl.training.learn import inference, probe_envs, training
 
 
@@ -118,6 +120,7 @@ class Trainer:
         max_timestep_global: int,
         seed: int,
         hidden_size: List[int],
+        type_model: str,
         batch_size: int,
         num_envs: int,
         device: str,
@@ -134,6 +137,7 @@ class Trainer:
         max_grad_norm: float,
         update_epochs: int,
         name: str,
+        verbose: bool,
     ) -> None:
 
         if seed < 0:
@@ -157,9 +161,13 @@ class Trainer:
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
 
+        if type_model == "Custom":
+            type_model = CustomActorCriticPolicy
+
         network_config = NetworkConfig(
             hidden_size=hidden_size,
             mlp_activation=activation,
+            type_model=type_model,
         )
         trainer_config = TrainerConfig(
             pretrained=pretrained,
@@ -181,6 +189,7 @@ class Trainer:
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
             name=name,
+            verbose=verbose,
         )
 
         # if not self.render_config.debug:
@@ -238,6 +247,8 @@ class Probe:
         env_config: EnvConfig,
         render_config: RenderConfig,
     ) -> None:
+
+        print(seed)
 
         if seed < 0:
             raise ValueError("Error: Seed must be greater than or equal to 0.")

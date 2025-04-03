@@ -180,3 +180,18 @@ class Index:
     def __iter__(self):
         for id, bbox, obj in self.items:
             yield id
+
+def print_config_table(config_dict):
+    table_width = 45
+    horizontal_line = "-" * table_width
+    print(horizontal_line)
+
+    for config_name, config_values in config_dict.items():
+        print(f"| {config_name + '/':<41} |")
+        print(horizontal_line)
+        if isinstance(config_values, dict):
+            for key, value in config_values.items():
+                print(f"|    {key.ljust(20)} | {str(value).ljust(15)} |")
+        else:
+            print(f"|    {str(config_values).ljust(20)} | {' '.ljust(15)}|")
+        print(horizontal_line)
