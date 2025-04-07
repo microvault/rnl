@@ -47,12 +47,14 @@ class Robot:
         Create and add the robot to the given pymunk space.
         """
         body = pymunk.Body(self.mass, self.moment_of_inertia)
+        # body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         body.position = (position_x, position_y)
-        body.damping = 0.9
-        body.angular_damping = 0.9
+        # body.damping = 0.9
+        # body.angular_damping = 0.9
 
         shape = pymunk.Circle(body, self.robot_radius)
-        shape.friction = 1.0
+        # shape.friction = 1.0
+        shape.friction = 0.0
         space.add(body, shape)
         return body
 
