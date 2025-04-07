@@ -37,8 +37,6 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
         use_render: bool,
         type_reward: RewardConfig,
-        porcentage_obstacle: Optional[float] = None,
-        map_size: Optional[float] = 40.0,
         mode: str = "train-mode",
     ):
         super().__init__()
@@ -65,8 +63,8 @@ class NaviEnv(gym.Env):
         self.infos_list = []
         self.steps_to_goal = 0
         self.steps_to_collision = 0
-        self.map_size = map_size
-        self.porcentage_obstacle = porcentage_obstacle
+        self.map_size = env_config.map_size
+        self.porcentage_obstacle = env_config.obstacle_percentage
         self.lstm_states = None
         self.episode_starts = np.ones((1,), dtype=bool)
         self.steps_unsafe_area = 0

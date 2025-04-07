@@ -8,6 +8,8 @@ class EnvConfig:
     folder_map: str
     name_map: str
     timestep: int
+    obstacle_percentage: float
+    map_size: float
 
 
 @dataclass

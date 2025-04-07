@@ -3,13 +3,11 @@ import numpy as np
 
 def statistics(info_list, field):
     values = [info[field] for info in info_list if field in info]
-    if not values:  # se a lista estiver vazia, retorne None ou valores padrão
+    if not values:
         return None, None, None, None
     mean_value = np.mean(values)
-    min_value = np.min(values)
-    max_value = np.max(values)
-    std_deviation = np.std(values)
-    return mean_value, min_value, max_value, std_deviation
+    mean_value = float(format(mean_value, '.4g'))
+    return mean_value
 
 
 def evaluate_agent(agent, env, num_episodes=10):
@@ -22,7 +20,6 @@ def evaluate_agent(agent, env, num_episodes=10):
         state, info = env.reset()
         done = False
         truncated = False
-
 
         while not done and not truncated:
             action, _ = agent.predict(state, deterministic=True)
@@ -47,4 +44,9 @@ def evaluate_agent(agent, env, num_episodes=10):
     percentage_angular = command_angular / total_timesteps
     percentage_unsafe = unsafe / total_timesteps
 
-    return success_percentage, total_timesteps, round(percentage_unsafe, 2), round(percentage_angular, 2)
+    return (
+        success_percentage,
+        total_timesteps,
+        round(percentage_unsafe, 2),
+        round(percentage_angular, 2),
+    )

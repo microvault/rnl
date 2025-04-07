@@ -181,6 +181,7 @@ class Index:
         for id, bbox, obj in self.items:
             yield id
 
+
 def print_config_table(config_dict):
     table_width = 45
     horizontal_line = "-" * table_width

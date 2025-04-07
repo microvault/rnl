@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
-import json
-from sb3_contrib import RecurrentPPO, TRPO
+from sb3_contrib import TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
@@ -14,6 +12,7 @@ from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
 import wandb
+from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
@@ -25,27 +24,23 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.rewards import RewardConfig
-from rnl.configs.strategys import get_strategy_dict
-from rnl.engine.utils import clean_info, set_seed, print_config_table
+from rnl.engine.utils import clean_info, print_config_table, set_seed
 from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
-from rnl.agents.evaluate import evaluate_agent, statistics
 
-ENV_TYPE = "easy-00"
-PORCENTAGE_OBSTACLE = 20.0
-MAP_SIZE = 2.0
+ENV_TYPE = "train-mode"
+OBSTACLE_PERCENTAGE= 40.0
+MAP_SIZE = 5.0
 POLICY = "TRPO"
-NAME_CHECKPOINT="simples_ppo_easy_04_time_obstacle"
+NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
-    reward_type="time",
     params={
         "scale_orientation": 0.02,
         "scale_distance": 0.06,
         "scale_time": 0.01,
         "scale_obstacle": 0.004,
     },
-    description="Reward baseado em todos os fatores",
 )
 
 
@@ -56,15 +51,16 @@ def training(
     render_config: RenderConfig,
     trainer_config: TrainerConfig,
     network_config: NetworkConfig,
+    reward_config: RewardConfig = REWARD_TYPE,
+    print_parameter: bool = True,
 ):
     extra_info = {
         "Type mode": ENV_TYPE,
         "Type policy": POLICY,
-        "reward_type": REWARD_TYPE.reward_type,
-        "scale_orientation": REWARD_TYPE.params["scale_orientation"],
-        "scale_distance": REWARD_TYPE.params["scale_distance"],
-        "scale_time": REWARD_TYPE.params["scale_time"],
-        "scale_obstacle": REWARD_TYPE.params["scale_obstacle"],
+        "scale_orientation": reward_config.params["scale_orientation"],
+        "scale_distance": reward_config.params["scale_distance"],
+        "scale_time": reward_config.params["scale_time"],
+        "scale_obstacle": reward_config.params["scale_obstacle"],
     }
 
     config_dict = {
@@ -78,7 +74,8 @@ def training(
 
     config_dict.update(extra_info)
 
-    print_config_table(config_dict)
+    if print_parameter:
+        print_config_table(config_dict)
 
     if trainer_config.use_wandb:
         run = wandb.init(
@@ -102,11 +99,10 @@ def training(
         use_render=False,
         mode=ENV_TYPE,
         type_reward=REWARD_TYPE,
-        porcentage_obstacle=PORCENTAGE_OBSTACLE,
-        map_size=MAP_SIZE,
     )
 
-    print("\nCheck environment ...")
+    if print_parameter:
+        print("\nCheck environment ...")
     check_env(env)
 
     activation_fn_map = {
@@ -147,8 +143,6 @@ def training(
             use_render=False,
             mode=ENV_TYPE,
             type_reward=REWARD_TYPE,
-            porcentage_obstacle=PORCENTAGE_OBSTACLE,
-            map_size=MAP_SIZE,
         )
         env = Monitor(env)
         return env
@@ -157,7 +151,8 @@ def training(
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
     verbose_value = 0 if not trainer_config.verbose else 1
 
-    print("\nInitiate training ...")
+    if print_parameter:
+        print("\nInitiate training ...")
 
     model = None
 
@@ -248,16 +243,19 @@ def training(
             verbose=2,
         )
     else:
-        callback = DynamicTrainingCallback(
-            evaluator=evaluator,
-            justificativas_history=[],
-            get_strategy_dict_func=get_strategy_dict,
-            get_parameter_train=config_dict,
-            check_freq=100,
-        ) if trainer_config.use_agents else CheckpointCallback(
-            save_freq=100000,
-            save_path="./checkpoints/",
-            name_prefix=NAME_CHECKPOINT,
+        callback = (
+            DynamicTrainingCallback(
+                evaluator=evaluator,
+                justificativas_history=[],
+                get_parameter_train=config_dict,
+                check_freq=100,
+            )
+            if trainer_config.use_agents
+            else CheckpointCallback(
+                save_freq=100000,
+                save_path="./checkpoints/",
+                name_prefix=NAME_CHECKPOINT,
+            )
         )
 
     if model is not None:
@@ -271,8 +269,8 @@ def training(
             run.finish()
 
     final_eval = evaluate_agent(model, env)
-    print("Resultados da avaliação final:", final_eval)
 
+    metrics = {}
     if model is not None:
         infos_list = []
         for i in range(model.n_envs):
@@ -281,54 +279,20 @@ def training(
                 infos_list.extend(env_info)
 
         stats = {}
-        for campo in ["obstacle_score", "orientation_score", "progress_score", "time_score", "min_lidar"]:
+        for campo in [
+            "obstacle_score",
+            "orientation_score",
+            "progress_score",
+            "time_score",
+            "min_lidar",
+        ]:
             if any(campo in info for info in infos_list):
-                media, _, _, desvio = statistics(infos_list, campo)
+                media = statistics(infos_list, campo)
                 stats[campo + "_mean"] = media
-                stats[campo + "_std"] = desvio
 
-        print("Estatísticas do treinamento completo:")
-        print(json.dumps(stats, indent=4))
+        metrics = stats
 
-        import matplotlib.pyplot as plt
-        import numpy as np
-
-        # Lista das métricas que você quer plotar
-        metric_keys = ["obstacle_score", "orientation_score", "progress_score", "time_score", "min_lidar"]
-        n_envs = model.n_envs
-
-        # Dicionários para armazenar os valores de média e desvio para cada métrica e ambiente
-        env_stats = { key: [] for key in metric_keys }
-        env_std = { key: [] for key in metric_keys }
-
-        # Itera por cada ambiente e coleta as estatísticas
-        for i in range(n_envs):
-            env_info = model.get_env().env_method("get_infos", indices=i)[0]
-            for key in metric_keys:
-                if any(key in info for info in env_info):
-                    media, _, _, desvio = statistics(env_info, key)
-                else:
-                    media, desvio = 0, 0
-                env_stats[key].append(media)
-                env_std[key].append(desvio)
-
-        # Configuração do gráfico de barras agrupadas
-        x = np.arange(n_envs)
-        width = 0.15  # Largura de cada barra
-
-        fig, ax = plt.subplots()
-        for idx, key in enumerate(metric_keys):
-            ax.bar(x + idx * width, env_stats[key], width, yerr=env_std[key], capsize=5, label=key)
-
-        ax.set_xlabel('Ambiente')
-        ax.set_ylabel('Métricas')
-        ax.set_title('Métricas por Ambiente')
-        ax.set_xticks(x + width * len(metric_keys) / 2)
-        ax.set_xticklabels([f"Env {i}" for i in range(n_envs)])
-        ax.legend()
-
-        plt.show()
-
+    return metrics, final_eval
 
 
 def inference(
@@ -368,15 +332,21 @@ def inference(
         use_render=True,
         mode=ENV_TYPE,
         type_reward=REWARD_TYPE,
-        porcentage_obstacle=PORCENTAGE_OBSTACLE,
-        map_size=MAP_SIZE,
     )
 
     env.render()
 
 
 def probe_envs(
-    num_envs, max_steps, robot_config, sensor_config, env_config, render_config, seed, mode=None, image=True
+    num_envs,
+    max_steps,
+    robot_config,
+    sensor_config,
+    env_config,
+    render_config,
+    seed,
+    mode=None,
+    image=True,
 ):
     set_seed(seed)
 
@@ -399,8 +369,6 @@ def probe_envs(
         use_render=False,
         mode=ENV_TYPE,
         type_reward=REWARD_TYPE,
-        porcentage_obstacle=PORCENTAGE_OBSTACLE,
-        map_size=MAP_SIZE,
     )
 
     print("\nCheck environment ...")
@@ -438,8 +406,6 @@ def probe_envs(
             use_render=False,
             mode=ENV_TYPE,
             type_reward=REWARD_TYPE,
-            porcentage_obstacle=PORCENTAGE_OBSTACLE,
-            map_size=MAP_SIZE,
         )
 
         obs, info = env.reset()
@@ -639,7 +605,14 @@ def probe_envs(
         # Preenche os 7 subplots com as métricas
         for i, (title, data, color) in enumerate(step_metrics):
             ax = axes[i]
-            ax.plot(steps_range, data, label=title, color=color, linestyle="-", linewidth=1.5)
+            ax.plot(
+                steps_range,
+                data,
+                label=title,
+                color=color,
+                linestyle="-",
+                linewidth=1.5,
+            )
             ax.set_ylabel(title, fontsize=8)
             ax.legend(fontsize=6)
             ax.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
@@ -648,15 +621,24 @@ def probe_envs(
             mean_val = np.mean(data)
             min_val = np.min(data)
             max_val = np.max(data)
-            ax.text(0.5, -0.25,
-                    f"Média: {mean_val:.4f} | Mínimo: {min_val:.4f} | Máximo: {max_val:.4f}",
-                    transform=ax.transAxes, ha="center", fontsize=6)
+            ax.text(
+                0.5,
+                -0.25,
+                f"Média: {mean_val:.4f} | Mínimo: {min_val:.4f} | Máximo: {max_val:.4f}",
+                transform=ax.transAxes,
+                ha="center",
+                fontsize=6,
+            )
 
         # Último subplot: gráfico de episódios (recompensa e tempo médio)
         ax_ep = axes[-1]
         episodes_range = range(1, len(completed_rewards) + 1)
-        ax_ep.plot(episodes_range, completed_rewards, label="Completed Rewards", color="black")
-        ax_ep.plot(episodes_range, completed_lengths, label="Completed Lengths", color="gray")
+        ax_ep.plot(
+            episodes_range, completed_rewards, label="Completed Rewards", color="black"
+        )
+        ax_ep.plot(
+            episodes_range, completed_lengths, label="Completed Lengths", color="gray"
+        )
         ax_ep.set_ylabel("Geral", fontsize=8)
         ax_ep.legend(fontsize=6)
         ax_ep.grid(True, which="both", linestyle="--", linewidth=0.5, alpha=0.7)
@@ -668,10 +650,15 @@ def probe_envs(
         mean_lengths = np.mean(completed_lengths)
         min_lengths = np.min(completed_lengths)
         max_lengths = np.max(completed_lengths)
-        ax_ep.text(0.5, -0.4,
-                   f"Rewards -> Média: {mean_rewards:.4f} | Mínimo: {min_rewards:.4f} | Máximo: {max_rewards:.4f}\n"
-                   f"Lengths -> Média: {mean_lengths:.4f} | Mínimo: {min_lengths:.4f} | Máximo: {max_lengths:.4f}",
-                   transform=ax_ep.transAxes, ha="center", fontsize=6)
+        ax_ep.text(
+            0.5,
+            -0.4,
+            f"Rewards -> Média: {mean_rewards:.4f} | Mínimo: {min_rewards:.4f} | Máximo: {max_rewards:.4f}\n"
+            f"Lengths -> Média: {mean_lengths:.4f} | Mínimo: {min_lengths:.4f} | Máximo: {max_lengths:.4f}",
+            transform=ax_ep.transAxes,
+            ha="center",
+            fontsize=6,
+        )
 
         plt.tight_layout()
 

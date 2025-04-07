@@ -11,7 +11,6 @@ class DynamicTrainingCallback(BaseCallback):
         self,
         evaluator,
         justificativas_history,
-        get_strategy_dict_func,
         get_parameter_train,
         check_freq=100,
     ):
@@ -19,7 +18,6 @@ class DynamicTrainingCallback(BaseCallback):
         self.evaluator = evaluator
         self.check_freq = check_freq
         self.justificativas_history = justificativas_history
-        self.get_strategy_dict = get_strategy_dict_func
         self.parameter_train = get_parameter_train
 
     def _on_rollout_start(self) -> None:

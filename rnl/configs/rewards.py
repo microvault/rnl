@@ -67,17 +67,13 @@ def r3(x: float, threshold_collision: float, scale: float) -> float:
 
 
 class RewardConfig:
-    def __init__(self, reward_type: str, params: Dict[str, Any], description: str = ""):
+    def __init__(self, params: Dict[str, Any]):
         """
         Parâmetros:
-          - reward_type: String que define o tipo de reward (ex.: "all", "time", "distance", etc.)
           - params: Dicionário com os parâmetros, como escalas:
               * scale_orientation, scale_distance, scale_time, scale_obstacle.
-          - description: Descrição opcional do reward.
         """
-        self.reward_type = reward_type
         self.params = params
-        self.description = description
 
     def get_reward(
         self,
@@ -113,50 +109,9 @@ class RewardConfig:
             max_distance,
             scale_distance,
         )
-        # norm_progress_reward = normalize_module(progress_reward, -scale_distance, scale_distance)
-
         # Se houver condição de término, retorna imediatamente
         if done_coll_target:
             return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
 
-        # Seleciona quais componentes retornar de acordo com o tipo de reward
-        if self.reward_type == "time":
-            return rew_coll_target, 0.0, 0.0, time_reward, 0.0, False
-        elif self.reward_type == "distance":
-            return rew_coll_target, 0.0, progress_reward, 0.0, 0.0, False
-        elif self.reward_type == "orientation":
-            return rew_coll_target, orient_reward, 0.0, 0.0, 0.0, False
-        elif self.reward_type == "all":
-            return (
-                rew_coll_target,
-                orient_reward,
-                progress_reward,
-                time_reward,
-                obstacle_reward,
-                False,
-            )
-        elif self.reward_type == "any":
-            return rew_coll_target, 0.0, 0.0, 0.0, 0.0, False
-        elif self.reward_type == "distance_orientation":
-            return rew_coll_target, orient_reward, progress_reward, 0.0, 0.0, False
-        elif self.reward_type == "distance_time":
-            return rew_coll_target, 0.0, progress_reward, time_reward, 0.0, False
-        elif self.reward_type == "orientation_time":
-            return rew_coll_target, orient_reward, 0.0, time_reward, 0.0, False
-        elif self.reward_type == "distance_orientation_time":
-            return (
-                rew_coll_target,
-                orient_reward,
-                progress_reward,
-                time_reward,
-                0.0,
-                False,
-            )
-        elif self.reward_type == "distance_obstacle":
-            return rew_coll_target, 0.0, progress_reward, 0.0, obstacle_reward, False
-        elif self.reward_type == "time_obstacle":
-            return rew_coll_target, 0.0, 0.0, time_reward, obstacle_reward, False
-        elif self.reward_type == "orientation_obstacle":
-            return rew_coll_target, orient_reward, 0.0, 0.0, obstacle_reward, False
         else:
-            return rew_coll_target, 0.0, 0.0, 0.0, 0.0, False
+            return (rew_coll_target, orient_reward, progress_reward, time_reward, obstacle_reward, False)

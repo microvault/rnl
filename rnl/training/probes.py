@@ -4,12 +4,13 @@ from matplotlib.lines import Line2D
 from shapely.geometry import Point, Polygon
 
 from rnl.engine.spawn import spawn_robot_and_goal
-from rnl.environment.world import CreateWorld
 from rnl.environment.generate import Generator
+from rnl.environment.world import CreateWorld
 
 
 def is_inside_polygon(point, polygon: Polygon):
     return polygon.contains(Point(point))
+
 
 def poly_with_map():
     generator = CreateWorld(
@@ -19,6 +20,7 @@ def poly_with_map():
     _, _, poly = generator.world(mode="medium")
 
     return poly
+
 
 def poly():
     generator = Generator(mode="easy-10")

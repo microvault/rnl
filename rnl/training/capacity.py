@@ -1,12 +1,15 @@
-import psutil
 import time
+
 import gymnasium as gym
+import psutil
+
 
 def check_system_usage():
     mem = psutil.virtual_memory()
     cpu = psutil.cpu_percent()
     # Retorna uso de memória (GB) e CPU (%)
     return mem.used / (1024**3), cpu
+
 
 def test_env_capacity(env_constructor, max_envs=100, mem_limit_gb=10.0, cpu_limit=80.0):
     """
@@ -22,7 +25,9 @@ def test_env_capacity(env_constructor, max_envs=100, mem_limit_gb=10.0, cpu_limi
         time.sleep(1)  # espera pra estabilizar
 
         mem_used_gb, cpu_used = check_system_usage()
-        print(f"Ambientes: {i}, Memória usada: {mem_used_gb:.2f} GB, CPU usada: {cpu_used:.1f}%")
+        print(
+            f"Ambientes: {i}, Memória usada: {mem_used_gb:.2f} GB, CPU usada: {cpu_used:.1f}%"
+        )
 
         if mem_used_gb > mem_limit_gb or cpu_used > cpu_limit:
             print("Limite atingido. Liberando ambientes...")
@@ -35,6 +40,7 @@ def test_env_capacity(env_constructor, max_envs=100, mem_limit_gb=10.0, cpu_limi
     for e in envs:
         e.close()
     return max_envs
+
 
 if __name__ == "__main__":
     # Exemplo de uso: testando criar ambientes CartPole

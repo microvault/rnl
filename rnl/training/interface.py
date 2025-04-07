@@ -9,7 +9,6 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.network.model import CustomActorCriticPolicy
-
 from rnl.training.learn import inference, probe_envs, training
 
 
@@ -57,13 +56,17 @@ def sensor(
     fov: float, num_rays: int, min_range: float, max_range: float
 ) -> SensorConfig:
     if min_range < 0 or max_range < 0:
-        raise ValueError("Error: Minimum/Maximum range must be greater than or equal to 0.")
+        raise ValueError(
+            "Error: Minimum/Maximum range must be greater than or equal to 0."
+        )
     if num_rays < 0:
         raise ValueError("Error: Number of rays must be greater than or equal to 0.")
     if fov < 0 or fov > 360:
         raise ValueError("Error: Field of view must be between 0 and 360 degrees.")
     if min_range > max_range:
-        raise ValueError("Error: Minimum range must be less than or equal to maximum range.")
+        raise ValueError(
+            "Error: Minimum range must be less than or equal to maximum range."
+        )
     if min_range == max_range:
         raise ValueError("Error: Minimum range cannot be equal to maximum range.")
     if num_rays == 0:
@@ -93,6 +96,8 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
+        obstacle_percentage=40.0,
+        map_size=5,
     )
 
 
@@ -155,7 +160,9 @@ class Trainer:
         if ent_coef < 0:
             raise ValueError("Error: Entropy coefficient must be greater than 0.")
         if vf_coef < 0:
-            raise ValueError("Error: Value function coefficient must be greater than 0.")
+            raise ValueError(
+                "Error: Value function coefficient must be greater than 0."
+            )
         if max_grad_norm < 0:
             raise ValueError("Error: Maximum gradient norm must be greater than 0.")
         if update_epochs < 0:
