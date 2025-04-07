@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 from sb3_contrib import TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
 from stable_baselines3.common.callbacks import CheckpointCallback
@@ -11,7 +12,6 @@ from torch import nn
 from tqdm import trange
 from wandb.integration.sb3 import WandbCallback
 
-import wandb
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
@@ -30,7 +30,7 @@ from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
 ENV_TYPE = "train-mode"
-OBSTACLE_PERCENTAGE= 40.0
+OBSTACLE_PERCENTAGE = 40.0
 MAP_SIZE = 5.0
 POLICY = "TRPO"
 NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"

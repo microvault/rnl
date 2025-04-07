@@ -114,4 +114,11 @@ class RewardConfig:
             return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
 
         else:
-            return (rew_coll_target, orient_reward, progress_reward, time_reward, obstacle_reward, False)
+            return (
+                rew_coll_target,
+                orient_reward,
+                progress_reward,
+                time_reward,
+                obstacle_reward,
+                False,
+            )

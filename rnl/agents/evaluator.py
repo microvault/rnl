@@ -3,6 +3,7 @@ import json
 from google import genai
 from google.genai import types
 
+
 class LLMTrainingEvaluator:
     """
     Class to evaluate training metrics (average, std deviation, etc.)
@@ -22,28 +23,57 @@ class LLMTrainingEvaluator:
                             "reward": {
                                 "type": "object",
                                 "properties": {
-                                    "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
-                                    "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
-                                    "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
-                                    "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01}
+                                    "scale_orientation": {
+                                        "type": "number",
+                                        "minimum": 0.001,
+                                        "maximum": 0.1,
+                                    },
+                                    "scale_distance": {
+                                        "type": "number",
+                                        "minimum": 0.01,
+                                        "maximum": 0.1,
+                                    },
+                                    "scale_time": {
+                                        "type": "number",
+                                        "minimum": 0.001,
+                                        "maximum": 0.05,
+                                    },
+                                    "scale_obstacle": {
+                                        "type": "number",
+                                        "minimum": 0.001,
+                                        "maximum": 0.01,
+                                    },
                                 },
-                                "required": ["scale_orientation", "scale_distance", "scale_time", "scale_obstacle"]
+                                "required": [
+                                    "scale_orientation",
+                                    "scale_distance",
+                                    "scale_time",
+                                    "scale_obstacle",
+                                ],
                             },
                             "domain": {
                                 "type": "object",
                                 "properties": {
-                                    "obstacle_percentage": {"type": "integer", "minimum": 0, "maximum": 50},
-                                    "map_size": {"type": "number", "minimum": 1.0, "maximum": 5.0}
+                                    "obstacle_percentage": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 50,
+                                    },
+                                    "map_size": {
+                                        "type": "number",
+                                        "minimum": 1.0,
+                                        "maximum": 5.0,
+                                    },
                                 },
-                                "required": ["obstacle_percentage", "map_size"]
-                            }
+                                "required": ["obstacle_percentage", "map_size"],
+                            },
                         },
-                        "required": ["reward", "domain"]
-                    }
+                        "required": ["reward", "domain"],
+                    },
                 },
-                "justify": {"type": "string"}
+                "justify": {"type": "string"},
             },
-            "required": ["strategies", "justify"]
+            "required": ["strategies", "justify"],
         }
 
     def call_evaluator_llm(self, prompt: str):
@@ -90,10 +120,10 @@ class LLMTrainingEvaluator:
         # Resumo de histórico (curto)
         history_lines = []
         for loop_idx, loop_entry in enumerate(history, start=1):
-            short_justify = loop_entry.get('justify', '')
+            short_justify = loop_entry.get("justify", "")
             history_lines.append(f"Loop {loop_idx}: {short_justify}")
-            for pop_idx, pop_data in enumerate(loop_entry.get('population_data', [])):
-                metrics_info = pop_data.get('metrics', {})
+            for pop_idx, pop_data in enumerate(loop_entry.get("population_data", [])):
+                metrics_info = pop_data.get("metrics", {})
                 history_lines.append(
                     f"  Pop {pop_idx+1} -> Acerto: {metrics_info.get('success_pct','')}%, Inseguro: {metrics_info.get('unsafe_pct','')}%, AngVel: {metrics_info.get('angular_use_pct','')}%"
                 )
@@ -101,8 +131,8 @@ class LLMTrainingEvaluator:
         # Sumário atual
         current_summary_str = []
         for pop in summary_data:
-            r = pop['rewards']
-            m = pop['metrics']
+            r = pop["rewards"]
+            m = pop["metrics"]
             current_summary_str.append(
                 f"Pop {pop['pop_id']}: [obst={r['obstacle']:.4f}, ang={r['angle']:.4f}, dist={r['distance']:.4f}, time={r['time']:.4f}] | "
                 f"Acerto={m['success_pct']:.1f}%, Inseguro={m['unsafe_pct']:.1f}%, AngVel={m['angular_use_pct']:.1f}%"
@@ -110,23 +140,23 @@ class LLMTrainingEvaluator:
 
         # Exemplo de resposta
         json_example = (
-            '{\n'
+            "{\n"
             '  "strategies": [\n'
-            '    {\n'
+            "    {\n"
             '      "reward": {\n'
             '        "scale_orientation": 0.015,\n'
             '        "scale_distance": 0.03,\n'
             '        "scale_time": 0.005,\n'
             '        "scale_obstacle": 0.002\n'
-            '      },\n'
+            "      },\n"
             '      "domain": {\n'
             '        "obstacle_percentage": 25,\n'
             '        "map_size": 3.5\n'
-            '      }\n'
-            '    }\n'
-            '  ],\n'
+            "      }\n"
+            "    }\n"
+            "  ],\n"
             '  "justify": "Mudanças para aumentar taxa de sucesso e reduzir insegurança."\n'
-            '}'
+            "}"
         )
 
         # Incluindo a abordagem de reflexão (CoT)
@@ -140,9 +170,7 @@ class LLMTrainingEvaluator:
             + "\n\nStatus Atual:\n"
             + "\n".join(current_summary_str)
             + "\n\n"
-            "**Formato Obrigatório** (exemplo):\n"
-            + json_example
-            + "\n\n"
+            "**Formato Obrigatório** (exemplo):\n" + json_example + "\n\n"
             "Adapte cada objeto em 'strategies' para cada população na mesma ordem, justificando o motivo das mudanças."
         )
 
@@ -158,12 +186,12 @@ class LLMTrainingEvaluator:
         reflexoes = []
 
         for pop in summary_data:
-            rewards = pop['rewards']
-            metrics = pop['metrics']
+            rewards = pop["rewards"]
+            metrics = pop["metrics"]
 
-            sucesso = metrics['success_pct']
-            inseguro = metrics['unsafe_pct']
-            angular = metrics['angular_use_pct']
+            sucesso = metrics["success_pct"]
+            inseguro = metrics["unsafe_pct"]
+            angular = metrics["angular_use_pct"]
 
             reflexao = f"População {pop['pop_id']} obteve {sucesso}% de sucesso, com {inseguro}% de insegurança."
 
@@ -173,14 +201,20 @@ class LLMTrainingEvaluator:
             elif inseguro > 25:
                 reflexao += " Taxa de insegurança alta, reduzir escala de tempo e aumentar peso do obstáculo."
             elif angular > 60:
-                reflexao += " Uso angular excessivo, considere reduzir escala de orientação."
+                reflexao += (
+                    " Uso angular excessivo, considere reduzir escala de orientação."
+                )
             else:
-                reflexao += " Equilíbrio adequado de métricas, pequenos ajustes sugeridos."
+                reflexao += (
+                    " Equilíbrio adequado de métricas, pequenos ajustes sugeridos."
+                )
 
             reflexoes.append(reflexao)
 
         # Resumo Histórico
-        resumo_historico = [f"Loop {idx+1}: {entry['justify']}" for idx, entry in enumerate(history)]
+        resumo_historico = [
+            f"Loop {idx+1}: {entry['justify']}" for idx, entry in enumerate(history)
+        ]
 
         # Texto final estruturado
         texto_reflexao = "### Reflexão Automática:\n"
