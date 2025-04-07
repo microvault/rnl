@@ -1,3 +1,6 @@
+import os
+import warnings
+
 from rnl.training.interface import (
     Probe,
     Simulation,
@@ -7,10 +10,10 @@ from rnl.training.interface import (
     robot,
     sensor,
 )
-import os
-import warnings
 
 os.environ["KMP_WARNINGS"] = "0"
+os.environ["KMP_WARNINGS"] = "FALSE"
+os.environ["OMP_NUM_THREADS"] = "1"
 
 warnings.filterwarnings("ignore", message="Mean of empty slice")
 warnings.filterwarnings("ignore", message="invalid value encountered in scalar divide")
