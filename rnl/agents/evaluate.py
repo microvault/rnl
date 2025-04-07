@@ -6,7 +6,7 @@ def statistics(info_list, field):
     if not values:
         return None, None, None, None
     mean_value = np.mean(values)
-    mean_value = float(format(mean_value, '.4g'))
+    mean_value = float(format(mean_value, ".4g"))
     return mean_value
 
 

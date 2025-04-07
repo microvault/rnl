@@ -424,7 +424,6 @@ class NaviEnv(gym.Env):
         if laser < (self.collision + 0.5):
             self.steps_unsafe_area += 1
 
-
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
         padded_lidar[: self.current_rays] = lidar_measurements[: self.current_rays]
 
@@ -588,12 +587,12 @@ class NaviEnv(gym.Env):
 
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     grid_length=self.grid_length,
-                    porcentage_obstacle=self.porcentage_obstacle
+                    porcentage_obstacle=self.porcentage_obstacle,
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
-                    robot_clearance=self.threshold+0.4,
-                    goal_clearance=self.collision+0.4,
+                    robot_clearance=self.threshold + 0.4,
+                    goal_clearance=self.collision + 0.4,
                     min_robot_goal_dist=0.03,
                 )
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]

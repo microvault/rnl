@@ -1,6 +1,9 @@
+import json
 import multiprocessing
+import os
 import time
 
+from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -9,11 +12,9 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import training
-from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.rewards import RewardConfig
-import json
-import os
+from rnl.training.learn import training
+
 
 def train_worker(
     robot_config,
@@ -64,7 +65,9 @@ def run_parallel_trainings(list_of_configs):
 
 
 def run_multiple_parallel_trainings(num_loops, initial_configs):
-    evaluator = LLMTrainingEvaluator(evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key)
+    evaluator = LLMTrainingEvaluator(
+        evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key
+    )
     history = []
     current_configs = initial_configs.copy()
 
@@ -78,29 +81,30 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
             summary_dict = {
                 "pop_id": i,
                 "rewards": {
-                    "obstacle": metrics.get('obstacle_score_mean', 0.0),
-                    "angle": metrics.get('orientation_score_mean', 0.0),
-                    "distance": metrics.get('progress_score_mean', 0.0),
-                    "time": metrics.get('time_score_mean', 0.0)
+                    "obstacle": metrics.get("obstacle_score_mean", 0.0),
+                    "angle": metrics.get("orientation_score_mean", 0.0),
+                    "distance": metrics.get("progress_score_mean", 0.0),
+                    "time": metrics.get("time_score_mean", 0.0),
                 },
                 "metrics": {
-                    "success_pct": scores[0],   # Taxa de sucesso
+                    "success_pct": scores[0],  # Taxa de sucesso
                     "total_steps": scores[1],  # Total de steps
-                    "unsafe_pct": scores[2],   # % tempo em zona insegura
-                    "angular_use_pct": scores[3]  # % uso de velocidade angular
-                }
+                    "unsafe_pct": scores[2],  # % tempo em zona insegura
+                    "angular_use_pct": scores[3],  # % uso de velocidade angular
+                },
             }
             population_summaries.append(summary_dict)
-            population_data.append({
-                "population": i,
-                "metrics": summary_dict["metrics"],
-                "params": summary_dict["rewards"]
-            })
+            population_data.append(
+                {
+                    "population": i,
+                    "metrics": summary_dict["metrics"],
+                    "params": summary_dict["rewards"],
+                }
+            )
 
         # Prepara prompt
         evaluation_prompt = evaluator.build_evaluation_prompt(
-            summary_data=population_summaries,
-            history=history
+            summary_data=population_summaries, history=history
         )
 
         print(evaluation_prompt)
@@ -134,7 +138,7 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                         name_map=cfg["env_config"].name_map,
                         timestep=cfg["env_config"].timestep,
                         obstacle_percentage=domain_cfg["obstacle_percentage"],
-                        map_size=domain_cfg["map_size"]
+                        map_size=domain_cfg["map_size"],
                     ),
                     "render_config": cfg["render_config"],
                     "trainer_config": cfg["trainer_config"],
@@ -142,11 +146,11 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                     "reward_config": RewardConfig(
                         params={
                             "scale_orientation": reward_cfg["scale_orientation"],
-                            "scale_distance":   reward_cfg["scale_distance"],
-                            "scale_time":       reward_cfg["scale_time"],
-                            "scale_obstacle":   reward_cfg["scale_obstacle"],
+                            "scale_distance": reward_cfg["scale_distance"],
+                            "scale_time": reward_cfg["scale_time"],
+                            "scale_obstacle": reward_cfg["scale_obstacle"],
                         }
-                    )
+                    ),
                 }
 
                 new_configs.append(new_cfg)
@@ -157,7 +161,7 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
             "loop": loop + 1,
             "strategies": strategies,
             "justify": justify,
-            "population_data": population_data
+            "population_data": population_data,
         }
         history.append(history_entry)
         current_configs = new_configs
@@ -169,6 +173,7 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
     #         print(f"  Pop {pd['population']}: {pd['metrics']}, {pd['params']}")
     return history
 
+
 def update_training_configs(current_configs, strategy, population_data):
     """Atualiza configurações baseado na estratégia recomendada"""
     new_configs = []
@@ -179,20 +184,22 @@ def update_training_configs(current_configs, strategy, population_data):
             "map_size": strategy["domain"]["map_size"]["value"],
             "obstacle_percentage": strategy["domain"]["obstacle_percentage"]["value"],
             "reward_scale": strategy["reward"]["parameters"][0]["value"],
-            "exploration_rate": max(0.1, config["exploration_rate"] * 0.95)
+            "exploration_rate": max(0.1, config["exploration_rate"] * 0.95),
         }
         new_configs.append(new_config)
 
     return new_configs
 
+
 def analyze_final_results(history):
     """Gera relatório comparativo"""
     for entry in history:
         print(f"\nLoop {entry['loop']}:")
-        for pop in entry['population_data']:
+        for pop in entry["population_data"]:
             print(f"População {pop['population']}:")
             print(f"  Sucesso: {pop['metrics'].get('success_rate', 0)}%")
             print(f"  Parâmetros: {pop['params']}")
+
 
 def print_training_results_formatted(all_results):
 
@@ -211,9 +218,12 @@ def print_training_results_formatted(all_results):
             result_str += f"   {'Accuracy (%)':<25s}: {accuracy:>8.2f}%\n"
             result_str += f"   {'Total Steps':<25s}: {total_steps_score:>8}\n"
             result_str += f"   {'Unsafe Zone Steps (%)':<25s}: {unsafe_steps:>8.2f}%\n"
-            result_str += f"   {'Angular Velocity Steps (%)':<25s}: {angular_steps:>8.2f}%\n"
+            result_str += (
+                f"   {'Angular Velocity Steps (%)':<25s}: {angular_steps:>8.2f}%\n"
+            )
             result_str += "-" * 50 + "\n"
             print(result_str, end="\n")
+
 
 if __name__ == "__main__":
     robot_config = RobotConfig(
@@ -227,7 +237,14 @@ if __name__ == "__main__":
         path_model="None",
     )
     sensor_config = SensorConfig(fov=270.0, num_rays=5, min_range=0.0, max_range=3.5)
-    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(
+        scalar=100,
+        folder_map="",
+        name_map="",
+        timestep=1000,
+        obstacle_percentage=40.0,
+        map_size=5,
+    )
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     trainer_config = TrainerConfig(

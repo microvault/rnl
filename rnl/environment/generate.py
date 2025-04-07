@@ -474,7 +474,7 @@ class Generator:
             file_path = os.path.join(json_dir, random_file)
 
             data = None
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             if "verts" not in data:
