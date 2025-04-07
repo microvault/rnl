@@ -153,3 +153,39 @@ class LLMTrainingEvaluator:
         )
 
         return prompt
+
+    def gerar_reflexao(self, summary_data, history):
+        reflexoes = []
+
+        for pop in summary_data:
+            rewards = pop['rewards']
+            metrics = pop['metrics']
+
+            sucesso = metrics['success_pct']
+            inseguro = metrics['unsafe_pct']
+            angular = metrics['angular_use_pct']
+
+            reflexao = f"População {pop['pop_id']} obteve {sucesso}% de sucesso, com {inseguro}% de insegurança."
+
+            # Avaliação específica das recompensas
+            if sucesso < 70:
+                reflexao += " Sucesso baixo, é necessário aumentar o peso da distância e orientação para reforçar precisão."
+            elif inseguro > 25:
+                reflexao += " Taxa de insegurança alta, reduzir escala de tempo e aumentar peso do obstáculo."
+            elif angular > 60:
+                reflexao += " Uso angular excessivo, considere reduzir escala de orientação."
+            else:
+                reflexao += " Equilíbrio adequado de métricas, pequenos ajustes sugeridos."
+
+            reflexoes.append(reflexao)
+
+        # Resumo Histórico
+        resumo_historico = [f"Loop {idx+1}: {entry['justify']}" for idx, entry in enumerate(history)]
+
+        # Texto final estruturado
+        texto_reflexao = "### Reflexão Automática:\n"
+        texto_reflexao += "\n".join(reflexoes)
+        texto_reflexao += "\n\n### Histórico Resumido:\n"
+        texto_reflexao += "\n".join(resumo_historico)
+
+        return texto_reflexao

@@ -32,7 +32,7 @@ def train_worker(
         trainer_config,
         network_config,
         reward_config,
-        print_parameter=True,
+        print_parameter=False,
     )
 
     return metrics, eval
@@ -72,9 +72,6 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
         print(f"\n=== Loop {loop+1}/{num_loops} ===")
         results = run_parallel_trainings(current_configs)
 
-        # Aqui se supõe que cada 'metrics' contenha algo como:
-        # {'mean_obstacle_reward': X, 'mean_angle_reward': Y, 'mean_dist_reward': Z, 'mean_time_reward': W}
-        # e que cada 'eval_res' seja [ success_pct, unsafe_pct, angular_use_pct, ... ]
         population_summaries = []
         population_data = []
         for i, (metrics, scores) in enumerate(results, start=1):
@@ -106,8 +103,12 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
             history=history
         )
 
+        print(evaluation_prompt)
+        print("###############")
+
         # Chama LLM
         llm_response = evaluator.call_evaluator_llm(evaluation_prompt)
+        print(llm_response)
 
         strategies = llm_response.get("strategies", [])
         justify = llm_response.get("justify", "")
@@ -147,14 +148,11 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                         }
                     )
                 }
-                # Aqui seria feito algum ajuste de 'reward_scale' etc., dependendo de como a lib trata
-                # mas como não está claro, apenas exemplificamos:
-                # new_cfg["trainer_config"].some_reward["scale_orientation"] = reward_cfg["scale_orientation"]
+
                 new_configs.append(new_cfg)
             else:
                 new_configs.append(cfg)
 
-        # Salva histórico
         history_entry = {
             "loop": loop + 1,
             "strategies": strategies,
@@ -261,6 +259,15 @@ if __name__ == "__main__":
         type_model="MlpPolicy",
     )
 
+    reward_config = RewardConfig(
+        params={
+            "scale_orientation": 0.02,
+            "scale_distance": 0.06,
+            "scale_time": 0.01,
+            "scale_obstacle": 0.004,
+        },
+    )
+
     config1 = {
         "robot_config": robot_config,
         "sensor_config": sensor_config,
@@ -268,15 +275,16 @@ if __name__ == "__main__":
         "render_config": render_config,
         "trainer_config": trainer_config,
         "network_config": network_config,
+        "reward_config": reward_config,
     }
 
-    pop = 1
+    pop = 2
 
     base_configs = [config1]
 
     configs = base_configs * pop
 
-    num_loops = 2
+    num_loops = 4
     all_results = run_multiple_parallel_trainings(num_loops, configs)
 
     # print_training_results_formatted(all_results)
