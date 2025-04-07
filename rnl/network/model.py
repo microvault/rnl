@@ -24,7 +24,9 @@ class CustomNetwork(nn.Module):
 
         # Transformer para a policy
         self.embed_pi = nn.Linear(feature_dim, d_model)
-        encoder_layer_pi = nn.TransformerEncoderLayer(d_model, nhead=nhead, batch_first=True)
+        encoder_layer_pi = nn.TransformerEncoderLayer(
+            d_model, nhead=nhead, batch_first=True
+        )
 
         self.transformer_pi = nn.TransformerEncoder(
             encoder_layer_pi, num_layers=num_layers
@@ -35,7 +37,9 @@ class CustomNetwork(nn.Module):
 
         # Transformer para o value
         self.embed_vf = nn.Linear(feature_dim, d_model)
-        encoder_layer_vf = nn.TransformerEncoderLayer(d_model, nhead=nhead, batch_first=True)
+        encoder_layer_vf = nn.TransformerEncoderLayer(
+            d_model, nhead=nhead, batch_first=True
+        )
         self.transformer_vf = nn.TransformerEncoder(
             encoder_layer_vf, num_layers=num_layers
         )
