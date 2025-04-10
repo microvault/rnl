@@ -62,14 +62,23 @@ def run_parallel_trainings(list_of_configs):
     print(f"Tempo total: {time.time() - start_time:.2f} seg")
     return results
 
-
-def run_multiple_parallel_trainings(num_loops, initial_configs):
-    evaluator = LLMTrainingEvaluator(evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key)
+def run_multiple_parallel_trainings(num_loops, initial_configs, allow_domain_modifications=False):
+    """
+    Executa múltiplos treinamentos em paralelo.
+    Se allow_domain_modifications=False, ignora qualquer domínio retornado pelo LLM.
+    Caso contrário, usa o domínio retornado.
+    """
+    evaluator = LLMTrainingEvaluator(
+        evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key,
+        allow_domain=allow_domain_modifications
+    )
     history = []
     current_configs = initial_configs.copy()
 
     for loop in range(num_loops):
         print(f"\n=== Loop {loop+1}/{num_loops} ===")
+
+        # Supondo que exista uma função 'run_parallel_trainings' que retorne métricas e scores
         results = run_parallel_trainings(current_configs)
 
         population_summaries = []
@@ -84,10 +93,10 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                     "time": metrics.get('time_score_mean', 0.0)
                 },
                 "metrics": {
-                    "success_pct": scores[0],   # Taxa de sucesso
-                    "total_steps": scores[1],  # Total de steps
-                    "unsafe_pct": scores[2],   # % tempo em zona insegura
-                    "angular_use_pct": scores[3]  # % uso de velocidade angular
+                    "success_pct": scores[0] * 10,
+                    "total_steps": scores[1],
+                    "unsafe_pct": scores[2] * 100,
+                    "angular_use_pct": scores[3] * 100
                 }
             }
             population_summaries.append(summary_dict)
@@ -97,7 +106,7 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                 "params": summary_dict["rewards"]
             })
 
-        # Prepara prompt
+        # Monta prompt
         evaluation_prompt = evaluator.build_evaluation_prompt(
             summary_data=population_summaries,
             history=history
@@ -112,19 +121,19 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
 
         strategies = llm_response.get("strategies", [])
         justify = llm_response.get("justify", "")
+
         print("\n=== LLM Resposta (estratégias) ===")
         print(json.dumps(llm_response, indent=2))
 
-        # Atualiza config de acordo com cada população
+        # Aplica configurações retornadas
         new_configs = []
         for idx, cfg in enumerate(current_configs):
             if idx < len(strategies):
                 s = strategies[idx]
                 reward_cfg = s["reward"]
-                domain_cfg = s["domain"]
 
-                # Exemplo de como atualizar cada config
-                # (depende do que de fato quer aplicar em env_config, reward, etc.)
+                domain_cfg = s.get("domain") if allow_domain_modifications else None
+
                 new_cfg = {
                     "robot_config": cfg["robot_config"],
                     "sensor_config": cfg["sensor_config"],
@@ -133,8 +142,8 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                         folder_map=cfg["env_config"].folder_map,
                         name_map=cfg["env_config"].name_map,
                         timestep=cfg["env_config"].timestep,
-                        obstacle_percentage=domain_cfg["obstacle_percentage"],
-                        map_size=domain_cfg["map_size"]
+                        obstacle_percentage=domain_cfg["obstacle_percentage"] if domain_cfg else cfg["env_config"].obstacle_percentage,
+                        map_size=domain_cfg["map_size"] if domain_cfg else cfg["env_config"].map_size
                     ),
                     "render_config": cfg["render_config"],
                     "trainer_config": cfg["trainer_config"],
@@ -148,7 +157,6 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
                         }
                     )
                 }
-
                 new_configs.append(new_cfg)
             else:
                 new_configs.append(cfg)
@@ -162,19 +170,14 @@ def run_multiple_parallel_trainings(num_loops, initial_configs):
         history.append(history_entry)
         current_configs = new_configs
 
-    # print("\n=== RESULTADO FINAL ===")
-    # for h in history:
-    #     print(f"Loop {h['loop']}: Justify={h['justify']}")
-    #     for pd in h["population_data"]:
-    #         print(f"  Pop {pd['population']}: {pd['metrics']}, {pd['params']}")
     return history
 
 def update_training_configs(current_configs, strategy, population_data):
-    """Atualiza configurações baseado na estratégia recomendada"""
+    """
+    Exemplo simples de atualização das configs (pode ser customizado).
+    """
     new_configs = []
-
     for idx, config in enumerate(current_configs):
-        # Aplicar ajustes progressivos
         new_config = {
             "map_size": strategy["domain"]["map_size"]["value"],
             "obstacle_percentage": strategy["domain"]["obstacle_percentage"]["value"],
@@ -182,11 +185,10 @@ def update_training_configs(current_configs, strategy, population_data):
             "exploration_rate": max(0.1, config["exploration_rate"] * 0.95)
         }
         new_configs.append(new_config)
-
     return new_configs
 
 def analyze_final_results(history):
-    """Gera relatório comparativo"""
+    """Relatório comparativo simples"""
     for entry in history:
         print(f"\nLoop {entry['loop']}:")
         for pop in entry['population_data']:
@@ -195,11 +197,13 @@ def analyze_final_results(history):
             print(f"  Parâmetros: {pop['params']}")
 
 def print_training_results_formatted(all_results):
-
+    """
+    Apenas um exemplo de formatação final (opcional).
+    """
     for loop_idx, loop_results in enumerate(all_results, start=1):
         print(f"\nLoop {loop_idx}:")
         for training_idx, (metrics, scores) in enumerate(loop_results, start=1):
-            result_str = f"\Population {training_idx}:\n"
+            result_str = f"\nPopulação {training_idx}:\n"
             result_str += " Metrics:\n"
             for key, value in metrics.items():
                 result_str += f"   {key:<25s}: {value:>8.4f}\n"
@@ -210,8 +214,8 @@ def print_training_results_formatted(all_results):
             result_str += " Scores:\n"
             result_str += f"   {'Accuracy (%)':<25s}: {accuracy:>8.2f}%\n"
             result_str += f"   {'Total Steps':<25s}: {total_steps_score:>8}\n"
-            result_str += f"   {'Unsafe Zone Steps (%)':<25s}: {unsafe_steps:>8.2f}%\n"
-            result_str += f"   {'Angular Velocity Steps (%)':<25s}: {angular_steps:>8.2f}%\n"
+            result_str += f"   {'Unsafe Steps (%)':<25s}: {unsafe_steps:>8.2f}%\n"
+            result_str += f"   {'Angular Steps (%)':<25s}: {angular_steps:>8.2f}%\n"
             result_str += "-" * 50 + "\n"
             print(result_str, end="\n")
 

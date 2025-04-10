@@ -11,7 +11,7 @@ def main():
         weight=1.0,
         threshold=0.3,  # 4
         collision=0.075,  # 2
-        path_model="None",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -33,10 +33,10 @@ def main():
     # 4.step -> config render
     param_render = vault.render(controller=False, debug=True)
 
-    # 5.step -> config train robot
-    model = vault.Simulation(param_robot, param_sensor, param_env, param_render)
+    # 5.step -> config sim robot
+    sim = vault.Simulation(param_robot, param_sensor, param_env, param_render)
     # 6.step -> run robot
-    model.run()
+    sim.run()
 
 
 if __name__ == "__main__":

@@ -29,17 +29,17 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
-ENV_TYPE = "train-mode"
+ENV_TYPE = "easy-00"
 OBSTACLE_PERCENTAGE= 40.0
 MAP_SIZE = 5.0
 POLICY = "TRPO"
 NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
     params={
-        "scale_orientation": 0.02,
-        "scale_distance": 0.06,
-        "scale_time": 0.01,
-        "scale_obstacle": 0.004,
+        "scale_orientation": 0.0, # 0.02
+        "scale_distance": 0.0, # 0.06
+        "scale_time": 0.01, # 0.01
+        "scale_obstacle": 0.0, # 0.004
     },
 )
 
@@ -88,8 +88,6 @@ def training(
         )
     else:
         run = None
-
-    evaluator = LLMTrainingEvaluator(evaluator_api_key=trainer_config.llm_api_key)
 
     env = NaviEnv(
         robot_config,
@@ -245,9 +243,6 @@ def training(
     else:
         callback = (
             DynamicTrainingCallback(
-                evaluator=evaluator,
-                justificativas_history=[],
-                get_parameter_train=config_dict,
                 check_freq=100,
             )
             if trainer_config.use_agents

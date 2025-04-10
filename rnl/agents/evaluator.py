@@ -1,54 +1,94 @@
 import json
-
 from google import genai
 from google.genai import types
 
 class LLMTrainingEvaluator:
     """
-    Class to evaluate training metrics (average, std deviation, etc.)
-    along with user input. Decides if retraining is necessary.
+    Classe para avaliar métricas de treinamento e decidir se é necessário re-treinar.
+    Se allow_domain=False, então não precisamos retornar as configurações de 'domain'.
     """
 
-    def __init__(self, evaluator_api_key: str):
+    def __init__(self, evaluator_api_key: str, allow_domain: bool = True):
         self.evaluator_api_key = evaluator_api_key
-        self.manual_schema = {
-            "type": "object",
-            "properties": {
-                "strategies": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "reward": {
-                                "type": "object",
-                                "properties": {
-                                    "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
-                                    "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
-                                    "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
-                                    "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01}
+        self.allow_domain = allow_domain
+
+        if self.allow_domain:
+            self.manual_schema = {
+                "type": "object",
+                "properties": {
+                    "strategies": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "reward": {
+                                    "type": "object",
+                                    "properties": {
+                                        "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
+                                        "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
+                                        "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
+                                        "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01}
+                                    },
+                                    "required": [
+                                        "scale_orientation",
+                                        "scale_distance",
+                                        "scale_time",
+                                        "scale_obstacle"
+                                    ]
                                 },
-                                "required": ["scale_orientation", "scale_distance", "scale_time", "scale_obstacle"]
+                                "domain": {
+                                    "type": "object",
+                                    "properties": {
+                                        "obstacle_percentage": {"type": "integer", "minimum": 0, "maximum": 50},
+                                        "map_size": {"type": "number", "minimum": 1.0, "maximum": 5.0}
+                                    },
+                                    "required": ["obstacle_percentage", "map_size"]
+                                },
                             },
-                            "domain": {
-                                "type": "object",
-                                "properties": {
-                                    "obstacle_percentage": {"type": "integer", "minimum": 0, "maximum": 50},
-                                    "map_size": {"type": "number", "minimum": 1.0, "maximum": 5.0}
-                                },
-                                "required": ["obstacle_percentage", "map_size"]
-                            }
-                        },
-                        "required": ["reward", "domain"]
-                    }
+                            "required": ["reward", "domain"]
+                        }
+                    },
+                    "justify": {"type": "string"}
                 },
-                "justify": {"type": "string"}
-            },
-            "required": ["strategies", "justify"]
-        }
+                "required": ["strategies", "justify"]
+            }
+        else:
+            # Se não permitimos domínio, removemos do schema
+            self.manual_schema = {
+                "type": "object",
+                "properties": {
+                    "strategies": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "reward": {
+                                    "type": "object",
+                                    "properties": {
+                                        "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
+                                        "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
+                                        "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
+                                        "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01}
+                                    },
+                                    "required": [
+                                        "scale_orientation",
+                                        "scale_distance",
+                                        "scale_time",
+                                        "scale_obstacle"
+                                    ]
+                                }
+                            },
+                            "required": ["reward"]
+                        }
+                    },
+                    "justify": {"type": "string"}
+                },
+                "required": ["strategies", "justify"]
+            }
 
     def call_evaluator_llm(self, prompt: str):
         """
-        Calls the Gemini LLM using the google.generativeai package.
+        Chama o modelo Gemini via google.generativeai.
         """
         client = genai.Client(api_key=self.evaluator_api_key)
 
@@ -69,70 +109,115 @@ class LLMTrainingEvaluator:
         if response is not None:
             return response.parsed
         else:
-            raise ValueError("No candidates returned from Gemini API.")
+            raise ValueError("Nenhuma resposta retornada da API Gemini.")
+
+    def gerar_reflexao(self, summary_data, history):
+        """
+        Cria um texto de análise simples sobre cada população e um histórico resumido.
+        """
+        reflexoes = []
+        for pop in summary_data:
+            m = pop['metrics']
+            reflexao = (
+                f"População {pop['pop_id']} obteve {m['success_pct']}% de sucesso, "
+                f"{m['unsafe_pct']}% de insegurança, "
+                f"e {m['angular_use_pct']}% de uso angular."
+            )
+            reflexoes.append(reflexao)
+
+        # Resumo do histórico
+        resumo_historico = []
+        for idx, entry in enumerate(history):
+            resumo_historico.append(f"Loop {idx+1}: {entry['justify']}")
+
+        texto_reflexao = "Resumo por População:\n" + "\n".join(reflexoes)
+        texto_reflexao += "\n\nHistórico Resumido:\n" + "\n".join(resumo_historico)
+
+        return texto_reflexao
 
     def build_evaluation_prompt(self, summary_data, history):
         """
-        summary_data é um array onde cada elemento representa uma população, contendo:
-        {
-            'pop_id': 1,
-            'rewards': {'obstacle': 0.01, 'angle': 0.02, 'distance': 0.03, 'time': 0.005},
-            'metrics': {
-                'success_pct': 80.0,
-                'unsafe_pct': 20.0,
-                'angular_use_pct': 50.0
-            }
-        }
+        Monta um prompt com resumo atual e histórico para o LLM.
         """
-        # Objetivo principal
-        objective = "Objetivo Macro: Ajustar as recompensas e domínio para melhorar taxa de sucesso e reduzir insegurança."
+        # Mostra a análise
+        print(self.gerar_reflexao(summary_data, history))
 
-        # Resumo de histórico (curto)
+        regras = ""
+
+        # Objetivo principal
+        if self.allow_domain:
+            objective = (
+                "Objetivo: Ajustar recompensas e domínio para melhorar taxa de sucesso, reduzir insegurança e diminuir a porcentagem de vezes que usa velocidade angular."
+            )
+        else:
+            objective = (
+                "Objetivo: Ajustar recompensas para melhorar taxa de sucesso, reduzir insegurança e diminuir a porcentagem de vezes que usa velocidade angular."
+            )
+
+        # Histórico simplificado
         history_lines = []
         for loop_idx, loop_entry in enumerate(history, start=1):
             short_justify = loop_entry.get('justify', '')
             history_lines.append(f"Loop {loop_idx}: {short_justify}")
             for pop_idx, pop_data in enumerate(loop_entry.get('population_data', [])):
-                metrics_info = pop_data.get('metrics', {})
+                m = pop_data.get('metrics', {})
                 history_lines.append(
-                    f"  Pop {pop_idx+1} -> Acerto: {metrics_info.get('success_pct','')}%, Inseguro: {metrics_info.get('unsafe_pct','')}%, AngVel: {metrics_info.get('angular_use_pct','')}%"
+                    f"  Pop {pop_idx+1} -> Acerto: {m.get('success_pct','')}%, "
+                    f"Inseguro: {m.get('unsafe_pct','')}%, "
+                    f"Veloc Angular: {m.get('angular_use_pct','')}%"
                 )
 
-        # Sumário atual
+        # Status atual
         current_summary_str = []
         for pop in summary_data:
             r = pop['rewards']
             m = pop['metrics']
             current_summary_str.append(
-                f"Pop {pop['pop_id']}: [obst={r['obstacle']:.4f}, ang={r['angle']:.4f}, dist={r['distance']:.4f}, time={r['time']:.4f}] | "
-                f"Acerto={m['success_pct']:.1f}%, Inseguro={m['unsafe_pct']:.1f}%, AngVel={m['angular_use_pct']:.1f}%"
+                f"Pop {pop['pop_id']}: [obst={r['obstacle']:.4f}, ang={r['angle']:.4f}, "
+                f"dist={r['distance']:.4f}, time={r['time']:.4f}] -> "
+                f"Sucesso={m['success_pct']:.1f}%, Inseguro={m['unsafe_pct']:.1f}%, "
+                f"VelAngular={m['angular_use_pct']:.1f}%"
             )
 
-        # Exemplo de resposta
-        json_example = (
-            '{\n'
-            '  "strategies": [\n'
-            '    {\n'
-            '      "reward": {\n'
-            '        "scale_orientation": 0.015,\n'
-            '        "scale_distance": 0.03,\n'
-            '        "scale_time": 0.005,\n'
-            '        "scale_obstacle": 0.002\n'
-            '      },\n'
-            '      "domain": {\n'
-            '        "obstacle_percentage": 25,\n'
-            '        "map_size": 3.5\n'
-            '      }\n'
-            '    }\n'
-            '  ],\n'
-            '  "justify": "Mudanças para aumentar taxa de sucesso e reduzir insegurança."\n'
-            '}'
-        )
+        # Exemplo de resposta (JSON)
+        if self.allow_domain:
+            json_example = (
+                '{\n'
+                '  "strategies": [\n'
+                '    {\n'
+                '      "reward": {\n'
+                '        "scale_orientation": 0.015,\n'
+                '        "scale_distance": 0.03,\n'
+                '        "scale_time": 0.005,\n'
+                '        "scale_obstacle": 0.002\n'
+                '      },\n'
+                '      "domain": {\n'
+                '        "obstacle_percentage": 25,\n'
+                '        "map_size": 3.5\n'
+                '      }\n'
+                '    }\n'
+                '  ],\n'
+                '  "justify": "Mudanças para aumentar taxa de sucesso e reduzir insegurança."\n'
+                '}'
+            )
+        else:
+            json_example = (
+                '{\n'
+                '  "strategies": [\n'
+                '    {\n'
+                '      "reward": {\n'
+                '        "scale_orientation": 0.015,\n'
+                '        "scale_distance": 0.03,\n'
+                '        "scale_time": 0.005,\n'
+                '        "scale_obstacle": 0.002\n'
+                '      }\n'
+                '    }\n'
+                '  ],\n'
+                '  "justify": "Seja direto, somente dizendo o por que utilizou esse parametro e como estava o desempenho"\n'
+                '}'
+            )
 
-        # Incluindo a abordagem de reflexão (CoT)
-        thinking_section = "[Processo interno de análise passo a passo das métricas e do histórico, não exibido ao usuário.]"
-        reflection_section = "[Reflexão sobre a coerência e consistência das análises, assegurando clareza no objetivo de navegação segura do robô.]"
-
+        # Conteúdo final do prompt
         output_section = (
             f"{objective}\n\n"
             "Histórico Simplificado:\n"
@@ -142,50 +227,7 @@ class LLMTrainingEvaluator:
             + "\n\n"
             "**Formato Obrigatório** (exemplo):\n"
             + json_example
-            + "\n\n"
-            "Adapte cada objeto em 'strategies' para cada população na mesma ordem, justificando o motivo das mudanças."
+            + "\n\nAdapte cada objeto em 'strategies' para cada população na mesma ordem.\n"
         )
 
-        prompt = (
-            f"<thinking>\n{thinking_section}\n</thinking>\n"
-            f"<reflection>\n{reflection_section}\n</reflection>\n"
-            f"<output>\n{output_section}\n</output>"
-        )
-
-        return prompt
-
-    def gerar_reflexao(self, summary_data, history):
-        reflexoes = []
-
-        for pop in summary_data:
-            rewards = pop['rewards']
-            metrics = pop['metrics']
-
-            sucesso = metrics['success_pct']
-            inseguro = metrics['unsafe_pct']
-            angular = metrics['angular_use_pct']
-
-            reflexao = f"População {pop['pop_id']} obteve {sucesso}% de sucesso, com {inseguro}% de insegurança."
-
-            # Avaliação específica das recompensas
-            if sucesso < 70:
-                reflexao += " Sucesso baixo, é necessário aumentar o peso da distância e orientação para reforçar precisão."
-            elif inseguro > 25:
-                reflexao += " Taxa de insegurança alta, reduzir escala de tempo e aumentar peso do obstáculo."
-            elif angular > 60:
-                reflexao += " Uso angular excessivo, considere reduzir escala de orientação."
-            else:
-                reflexao += " Equilíbrio adequado de métricas, pequenos ajustes sugeridos."
-
-            reflexoes.append(reflexao)
-
-        # Resumo Histórico
-        resumo_historico = [f"Loop {idx+1}: {entry['justify']}" for idx, entry in enumerate(history)]
-
-        # Texto final estruturado
-        texto_reflexao = "### Reflexão Automática:\n"
-        texto_reflexao += "\n".join(reflexoes)
-        texto_reflexao += "\n\n### Histórico Resumido:\n"
-        texto_reflexao += "\n".join(resumo_historico)
-
-        return texto_reflexao
+        return output_section
