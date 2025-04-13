@@ -57,6 +57,7 @@ class TrainerConfig:
     num_envs: int
     device: str
     learn_step: int
+    checkpoint: int
     checkpoint_path: str
     use_wandb: bool
     wandb_api_key: str

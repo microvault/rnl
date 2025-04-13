@@ -16,7 +16,7 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
-        path_model="/Users/nicolasalan/microvault/rnl/ppo_policy_network/model.zip",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -59,6 +59,7 @@ def main(arg):
             batch_size=args.batch_size,
             num_envs=args.num_envs,
             device=args.device,
+            checkpoint=args.checkpoint,
             checkpoint_path=args.checkpoint_path,
             use_wandb=args.use_wandb,
             wandb_api_key=str(wandb_key),

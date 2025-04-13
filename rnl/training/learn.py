@@ -2,18 +2,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sb3_contrib import TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
-from stable_baselines3.common.callbacks import CheckpointCallback
+# from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
-from wandb.integration.sb3 import WandbCallback
+# from wandb.integration.sb3 import WandbCallback
 
 import wandb
 from rnl.agents.evaluate import evaluate_agent, statistics
-from rnl.agents.evaluator import LLMTrainingEvaluator
+# from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -29,10 +29,10 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
-ENV_TYPE = "easy-00"
+ENV_TYPE = "train-mode"
 OBSTACLE_PERCENTAGE= 40.0
 MAP_SIZE = 5.0
-POLICY = "TRPO"
+POLICY = "PPO"
 NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
     params={
@@ -99,8 +99,6 @@ def training(
         type_reward=REWARD_TYPE,
     )
 
-    if print_parameter:
-        print("\nCheck environment ...")
     check_env(env)
 
     activation_fn_map = {
@@ -148,15 +146,10 @@ def training(
     # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
     verbose_value = 0 if not trainer_config.verbose else 1
-
-    if print_parameter:
-        print("\nInitiate training ...")
-
     model = None
 
     # Carrega modelo pré-treinado se existir
     if trainer_config.pretrained != "None":
-        print("Pre trained model")
         model = PPO.load(trainer_config.pretrained)
     else:
         if POLICY == "TRPO":
@@ -204,7 +197,6 @@ def training(
                 seed=trainer_config.seed,
             )
         elif POLICY == "A2C":
-            print("\nInitiate A2C training ...")
             model = A2C(
                 network_config.type_model,
                 vec_env,
@@ -220,7 +212,6 @@ def training(
                 device=trainer_config.device,
             )
         elif POLICY == "DQN":
-            print("\nInitiate DQN training ...")
             model = DQN(
                 network_config.type_model,
                 DummyVecEnv([make_env]),
@@ -234,24 +225,29 @@ def training(
             )
 
     # Define o callback
-    if trainer_config.use_wandb:
-        callback = WandbCallback(
-            gradient_save_freq=100,
-            model_save_path=trainer_config.checkpoint_path,
-            verbose=2,
-        )
-    else:
-        callback = (
-            DynamicTrainingCallback(
-                check_freq=100,
-            )
-            if trainer_config.use_agents
-            else CheckpointCallback(
-                save_freq=100000,
-                save_path="./checkpoints/",
-                name_prefix=NAME_CHECKPOINT,
-            )
-        )
+    # if trainer_config.use_wandb:
+        # callback = WandbCallback(
+        #     gradient_save_freq=100,
+        #     model_save_path=trainer_config.checkpoint_path,
+        #     verbose=2,
+        # )
+    # else:
+    callback = DynamicTrainingCallback(
+        wandb_run=run,
+        save_checkpoint=trainer_config.checkpoint,
+        model_save_path="checkpoints/"
+    )
+        # callback = (
+        #     DynamicTrainingCallback(
+        #         check_freq=100,
+        #     )
+        #     if trainer_config.use_agents
+        #     else CheckpointCallback(
+        #         save_freq=100000,
+        #         save_path="./checkpoints/",
+        #         name_prefix=NAME_CHECKPOINT,
+        #     )
+        # )
 
     if model is not None:
         model.learn(
@@ -282,12 +278,27 @@ def training(
             "min_lidar",
         ]:
             if any(campo in info for info in infos_list):
-                media = statistics(infos_list, campo)
+                media, _, _, desvio = statistics(infos_list, campo)
                 stats[campo + "_mean"] = media
+                stats[campo + "_std"] = desvio
 
         metrics = stats
 
-    return metrics, final_eval
+    eval_keys = [
+        "success_percentage",
+        "total_timesteps",
+        "percentage_unsafe",
+        "percentage_angular",
+        "ep_mean_length",
+        "avg_collision_steps",
+        "avg_goal_steps",
+    ]
+
+    final_eval_dict = dict(zip(eval_keys, final_eval))
+
+    merged_dict = {**metrics, **final_eval_dict}
+
+    return merged_dict
 
 
 def inference(
@@ -366,7 +377,6 @@ def probe_envs(
         type_reward=REWARD_TYPE,
     )
 
-    print("\nCheck environment ...")
     check_env(env)
 
     if num_envs == 1:

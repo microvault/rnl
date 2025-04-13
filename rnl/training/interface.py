@@ -130,6 +130,7 @@ class Trainer:
         num_envs: int,
         device: str,
         activation: str,
+        checkpoint: int,
         checkpoint_path: str,
         use_wandb: bool,
         wandb_api_key: str,
@@ -184,6 +185,7 @@ class Trainer:
             batch_size=batch_size,
             num_envs=num_envs,
             device=device,
+            checkpoint=checkpoint,
             checkpoint_path=checkpoint_path,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
@@ -206,7 +208,7 @@ class Trainer:
         if self.render_config.controller:
             raise ValueError("Error: Controller mode is not supported for training.")
 
-        training(
+        metrics = training(
             self.robot_config,
             self.sensor_config,
             self.env_config,
@@ -214,6 +216,8 @@ class Trainer:
             trainer_config,
             network_config,
         )
+
+        print(metrics)
 
         return None
 
