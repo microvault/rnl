@@ -212,18 +212,18 @@ if __name__ == "__main__":
         path_model="None",
     )
     sensor_config = SensorConfig(fov=270.0, num_rays=5, min_range=0.0, max_range=3.5)
-    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(scalar=50, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     trainer_config = TrainerConfig(
         pretrained="None",
-        use_agents=False,
-        max_timestep_global=100,
+        use_agents=True,
+        max_timestep_global=100000,
         seed=1,
         batch_size=8,
         num_envs=4,
         device="cpu",
-        checkpoint=100,
+        checkpoint=10000,
         checkpoint_path="ppo_policy_network",
         use_wandb=False,
         wandb_api_key="",
@@ -264,13 +264,13 @@ if __name__ == "__main__":
         "reward_config": reward_config,
     }
 
-    pop = 2
+    pop = 4
 
     base_configs = [config1]
 
     configs = base_configs * pop
 
-    num_loops = 2
+    num_loops = 10
     all_results = run_multiple_parallel_trainings(num_loops, configs, allow_domain_modifications=True, num_populations=pop)
 
     # print_training_results_formatted(all_results)

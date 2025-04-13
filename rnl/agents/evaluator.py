@@ -82,7 +82,6 @@ class LLMTrainingEvaluator:
                     f"Angular={met.get('angular_use_pct', 0)}"
                 )
 
-        # Abaixo, consideramos que summary_data descreve somente a melhor população
         best_pop_text = ""
         for pop in summary_data:
             r = pop["rewards"]
@@ -131,7 +130,6 @@ class LLMTrainingEvaluator:
             ]
             }}
             """
-
         return base_text
 
     def request_configurations_for_all(self, summary_data, history, reflections, num_populations):
@@ -143,10 +141,10 @@ class LLMTrainingEvaluator:
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=self.manual_schema,
-                temperature=0,
+                temperature=0.6,
                 top_p=0.95,
                 top_k=20,
-                candidate_count=1,
+                candidate_count=3,
                 seed=5,
             ),
         )
