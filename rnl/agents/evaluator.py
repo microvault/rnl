@@ -1,5 +1,6 @@
 from google import genai
 from google.genai import types
+from importlib import reload
 
 class LLMTrainingEvaluator:
     def __init__(self, evaluator_api_key: str, allow_domain: bool = True):
@@ -26,7 +27,7 @@ class LLMTrainingEvaluator:
         item_schema = {
             "type": "object",
             "properties": all_properties,
-            "required": list(all_properties.keys())  # Exige todos
+            "required": list(all_properties.keys())
         }
 
         return {
@@ -42,30 +43,84 @@ class LLMTrainingEvaluator:
 
     def directed_reflection(self, best_population_metrics: dict) -> str:
         prompt = f"""
-        Análise da melhor população:
-        - Success Percentage: {best_population_metrics['success_percentage']}%
-        - Avg Goal Steps: {best_population_metrics['avg_goal_steps']}
-        - Avg Collision Steps: {best_population_metrics['avg_collision_steps']}
-        - Percentage Unsafe: {best_population_metrics['percentage_unsafe']}
-        - Time Score Mean: {best_population_metrics['time_score_mean']}
+        Vocé é um engenheiro de recompensas (reward engineer). Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada e a configuração do ambiente que possa a tarefa.
 
-        Sugira possíveis melhorias de treino, baseado nessas métricas.
-        Retorne apenas um texto curto.
+        # Regras
+        1. Se o **Percentage Unsafe** estiver muito alto e **Success Percentage** muito baixo, seja o ue talvez o ambiente esteja muito difícil e seria melhor diminuir a porcentagem de obstáculos e tamanho do mapa.
+        2. Se o **Percentage Unsafe** está muito alto mas **Success Percentage** manteve acima de 50% talvez o mapa esteja do tamanho bom mas a porcentagem de obstáculos seja muito alta ou o mapa esteja muito alto e porcentagem de obstáculos esteja muito baixa.
+        3. Se **Percentage Unsafe** esteja muito alto, aumente a penalidade de proximidade de colisão
+        4. Se **Avg Goal Steps** ou **Avg Goal Steps** esteja muito alto e angular esteja muito alto, o robô significa que fica girando em voltas e aprendeu a ficar nesse mínimo local. Sendo que não avança nem colide. Mude as recompensa faça ele explorer mais.
+
+        # Exemplos
+        **1. Exemplo**:
+            Métricas:
+                - Taxa de sucesso: 100%
+                - Média de steps até o objetivo: 1000 steps
+                - Média de steps até colisão: 25 steps
+                - Porcentagem de steps em região de insegurança: 10%
+                - Recompensa média por tempo: -0.001
+                - Recompensa média por proximidade de obstáculo: -0.002
+                - Recompensa média por orientação em relação ao objetivo: -0.003
+                - Recompensa média por distância até o objetivo: -0.004
+            Reflexão:
+                O Success Percentage esta em 20%, o que pode significar que o ambiente está muito difícil, diminuir o tamanho do ambiente de 3 para 2.
+
+        **2. Exemplo**:
+            Métricas:
+                - Taxa de sucesso: 20%
+                - Média de steps até o objetivo: 24
+                - Média de steps até colisão: 12
+                - Porcentagem de steps em região de insegurança: 10%
+                - Recompensa média por tempo: -0.001
+                - Recompensa média por proximidade de obstáculo: -0.002
+                - Recompensa média por orientação em relação ao objetivo: -0.003
+                - Recompensa média por distância até o objetivo: -0.004
+            Reflexão:
+                O Avg Collision Step está muito baixo ou seja, o robô está colidindo muito rápido tentar diminuir o número de obstáculos de 40% para 20%.
+
+        **3. Exemplo**:
+            Métricas:
+                - Taxa de sucesso: 20%
+                - Média de steps até o objetivo: 24
+                - Média de steps até colisão: 12
+                - Porcentagem de steps em região de insegurança: 10%
+                - Recompensa média por tempo: -0.001
+                - Recompensa média por proximidade de obstáculo: -0.002
+                - Recompensa média por orientação em relação ao objetivo: -0.003
+                - Recompensa média por distância até o objetivo: -0.004
+            Reflexão:
+                O Percentage Unsafe está muito alto, aumentar a escala de penalidade de 0,001 para 0,002 para manter o robô mais longe de obstáculo.
+
+        Métricas:
+            - Success Percentage: {best_population_metrics['success_percentage']}%
+            - Avg Goal Steps: {best_population_metrics['avg_goal_steps']}
+            - Avg Collision Steps: {best_population_metrics['avg_collision_steps']}
+            - Percentage Unsafe: {best_population_metrics['percentage_unsafe']}
+            - Time Score Mean: {best_population_metrics['time_score_mean']}
+            - Obstacle Score Mean: {best_population_metrics['obstacle_score_mean']}
+            - Orientation Score Mean: {best_population_metrics['orientation_score_mean']}
+            - Progress Score Mean: {best_population_metrics['progress_score_mean']}
+        Reflexão:
         """
         client = genai.Client(api_key=self.evaluator_api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-1.5-pro",
             contents=prompt,
             config=types.GenerateContentConfig(
-                max_output_tokens=100,
-                temperature=0.3,
+                max_output_tokens=500,
+                temperature=0.9,
+                top_p=0.99,
+                top_k=40,
+                candidate_count=1,
+                seed=5,
             ),
         )
+        print("Ref: ", str(response))
         return str(response.text)
 
     def build_configurations_prompt(self, summary_data, history, reflections, num_populations):
         objective = (
-            "Crie múltiplas configurações (uma para cada futuro treinamento), "
+            "Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada que possa resolver melhor a tarefa"
             f"no total de {num_populations} configurações. "
             "Mesmo que só tenhamos as métricas da melhor população, gere diferentes "
             "variações para comparar."
@@ -136,15 +191,15 @@ class LLMTrainingEvaluator:
         prompt = self.build_configurations_prompt(summary_data, history, reflections, num_populations)
         client = genai.Client(api_key=self.evaluator_api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001",
+            model="gemini-2.0-flash-001", # gemini-2.5-pro-exp-03-25 # gemini-2.0-flash-001
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=self.manual_schema,
-                temperature=0.6,
+                temperature=0.2,
                 top_p=0.95,
-                top_k=20,
-                candidate_count=3,
+                top_k=30,
+                candidate_count=1,
                 seed=5,
             ),
         )

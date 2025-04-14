@@ -193,7 +193,7 @@ def print_population_metrics(population_summaries):
     for i, pop in enumerate(population_summaries):
         print(
             f"População {i+1}: "
-            f"Sucesso = {pop['success_percentage']*100}%, "
+            f"Sucesso = {pop['success_percentage']}%, "
             f"Inseguro = {pop['percentage_unsafe']*100}%, "
             f"Vel Angular = {pop['percentage_angular']*100}%, "
             f"Collisions = {pop['avg_collision_steps']:.2f}, "
@@ -218,7 +218,7 @@ if __name__ == "__main__":
     trainer_config = TrainerConfig(
         pretrained="None",
         use_agents=True,
-        max_timestep_global=100000,
+        max_timestep_global=100,
         seed=1,
         batch_size=8,
         num_envs=4,
@@ -264,13 +264,13 @@ if __name__ == "__main__":
         "reward_config": reward_config,
     }
 
-    pop = 4
+    pop = 2
 
     base_configs = [config1]
 
     configs = base_configs * pop
 
-    num_loops = 10
+    num_loops = 4
     all_results = run_multiple_parallel_trainings(num_loops, configs, allow_domain_modifications=True, num_populations=pop)
 
     # print_training_results_formatted(all_results)
