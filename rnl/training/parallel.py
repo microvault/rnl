@@ -1,5 +1,7 @@
 import multiprocessing
+import os
 
+from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -8,10 +10,9 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.training.learn import training
-from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.rewards import RewardConfig
-import os
+from rnl.training.learn import training
+
 
 def train_worker(
     robot_config,
@@ -62,7 +63,11 @@ def run_parallel_trainings(list_of_configs):
     print_population_metrics(results)
 
     for i, metrics in enumerate(results):
-        candidate = (metrics["success_percentage"], metrics["avg_goal_steps"], -metrics["avg_collision_steps"])
+        candidate = (
+            metrics["success_percentage"],
+            metrics["avg_goal_steps"],
+            -metrics["avg_collision_steps"],
+        )
         if best_criteria is None or candidate > best_criteria:
             best_criteria = candidate
             best_index = i
@@ -72,10 +77,13 @@ def run_parallel_trainings(list_of_configs):
     else:
         return None
 
-def run_multiple_parallel_trainings(num_loops, initial_configs, allow_domain_modifications, num_populations):
+
+def run_multiple_parallel_trainings(
+    num_loops, initial_configs, allow_domain_modifications, num_populations
+):
     evaluator = LLMTrainingEvaluator(
         evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key,
-        allow_domain=allow_domain_modifications
+        allow_domain=allow_domain_modifications,
     )
     history = []
     reflections = []
@@ -89,23 +97,28 @@ def run_multiple_parallel_trainings(num_loops, initial_configs, allow_domain_mod
         reflection = evaluator.directed_reflection(best_metrics)
         reflections.append(reflection)
 
-        summary_data = [{
-            "pop_id": 1,
-            "rewards": {
-                "obstacle": best_metrics.get('obstacle_score_mean', 0.0),
-                "angle":    best_metrics.get('orientation_score_mean', 0.0),
-                "distance": best_metrics.get('progress_score_mean', 0.0),
-                "time":     best_metrics.get('time_score_mean', 0.0)
-            },
-            "metrics": {
-                "success_pct":    best_metrics.get('success_percentage', 0.0),
-                "unsafe_pct":     best_metrics.get('percentage_unsafe', 0.0) * 100,
-                "angular_use_pct": best_metrics.get('percentage_angular', 0.0) * 100
+        summary_data = [
+            {
+                "pop_id": 1,
+                "rewards": {
+                    "obstacle": best_metrics.get("obstacle_score_mean", 0.0),
+                    "angle": best_metrics.get("orientation_score_mean", 0.0),
+                    "distance": best_metrics.get("progress_score_mean", 0.0),
+                    "time": best_metrics.get("time_score_mean", 0.0),
+                },
+                "metrics": {
+                    "success_pct": best_metrics.get("success_percentage", 0.0),
+                    "unsafe_pct": best_metrics.get("percentage_unsafe", 0.0) * 100,
+                    "angular_use_pct": best_metrics.get("percentage_angular", 0.0)
+                    * 100,
+                },
             }
-        }]
+        ]
 
         # Pede ao LLM que crie múltiplas configurações de treinamento
-        llm_response = evaluator.request_configurations_for_all(summary_data, history, reflections, num_populations)
+        llm_response = evaluator.request_configurations_for_all(
+            summary_data, history, reflections, num_populations
+        )
         print(llm_response)
         new_configs_data = llm_response.get("configurations", [])
 
@@ -114,8 +127,14 @@ def run_multiple_parallel_trainings(num_loops, initial_configs, allow_domain_mod
         for idx, cfg in enumerate(current_configs):
             if idx < len(new_configs_data):
                 item = new_configs_data[idx]
-                obstacle_percentage = item.get("obstacle_percentage", 40) if allow_domain_modifications else 40
-                map_size = item.get("map_size", 3.0) if allow_domain_modifications else 3.0
+                obstacle_percentage = (
+                    item.get("obstacle_percentage", 40)
+                    if allow_domain_modifications
+                    else 40
+                )
+                map_size = (
+                    item.get("map_size", 3.0) if allow_domain_modifications else 3.0
+                )
 
                 updated_env = EnvConfig(
                     scalar=cfg["env_config"].scalar,
@@ -123,40 +142,42 @@ def run_multiple_parallel_trainings(num_loops, initial_configs, allow_domain_mod
                     name_map=cfg["env_config"].name_map,
                     timestep=cfg["env_config"].timestep,
                     obstacle_percentage=obstacle_percentage,
-                    map_size=map_size
+                    map_size=map_size,
                 )
                 updated_reward = RewardConfig(
                     params={
                         "scale_orientation": item.get("scale_orientation", 0.02),
-                        "scale_distance":    item.get("scale_distance", 0.06),
-                        "scale_time":        item.get("scale_time", 0.01),
-                        "scale_obstacle":    item.get("scale_obstacle", 0.004),
+                        "scale_distance": item.get("scale_distance", 0.06),
+                        "scale_time": item.get("scale_time", 0.01),
+                        "scale_obstacle": item.get("scale_obstacle", 0.004),
                     }
                 )
                 new_cfg = {
-                    "robot_config":   cfg["robot_config"],
-                    "sensor_config":  cfg["sensor_config"],
-                    "env_config":     updated_env,
-                    "render_config":  cfg["render_config"],
+                    "robot_config": cfg["robot_config"],
+                    "sensor_config": cfg["sensor_config"],
+                    "env_config": updated_env,
+                    "render_config": cfg["render_config"],
                     "trainer_config": cfg["trainer_config"],
                     "network_config": cfg["network_config"],
-                    "reward_config":  updated_reward
+                    "reward_config": updated_reward,
                 }
                 new_configs.append(new_cfg)
             else:
                 new_configs.append(cfg)
 
         # Adiciona ao histórico
-        history.append({
-            "loop": loop + 1,
-            "reflection": reflection,
-            "population_data": [
-                {
-                    "metrics": summary_data[0]["metrics"],
-                    "params":  summary_data[0]["rewards"]
-                }
-            ]
-        })
+        history.append(
+            {
+                "loop": loop + 1,
+                "reflection": reflection,
+                "population_data": [
+                    {
+                        "metrics": summary_data[0]["metrics"],
+                        "params": summary_data[0]["rewards"],
+                    }
+                ],
+            }
+        )
 
         current_configs = new_configs
         print_new_configs(new_configs)  # Print de resumo
@@ -174,6 +195,7 @@ def print_training_results_formatted(all_results):
                     print(f"   {key:<25s}: {value:>8.4f}")
                 else:
                     print(f"   {key:<25s}: {value}")
+
 
 def print_new_configs(configs):
     print("\n=== Resumo das Novas Configurações ===")
@@ -200,6 +222,7 @@ def print_population_metrics(population_summaries):
             f"Goal Steps = {pop['avg_goal_steps']:.2f}"
         )
 
+
 if __name__ == "__main__":
     robot_config = RobotConfig(
         base_radius=0.105,
@@ -212,7 +235,14 @@ if __name__ == "__main__":
         path_model="None",
     )
     sensor_config = SensorConfig(fov=270.0, num_rays=5, min_range=0.0, max_range=3.5)
-    env_config = EnvConfig(scalar=50, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(
+        scalar=50,
+        folder_map="",
+        name_map="",
+        timestep=1000,
+        obstacle_percentage=40.0,
+        map_size=5,
+    )
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     trainer_config = TrainerConfig(
@@ -271,6 +301,8 @@ if __name__ == "__main__":
     configs = base_configs * pop
 
     num_loops = 4
-    all_results = run_multiple_parallel_trainings(num_loops, configs, allow_domain_modifications=True, num_populations=pop)
+    all_results = run_multiple_parallel_trainings(
+        num_loops, configs, allow_domain_modifications=True, num_populations=pop
+    )
 
     # print_training_results_formatted(all_results)

@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sb3_contrib import TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
+
 # from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.env_util import make_vec_env
@@ -9,10 +10,10 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
-# from wandb.integration.sb3 import WandbCallback
 
 import wandb
 from rnl.agents.evaluate import evaluate_agent, statistics
+
 # from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
@@ -29,17 +30,20 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
+# from wandb.integration.sb3 import WandbCallback
+
+
 ENV_TYPE = "train-mode"
-OBSTACLE_PERCENTAGE= 40.0
+OBSTACLE_PERCENTAGE = 40.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
 NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
     params={
-        "scale_orientation": 0.0, # 0.02
-        "scale_distance": 0.0, # 0.06
-        "scale_time": 0.01, # 0.01
-        "scale_obstacle": 0.0, # 0.004
+        "scale_orientation": 0.0,  # 0.02
+        "scale_distance": 0.0,  # 0.06
+        "scale_time": 0.01,  # 0.01
+        "scale_obstacle": 0.0,  # 0.004
     },
 )
 
@@ -226,28 +230,28 @@ def training(
 
     # Define o callback
     # if trainer_config.use_wandb:
-        # callback = WandbCallback(
-        #     gradient_save_freq=100,
-        #     model_save_path=trainer_config.checkpoint_path,
-        #     verbose=2,
-        # )
+    # callback = WandbCallback(
+    #     gradient_save_freq=100,
+    #     model_save_path=trainer_config.checkpoint_path,
+    #     verbose=2,
+    # )
     # else:
     callback = DynamicTrainingCallback(
         wandb_run=run,
         save_checkpoint=trainer_config.checkpoint,
-        model_save_path="checkpoints/"
+        model_save_path="checkpoints/",
     )
-        # callback = (
-        #     DynamicTrainingCallback(
-        #         check_freq=100,
-        #     )
-        #     if trainer_config.use_agents
-        #     else CheckpointCallback(
-        #         save_freq=100000,
-        #         save_path="./checkpoints/",
-        #         name_prefix=NAME_CHECKPOINT,
-        #     )
-        # )
+    # callback = (
+    #     DynamicTrainingCallback(
+    #         check_freq=100,
+    #     )
+    #     if trainer_config.use_agents
+    #     else CheckpointCallback(
+    #         save_freq=100000,
+    #         save_path="./checkpoints/",
+    #         name_prefix=NAME_CHECKPOINT,
+    #     )
+    # )
 
     if model is not None:
         model.learn(

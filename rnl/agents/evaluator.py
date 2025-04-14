@@ -1,6 +1,6 @@
 from google import genai
 from google.genai import types
-from importlib import reload
+
 
 class LLMTrainingEvaluator:
     def __init__(self, evaluator_api_key: str, allow_domain: bool = True):
@@ -11,13 +11,13 @@ class LLMTrainingEvaluator:
     def define_manual_schema(self, allow_domain: bool = True):
         base_reward_properties = {
             "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
-            "scale_distance":    {"type": "number", "minimum": 0.01,  "maximum": 0.1},
-            "scale_time":        {"type": "number", "minimum": 0.001, "maximum": 0.05},
-            "scale_obstacle":    {"type": "number", "minimum": 0.001, "maximum": 0.01}
+            "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
+            "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
+            "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01},
         }
         domain_properties = {
-            "obstacle_percentage": {"type": "integer", "minimum": 0,  "maximum": 50},
-            "map_size":            {"type": "number",  "minimum": 1.0, "maximum": 5.0}
+            "obstacle_percentage": {"type": "integer", "minimum": 0, "maximum": 50},
+            "map_size": {"type": "number", "minimum": 1.0, "maximum": 5.0},
         }
         # Se allow_domain=True, unimos domain + reward
         all_properties = dict(base_reward_properties)
@@ -27,20 +27,16 @@ class LLMTrainingEvaluator:
         item_schema = {
             "type": "object",
             "properties": all_properties,
-            "required": list(all_properties.keys())
+            "required": list(all_properties.keys()),
         }
 
         return {
             "type": "object",
-            "properties": {
-                "configurations": {
-                    "type": "array",
-                    "items": item_schema
-                }
-            },
-            "required": ["configurations"]
+            "properties": {"configurations": {"type": "array", "items": item_schema}},
+            "required": ["configurations"],
         }
 
+    # TODO: adicionar o codigo do ambiente e parametros
     def directed_reflection(self, best_population_metrics: dict) -> str:
         prompt = f"""
         Vocé é um engenheiro de recompensas (reward engineer). Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada e a configuração do ambiente que possa a tarefa.
@@ -118,14 +114,18 @@ class LLMTrainingEvaluator:
         print("Ref: ", str(response))
         return str(response.text)
 
-    def build_configurations_prompt(self, summary_data, history, reflections, num_populations):
+    def build_configurations_prompt(
+        self, summary_data, history, reflections, num_populations
+    ):
         objective = (
             "Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada que possa resolver melhor a tarefa"
             f"no total de {num_populations} configurações. "
             "Mesmo que só tenhamos as métricas da melhor população, gere diferentes "
             "variações para comparar."
         )
-        reflection_text = "\n".join(reflections) if reflections else "Nenhuma reflexão anterior"
+        reflection_text = (
+            "\n".join(reflections) if reflections else "Nenhuma reflexão anterior"
+        )
         hist_str = ""
         for loop_idx, loop_entry in enumerate(history, start=1):
             hist_str += f"\nLoop {loop_idx}:"
@@ -187,11 +187,15 @@ class LLMTrainingEvaluator:
             """
         return base_text
 
-    def request_configurations_for_all(self, summary_data, history, reflections, num_populations):
-        prompt = self.build_configurations_prompt(summary_data, history, reflections, num_populations)
+    def request_configurations_for_all(
+        self, summary_data, history, reflections, num_populations
+    ):
+        prompt = self.build_configurations_prompt(
+            summary_data, history, reflections, num_populations
+        )
         client = genai.Client(api_key=self.evaluator_api_key)
         response = client.models.generate_content(
-            model="gemini-2.0-flash-001", # gemini-2.5-pro-exp-03-25 # gemini-2.0-flash-001
+            model="gemini-2.0-flash-001",  # gemini-2.5-pro-exp-03-25 # gemini-2.0-flash-001
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

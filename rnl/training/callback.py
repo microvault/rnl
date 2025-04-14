@@ -1,6 +1,6 @@
 import os
-import json
 import time
+
 import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
@@ -16,7 +16,7 @@ class DynamicTrainingCallback(BaseCallback):
         save_checkpoint: int = 10000,
         model_save_path: str = "checkpoints/",
         sample_checkpoint_freq: int = 100,  # Avaliar e salvar métricas pontuais
-        run_id: str = "default_run",         # Identificador do treinamento
+        run_id: str = "default_run",  # Identificador do treinamento
     ):
         super().__init__(verbose=0)
         self.check_freq = check_freq
@@ -57,9 +57,13 @@ class DynamicTrainingCallback(BaseCallback):
             eval_env = make_environemnt()
             evaluation_results = evaluate_agent(self.model, eval_env)
             (
-                sucess_rate, total_timesteps, percentage_unsafe,
-                percentage_angular, ep_mean_length, avg_collision_steps,
-                avg_goal_steps
+                sucess_rate,
+                total_timesteps,
+                percentage_unsafe,
+                percentage_angular,
+                ep_mean_length,
+                avg_collision_steps,
+                avg_goal_steps,
             ) = evaluation_results
 
             self.logger.record("rollout/success_rate", sucess_rate)
@@ -78,7 +82,12 @@ class DynamicTrainingCallback(BaseCallback):
                     infos_list.extend(env_info)
 
             stats = {}
-            for campo in ["obstacle_score", "orientation_score", "progress_score", "time_score"]:
+            for campo in [
+                "obstacle_score",
+                "orientation_score",
+                "progress_score",
+                "time_score",
+            ]:
                 if any(campo in info for info in infos_list):
                     media, _, _, desvio = statistics(infos_list, campo)
                     stats[campo + "_mean"] = media
