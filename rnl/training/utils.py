@@ -17,7 +17,14 @@ def create_env(num_envs):
         path_model="None",
     )
     sensor_config = SensorConfig(fov=240.0, num_rays=36, min_range=0.1, max_range=5.0)
-    env_config = EnvConfig(scalar=30, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(
+        scalar=30,
+        folder_map="",
+        name_map="",
+        timestep=1000,
+        obstacle_percentage=40.0,
+        map_size=5,
+    )
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
@@ -65,7 +72,14 @@ def make_environemnt():
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
-    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(
+        scalar=100,
+        folder_map="",
+        name_map="",
+        timestep=1000,
+        obstacle_percentage=40.0,
+        map_size=5,
+    )
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
@@ -107,7 +121,14 @@ def create_single_env(i):
         min_range=0.0,
         max_range=3.5,  # 3.5
     )
-    env_config = EnvConfig(scalar=100, folder_map="", name_map="", timestep=1000, obstacle_percentage=40.0, map_size=5)
+    env_config = EnvConfig(
+        scalar=100,
+        folder_map="",
+        name_map="",
+        timestep=1000,
+        obstacle_percentage=40.0,
+        map_size=5,
+    )
     render_config = RenderConfig(controller=False, debug=True, plot=False)
 
     type_reward = RewardConfig(
