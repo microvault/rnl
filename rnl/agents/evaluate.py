@@ -12,7 +12,9 @@ def statistics(info_list, field):
     return mean_value, min_value, max_value, std_deviation
 
 
-def evaluate_agent(agent, env, num_episodes=10) -> tuple[float, int, float, float, float, float, float]:
+def evaluate_agent(
+    agent, env, num_episodes=10
+) -> tuple[float, int, float, float, float, float, float]:
     num_goals = 0
     unsafe = 0
     command_angular = 0
@@ -57,10 +59,14 @@ def evaluate_agent(agent, env, num_episodes=10) -> tuple[float, int, float, floa
             num_goals += 1
 
     success_percentage = (num_goals / num_episodes) * 100 if num_episodes else 0
-    percentage_angular = command_angular / total_timesteps if total_timesteps != 0 else 0
+    percentage_angular = (
+        command_angular / total_timesteps if total_timesteps != 0 else 0
+    )
     percentage_unsafe = unsafe / total_timesteps if total_timesteps != 0 else 0
     ep_mean_length = total_timesteps / num_episodes if num_episodes else 0
-    avg_collision_steps = total_steps_collision / count_collision if count_collision else 0
+    avg_collision_steps = (
+        total_steps_collision / count_collision if count_collision else 0
+    )
     avg_goal_steps = total_steps_goal / count_goal if count_goal else 0
 
     return (
