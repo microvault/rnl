@@ -38,66 +38,86 @@ class LLMTrainingEvaluator:
 
     # TODO: adicionar o codigo do ambiente e parametros
     def directed_reflection(self, best_population_metrics: dict) -> str:
+        print(best_population_metrics)
         prompt = f"""
-        Vocé é um engenheiro de recompensas (reward engineer). Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada e a configuração do ambiente que possa a tarefa.
+        Você é um engenheiro de recompensas. Analise as métricas do treinamento atual e proponha melhorias na função de recompensa e na configuração do ambiente para otimizar o desempenho do agente.​
 
-        # Regras
-        1. Se o **Percentage Unsafe** estiver muito alto e **Success Percentage** muito baixo, seja o ue talvez o ambiente esteja muito difícil e seria melhor diminuir a porcentagem de obstáculos e tamanho do mapa.
-        2. Se o **Percentage Unsafe** está muito alto mas **Success Percentage** manteve acima de 50% talvez o mapa esteja do tamanho bom mas a porcentagem de obstáculos seja muito alta ou o mapa esteja muito alto e porcentagem de obstáculos esteja muito baixa.
-        3. Se **Percentage Unsafe** esteja muito alto, aumente a penalidade de proximidade de colisão
-        4. Se **Avg Goal Steps** ou **Avg Goal Steps** esteja muito alto e angular esteja muito alto, o robô significa que fica girando em voltas e aprendeu a ficar nesse mínimo local. Sendo que não avança nem colide. Mude as recompensa faça ele explorer mais.
+        Com base nas métricas fornecidas, aplique as regras de análise para:​
+            - Identificar possíveis causas de desempenho subótimo.
+            - Forneça uma análise passo a passo justificando cada recomendação.
+            - Não precisa mostrar como resolver, somente uma analise do que mudar.
 
-        # Exemplos
-        **1. Exemplo**:
-            Métricas:
-                - Taxa de sucesso: 100%
-                - Média de steps até o objetivo: 1000 steps
-                - Média de steps até colisão: 25 steps
-                - Porcentagem de steps em região de insegurança: 10%
-                - Recompensa média por tempo: -0.001
-                - Recompensa média por proximidade de obstáculo: -0.002
-                - Recompensa média por orientação em relação ao objetivo: -0.003
-                - Recompensa média por distância até o objetivo: -0.004
-            Reflexão:
-                O Success Percentage esta em 20%, o que pode significar que o ambiente está muito difícil, diminuir o tamanho do ambiente de 3 para 2.
+        Contexto:
+            Somente é possivel ajusatr os seguintes parametros
+            * Escala de recompensa por tempo
+            * Escala de recompensa obstaculo
+            * Escala de recompensa distancia
+            * Escala de recompensa angulo
+            * tamanho do mapa
+            * Porcentagem de obstaculo
 
-        **2. Exemplo**:
-            Métricas:
-                - Taxa de sucesso: 20%
-                - Média de steps até o objetivo: 24
-                - Média de steps até colisão: 12
-                - Porcentagem de steps em região de insegurança: 10%
-                - Recompensa média por tempo: -0.001
-                - Recompensa média por proximidade de obstáculo: -0.002
-                - Recompensa média por orientação em relação ao objetivo: -0.003
-                - Recompensa média por distância até o objetivo: -0.004
-            Reflexão:
-                O Avg Collision Step está muito baixo ou seja, o robô está colidindo muito rápido tentar diminuir o número de obstáculos de 40% para 20%.
+        ## Regras de Análise:
 
-        **3. Exemplo**:
-            Métricas:
-                - Taxa de sucesso: 20%
-                - Média de steps até o objetivo: 24
-                - Média de steps até colisão: 12
-                - Porcentagem de steps em região de insegurança: 10%
-                - Recompensa média por tempo: -0.001
-                - Recompensa média por proximidade de obstáculo: -0.002
-                - Recompensa média por orientação em relação ao objetivo: -0.003
-                - Recompensa média por distância até o objetivo: -0.004
-            Reflexão:
-                O Percentage Unsafe está muito alto, aumentar a escala de penalidade de 0,001 para 0,002 para manter o robô mais longe de obstáculo.
+            - Ambiente Muito Difícil:
+                Se a taxa de sucesso for baixa e a porcentagem de insegurança alta, considere reduzir o tamanho do mapa e a densidade de obstáculos.​
 
-        Métricas:
-            - Success Percentage: {best_population_metrics['success_percentage']}%
-            - Avg Goal Steps: {best_population_metrics['avg_goal_steps']}
-            - Avg Collision Steps: {best_population_metrics['avg_collision_steps']}
-            - Percentage Unsafe: {best_population_metrics['percentage_unsafe']}
-            - Time Score Mean: {best_population_metrics['time_score_mean']}
-            - Obstacle Score Mean: {best_population_metrics['obstacle_score_mean']}
-            - Orientation Score Mean: {best_population_metrics['orientation_score_mean']}
-            - Progress Score Mean: {best_population_metrics['progress_score_mean']}
-        Reflexão:
+            - Ajuste de Obstáculos:
+                Se a taxa de sucesso for razoável (>50%) mas a porcentagem de insegurança ainda alta, ajuste a densidade de obstáculos ou o tamanho do mapa para equilibrar a dificuldade.​
+
+            - Penalidade por Proximidade:
+                Se a porcentagem de insegurança for alta, aumente a penalidade por proximidade a obstáculos para incentivar o agente a manter distância segura.​
+
+            - Comportamento de Giro:
+                Se os passos médios até o objetivo ou até a colisão forem altos e a orientação angular também for alta, o agente pode estar preso em um comportamento de giro. Modifique a função de recompensa para incentivar a exploração e o progresso.​
+
+        ## Exemplos de Análise:
+
+        ### Métricas:
+            - Taxa de sucesso: 20% (min. 0% - max. 100%)
+            - Média de passos até o objetivo: 30 (min. 0 - max. 1000)
+            - Média de passos até colisão: 1000 (min. 0 - max. 1000)
+            - Porcentagem de insegurança: 10% (min. 0% - max. 100%)
+            - Porcentagem de uso de velocidade angular: 100% (min. 0% - max. 100%)
+            - Tempo por epsodio médio: 17.7 (min. 0 - max. 1000)
+            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+
+        ### Análise:
+            - A Taxa de sucesso esta em 20% indica um ambiente muito difícil. Reduza o tamanho do mapa de 3 para 2 para facilitar a tarefa.
+            - A Média de passos até colisão esta muito alta indicando que o robo esta girando em circulo.
+
+        ### Métricas:
+            - Taxa de sucesso: 0% (0% - 100%)
+            - Média de passos até o objetivo: 24 (0 - 1000)
+            - Média de passos até colisão: 12 (0 - 1000)
+            - Porcentagem de insegurança: 10% (0% - 100%)
+            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+
+        ### Análise:
+            O agente está colidindo rapidamente. Reduza a densidade de obstáculos de 40% para 20% para permitir melhor navegação.
+
+        ### Métricas:
+            - Taxa de sucesso: 20%
+            - Média de passos até o objetivo: 24
+            - Média de passos até colisão: 12
+            - Porcentagem de insegurança: 10%
+            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+
+        ## Análise:
+            A alta porcentagem de insegurança sugere proximidade excessiva a obstáculos. Aumente a penalidade por proximidade de 0.001 para 0.002 para desencorajar esse comportamento.
+
+        ## Métricas Atuais:
+            - Taxa de sucesso: {best_population_metrics['success_percentage']}%
+            - Média de passos até o objetivo: {best_population_metrics['avg_goal_steps']}
+            - Média de passos até colisão: {best_population_metrics['avg_collision_steps']}
+            - Porcentagem de insegurança: {best_population_metrics['percentage_unsafe']}
+            - Recompensa média por tempo: {best_population_metrics['time_score_mean']}
+            - Recompensa média por proximidade: {best_population_metrics['obstacle_score_mean']}
+            - Recompensa média por orientação: {best_population_metrics['orientation_score_mean']}
+            - Recompensa média por progresso: {best_population_metrics['progress_score_mean']}​
+
+        ## Análise:
         """
+
         client = genai.Client(api_key=self.evaluator_api_key)
         response = client.models.generate_content(
             model="gemini-1.5-pro",
