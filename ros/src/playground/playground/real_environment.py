@@ -4,12 +4,11 @@ import random
 
 import numpy as np
 import rclpy
+from ament_index_python.packages import get_package_share_directory
+from geometry_msgs.msg import Pose, PoseWithCovarianceStamped, Twist
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy
-from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist, Pose
 from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import PoseWithCovarianceStamped
 from stable_baselines3 import PPO
 
 
@@ -26,7 +25,9 @@ class InferenceModel(Node):
         self.action = 0
         self.last_states = np.zeros(10)
         self.goal_positions = [(2, 2), (7, 2), (2, 7), (7, 7)]
-        self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
+        self.goal_order = random.sample(
+            range(len(self.goal_positions)), len(self.goal_positions)
+        )
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
 
@@ -110,12 +111,14 @@ class InferenceModel(Node):
         norm_dist = np.array(clamped_dist, dtype=np.float32) / 9.0
         norm_alpha = np.array(clamped_alpha, dtype=np.float32) / 3.5
 
-        states = np.concatenate((
-            norm_lidar,
-            np.array(action_one_hot, dtype=np.int16),
-            np.array([norm_dist], dtype=np.float32),
-            np.array([norm_alpha], dtype=np.float32),
-        ))
+        states = np.concatenate(
+            (
+                norm_lidar,
+                np.array(action_one_hot, dtype=np.int16),
+                np.array([norm_dist], dtype=np.float32),
+                np.array([norm_alpha], dtype=np.float32),
+            )
+        )
 
         self.last_states = states
 
@@ -123,9 +126,13 @@ class InferenceModel(Node):
         if dist <= 1.2:
             self.goal_index += 1
             if self.goal_index >= len(self.goal_order):
-                self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
+                self.goal_order = random.sample(
+                    range(len(self.goal_positions)), len(self.goal_positions)
+                )
                 self.goal_index = 0
-            self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
+            self.goal_x, self.goal_y = self.goal_positions[
+                self.goal_order[self.goal_index]
+            ]
             self.get_logger().info(f"New goal: ({self.goal_x}, {self.goal_y})")
 
 
@@ -149,11 +156,13 @@ def clamp(value, vmin, vmax):
 
 
 def distance_to_goal(x: float, y: float, goal_x: float, goal_y: float) -> float:
-    dist = np.sqrt((x - goal_x)**2 + (y - goal_y)**2)
+    dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
     return min(dist, 9.0)
 
 
-def angle_to_goal(x: float, y: float, theta: float, goal_x: float, goal_y: float) -> float:
+def angle_to_goal(
+    x: float, y: float, theta: float, goal_x: float, goal_y: float
+) -> float:
     o_t = np.array([np.cos(theta), np.sin(theta)])
     g_t = np.array([goal_x - x, goal_y - y])
     cross_product = np.cross(o_t, g_t)
