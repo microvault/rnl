@@ -79,6 +79,7 @@ class LLMTrainingEvaluator:
             - Porcentagem de insegurança: 10% (min. 0% - max. 100%)
             - Porcentagem de uso de velocidade angular: 100% (min. 0% - max. 100%)
             - Tempo por epsodio médio: 17.7 (min. 0 - max. 1000)
+            - Media de si
             - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
 
         ### Análise:
