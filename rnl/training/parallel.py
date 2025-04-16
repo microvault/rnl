@@ -92,7 +92,6 @@ def run_multiple_parallel_trainings(
     for loop in range(num_loops):
         print(f"\n=== Loop {loop+1}/{num_loops} ===")
 
-        # Roda treinamentos paralelos (cada config = 1 populacao) e retorna a melhor
         best_metrics = run_parallel_trainings(current_configs)
         reflection = evaluator.directed_reflection(best_metrics)
         reflections.append(reflection)
@@ -115,14 +114,12 @@ def run_multiple_parallel_trainings(
             }
         ]
 
-        # Pede ao LLM que crie múltiplas configurações de treinamento
         llm_response = evaluator.request_configurations_for_all(
             summary_data, history, reflections, num_populations
         )
         print(llm_response)
         new_configs_data = llm_response.get("configurations", [])
 
-        # Ajusta as configs para cada população no próximo loop
         new_configs = []
         for idx, cfg in enumerate(current_configs):
             if idx < len(new_configs_data):
@@ -165,7 +162,6 @@ def run_multiple_parallel_trainings(
             else:
                 new_configs.append(cfg)
 
-        # Adiciona ao histórico
         history.append(
             {
                 "loop": loop + 1,
@@ -180,7 +176,7 @@ def run_multiple_parallel_trainings(
         )
 
         current_configs = new_configs
-        print_new_configs(new_configs)  # Print de resumo
+        print_new_configs(new_configs)
 
     return history
 
@@ -230,8 +226,8 @@ if __name__ == "__main__":
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.1,  # 4 # 0.03
-        collision=0.075,  # 2 # 0.075
+        threshold=0.1,
+        collision=0.075,
         path_model="None",
     )
     sensor_config = SensorConfig(fov=270.0, num_rays=5, min_range=0.0, max_range=3.5)
@@ -248,7 +244,7 @@ if __name__ == "__main__":
     trainer_config = TrainerConfig(
         pretrained="None",
         use_agents=True,
-        max_timestep_global=100,
+        max_timestep_global=100000,
         seed=1,
         batch_size=8,
         num_envs=4,
@@ -266,7 +262,7 @@ if __name__ == "__main__":
         max_grad_norm=0.5,
         update_epochs=10,
         name="rnl-v1",
-        verbose=False,
+        verbose=True,
     )
 
     network_config = NetworkConfig(
@@ -302,7 +298,5 @@ if __name__ == "__main__":
 
     num_loops = 4
     all_results = run_multiple_parallel_trainings(
-        num_loops, configs, allow_domain_modifications=True, num_populations=pop
+        num_loops, configs, allow_domain_modifications=False, num_populations=pop
     )
-
-    # print_training_results_formatted(all_results)

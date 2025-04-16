@@ -48,7 +48,7 @@ class LLMTrainingEvaluator:
             - Não precisa mostrar como resolver, somente uma analise do que mudar.
 
         Contexto:
-            Somente é possivel ajusatr os seguintes parametros
+            Somente é possivel ajustar os seguintes parametros
             * Escala de recompensa por tempo
             * Escala de recompensa obstaculo
             * Escala de recompensa distancia
