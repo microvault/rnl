@@ -12,6 +12,7 @@ from torch import nn
 from tqdm import trange
 
 import wandb
+from rnl.network.model import CustomActorCriticPolicy
 from rnl.agents.evaluate import evaluate_agent, statistics
 
 # from rnl.agents.evaluator import LLMTrainingEvaluator
@@ -33,7 +34,7 @@ from rnl.training.callback import DynamicTrainingCallback
 # from wandb.integration.sb3 import WandbCallback
 
 
-ENV_TYPE = "train-mode"
+ENV_TYPE = "easy-00"
 OBSTACLE_PERCENTAGE = 40.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
@@ -105,34 +106,46 @@ def training(
 
     check_env(env)
 
-    activation_fn_map = {
-        "ReLU": nn.ReLU,
-        "LeakyReLU": nn.LeakyReLU,
-    }
-    activation_fn = activation_fn_map[network_config.mlp_activation]
+    policy_kwargs_on_policy = None
+    policy_kwargs_on_policy_recurrent = None
+    policy_kwargs_off_policy = None
 
-    policy_kwargs_on_policy = dict(
-        activation_fn=activation_fn,
-        net_arch=dict(
-            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
-            vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
-        ),
-    )
+    print(network_config.type_model)
 
-    policy_kwargs_on_policy_recurrent = dict(
-        activation_fn=activation_fn,
-        net_arch=dict(
-            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
-            vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
-        ),
-        n_lstm_layers=1,
-        lstm_hidden_size=40,
-    )
+    if network_config.type_model == CustomActorCriticPolicy:
+        policy_kwargs_on_policy = dict(
+            last_layer_dim_pi=20,
+            last_layer_dim_vf=10,
+        )
+    else:
+        activation_fn_map = {
+            "ReLU": nn.ReLU,
+            "LeakyReLU": nn.LeakyReLU,
+        }
+        activation_fn = activation_fn_map[network_config.mlp_activation]
 
-    policy_kwargs_off_policy = dict(
-        activation_fn=activation_fn,
-        net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
-    )
+        policy_kwargs_on_policy = dict(
+            activation_fn=activation_fn,
+            net_arch=dict(
+                pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
+                vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            ),
+        )
+
+        policy_kwargs_on_policy_recurrent = dict(
+            activation_fn=activation_fn,
+            net_arch=dict(
+                pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
+                vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            ),
+            n_lstm_layers=1,
+            lstm_hidden_size=40,
+        )
+
+        policy_kwargs_off_policy = dict(
+            activation_fn=activation_fn,
+            net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        )
 
     def make_env():
         env = NaviEnv(
@@ -156,102 +169,84 @@ def training(
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
     else:
-        if POLICY == "TRPO":
-            model = TRPO(
-                network_config.type_model,
-                vec_env,
-                batch_size=trainer_config.batch_size,
-                verbose=verbose_value,
-                learning_rate=trainer_config.lr,
-                policy_kwargs=policy_kwargs_on_policy,
-                n_steps=trainer_config.learn_step,
-                device=trainer_config.device,
-                seed=trainer_config.seed,
-            )
-        if POLICY == "Recurrent PPO":
-            model = RecurrentPPO(
-                "MlpLstmPolicy",
-                vec_env,
-                batch_size=trainer_config.batch_size,
-                verbose=verbose_value,
-                learning_rate=trainer_config.lr,
-                policy_kwargs=policy_kwargs_on_policy_recurrent,
-                n_steps=trainer_config.learn_step,
-                vf_coef=trainer_config.vf_coef,
-                ent_coef=trainer_config.ent_coef,
-                device=trainer_config.device,
-                max_grad_norm=trainer_config.max_grad_norm,
-                n_epochs=trainer_config.update_epochs,
-                seed=trainer_config.seed,
-            )
-        elif POLICY == "PPO":
-            model = PPO(
-                network_config.type_model,
-                vec_env,
-                batch_size=trainer_config.batch_size,
-                verbose=verbose_value,
-                learning_rate=trainer_config.lr,
-                policy_kwargs=policy_kwargs_on_policy,
-                n_steps=trainer_config.learn_step,
-                vf_coef=trainer_config.vf_coef,
-                ent_coef=trainer_config.ent_coef,
-                device=trainer_config.device,
-                max_grad_norm=trainer_config.max_grad_norm,
-                n_epochs=trainer_config.update_epochs,
-                seed=trainer_config.seed,
-            )
-        elif POLICY == "A2C":
-            model = A2C(
-                network_config.type_model,
-                vec_env,
-                verbose=verbose_value,
-                learning_rate=trainer_config.lr,
-                n_steps=trainer_config.learn_step,
-                gae_lambda=trainer_config.gae_lambda,
-                ent_coef=trainer_config.ent_coef,
-                vf_coef=trainer_config.vf_coef,
-                max_grad_norm=trainer_config.max_grad_norm,
-                seed=trainer_config.seed,
-                policy_kwargs=policy_kwargs_on_policy,
-                device=trainer_config.device,
-            )
-        elif POLICY == "DQN":
-            model = DQN(
-                network_config.type_model,
-                DummyVecEnv([make_env]),
-                learning_rate=trainer_config.lr,
-                batch_size=trainer_config.batch_size,
-                buffer_size=1000000,
-                verbose=verbose_value,
-                device=trainer_config.device,
-                policy_kwargs=policy_kwargs_off_policy,
-                seed=trainer_config.seed,
-            )
+        if policy_kwargs_on_policy is not None or policy_kwargs_on_policy_recurrent is not None or policy_kwargs_off_policy is not None:
+            if POLICY == "TRPO":
+                model = TRPO(
+                    policy=network_config.type_model,
+                    env=vec_env,
+                    batch_size=trainer_config.batch_size,
+                    verbose=verbose_value,
+                    learning_rate=trainer_config.lr,
+                    policy_kwargs=policy_kwargs_on_policy,
+                    n_steps=trainer_config.learn_step,
+                    device=trainer_config.device,
+                    seed=trainer_config.seed,
+                )
+            if POLICY == "Recurrent PPO":
+                model = RecurrentPPO(
+                    "MlpLstmPolicy",
+                    vec_env,
+                    batch_size=trainer_config.batch_size,
+                    verbose=verbose_value,
+                    learning_rate=trainer_config.lr,
+                    policy_kwargs=policy_kwargs_on_policy_recurrent,
+                    n_steps=trainer_config.learn_step,
+                    vf_coef=trainer_config.vf_coef,
+                    ent_coef=trainer_config.ent_coef,
+                    device=trainer_config.device,
+                    max_grad_norm=trainer_config.max_grad_norm,
+                    n_epochs=trainer_config.update_epochs,
+                    seed=trainer_config.seed,
+                )
+            elif POLICY == "PPO":
+                model = PPO(
+                    policy=network_config.type_model,
+                    env=vec_env,
+                    batch_size=trainer_config.batch_size,
+                    verbose=verbose_value,
+                    learning_rate=trainer_config.lr,
+                    policy_kwargs=policy_kwargs_on_policy,
+                    n_steps=trainer_config.learn_step,
+                    vf_coef=trainer_config.vf_coef,
+                    ent_coef=trainer_config.ent_coef,
+                    device=trainer_config.device,
+                    max_grad_norm=trainer_config.max_grad_norm,
+                    n_epochs=trainer_config.update_epochs,
+                    seed=trainer_config.seed,
+                )
+            elif POLICY == "A2C":
+                model = A2C(
+                    policy=network_config.type_model,
+                    env=vec_env,
+                    verbose=verbose_value,
+                    learning_rate=trainer_config.lr,
+                    n_steps=trainer_config.learn_step,
+                    gae_lambda=trainer_config.gae_lambda,
+                    ent_coef=trainer_config.ent_coef,
+                    vf_coef=trainer_config.vf_coef,
+                    max_grad_norm=trainer_config.max_grad_norm,
+                    seed=trainer_config.seed,
+                    policy_kwargs=policy_kwargs_on_policy,
+                    device=trainer_config.device,
+                )
+            elif POLICY == "DQN":
+                model = DQN(
+                    network_config.type_model,
+                    DummyVecEnv([make_env]),
+                    learning_rate=trainer_config.lr,
+                    batch_size=trainer_config.batch_size,
+                    buffer_size=1000000,
+                    verbose=verbose_value,
+                    device=trainer_config.device,
+                    policy_kwargs=policy_kwargs_off_policy,
+                    seed=trainer_config.seed,
+                )
 
-    # Define o callback
-    # if trainer_config.use_wandb:
-    # callback = WandbCallback(
-    #     gradient_save_freq=100,
-    #     model_save_path=trainer_config.checkpoint_path,
-    #     verbose=2,
-    # )
-    # else:
     callback = DynamicTrainingCallback(
         wandb_run=run,
         save_checkpoint=trainer_config.checkpoint,
         model_save_path="checkpoints/",
     )
-    # callback = (
-    #     DynamicTrainingCallback(
-    #         check_freq=100,
-    #     )
-    #     if trainer_config.use_agents
-    #     else CheckpointCallback(
-    #         save_freq=100000,
-    #         save_path="./checkpoints/",
-    #         name_prefix=NAME_CHECKPOINT,
-    #     )
-    # )
 
     if model is not None:
         model.learn(
