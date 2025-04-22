@@ -9,6 +9,13 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 
 # from sb3_contrib import RecurrentPPO
 from stable_baselines3 import PPO
+import zipfile, io, torch
+
+from gymnasium import spaces
+from typing import Callable
+from stable_baselines3.common.policies import ActorCriticPolicy
+from rnl.network.model import CustomActorCriticPolicy
+import json
 
 # from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
@@ -184,7 +191,28 @@ class NaviEnv(gym.Env):
 
         self.model = None
         if self.pretrained_model != "None":
-            self.model = PPO.load(robot_config.path_model)
+            lr_schedule: Callable[[float], float] = lambda _: 0.0
+            device = torch.device('cpu')
+
+            state_dict = torch.load('/Users/nicolasalan/microvault/rnl/ppo_policy_network/model/policy.pth', map_location=device)
+
+            pi_w = state_dict['mlp_extractor.policy_net.2.weight']
+            vf_w = state_dict['mlp_extractor.value_net.2.weight']
+            last_layer_dim_pi, _ = pi_w.shape
+            last_layer_dim_vf, _ = vf_w.shape
+
+            self.policy = CustomActorCriticPolicy(
+                self.observation_space,
+                self.action_space,
+                lr_schedule,
+                last_layer_dim_pi=last_layer_dim_pi,
+               last_layer_dim_vf=last_layer_dim_vf
+            )
+            self.policy.to(device)
+
+            self.policy.load_state_dict(state_dict)
+
+            # self.model = PPO.load(robot_config.path_model)
 
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -246,14 +274,23 @@ class NaviEnv(gym.Env):
             self.vr = 0.005 * self.scalar
 
     def step_animation(self, i):
+        device = torch.device('cpu')
+        last_states_tensor = torch.tensor(self.last_states, dtype=torch.float32)
+        last_states_tensor = last_states_tensor.unsqueeze(0).to(device)
 
         if self.pretrained_model != "None" or not self.controller:
-            if self.pretrained_model != "None" and self.model is not None:
-                action, _states = self.model.predict(self.last_states)
+            # if self.pretrained_model != "None" and self.model is not None:
+                self.policy.eval()
+
+                features = self.policy.features_extractor(last_states_tensor)
+                latent_pi, latent_vf = self.policy.mlp_extractor(features)
+                dist = self.policy._get_action_dist_from_latent(latent_pi)
+                action = dist.get_actions()
+                # action, _states = self.model.predict(self.last_states)
                 # action, self.lstm_states = self.model.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts)
                 self.action = int(action)
-            else:
-                self.action = np.random.randint(0, 3)
+            # else:
+            #     self.action = np.random.randint(0, 3)
 
         if not self.controller:
             if self.action == 0:

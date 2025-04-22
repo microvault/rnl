@@ -32,7 +32,6 @@ class CustomNetwork(nn.Module):
         )
 
     def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
-        # não é usado pelo SB3 diretamente, mas é bom pra debug
         return self.forward_actor(features), self.forward_critic(features)
 
     def forward_actor(self, features: th.Tensor) -> th.Tensor:
@@ -52,7 +51,6 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         last_layer_dim_vf: int = 10,
         **kwargs,
     ):
-        # define antes de super
         self.latent_dim_pi = last_layer_dim_pi
         self.latent_dim_vf = last_layer_dim_vf
         kwargs["ortho_init"] = False
