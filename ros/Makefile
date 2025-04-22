@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-MAP_NAME = map5
+MAP_NAME = map4
 
 .PHONY: build run nav start
 
@@ -28,11 +28,11 @@ nav:
 
 start:
 	$(env_setup) && \
-	ros2 launch playground turtlebot_sim_world.launch.py map:=src/playground/maps/$(MAP_NAME)/$(MAP_NAME).yaml
+	ros2 launch playground turtlebot_sim_world.launch.py
 
 run:
 	$(env_setup) && \
-	ros2 launch playground turtlebot_sim_world.launch.py
+	ros2 run playground sim_environment
 
 teleop:
 	$(env_setup) && \

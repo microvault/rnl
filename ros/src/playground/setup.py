@@ -1,25 +1,30 @@
 from setuptools import find_packages, setup
+from glob import glob
 
 package_name = "playground"
+
+# captura qualquer .pgm ou .yaml dentro de pasta map*
+map_files = [
+    f for pattern in ("map*/**/*.pgm", "map*/**/*.yaml")
+    for f in glob(pattern, recursive=True)
+]
+
+data_files = [
+    ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
+    (f"share/{package_name}", ["package.xml"]),
+    (f"share/{package_name}/launch", glob("launch/*.launch.py")),
+    (f"share/{package_name}/params", ["params/turtlebot3_amcl.yaml"]),
+    (f"share/{package_name}/worlds", glob("worlds/*")),
+    (f"share/{package_name}/models", ["models/model.zip"]),
+    (f"share/{package_name}/map", map_files),
+    (f"share/{package_name}/rviz", ["rviz/cartographer.rviz"]),
+]
 
 setup(
     name=package_name,
     version="0.0.0",
     packages=find_packages(exclude=["test"]),
-    data_files=[
-        ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
-        ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", ["launch/turtlebot_sim_world.launch.py"]),
-        (
-            "share/" + package_name + "/launch",
-            ["launch/turtlebot_real_world.launch.py"],
-        ),
-        ("share/" + package_name + "/launch", ["launch/mapping.launch.py"]),
-        ("share/" + package_name + "/launch", ["launch/localization.launch.py"]),
-        ("share/" + package_name + "/worlds", ["worlds/my_world.world"]),
-        ("share/" + package_name + "/worlds", ["worlds/target.sdf"]),
-        ("share/" + package_name + "/models", ["models/model.zip"]),
-    ],
+    data_files=data_files,
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="root",
