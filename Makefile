@@ -28,8 +28,8 @@ USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
 MAP_NAME          ?= map
-ENV_TYPE 		  ?= easy-00
-OBSTACLE_PERCENTAGE ?= 40.0
+ENV_TYPE 		  ?= turn
+OBSTACLE_PERCENTAGE ?= 20.0
 MAP_SIZE          ?= 3.5
 POLICY_TYPE       ?= PPO
 
@@ -107,7 +107,11 @@ endef
 
 .PHONY: sim
 sim:
-	@uv run python -m main sim --controller $(CONTROL) --debug True --scalar $(SCALAR)
+	@uv run python -m main sim \
+	    --controller $(CONTROL) \
+    	--scalar $(SCALAR) \
+    	--env_type $(ENV_TYPE) \
+		--debug True
 
 .PHONY: learn
 learn:
