@@ -851,3 +851,6 @@ pip-selfcheck.json
 /papers
 .benchmarks
 /ros/tb3_ws
+*.jsonl
+*.png
+ppo_policy_network
