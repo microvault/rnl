@@ -86,8 +86,24 @@ class NaviEnv(gym.Env):
                 mode=self.mode
             )
 
+        elif "turn" in self.mode or "avoid" in self.mode:
+            self.grid_length = 2
+
+            self.generator = Generator(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                self.grid_length
+            )
+
+        elif "long" in self.mode:
+            self.grid_length = 20
+
+            self.generator = Generator(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                self.grid_length
+            )
+
         elif "easy" in self.mode:
-            if self.mode in ("easy-00", "easy-10", "easy-01", "easy-02"):
+            if self.mode in ("easy-01", "easy-02"):
                 self.grid_length = 2
 
                 self.generator = Generator(mode=self.mode)
@@ -222,32 +238,18 @@ class NaviEnv(gym.Env):
                 self._init_reward_plot()
 
     def on_key_press(self, event):
-        # ---- medium ----
-        # if event.key == "up":
-        #     self.action = 0
-        #     self.vl = 0.10 * self.scalar
-        #     self.vr = 0.0
-        # elif event.key == "right":
-        #     self.action = 1
-        #     self.vl = 0.08 * self.scalar
-        #     self.vr = -1.12 #* self.scalar
-        # elif event.key == "left":
-        #     self.action = 2
-        #     self.vl = 0.08 * self.scalar
-        #     self.vr = 1.12 #* self.scalar
-
         if event.key == "up":
             self.action = 0
-            self.vl = 0.10 * self.scalar
+            self.vl = (self.max_lr/2) * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.action = 1
-            self.vl = 0.08 * self.scalar
-            self.vr = -0.36 * self.scalar
+            self.vl = (self.max_lr/2) * self.scalar
+            self.vr = -(self.max_vr/6) * self.scalar
         elif event.key == "left":
             self.action = 2
-            self.vl = 0.08 * self.scalar
-            self.vr = 0.36 * self.scalar
+            self.vl = (self.max_lr/2) * self.scalar
+            self.vr = (self.max_vr/6) * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -397,16 +399,16 @@ class NaviEnv(gym.Env):
         vr = 0.0
 
         if action == 0:
-            vl = 0.10 * self.scalar
+            vl = (self.max_lr/2) * self.scalar
             vr = 0.0
         elif action == 1:
             self.steps_command_angular += 1
-            vl = 0.08 * self.scalar
-            vr = -0.36 * self.scalar
+            vl = (self.max_lr/2) * self.scalar
+            vr = -(self.max_vr/6) * self.scalar
         elif action == 2:
             self.steps_command_angular += 1
-            vl = 0.08 * self.scalar
-            vr = 0.36 * self.scalar
+            vl = (self.max_lr/2) * self.scalar
+            vr = (self.max_vr/6) * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -434,8 +436,7 @@ class NaviEnv(gym.Env):
         collision_array, laser = min_laser(lidar_measurements, self.collision)
         collision = bool(np.any(collision_array))
 
-        # zona de inseguranca (min lazer)
-        if laser < (self.collision + 0.5):
+        if laser < (self.collision * 1.2):
             self.steps_unsafe_area += 1
 
         padded_lidar = np.zeros((self.max_num_rays,), dtype=np.float32)
@@ -523,31 +524,11 @@ class NaviEnv(gym.Env):
         self.infos_list.clear()
         return infos
 
-    def update_strategy(
-        self, new_map_size, new_porcentage_obstacle, new_reward_type, new_params
-    ):
-        self.map_size = new_map_size
-        self.porcentage_obstacle = new_porcentage_obstacle
-
-        self.reward_config = RewardConfig(
-            reward_type="all",
-            params=new_params,
-            description=f"Reward configurado para {new_reward_type}",
-        )
-
-        print("\n!!Novo tamanho do mapa e porcentagem de obstáculos!!\n")
-        print(f"Mapa: {self.map_size}")
-        print(f"Porcentagem de obstáculos: {self.porcentage_obstacle}")
-
-        print("\n!!Novo tipo de recompensa!!\n")
-        print(f"Tipo: {new_reward_type}")
-        print(f"Parâmetros: {new_params}")
-
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed, options=options)
 
         try:
-            if self.mode == "easy-00":
+            if self.mode == "turn":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
@@ -561,7 +542,7 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
-            elif self.mode == "easy-10":
+            elif self.mode == "avoid":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
                 )
@@ -574,6 +555,30 @@ class NaviEnv(gym.Env):
                     x, y = 2.5, 2.5
                 else:
                     x, y = 0.5, 0.5
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
+            elif self.mode in ("long"):
+                if self.porcentage_obstacle is None:
+                    raise ValueError(
+                        "porcentage_obstacle é obrigatório para o modo train-mode"
+                    )
+
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    grid_length=self.grid_length,
+                    porcentage_obstacle=self.porcentage_obstacle,
+                )
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold + 0.4,
+                    goal_clearance=self.collision + 0.4,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
 
                 self.sensor.update_map(self.segments)
 
@@ -808,7 +813,6 @@ class NaviEnv(gym.Env):
                 "steps_command_angular": self.steps_command_angular,
                 "total_timestep": self.timestep,
             }
-            # colocar algo de path planning A* ou Dijkstra e mostrar quantos steps foram necessários
 
             self.steps_to_goal = 0
             self.steps_to_collision = 0
@@ -854,9 +858,17 @@ class NaviEnv(gym.Env):
             ax.set_xlim(0, int(self.grid_length))
             ax.set_ylim(0, int(self.grid_length))
 
-        if "easy-10" in self.mode:
+        if "turn" in self.mode:
+            ax.set_xlim(0, 2)
+            ax.set_ylim(0, 2)
+
+        if "avoid" in self.mode:
             ax.set_xlim(0, 4)
             ax.set_ylim(0, 4)
+
+        if "long" in self.mode:
+            ax.set_xlim(0, 20)
+            ax.set_ylim(0, 20)
 
         elif "train-mode" in self.mode:
             if self.map_size is not None:
@@ -1031,7 +1043,7 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if "easy" in self.mode:
+        if self.mode in ("easy", "avoid", "turn"):
             if self.mode == "easy-03":
                 x2 = x + 0.2 * np.cos(self.body.angle)
                 y2 = y + 0.2 * np.sin(self.body.angle)
@@ -1041,6 +1053,13 @@ class NaviEnv(gym.Env):
             else:
                 x2 = x + 0.1 * np.cos(self.body.angle)
                 y2 = y + 0.1 * np.sin(self.body.angle)
+            self.heading_line = self.ax.plot3D(
+                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+            )[0]
+
+        if self.mode in ("long"):
+            x2 = x + 0.6 * np.cos(self.body.angle)
+            y2 = y + 0.6 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
@@ -1115,7 +1134,6 @@ class NaviEnv(gym.Env):
         max_y = max(all_rewards) if all_rewards else 1
         self.reward_ax.set_ylim(min_y - 1, max_y + 1)
 
-        # Redraw the reward plot
         self.reward_ax.figure.canvas.draw()
         self.reward_ax.figure.canvas.flush_events()
 

@@ -68,92 +68,37 @@ class Generator:
         - Polygon: The Polygon object representing the maze boundaries.
         - List: List of LineString segments representing the maze segments.
         """
-        if self.mode in ("easy-10"):
+        if self.mode in ("avoid"):
 
-            # map_grid = np.array([[0, 0, 0],
-            #                      [0, 1, 0],
-            #                      [0, 0, 0]])
-
-            # conts = find_contours(map_grid, 0.5)
-            # contours = process(conts)
-
-            # height, width = map_grid.shape
-            # exterior = []
-
-            # # 1
-            # for x in range(width):
-            #     exterior.append((x, height))
-
-            # # 2
-            # for y in range(height, -1, -1):
-            #     exterior.append((width, y))
-
-            # # 3
-            # for x in range(width, -1, -1):
-            #     exterior.append((x, 0))
-
-            # # 4
-            # for y in range(1, height):
-            #     exterior.append((0, y))
-
-            # interiors = []
-            # segments = []
-
-            # for n, contour in enumerate(contours):
-            #     poly = []
-            #     for idx, vertex in enumerate(contour):
-            #         poly.append((vertex[1], vertex[0]))
-
-            #     interiors.append(poly)
-
-            #     interior_segment = LineString(poly)
-            #     segments.append(interior_segment)
-
-            # exterior_segment = LineString(exterior + [exterior[0]])
-            # segments.insert(0, exterior_segment)
-
-            # stacks = [self.line_to_np_stack(line) for line in segments]
-
-            # segment = extract_segment_from_polygon(stacks)
-
-            # Defina as coordenadas do quadrado externo
             exterior = [(0, 0), (3, 0), (3, 3), (0, 3)]
 
-            # Defina as coordenadas do quadrado interno
-            interior = [(1, 1), (2, 1), (2, 2), (1, 2)]
+            interior = [(1, 1), (1, 2), (2, 2), (2, 1)]
 
-            # Crie as LineStrings (exterior + interior)
-            segments = []
-            exterior_segment = LineString(exterior + [exterior[0]])
-            segments.append(exterior_segment)
+            segments = [
+                LineString(exterior + [exterior[0]]),
+                LineString(interior + [interior[0]])
+            ]
+            stacks   = [self.line_to_np_stack(line) for line in segments]
+            segment  = extract_segment_from_polygon(stacks)
 
-            interior_segment = LineString(interior + [interior[0]])
-            segments.append(interior_segment)
-
-            # Exemplo de como converter cada segment em seu formato (caso precise)
-            stacks = [self.line_to_np_stack(line) for line in segments]
-            segment = extract_segment_from_polygon(stacks)
-
-            # Construa seu polígono final se precisar
             poly = Polygon(exterior, holes=[interior])
-
             if not poly.is_valid:
                 poly = poly.buffer(0)
-                if not poly.is_valid:
-                    raise ValueError("The polygon is not valid.")
 
             path = Path.make_compound_path(
-                Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+                Path(np.asarray(exterior)[:, :2]),
+                Path(np.asarray(interior)[:, :2])
             )
 
             path_patch = PathPatch(
-                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+                path,
+                facecolor=(0.1, 0.2, 0.5, 0.15),
+                edgecolor=(0.1, 0.2, 0.5, 0.15)
             )
 
             return path_patch, segment, poly
 
-        if self.mode in ("easy-00"):
+        if self.mode in ("turn"):
             width = int(grid_length) + 1
             height = int(grid_length) + 1
 
@@ -166,6 +111,38 @@ class Generator:
                 exterior.append((x, 0))
             for y in range(1, height - 1):
                 exterior.append((0, y))
+
+            poly = Polygon(exterior, holes=[]).buffer(0)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+                if not poly.is_valid:
+                    raise ValueError("Polígono inválido.")
+
+            polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
+            stack = [polygon]
+            segments = extract_segment_from_polygon(stack)
+            path = Path.make_compound_path(
+                Path(np.asarray(poly.exterior.coords)[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+            return path_patch, segments, poly
+
+        if self.mode in ("long"):
+            width = int(grid_length / resolution) + 1
+            height = int(grid_length / resolution) + 1
+
+            exterior = []
+            for x in range(width):
+                exterior.append((x * resolution, (height - 1) * resolution))
+            for y in range(height - 2, -1, -1):
+                exterior.append(((width - 1) * resolution, y * resolution))
+            for x in range(width - 2, -1, -1):
+                exterior.append((x * resolution, 0))
+            for y in range(1, height - 1):
+                exterior.append((0, y * resolution))
 
             poly = Polygon(exterior, holes=[]).buffer(0)
             if not poly.is_valid:

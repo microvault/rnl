@@ -237,11 +237,13 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
+        env_type: str
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
+        self.env_type = env_type
 
     def run(self) -> None:
 
@@ -250,6 +252,7 @@ class Simulation:
             self.sensor_config,
             self.env_config,
             self.render_config,
+            env_type=self.env_type
         )
 
         return None

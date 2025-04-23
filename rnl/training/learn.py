@@ -32,7 +32,7 @@ from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
 ENV_TYPE = "medium"
-OBSTACLE_PERCENTAGE = 40.0
+OBSTACLE_PERCENTAGE = 20.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
 REWARD_TYPE = RewardConfig(
