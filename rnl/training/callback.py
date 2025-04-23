@@ -11,12 +11,12 @@ from rnl.training.utils import make_environemnt
 class DynamicTrainingCallback(BaseCallback):
     def __init__(
         self,
-        check_freq: int = 100,
-        wandb_run=None,
-        save_checkpoint: int = 10000,
-        model_save_path: str = "checkpoints/",
-        sample_checkpoint_freq: int = 100,  # Avaliar e salvar métricas pontuais
-        run_id: str = "default_run",  # Identificador do treinamento
+        check_freq: int,
+        wandb_run,
+        save_checkpoint: int,
+        model_save_path: str,
+        sample_checkpoint_freq: int,
+        run_id: str,
     ):
         super().__init__(verbose=0)
         self.check_freq = check_freq

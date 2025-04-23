@@ -144,6 +144,10 @@ class Trainer:
         update_epochs: int,
         name: str,
         verbose: bool,
+        env_type: str,
+        obstacle_percentage: float,
+        map_size: float,
+        policy_type: str,
     ) -> None:
 
         if seed < 0:
@@ -199,6 +203,10 @@ class Trainer:
             update_epochs=update_epochs,
             name=name,
             verbose=verbose,
+            env_type=env_type,
+            obstacle_percentage=obstacle_percentage,
+            map_size=map_size,
+            policy_type=policy_type,
         )
 
         # if not self.render_config.debug:

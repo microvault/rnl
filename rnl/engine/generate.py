@@ -90,7 +90,7 @@ def main():
     )
 
     # Usa o método world para obter segmentos (modo exemplo)
-    _, segments_from_world, _ = create_world.world(mode="medium")
+    _, segments_from_world, _ = create_world.world(mode="easy-01")
 
     # Redimensiona e centraliza
     xs = [seg[0] for seg in segments_from_world] + [

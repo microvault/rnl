@@ -69,6 +69,10 @@ class TrainerConfig:
     update_epochs: int
     name: str
     verbose: bool
+    env_type: str
+    obstacle_percentage: float
+    map_size: float
+    policy_type: str
 
 
 @dataclass

@@ -7,8 +7,6 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-import torch
-
 from rnl.network.policy import RNLPolicy
 
 # from rnl.engine.utils import clean_info
@@ -224,6 +222,20 @@ class NaviEnv(gym.Env):
                 self._init_reward_plot()
 
     def on_key_press(self, event):
+        # ---- medium ----
+        # if event.key == "up":
+        #     self.action = 0
+        #     self.vl = 0.10 * self.scalar
+        #     self.vr = 0.0
+        # elif event.key == "right":
+        #     self.action = 1
+        #     self.vl = 0.08 * self.scalar
+        #     self.vr = -1.12 #* self.scalar
+        # elif event.key == "left":
+        #     self.action = 2
+        #     self.vl = 0.08 * self.scalar
+        #     self.vr = 1.12 #* self.scalar
+
         if event.key == "up":
             self.action = 0
             self.vl = 0.10 * self.scalar
@@ -231,11 +243,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.86 #* self.scalar
+            self.vr = -0.36 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.86 #* self.scalar
+            self.vr = 0.36 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -263,10 +275,10 @@ class NaviEnv(gym.Env):
                 self.vr = 0.0
             elif self.action == 1:
                 self.vl = 0.08 * self.scalar
-                self.vr = -0.36 * self.scalar # -0.36
+                self.vr = -0.36 * self.scalar
             elif self.action == 2:
                 self.vl = 0.08 * self.scalar
-                self.vr = 0.36 * self.scalar #  0.36
+                self.vr = 0.36 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 

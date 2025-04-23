@@ -13,7 +13,7 @@ NUM_ENVS          ?= 16
 DEVICE            ?= cpu
 LEARN_STEP        ?= 512
 CHECKPOINT        ?= 10000
-CHECKPOINT_PATH   ?= ppo_policy_network
+CHECKPOINT_PATH   ?= ppo_policy_network_medium
 LR                ?= 0.0003
 GAE_LAMBDA        ?= 0.95
 ENT_COEF          ?= 0.05
@@ -28,21 +28,13 @@ USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
 MAP_NAME          ?= map
+ENV_TYPE 		  ?= easy-00
+OBSTACLE_PERCENTAGE ?= 40.0
+MAP_SIZE          ?= 3.5
+POLICY_TYPE       ?= PPO
 
-# Variáveis comuns para o comando docker
-DOCKER_RUN_COMMON = -e WANDB_API_KEY=$(WANDB_API_KEY) \
-	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
-	--gpus all \
-	--network host \
-	--privileged \
-	--memory=16g \
-	-it \
-	-v $(PWD):/workdir \
-	$(IMAGE_NAME)
-
-# Argumentos comuns do treinamento
 TRAIN_ARGS = \
-	--MODE $(MODE) \
+	$(MODE) \
 	--agent $(USE_AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
 	--seed $(SEED) \
@@ -64,10 +56,23 @@ TRAIN_ARGS = \
 	--controller False \
 	--pretrained $(PRETRAINED) \
 	--verbose $(VERBOSE) \
-	--debug False \
-	--scalar $(SCALAR)
+	--debug True \
+	--scalar $(SCALAR) \
+	--env_type $(ENV_TYPE) \
+ 	--obstacle_percentage $(OBSTACLE_PERCENTAGE) \
+  	--map_size $(MAP_SIZE) \
+   	--policy_type $(POLICY_TYPE)
 
-# Macro para imprimir as configurações
+DOCKER_RUN_COMMON = -e WANDB_API_KEY=$(WANDB_API_KEY) \
+	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
+	--gpus all \
+	--network host \
+	--privileged \
+	--memory=16g \
+	-it \
+	-v $(PWD):/workdir \
+	$(IMAGE_NAME)
+
 define PRINT_CONFIG
 	@echo "MODE=$(MODE)"
 	@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
@@ -93,6 +98,10 @@ define PRINT_CONFIG
 	@echo "USE_AGENTS=$(USE_AGENTS)"
 	@echo "PRETRAINED=$(PRETRAINED)"
 	@echo "VERBOSE=$(VERBOSE)"
+	@echo "ENV_TYPE=$(ENV_TYPE)"
+	@echo "OBSTACLE_PERCENTAGE=$(OBSTACLE_PERCENTAGE)"
+	@echo "MAP_SIZE=$(MAP_SIZE)"
+	@echo "POLICY_TYPE=$(POLICY_TYPE)"
 	@echo
 endef
 
@@ -102,31 +111,7 @@ sim:
 
 .PHONY: learn
 learn:
-	@uv run python -m main $(MODE) \
-		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
-		--seed $(SEED) \
-		--hidden_size $(HIDDEN_SIZE) \
-		--activation $(ACTIVATION) \
-		--batch_size $(BATCH_SIZE) \
-		--num_envs $(NUM_ENVS) \
-		--device $(DEVICE) \
-		--checkpoint $(CHECKPOINT) \
-		--checkpoint_path $(CHECKPOINT_PATH) \
-		--lr $(LR) \
-		--learn_step $(LEARN_STEP) \
-		--gae_lambda $(GAE_LAMBDA) \
-		--ent_coef $(ENT_COEF) \
-		--vf_coef $(VF_COEF) \
-		--max_grad_norm $(MAX_GRAD_NORM) \
-		--update_epochs $(UPDATE_EPOCHS) \
-		--name $(NAME) \
-		--use_wandb $(USE_WANDB) \
-		--agent $(USE_AGENTS) \
-		--controller False \
-		--pretrained $(PRETRAINED) \
-		--verbose $(VERBOSE) \
-		--debug True \
-		--scalar $(SCALAR)
+	@uv run python -m main $(TRAIN_ARGS)
 
 .PHONY: probe
 probe:

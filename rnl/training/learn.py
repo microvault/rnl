@@ -35,7 +35,6 @@ ENV_TYPE = "medium"
 OBSTACLE_PERCENTAGE = 40.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
-NAME_CHECKPOINT = "simples_ppo_easy_04_time_obstacle"
 REWARD_TYPE = RewardConfig(
     params={
         "scale_orientation": 0.0,  # 0.02
@@ -54,11 +53,15 @@ def training(
     trainer_config: TrainerConfig,
     network_config: NetworkConfig,
     reward_config: RewardConfig = REWARD_TYPE,
+    env_type: str = ENV_TYPE,
+    obstacle_percentage: float = OBSTACLE_PERCENTAGE,
+    map_size: float = MAP_SIZE,
+    policy_type: str = POLICY,
     print_parameter: bool = True,
 ):
     extra_info = {
-        "Type mode": ENV_TYPE,
-        "Type policy": POLICY,
+        "Type mode": env_type,
+        "Type policy": policy_type,
         "scale_orientation": reward_config.params["scale_orientation"],
         "scale_distance": reward_config.params["scale_distance"],
         "scale_time": reward_config.params["scale_time"],
@@ -97,8 +100,8 @@ def training(
         env_config,
         render_config,
         use_render=False,
-        mode=ENV_TYPE,
-        type_reward=REWARD_TYPE,
+        mode=env_type,
+        type_reward=reward_config,
     )
 
     check_env(env)
@@ -109,8 +112,8 @@ def training(
 
     if network_config.type_model == CustomActorCriticPolicy:
         policy_kwargs_on_policy = dict(
-            last_layer_dim_pi=20,
-            last_layer_dim_vf=10,
+            last_layer_dim_pi=network_config.hidden_size[0],
+            last_layer_dim_vf=network_config.hidden_size[1],
         )
     else:
         activation_fn_map = {
@@ -149,8 +152,8 @@ def training(
             env_config,
             render_config,
             use_render=False,
-            mode=ENV_TYPE,
-            type_reward=REWARD_TYPE,
+            mode=env_type,
+            type_reward=reward_config,
         )
         env = Monitor(env)
         return env
@@ -298,6 +301,8 @@ def inference(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
+    reward_config: RewardConfig = REWARD_TYPE,
+    env_type: str = ENV_TYPE,
 ):
 
     text = [
@@ -314,6 +319,8 @@ def inference(
         print(line)
 
     config_dict = {
+        "Type mode": env_type,
+        "Reward Config": reward_config,
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
         "Env Config": env_config.__dict__,
@@ -328,8 +335,8 @@ def inference(
         env_config,
         render_config,
         use_render=True,
-        mode=ENV_TYPE,
-        type_reward=REWARD_TYPE,
+        mode=env_type,
+        type_reward=reward_config,
     )
 
     env.render()
@@ -345,11 +352,15 @@ def probe_envs(
     seed,
     mode=None,
     image=True,
+    reward_config: RewardConfig = REWARD_TYPE,
+    env_type: str = ENV_TYPE,
 ):
     set_seed(seed)
 
     probe_config = ProbeEnvConfig(num_envs=num_envs, max_steps=max_steps)
     config_dict = {
+        "Type mode": env_type,
+        "Reward Config": reward_config,
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
         "Env Config": env_config.__dict__,
@@ -365,8 +376,8 @@ def probe_envs(
         env_config,
         render_config,
         use_render=False,
-        mode=ENV_TYPE,
-        type_reward=REWARD_TYPE,
+        mode=env_type,
+        type_reward=reward_config,
     )
 
     check_env(env)
@@ -401,8 +412,8 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=ENV_TYPE,
-            type_reward=REWARD_TYPE,
+            mode=env_type,
+            type_reward=reward_config,
         )
 
         obs, info = env.reset()

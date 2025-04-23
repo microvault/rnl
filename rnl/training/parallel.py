@@ -22,6 +22,10 @@ def train_worker(
     trainer_config,
     network_config,
     reward_config,
+    env_type,
+    obstacle_percentage,
+    map_size,
+    policy_type,
 ):
     metrics = training(
         robot_config,
@@ -31,6 +35,10 @@ def train_worker(
         trainer_config,
         network_config,
         reward_config,
+        env_type,
+        obstacle_percentage,
+        map_size,
+        policy_type,
         print_parameter=False,
     )
 
@@ -53,6 +61,10 @@ def run_parallel_trainings(list_of_configs):
                 cfg["trainer_config"],
                 cfg["network_config"],
                 cfg["reward_config"],
+                cfg["env_type"],
+                cfg["obstacle_percentage"],
+                cfg["map_size"],
+                cfg["policy_type"],
             )
             async_results.append(pool.apply_async(train_worker, args))
 
@@ -263,6 +275,10 @@ if __name__ == "__main__":
         update_epochs=10,
         name="rnl-v1",
         verbose=True,
+        env_type="easy-00",
+        obstacle_percentage=40,
+        map_size=3,
+        policy_type="PPO",
     )
 
     network_config = NetworkConfig(

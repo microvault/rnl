@@ -73,6 +73,10 @@ def main(arg):
             update_epochs=args.update_epochs,
             name=args.name,
             verbose=args.verbose,
+            env_type=args.env_type,
+            obstacle_percentage=args.obstacle_percentage,
+            map_size=args.map_size,
+            policy_type=args.policy_type,
         )
 
     elif args.mode == "sim":
@@ -230,6 +234,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "--use_wandb",
         type=str2bool,
+    )
+
+    parser.add_argument(
+        "--env_type",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--obstacle_percentage",
+        type=float,
+    )
+
+    parser.add_argument(
+        "--map_size",
+        type=float,
+    )
+
+    parser.add_argument(
+        "--policy_type",
+        type=str,
     )
 
     args = parser.parse_args()
