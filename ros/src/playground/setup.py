@@ -15,7 +15,7 @@ data_files = [
     (f"share/{package_name}/launch", glob("launch/*.launch.py")),
     (f"share/{package_name}/params", ["params/turtlebot3_amcl.yaml"]),
     (f"share/{package_name}/worlds", glob("worlds/*")),
-    (f"share/{package_name}/models", ["models/model.zip"]),
+    (f"share/{package_name}/models", ["models/policy.pth"]),
     (f"share/{package_name}/map", map_files),
     (f"share/{package_name}/rviz", ["rviz/cartographer.rviz"]),
 ]

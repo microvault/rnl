@@ -31,10 +31,7 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
-# from wandb.integration.sb3 import WandbCallback
-
-
-ENV_TYPE = "easy-00"
+ENV_TYPE = "medium"
 OBSTACLE_PERCENTAGE = 40.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
@@ -110,8 +107,6 @@ def training(
     policy_kwargs_on_policy_recurrent = None
     policy_kwargs_off_policy = None
 
-    print(network_config.type_model)
-
     if network_config.type_model == CustomActorCriticPolicy:
         policy_kwargs_on_policy = dict(
             last_layer_dim_pi=20,
@@ -160,12 +155,10 @@ def training(
         env = Monitor(env)
         return env
 
-    # Parallel environments
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
 
-    # Carrega modelo pré-treinado se existir
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
     else:

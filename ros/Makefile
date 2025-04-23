@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-MAP_NAME = map4
+MAP_NAME = map5
 
 .PHONY: build run nav start
 
@@ -26,6 +26,14 @@ nav:
 	$(env_setup) && \
 	ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=src/playground/maps/$(MAP_NAME)/$(MAP_NAME).yaml
 
+map:
+	$(env_setup) && \
+	ros2 launch turtlebot3_cartographer cartographer.launch.py
+
+save:
+	$(env_setup) && \
+	ros2 run nav2_map_server map_saver_cli -f src/map
+
 start:
 	$(env_setup) && \
 	ros2 launch playground turtlebot_sim_world.launch.py
@@ -43,3 +51,7 @@ kill:
 
 add:
 	tmux new-window
+
+print:
+	$(env_setup) && \
+	ros2 run tf2_tools view_frames

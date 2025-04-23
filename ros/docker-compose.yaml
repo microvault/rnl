@@ -9,7 +9,6 @@ services:
       - DISPLAY=:9
     ports:
       - "3000:80"
-
   ros-master:
     build:
       context: .

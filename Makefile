@@ -6,7 +6,7 @@ VERSION      = 1.1
 MODE              ?= learn
 MAX_TIMESTEP_GLOBAL ?= 20000
 SEED              ?= 1
-HIDDEN_SIZE       ?= 20,10
+HIDDEN_SIZE       ?= 60,40
 ACTIVATION        ?= ReLU
 BATCH_SIZE        ?= 8
 NUM_ENVS          ?= 16
@@ -27,7 +27,6 @@ USE_WANDB         ?= True
 USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
-
 MAP_NAME          ?= map
 
 # Variáveis comuns para o comando docker

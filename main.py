@@ -16,7 +16,7 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
-        path_model="",
+        path_model="/Users/nicolasalan/microvault/rnl/ppo_policy_network/model/policy.pth",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -24,15 +24,15 @@ def main(arg):
         fov=270,
         num_rays=5,  # min 5 max 20
         min_range=0.0,
-        max_range=3.5,  # 3.5
+        max_range=50.0,  # 3.5
     )
 
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map6",  # ./data/map4
-        name_map="map6",  # map4
-        max_timestep=1000,  # 1000
+        folder_map="./data/map4",  # ./data/map4
+        name_map="map4",  # map4
+        max_timestep=10000,  # 1000
     )
 
     # 4.step -> config render
@@ -54,7 +54,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
-            type_model="MlpPolicy",
+            type_model="Custom",
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,

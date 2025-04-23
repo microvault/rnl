@@ -44,5 +44,6 @@ RUN echo "bind -n M-Down split-window -v"                                       
 
 RUN apt install -y python3-pip
 RUN pip install setuptools==58.2.0
+RUN pip install torch
 
 WORKDIR /turtlebot3_ws

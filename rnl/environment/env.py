@@ -7,15 +7,9 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-# from sb3_contrib import RecurrentPPO
-from stable_baselines3 import PPO
-import zipfile, io, torch
+import torch
 
-from gymnasium import spaces
-from typing import Callable
-from stable_baselines3.common.policies import ActorCriticPolicy
-from rnl.network.model import CustomActorCriticPolicy
-import json
+from rnl.network.policy import RNLPolicy
 
 # from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
@@ -189,31 +183,12 @@ class NaviEnv(gym.Env):
         self.measurement = np.zeros(self.current_rays)
         self.last_states = np.zeros(state_size)
 
-        self.model = None
+        self.policy = None
         if self.pretrained_model != "None":
-            lr_schedule: Callable[[float], float] = lambda _: 0.0
-            device = torch.device('cpu')
-
-            state_dict = torch.load('/Users/nicolasalan/microvault/rnl/ppo_policy_network/model/policy.pth', map_location=device)
-
-            pi_w = state_dict['mlp_extractor.policy_net.2.weight']
-            vf_w = state_dict['mlp_extractor.value_net.2.weight']
-            last_layer_dim_pi, _ = pi_w.shape
-            last_layer_dim_vf, _ = vf_w.shape
-
-            self.policy = CustomActorCriticPolicy(
-                self.observation_space,
-                self.action_space,
-                lr_schedule,
-                last_layer_dim_pi=last_layer_dim_pi,
-               last_layer_dim_vf=last_layer_dim_vf
-            )
-            self.policy.to(device)
-
-            self.policy.load_state_dict(state_dict)
-
-            # self.model = PPO.load(robot_config.path_model)
-
+            self.policy = RNLPolicy(in_dim=state_size,
+                                n_act=3,
+                                hidden=[20, 10],
+                                pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
@@ -256,11 +231,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = 0.08 * self.scalar
-            self.vr = -0.36 * self.scalar
+            self.vr = -0.86 #* self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = 0.08 * self.scalar
-            self.vr = 0.36 * self.scalar
+            self.vr = 0.86 #* self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -274,23 +249,13 @@ class NaviEnv(gym.Env):
             self.vr = 0.005 * self.scalar
 
     def step_animation(self, i):
-        device = torch.device('cpu')
-        last_states_tensor = torch.tensor(self.last_states, dtype=torch.float32)
-        last_states_tensor = last_states_tensor.unsqueeze(0).to(device)
-
         if self.pretrained_model != "None" or not self.controller:
-            # if self.pretrained_model != "None" and self.model is not None:
+            if self.pretrained_model != "None" and self.policy is not None:
                 self.policy.eval()
-
-                features = self.policy.features_extractor(last_states_tensor)
-                latent_pi, latent_vf = self.policy.mlp_extractor(features)
-                dist = self.policy._get_action_dist_from_latent(latent_pi)
-                action = dist.get_actions()
-                # action, _states = self.model.predict(self.last_states)
-                # action, self.lstm_states = self.model.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts)
+                action = self.policy.act(self.last_states)
                 self.action = int(action)
-            # else:
-            #     self.action = np.random.randint(0, 3)
+            else:
+                self.action = np.random.randint(0, 3)
 
         if not self.controller:
             if self.action == 0:
@@ -298,10 +263,10 @@ class NaviEnv(gym.Env):
                 self.vr = 0.0
             elif self.action == 1:
                 self.vl = 0.08 * self.scalar
-                self.vr = -0.36 * self.scalar
+                self.vr = -0.36 * self.scalar # -0.36
             elif self.action == 2:
                 self.vl = 0.08 * self.scalar
-                self.vr = 0.36 * self.scalar
+                self.vr = 0.36 * self.scalar #  0.36
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
