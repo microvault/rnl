@@ -16,7 +16,7 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
-        path_model="/Users/nicolasalan/microvault/rnl/ppo_policy_network/model/policy.pth",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -81,7 +81,7 @@ def main(arg):
 
     elif args.mode == "sim":
         # 5.step -> config train robot
-        model = vault.Simulation(param_robot, param_sensor, param_env, param_render)
+        model = vault.Simulation(param_robot, param_sensor, param_env, param_render, env_type=args.env_type)
         # 6.step -> run robot
         model.run()
 
