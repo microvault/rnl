@@ -3,9 +3,7 @@ import numpy as np
 from sb3_contrib import TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
 
-# from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
@@ -16,7 +14,6 @@ import wandb
 from rnl.network.model import CustomActorCriticPolicy
 from rnl.agents.evaluate import evaluate_agent, statistics
 
-# from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -60,6 +57,7 @@ def training(
     policy_type: str = POLICY,
     print_parameter: bool = True,
 ):
+
     extra_info = {
         "Type mode": env_type,
         "Type policy": policy_type,
@@ -95,17 +93,11 @@ def training(
     else:
         run = None
 
-    env = NaviEnv(
-        robot_config,
-        sensor_config,
-        env_config,
-        render_config,
-        use_render=False,
-        mode=env_type,
-        type_reward=reward_config,
-    )
+    task_pool = ("long", "turn", "avoid")
 
-    check_env(env)
+    env_type = (
+        np.random.choice(task_pool) if env_type == "random" else env_type
+    )
 
     policy_kwargs_on_policy = None
     policy_kwargs_on_policy_recurrent = None
@@ -159,7 +151,16 @@ def training(
         env = Monitor(env)
         return env
 
-    vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+    vec_env = make_vect_envs(
+        num_envs=trainer_config.num_envs,
+        robot_config=robot_config,
+        sensor_config=sensor_config,
+        env_config=env_config,
+        render_config=render_config,
+        use_render=False,
+        mode=env_type,
+        type_reward=reward_config,
+    )
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
 
@@ -239,7 +240,6 @@ def training(
                     seed=trainer_config.seed,
                 )
 
-    # random int
     id = random.randint(0, 1000000)
     callback = DynamicTrainingCallback(
         check_freq=100,
@@ -265,6 +265,16 @@ def training(
     if trainer_config.use_wandb:
         if run is not None:
             run.finish()
+
+    env = NaviEnv(
+        robot_config,
+        sensor_config,
+        env_config,
+        render_config,
+        use_render=False,
+        mode=env_type,
+        type_reward=reward_config,
+    )
 
     final_eval = evaluate_agent(model, env)
 
@@ -394,6 +404,8 @@ def probe_envs(
 
     check_env(env)
 
+    print(num_envs)
+
     if num_envs == 1:
         obs, _ = env.reset()
 
@@ -417,6 +429,7 @@ def probe_envs(
                 obs, _ = env.reset()
 
     else:
+        print("aqui")
         env = make_vect_envs(
             num_envs=num_envs,
             robot_config=robot_config,
