@@ -31,7 +31,7 @@ def evaluate_agent(
         truncated = False
 
         while not done and not truncated:
-            action, _ = agent.predict(state, deterministic=True)
+            action, _ = agent.predict(state, deterministic=False)
             state, reward, done, truncated, _ = env.step(action)
 
         # Recupera as infos finais

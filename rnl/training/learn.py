@@ -11,6 +11,7 @@ from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
 
+import random
 import wandb
 from rnl.network.model import CustomActorCriticPolicy
 from rnl.agents.evaluate import evaluate_agent, statistics
@@ -238,10 +239,21 @@ def training(
                     seed=trainer_config.seed,
                 )
 
+    # random int
+    id = random.randint(0, 1000000)
     callback = DynamicTrainingCallback(
+        check_freq=100,
+        sample_checkpoint_freq=1000,
+        run_id=str(id),
         wandb_run=run,
         save_checkpoint=trainer_config.checkpoint,
         model_save_path="checkpoints/",
+        robot_config=robot_config,
+        sensor_config=sensor_config,
+        env_config=env_config,
+        render_config=render_config,
+        mode=env_type,
+        type_reward=reward_config,
     )
 
     if model is not None:

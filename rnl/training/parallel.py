@@ -275,7 +275,7 @@ if __name__ == "__main__":
         update_epochs=10,
         name="rnl-v1",
         verbose=True,
-        env_type="easy-00",
+        env_type="turn",
         obstacle_percentage=40,
         map_size=3,
         policy_type="PPO",

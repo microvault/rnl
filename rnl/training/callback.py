@@ -6,6 +6,8 @@ from stable_baselines3.common.callbacks import BaseCallback
 
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.training.utils import make_environemnt
+from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
+from rnl.configs.rewards import RewardConfig
 
 
 class DynamicTrainingCallback(BaseCallback):
@@ -17,6 +19,12 @@ class DynamicTrainingCallback(BaseCallback):
         model_save_path: str,
         sample_checkpoint_freq: int,
         run_id: str,
+        robot_config: RobotConfig,
+        sensor_config: SensorConfig,
+        env_config: EnvConfig,
+        render_config: RenderConfig,
+        mode: str,
+        type_reward: RewardConfig,
     ):
         super().__init__(verbose=0)
         self.check_freq = check_freq
@@ -25,6 +33,12 @@ class DynamicTrainingCallback(BaseCallback):
         self.model_save_path = model_save_path
         self.sample_checkpoint_freq = sample_checkpoint_freq
         self.run_id = run_id
+        self.robot_config = robot_config
+        self.sensor_config = sensor_config
+        self.env_config = env_config
+        self.render_config = render_config
+        self.mode = mode
+        self.type_reward = type_reward
 
         self.start_time = None
         self.episode_rewards = []
@@ -54,7 +68,14 @@ class DynamicTrainingCallback(BaseCallback):
 
         # Avaliação principal + logs a cada "check_freq"
         if self.n_calls % self.check_freq == 0:
-            eval_env = make_environemnt()
+            eval_env = make_environemnt(
+                self.robot_config,
+                self.sensor_config,
+                self.env_config,
+                self.render_config,
+                self.mode,
+                self.type_reward,
+            )
             evaluation_results = evaluate_agent(self.model, eval_env)
             (
                 sucess_rate,

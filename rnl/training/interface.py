@@ -9,6 +9,7 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.network.model import CustomActorCriticPolicy
+from rnl.network.attn import AttnPolicy
 from rnl.training.learn import inference, probe_envs, training
 
 
@@ -175,6 +176,8 @@ class Trainer:
 
         if type_model == "Custom":
             type_model = CustomActorCriticPolicy
+        elif type_model == "attention":
+            type_model = AttnPolicy
 
         network_config = NetworkConfig(
             hidden_size=hidden_size,
@@ -223,6 +226,10 @@ class Trainer:
             self.render_config,
             trainer_config,
             network_config,
+            env_type=env_type,
+            obstacle_percentage=obstacle_percentage,
+            map_size=map_size,
+            policy_type=policy_type,
         )
 
         print(metrics)

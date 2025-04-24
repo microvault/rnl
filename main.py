@@ -54,7 +54,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
-            type_model="Custom",
+            type_model="attention",
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
