@@ -1,59 +1,6 @@
-import gymnasium as gym
-
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.environment.env import NaviEnv
-
-
-def create_env(num_envs):
-    robot_config = RobotConfig(
-        base_radius=0.105,
-        vel_linear=[-1.0, 1.0],
-        vel_angular=[-0.5, 0.5],
-        wheel_distance=0.5,
-        weight=5.0,
-        threshold=0.5,
-        collision=0.3,
-        path_model="None",
-    )
-    sensor_config = SensorConfig(fov=240.0, num_rays=36, min_range=0.1, max_range=5.0)
-    env_config = EnvConfig(
-        scalar=30,
-        folder_map="",
-        name_map="",
-        timestep=1000,
-        obstacle_percentage=40.0,
-        map_size=5,
-    )
-    render_config = RenderConfig(controller=False, debug=True, plot=False)
-
-    type_reward = RewardConfig(
-        params={
-            "scale_orientation": 0.02,
-            "scale_distance": 0.06,
-            "scale_time": 0.01,
-            "scale_obstacle": 0.001,
-        },
-    )
-
-    def make_envs(i):
-        def _init():
-            env = NaviEnv(
-                robot_config,
-                sensor_config,
-                env_config,
-                render_config,
-                False,
-                mode="turn",
-                type_reward=type_reward,
-            )
-            env.reset(seed=13 + i)
-            return env
-
-        return _init
-
-    return gym.vector.AsyncVectorEnv([make_envs(i) for i in range(num_envs)])
-
 
 def make_environemnt(
     robot_config: RobotConfig,
