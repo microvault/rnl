@@ -4,7 +4,7 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 from gymnasium import spaces
 
 class AttnNet(nn.Module):
-    def __init__(self, feature_dim: int, heads: int = 2, embed: int = 64):
+    def __init__(self, feature_dim: int, heads: int = 2, embed: int = 20):
         super().__init__()
         self.latent_dim_pi = embed
         self.latent_dim_vf = embed
