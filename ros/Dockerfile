@@ -18,6 +18,9 @@ RUN apt install -y ros-${ROS_DISTRO}-cartographer
 RUN apt install -y ros-${ROS_DISTRO}-cartographer-ros
 RUN apt install -y ros-${ROS_DISTRO}-navigation2
 RUN apt install -y ros-${ROS_DISTRO}-nav2-bringup
+RUN apt install -y ros-${ROS_DISTRO}-robot-state-publisher
+RUN apt install -y ros-${ROS_DISTRO}-joint-state-publisher
+
 
 RUN wget https://raw.githubusercontent.com/ROBOTIS-GIT/turtlebot3/humble-devel/turtlebot3_navigation2/param/burger.yaml
 RUN mv burger.yaml /opt/ros/humble/share/turtlebot3_navigation2/param/
@@ -44,6 +47,6 @@ RUN echo "bind -n M-Down split-window -v"                                       
 
 RUN apt install -y python3-pip
 RUN pip install setuptools==58.2.0
-RUN pip install torch
+# RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
 
 WORKDIR /turtlebot3_ws
