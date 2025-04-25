@@ -30,8 +30,8 @@ def main(arg):
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map4",  # ./data/map4
-        name_map="map4",  # map4
+        folder_map="./data/map6",  # ./data/map4
+        name_map="map6z",  # map4
         max_timestep=10000,  # 1000
     )
 
@@ -54,7 +54,7 @@ def main(arg):
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
-            type_model="attention",
+            type_model=args.type_model,
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
@@ -253,6 +253,11 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--policy_type",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--type_model",
         type=str,
     )
 
