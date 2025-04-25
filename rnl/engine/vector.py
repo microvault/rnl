@@ -5,7 +5,6 @@ from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 from stable_baselines3.common.env_checker import check_env
 
 import numpy as np
-import time
 
 def make_vect_envs(
     num_envs: int,
@@ -17,9 +16,16 @@ def make_vect_envs(
     type_reward: RewardConfig,
     mode: str = "random",
 ):
-    task_pool = ("long", "turn", "avoid")
-    rng = np.random.default_rng(int(time.time_ns() % 2**32))
-    chosen_modes = rng.choice(task_pool, size=num_envs)
+    # task_pool = ("long", "turn", "avoid")
+    task_pool = ("turn", "avoid")
+    rng = np.random.default_rng()
+
+    if mode == "random":
+        reps = int(np.ceil(num_envs / len(task_pool)))
+        base = np.tile(task_pool, reps)[:num_envs]
+        chosen_modes = rng.permutation(base)
+    else:
+        chosen_modes = np.full(num_envs, mode)
 
     def make_env(i: int):
         env_mode = chosen_modes[i]
@@ -35,7 +41,6 @@ def make_vect_envs(
                 type_reward=type_reward,
             )
             env.reset(seed=13 + i)
-
             check_env(env)
             return env
         return _init
