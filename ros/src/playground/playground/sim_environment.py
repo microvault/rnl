@@ -86,7 +86,6 @@ class InferenceModel(Node):
         self.position = None
         self.last_states = np.zeros(10)
 
-        # metas aleatórias
         self.goal_positions = [(2, 2), (7, 2), (2, 7), (7, 7)]
         self.goal_order = random.sample(range(len(self.goal_positions)), len(self.goal_positions))
         self.goal_index = 0
@@ -94,7 +93,6 @@ class InferenceModel(Node):
 
         self.lidar_ranges = [0.0] * 5
 
-        # escala min/max
         self.data_min = [0.5]*5 + [1.0, 0.0, 0, 0, 0]
         self.data_max = [3.5]*5 + [9.0, 3.5, 1, 1, 1]
 
