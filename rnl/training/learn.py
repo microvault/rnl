@@ -12,6 +12,7 @@ from tqdm import trange
 import random
 import wandb
 from rnl.network.model import CustomActorCriticPolicy
+from rnl.network.attn import AttnPolicy
 from rnl.agents.evaluate import evaluate_agent, statistics
 
 from rnl.configs.config import (
@@ -93,11 +94,6 @@ def training(
     else:
         run = None
 
-    task_pool = ("long", "turn", "avoid")
-
-    env_type = (
-        np.random.choice(task_pool) if env_type == "random" else env_type
-    )
 
     policy_kwargs_on_policy = None
     policy_kwargs_on_policy_recurrent = None
@@ -138,19 +134,6 @@ def training(
             net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
         )
 
-    def make_env():
-        env = NaviEnv(
-            robot_config,
-            sensor_config,
-            env_config,
-            render_config,
-            use_render=False,
-            mode=env_type,
-            type_reward=reward_config,
-        )
-        env = Monitor(env)
-        return env
-
     vec_env = make_vect_envs(
         num_envs=trainer_config.num_envs,
         robot_config=robot_config,
@@ -163,6 +146,25 @@ def training(
     )
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
+
+    task_pool = ("long", "turn", "avoid")
+
+    env_type = (
+        np.random.choice(task_pool) if env_type == "random" else env_type
+    )
+
+    def make_env():
+        env = NaviEnv(
+            robot_config,
+            sensor_config,
+            env_config,
+            render_config,
+            use_render=False,
+            mode=env_type,
+            type_reward=reward_config,
+        )
+        env = Monitor(env)
+        return env
 
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
