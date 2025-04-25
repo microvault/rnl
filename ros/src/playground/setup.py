@@ -3,7 +3,6 @@ from glob import glob
 
 package_name = "playground"
 
-# captura qualquer .pgm ou .yaml dentro de pasta map*
 map_files = [
     f for pattern in ("map*/**/*.pgm", "map*/**/*.yaml")
     for f in glob(pattern, recursive=True)
@@ -13,11 +12,9 @@ data_files = [
     ("share/ament_index/resource_index/packages", [f"resource/{package_name}"]),
     (f"share/{package_name}", ["package.xml"]),
     (f"share/{package_name}/launch", glob("launch/*.launch.py")),
-    (f"share/{package_name}/params", ["params/turtlebot3_amcl.yaml"]),
     (f"share/{package_name}/worlds", glob("worlds/*")),
     (f"share/{package_name}/models", ["models/policy.pth"]),
     (f"share/{package_name}/map", map_files),
-    (f"share/{package_name}/rviz", ["rviz/cartographer.rviz"]),
 ]
 
 setup(
@@ -36,8 +33,6 @@ setup(
         "console_scripts": [
             "sim_environment = playground.sim_environment:main",
             "real_environment = playground.real_environment:main",
-            "mapping = playground.mapping:main",
-            "localization = playground.localization:main",
         ],
     },
 )
