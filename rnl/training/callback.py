@@ -54,19 +54,16 @@ class DynamicTrainingCallback(BaseCallback):
 
     def _init_callback(self) -> None:
         self.start_time = time.time()
-        # Cria pasta de checkpoints se não existir
         if not os.path.exists(self.model_save_path):
             os.makedirs(self.model_save_path)
 
     def _on_step(self) -> bool:
-        # Captura recompensas e comprimentos dos episódios
         if len(self.locals["infos"]) > 0:
             for info in self.locals["infos"]:
                 if "episode" in info:
                     self.episode_rewards.append(info["episode"]["r"])
                     self.episode_lengths.append(info["episode"]["l"])
 
-        # Avaliação principal + logs a cada "check_freq"
         if self.n_calls % self.check_freq == 0:
             eval_env = make_environemnt(
                 self.robot_config,
@@ -146,7 +143,6 @@ class DynamicTrainingCallback(BaseCallback):
 
                 self.wandb_run.log(wandb_log, step=self.n_calls)
 
-                # Salva modelo em checkpoints
                 if self.n_calls % (self.save_checkpoint * 5) == 0:
                     save_path = f"{self.model_save_path}/model_{self.n_calls}_steps"
                     self.model.save(save_path)
