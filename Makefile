@@ -12,7 +12,7 @@ BATCH_SIZE        ?= 8
 NUM_ENVS          ?= 16
 DEVICE            ?= cpu
 LEARN_STEP        ?= 512
-CHECKPOINT        ?= 10000
+CHECKPOINT        ?= 10
 CHECKPOINT_PATH   ?= ppo_policy_network_medium
 LR                ?= 0.0003
 GAE_LAMBDA        ?= 0.95
@@ -32,6 +32,7 @@ ENV_TYPE 		  ?= turn
 OBSTACLE_PERCENTAGE ?= 20.0
 MAP_SIZE          ?= 3.5
 POLICY_TYPE       ?= PPO
+TYPE_MODEL        ?= attention
 
 TRAIN_ARGS = \
 	$(MODE) \
@@ -61,7 +62,8 @@ TRAIN_ARGS = \
 	--env_type $(ENV_TYPE) \
  	--obstacle_percentage $(OBSTACLE_PERCENTAGE) \
   	--map_size $(MAP_SIZE) \
-   	--policy_type $(POLICY_TYPE)
+   	--policy_type $(POLICY_TYPE) \
+    --type_model $(TYPE_MODEL)
 
 DOCKER_RUN_COMMON = -e WANDB_API_KEY=$(WANDB_API_KEY) \
 	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
@@ -102,6 +104,7 @@ define PRINT_CONFIG
 	@echo "OBSTACLE_PERCENTAGE=$(OBSTACLE_PERCENTAGE)"
 	@echo "MAP_SIZE=$(MAP_SIZE)"
 	@echo "POLICY_TYPE=$(POLICY_TYPE)"
+	@echo "TYPE_MODEL=$(TYPE_MODEL)"
 	@echo
 endef
 
