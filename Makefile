@@ -59,6 +59,7 @@ TRAIN_ARGS = \
 	--verbose $(VERBOSE) \
 	--debug True \
 	--scalar $(SCALAR) \
+	--use_wandb $(USE_WANDB) \
 	--env_type $(ENV_TYPE) \
  	--obstacle_percentage $(OBSTACLE_PERCENTAGE) \
   	--map_size $(MAP_SIZE) \
