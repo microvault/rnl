@@ -62,7 +62,7 @@ def generate_gazebo_world_with_walls(segments):
 
     sdf_world = sdf_header + models + sdf_footer
 
-    file_name = "../rnl/ros/src/playground/worlds/my_world.world"
+    file_name = "../rnl/ros/src/playground/worlds/demo.world"
     with open(file_name, "w") as f:
         f.write(sdf_world)
     print("File: ", file_name)
@@ -90,7 +90,7 @@ def main():
     )
 
     # Usa o método world para obter segmentos (modo exemplo)
-    _, segments_from_world, _ = create_world.world(mode="easy-01")
+    _, segments_from_world, _ = create_world.world(mode="medium")
 
     # Redimensiona e centraliza
     xs = [seg[0] for seg in segments_from_world] + [
