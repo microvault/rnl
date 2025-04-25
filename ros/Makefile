@@ -1,7 +1,9 @@
 SHELL := /bin/bash
-MAP_NAME = map5
+MAP_NAME = map6
+WORLD_SRC   := $(PWD)/src/playground/worlds/demo.world
+WORLD_DST   := $(shell ros2 pkg prefix turtlebot3_gazebo)/share/turtlebot3_gazebo/worlds/turtlebot3_world.world
 
-.PHONY: build run nav start
+.PHONY: build run nav start world map save teleop add
 
 env_setup = source /opt/ros/humble/setup.bash && \
             source /usr/share/gazebo/setup.sh && \
@@ -11,7 +13,7 @@ env_setup = source /opt/ros/humble/setup.bash && \
             export GAZEBO_PLUGIN_PATH=/usr/local/lib:$$GAZEBO_PLUGIN_PATH
 
 build:
-	@echo "Instalando dependências e construindo..."
+	@echo ">> Instalando dependências e construindo..."
 	source /opt/ros/humble/setup.bash && \
 	source /usr/share/gazebo/setup.sh && \
 	rosdep install --from-paths src --ignore-src -r -y && \
@@ -19,20 +21,23 @@ build:
 	colcon build
 
 setup:
+	@echo ">> Iniciando setup..."
 	$(env_setup) && \
 	ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 
 nav:
+	@echo ">> Iniciando navegação..."
 	$(env_setup) && \
 	ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=src/playground/maps/$(MAP_NAME)/$(MAP_NAME).yaml
 
 map:
+	@echo ">> Iniciando mapeamento..."
 	$(env_setup) && \
-	ros2 launch turtlebot3_cartographer cartographer.launch.py
+	ros2 launch turtlebot3_cartographer cartographer.launch.py use_sim_time:=true
 
 save:
 	$(env_setup) && \
-	ros2 run nav2_map_server map_saver_cli -f src/map
+	ros2 run nav2_map_server map_saver_cli -f src/playground/maps/map
 
 start:
 	$(env_setup) && \
@@ -51,6 +56,14 @@ kill:
 
 add:
 	tmux new-window
+
+world:
+	@echo ">> Linkando mundo customizado..."
+	@mkdir -p $(dir $(WORLD_DST))
+	@ln -sf $(WORLD_SRC) $(WORLD_DST)
+	@echo ">> Iniciando simulação..."
+	@bash -c 'source /opt/ros/humble/setup.bash && \
+    ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py'
 
 print:
 	$(env_setup) && \
