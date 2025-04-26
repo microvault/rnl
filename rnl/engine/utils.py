@@ -1,10 +1,78 @@
 import random
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 
 import numpy as np
 import torch
 from numba import njit
+from pathlib import Path
 
+import json, os
+
+def load_summary(run_dir: str) -> Dict[str, float]:
+    """Lê *.json com as métricas finais."""
+    path = os.path.join(run_dir, "files", "wandb-summary.json")
+    return json.load(open(path)) if os.path.isfile(path) else {}
+
+def sample_history(run_dir: str, metric: str, k: int = 10) -> List[Tuple[int, float]]:
+    """
+    Devolve k amostras uniformes (step, valor) da métrica pedida.
+    Não usa pandas.
+    """
+    hist = os.path.join(run_dir, "files", "wandb-history.jsonl")
+    steps, vals = [], []
+    with open(hist) as f:
+        for line in f:
+            d = json.loads(line)
+            if metric in d:
+                steps.append(d["_step"])
+                vals.append(d[metric])
+
+    if not steps:
+        return []
+
+    idx = np.linspace(0, len(steps)-1, k, dtype=int)
+    return [(steps[i], vals[i]) for i in idx]
+
+
+def _parse_simple_yaml(path: str) -> dict:
+    root, stack, indents = {}, [None], [-1]
+    current = root
+
+    for line in Path(path).read_text().splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+
+        indent = len(line) - len(line.lstrip())
+        key, _, value = line.lstrip().partition(":")
+        key = key.strip()
+        value = value.strip()
+
+        while indent <= indents[-1]:
+            stack.pop()
+            indents.pop()
+        if stack[-1] is None:
+            current = root
+        else:
+            current = stack[-1]
+
+        if not value:
+            current[key] = {}
+            stack.append(current[key])
+            indents.append(indent)
+        else:
+            if value.startswith("[") and value.endswith("]"):
+                value = [v.strip() for v in value[1:-1].split(",") if v.strip()]
+                value = [float(x) if x.replace(".", "", 1).isdigit() else x for x in value]
+            elif value.lower() in ("true", "false"):
+                value = value.lower() == "true"
+            else:
+                try:
+                    value = int(value) if value.isdigit() else float(value)
+                except ValueError:
+                    pass
+            current[key] = value
+
+    return root
 
 @njit
 def normalize_module(value, min_val, max_val):
