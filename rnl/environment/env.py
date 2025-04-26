@@ -57,7 +57,8 @@ class NaviEnv(gym.Env):
         self.reward_config = type_reward
 
         self.mode: str = mode
-        self.grid_length = 2
+
+        self.grid_length = 0
         self.poly = None
         self.infos_list = []
         self.steps_to_goal = 0
@@ -68,6 +69,8 @@ class NaviEnv(gym.Env):
         self.episode_starts = np.ones((1,), dtype=bool)
         self.steps_unsafe_area = 0
         self.steps_command_angular = 0
+        self.x = env_config.grid_size[0]
+        self.y = env_config.grid_size[1]
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -95,11 +98,19 @@ class NaviEnv(gym.Env):
             )
 
         elif "long" in self.mode:
-            self.grid_length = 20
+            self.grid_length = 10
 
             self.generator = Generator(mode=self.mode)
             self.new_map_path, self.segments, self.poly = self.generator.world(
                 self.grid_length
+            )
+
+        elif self.mode in ("custom"):
+            self.generator = Generator(mode=self.mode)
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                grid_length=0,
+                grid_length_x=self.x,
+                grid_length_y=self.y,
             )
 
         elif "easy" in self.mode:
@@ -585,6 +596,33 @@ class NaviEnv(gym.Env):
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
 
+            elif self.mode in ("custom"):
+
+                if self.porcentage_obstacle is None:
+                    raise ValueError(
+                        "porcentage_obstacle é obrigatório para o modo train-mode"
+                    )
+
+                self.new_map_path, self.segments, self.poly = self.generator.world(
+                    grid_length=0,
+                    grid_length_x=self.x,
+                    grid_length_y=self.y,
+                    porcentage_obstacle=self.porcentage_obstacle,
+                )
+                robot_pos, goal_pos = spawn_robot_and_goal(
+                    poly=self.poly,
+                    robot_clearance=self.threshold,
+                    goal_clearance=self.collision,
+                    min_robot_goal_dist=0.03,
+                )
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                x, y = robot_pos[0], robot_pos[1]
+
+                self.sensor.update_map(self.segments)
+
+                theta = np.random.uniform(0, 2 * np.pi)
+                self.robot.reset_robot(self.body, x, y, theta)
+
             elif self.mode == "easy-01":
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     self.grid_length
@@ -596,6 +634,8 @@ class NaviEnv(gym.Env):
 
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
+
+
 
             elif self.mode in ("easy-02", "easy-03", "easy-04"):
 
@@ -855,18 +895,22 @@ class NaviEnv(gym.Env):
         # ------ Create wordld ------ #
 
         if "easy" in self.mode:
-            ax.set_xlim(0, int(self.grid_length))
-            ax.set_ylim(0, int(self.grid_length))
+            ax.set_xlim(0, self.grid_length)
+            ax.set_ylim(0, self.grid_length)
 
-        if "turn" in self.mode:
+        elif "custom" in self.mode:
+            ax.set_xlim(0, self.x)
+            ax.set_ylim(0, self.y)
+
+        elif "turn" in self.mode:
             ax.set_xlim(0, 2)
             ax.set_ylim(0, 2)
 
-        if "avoid" in self.mode:
+        elif "avoid" in self.mode:
             ax.set_xlim(0, 4)
             ax.set_ylim(0, 4)
 
-        if "long" in self.mode:
+        elif "long" in self.mode:
             ax.set_xlim(0, 20)
             ax.set_ylim(0, 20)
 
@@ -1043,7 +1087,7 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if self.mode in ("easy", "avoid", "turn"):
+        if self.mode in ("easy-01", "easy-02", "easy-03", "easy-04", "easy-05", "avoid", "turn", "custom"):
             if self.mode == "easy-03":
                 x2 = x + 0.2 * np.cos(self.body.angle)
                 y2 = y + 0.2 * np.sin(self.body.angle)
