@@ -54,12 +54,12 @@ def training(
     network_config: NetworkConfig,
     reward_config: RewardConfig,
     print_parameter: bool,
-    training: bool,
+    train: bool,
 ):
 
     extra_info = {
-        "Type mode": type,
-        "Type policy": policy_type,
+        "Type mode": env_config.type,
+        "Type policy": trainer_config.policy_type,
         "scale_orientation": reward_config.params["scale_orientation"],
         "scale_distance": reward_config.params["scale_distance"],
         "scale_time": reward_config.params["scale_time"],
@@ -136,7 +136,7 @@ def training(
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
 
-    if parallel:
+    if train:
         def make_env():
             env = NaviEnv(
                 robot_config,
@@ -144,7 +144,7 @@ def training(
                 env_config,
                 render_config,
                 use_render=False,
-                mode=type,
+                mode=env_config.type,
                 type_reward=reward_config,
             )
             env = Monitor(env)
@@ -159,14 +159,14 @@ def training(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=type,
+            mode=env_config.type,
             type_reward=reward_config,
         )
 
         task_pool = ("long", "turn", "avoid")
 
-        type = (
-            np.random.choice(task_pool) if type == "random" else type
+        env_config.type = (
+            np.random.choice(task_pool) if env_config.type == "random" else env_config.type
         )
 
         def make_env():
@@ -176,7 +176,7 @@ def training(
                 env_config,
                 render_config,
                 use_render=False,
-                mode=type,
+                mode=env_config.type,
                 type_reward=reward_config,
             )
             env = Monitor(env)
@@ -270,7 +270,7 @@ def training(
         sensor_config=sensor_config,
         env_config=env_config,
         render_config=render_config,
-        mode=type,
+        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -290,7 +290,7 @@ def training(
         env_config,
         render_config,
         use_render=False,
-        mode=type,
+        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -341,8 +341,7 @@ def inference(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    reward_config: RewardConfig = REWARD_TYPE,
-    type: str = TYPE,
+    reward_config: RewardConfig,
 ):
 
     text = [
@@ -375,7 +374,7 @@ def inference(
         env_config,
         render_config,
         use_render=True,
-        mode=type,
+        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -447,7 +446,6 @@ def probe_envs(
                 obs, _ = env.reset()
 
     else:
-        print("aqui")
         env = make_vect_envs(
             num_envs=num_envs,
             robot_config=robot_config,
