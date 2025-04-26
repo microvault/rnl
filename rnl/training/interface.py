@@ -9,6 +9,7 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.network.model import CustomActorCriticPolicy
+from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import inference, probe_envs, training
 
 
@@ -216,7 +217,15 @@ class Trainer:
             raise ValueError("Error: Controller mode is not supported for training.")
 
         print_parameter = True
-        parallel = False
+        train = False
+        reward_config = RewardConfig(
+            params={
+                "scale_orientation": 0.0,  # 0.02
+                "scale_distance": 0.0,  # 0.06
+                "scale_time": 0.01,  # 0.01
+                "scale_obstacle": 0.0,  # 0.004
+            },
+        )
 
         metrics = training(
             self.robot_config,
@@ -227,11 +236,8 @@ class Trainer:
             network_config,
             reward_config,
             print_parameter,
-            training,
-            policy_type=policy_type,
+            train=train,
         )
-
-        print(metrics)
 
         return None
 
@@ -253,12 +259,21 @@ class Simulation:
 
     def run(self) -> None:
 
+        reward_config = RewardConfig(
+            params={
+                "scale_orientation": 0.00,
+                "scale_distance": 0.00,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.000,
+            },
+        )
+
         inference(
             self.robot_config,
             self.sensor_config,
             self.env_config,
             self.render_config,
-            type=self.type
+            reward_config,
         )
 
         return None
