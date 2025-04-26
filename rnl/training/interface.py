@@ -9,7 +9,6 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.network.model import CustomActorCriticPolicy
-from rnl.network.attn import AttnPolicy
 from rnl.training.learn import inference, probe_envs, training
 
 
@@ -85,6 +84,8 @@ def make(
     folder_map: str,
     name_map: str,
     max_timestep: int,
+    type: str,
+    grid_size: List
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -97,8 +98,10 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
-        obstacle_percentage=40.0,
+        obstacle_percentage=20.0,
         map_size=5,
+        type=type,
+        grid_size=grid_size,
     )
 
 
@@ -145,9 +148,6 @@ class Trainer:
         update_epochs: int,
         name: str,
         verbose: bool,
-        env_type: str,
-        obstacle_percentage: float,
-        map_size: float,
         policy_type: str,
     ) -> None:
 
@@ -174,10 +174,8 @@ class Trainer:
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
 
-        if type_model == "Custom":
+        if type_model == "MlpPolicy":
             type_model = CustomActorCriticPolicy
-        elif type_model == "attention":
-            type_model = AttnPolicy
 
         network_config = NetworkConfig(
             hidden_size=hidden_size,
@@ -196,6 +194,7 @@ class Trainer:
             checkpoint_path=checkpoint_path,
             use_wandb=use_wandb,
             wandb_api_key=wandb_api_key,
+            wandb_mode="online",
             llm_api_key=llm_api_key,
             lr=lr,
             learn_step=learn_step,
@@ -206,9 +205,6 @@ class Trainer:
             update_epochs=update_epochs,
             name=name,
             verbose=verbose,
-            env_type=env_type,
-            obstacle_percentage=obstacle_percentage,
-            map_size=map_size,
             policy_type=policy_type,
         )
 
@@ -219,6 +215,9 @@ class Trainer:
         if self.render_config.controller:
             raise ValueError("Error: Controller mode is not supported for training.")
 
+        print_parameter = True
+        parallel = False
+
         metrics = training(
             self.robot_config,
             self.sensor_config,
@@ -226,9 +225,9 @@ class Trainer:
             self.render_config,
             trainer_config,
             network_config,
-            env_type=env_type,
-            obstacle_percentage=obstacle_percentage,
-            map_size=map_size,
+            reward_config,
+            print_parameter,
+            training,
             policy_type=policy_type,
         )
 
@@ -244,13 +243,13 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        env_type: str
+        type: str
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.env_type = env_type
+        self.type = type
 
     def run(self) -> None:
 
@@ -259,7 +258,7 @@ class Simulation:
             self.sensor_config,
             self.env_config,
             self.render_config,
-            env_type=self.env_type
+            type=self.type
         )
 
         return None
