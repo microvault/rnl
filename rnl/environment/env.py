@@ -251,16 +251,16 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = (self.max_lr/2) * self.scalar
+            self.vl = 0.129 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.action = 1
-            self.vl = (self.max_lr/2) * self.scalar
-            self.vr = -(self.max_vr/6) * self.scalar
+            self.vl = 0.129 * self.scalar
+            self.vr = -0.79 * self.scalar
         elif event.key == "left":
             self.action = 2
-            self.vl = (self.max_lr/2) * self.scalar
-            self.vr = (self.max_vr/6) * self.scalar
+            self.vl = 0.129 * self.scalar
+            self.vr = 0.79 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -268,10 +268,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = -0.005 * self.scalar
+            self.vr = -(self.max_vr/6) * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = 0.005 * self.scalar
+            self.vr = (self.max_vr/6) * self.scalar
 
     def step_animation(self, i):
         if self.pretrained_model != "None" or not self.controller:
@@ -300,6 +300,8 @@ class NaviEnv(gym.Env):
             self.body.position.y,
             self.body.angle,
         )
+
+        print(x, y)
 
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
@@ -611,9 +613,9 @@ class NaviEnv(gym.Env):
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
-                    min_robot_goal_dist=0.03,
+                    robot_clearance=self.threshold + 0.1,
+                    goal_clearance=self.collision + 0.1,
+                    min_robot_goal_dist=0.3,
                 )
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
