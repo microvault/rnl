@@ -1,0 +1,59 @@
+env:
+  scalar: 10
+  folder_map: ""
+  name_map: ""
+  timestep: 10000
+  obstacle_percentage: 20.0
+  map_size: 3
+  type: "random"
+  grid_size: [1.5, 1.5]
+
+render:
+  controller: false
+  debug: true
+  plot: false
+
+sensor:
+  fov: 270.0
+  num_rays: 5
+  min_range: 0.001
+  max_range: 3.5
+
+robot:
+  base_radius: 0.105
+  vel_linear: [0.0, 0.22]
+  vel_angular: [1.0, 2.84]
+  wheel_distance: 0.16
+  weight: 1.0
+  threshold: 0.1
+  collision: 0.075
+  path_model: ""
+
+network:
+  hidden_size: [20, 10]
+  mlp_activation: "ReLU"
+  type_model: "MlpPolicy"
+
+trainer:
+  pretrained: ""
+  use_agents: false
+  max_timestep_global: 1_000_000_00
+  seed: 1
+  batch_size: 8
+  lr: 0.0003
+  num_envs: 16
+  device: "cpu"
+  learn_step: 512
+  checkpoint: 50_000
+  checkpoint_path: "./checkpoints"
+  use_wandb: true
+  wandb_api_key: "YOUR_WANDB_KEY"
+  llm_api_key: "YOUR_OPENAI_KEY"
+  gae_lambda: 0.95
+  ent_coef: 0.05
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  update_epochs: 4
+  name: "robot_nav_skills"
+  verbose: true
+  policy_type: "MlpPolicy"
