@@ -57,13 +57,17 @@ kill:
 add:
 	tmux new-window
 
+# Caminhos do mundo
+WORLD_SRC := $(CURDIR)/demo.world           # mundo gerado pelo script
+WORLD_DST := $(shell ros2 pkg prefix turtlebot3_gazebo)/share/turtlebot3_gazebo/worlds/demo.world
+
 world:
 	@echo ">> Linkando mundo customizado..."
 	@mkdir -p $(dir $(WORLD_DST))
 	@ln -sf $(WORLD_SRC) $(WORLD_DST)
 	@echo ">> Iniciando simulação..."
 	@bash -c 'source /opt/ros/humble/setup.bash && \
-    ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py'
+		ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py world:=$(WORLD_DST)'
 
 print:
 	$(env_setup) && \
