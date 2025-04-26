@@ -14,8 +14,8 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.1,  # 4 # 0.03
-        collision=0.075,  # 2 # 0.075
+        threshold=0.15,  # 4 # 0.03
+        collision=0.10,  # 2 # 0.075
         path_model="",
     )
 
@@ -24,7 +24,7 @@ def main(arg):
         fov=270,
         num_rays=5,  # min 5 max 20
         min_range=0.0,
-        max_range=50.0,  # 3.5
+        max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
@@ -32,9 +32,9 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map6",
         name_map="map6",
-        max_timestep=10000,  # 1000
+        max_timestep=1000000,  # 1000
         type=args.type,
-        grid_size=[1.5, 1.5]
+        grid_size=[2.2, 2.15]
     )
 
     # 4.step -> config render
