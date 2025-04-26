@@ -40,7 +40,7 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = "."
-norecursedirs = ["ros/playground", "ros/turtlebot3_ws"]
+norecursedirs = ["ros/playground", "ros/tb3_ws"]
 
 [tool.isort]
 profile = "black"
