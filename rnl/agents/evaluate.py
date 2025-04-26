@@ -34,7 +34,6 @@ def evaluate_agent(
             action, _ = agent.predict(state, deterministic=False)
             state, reward, done, truncated, _ = env.step(action)
 
-        # Recupera as infos finais
         _, final_info = env.reset()
 
         steps_collision = final_info.get("steps_to_collision", 0)
