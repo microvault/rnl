@@ -10,6 +10,8 @@ class EnvConfig:
     timestep: int
     obstacle_percentage: float
     map_size: float
+    type: str
+    grid_size: List[float]
 
 
 @dataclass
@@ -61,6 +63,7 @@ class TrainerConfig:
     checkpoint_path: str
     use_wandb: bool
     wandb_api_key: str
+    wandb_mode: str
     llm_api_key: str
     gae_lambda: float
     ent_coef: float
@@ -69,9 +72,6 @@ class TrainerConfig:
     update_epochs: int
     name: str
     verbose: bool
-    env_type: str
-    obstacle_percentage: float
-    map_size: float
     policy_type: str
 
 
