@@ -28,11 +28,11 @@ USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
 MAP_NAME          ?= map
-ENV_TYPE 		  ?= turn
+TYPE 		  ?= turn
 OBSTACLE_PERCENTAGE ?= 20.0
 MAP_SIZE          ?= 3.5
 POLICY_TYPE       ?= PPO
-TYPE_MODEL        ?= attention
+TYPE_MODEL        ?= MlpPolicy
 
 TRAIN_ARGS = \
 	$(MODE) \
@@ -60,7 +60,7 @@ TRAIN_ARGS = \
 	--debug True \
 	--scalar $(SCALAR) \
 	--use_wandb $(USE_WANDB) \
-	--env_type $(ENV_TYPE) \
+	--type $(TYPE) \
  	--obstacle_percentage $(OBSTACLE_PERCENTAGE) \
   	--map_size $(MAP_SIZE) \
    	--policy_type $(POLICY_TYPE) \
@@ -101,7 +101,7 @@ define PRINT_CONFIG
 	@echo "USE_AGENTS=$(USE_AGENTS)"
 	@echo "PRETRAINED=$(PRETRAINED)"
 	@echo "VERBOSE=$(VERBOSE)"
-	@echo "ENV_TYPE=$(ENV_TYPE)"
+	@echo "TYPE=$(TYPE)"
 	@echo "OBSTACLE_PERCENTAGE=$(OBSTACLE_PERCENTAGE)"
 	@echo "MAP_SIZE=$(MAP_SIZE)"
 	@echo "POLICY_TYPE=$(POLICY_TYPE)"
@@ -114,12 +114,16 @@ sim:
 	@uv run python -m main sim \
 	    --controller $(CONTROL) \
     	--scalar $(SCALAR) \
-    	--env_type $(ENV_TYPE) \
+    	--type $(TYPE) \
 		--debug True
 
 .PHONY: learn
 learn:
 	@uv run python -m main $(TRAIN_ARGS)
+
+.PHONY: training
+training:
+	@uv run python rnl/training/train.py
 
 .PHONY: probe
 probe:
