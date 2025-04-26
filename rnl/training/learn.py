@@ -5,14 +5,15 @@ from stable_baselines3 import A2C, DQN, PPO
 
 from stable_baselines3.common.env_checker import check_env
 from stable_baselines3.common.monitor import Monitor
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
 
+import os
 import random
 import wandb
 from rnl.network.model import CustomActorCriticPolicy
-from rnl.network.attn import AttnPolicy
 from rnl.agents.evaluate import evaluate_agent, statistics
 
 from rnl.configs.config import (
@@ -30,7 +31,7 @@ from rnl.engine.vector import make_vect_envs
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
-ENV_TYPE = "medium"
+TYPE = "turn"
 OBSTACLE_PERCENTAGE = 20.0
 MAP_SIZE = 5.0
 POLICY = "PPO"
@@ -51,16 +52,13 @@ def training(
     render_config: RenderConfig,
     trainer_config: TrainerConfig,
     network_config: NetworkConfig,
-    reward_config: RewardConfig = REWARD_TYPE,
-    env_type: str = ENV_TYPE,
-    obstacle_percentage: float = OBSTACLE_PERCENTAGE,
-    map_size: float = MAP_SIZE,
-    policy_type: str = POLICY,
-    print_parameter: bool = True,
+    reward_config: RewardConfig,
+    print_parameter: bool,
+    training: bool,
 ):
 
     extra_info = {
-        "Type mode": env_type,
+        "Type mode": type,
         "Type policy": policy_type,
         "scale_orientation": reward_config.params["scale_orientation"],
         "scale_distance": reward_config.params["scale_distance"],
@@ -82,18 +80,19 @@ def training(
     if print_parameter:
         print_config_table(config_dict)
 
+    run = None
     if trainer_config.use_wandb:
+        if trainer_config.wandb_mode == "offline":
+            os.environ["WANDB_MODE"] = "offline"
         run = wandb.init(
             name="rnl-test",
             project=trainer_config.name,
             config=config_dict,
+            mode=trainer_config.wandb_mode,
             sync_tensorboard=False,
             monitor_gym=True,
             save_code=True,
         )
-    else:
-        run = None
-
 
     policy_kwargs_on_policy = None
     policy_kwargs_on_policy_recurrent = None
@@ -134,37 +133,54 @@ def training(
             net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
         )
 
-    vec_env = make_vect_envs(
-        num_envs=trainer_config.num_envs,
-        robot_config=robot_config,
-        sensor_config=sensor_config,
-        env_config=env_config,
-        render_config=render_config,
-        use_render=False,
-        mode=env_type,
-        type_reward=reward_config,
-    )
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
 
-    task_pool = ("long", "turn", "avoid")
+    if parallel:
+        def make_env():
+            env = NaviEnv(
+                robot_config,
+                sensor_config,
+                env_config,
+                render_config,
+                use_render=False,
+                mode=type,
+                type_reward=reward_config,
+            )
+            env = Monitor(env)
+            return env
 
-    env_type = (
-        np.random.choice(task_pool) if env_type == "random" else env_type
-    )
-
-    def make_env():
-        env = NaviEnv(
-            robot_config,
-            sensor_config,
-            env_config,
-            render_config,
+        vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+    else:
+        vec_env = make_vect_envs(
+            num_envs=trainer_config.num_envs,
+            robot_config=robot_config,
+            sensor_config=sensor_config,
+            env_config=env_config,
+            render_config=render_config,
             use_render=False,
-            mode=env_type,
+            mode=type,
             type_reward=reward_config,
         )
-        env = Monitor(env)
-        return env
+
+        task_pool = ("long", "turn", "avoid")
+
+        type = (
+            np.random.choice(task_pool) if type == "random" else type
+        )
+
+        def make_env():
+            env = NaviEnv(
+                robot_config,
+                sensor_config,
+                env_config,
+                render_config,
+                use_render=False,
+                mode=type,
+                type_reward=reward_config,
+            )
+            env = Monitor(env)
+            return env
 
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
@@ -254,7 +270,7 @@ def training(
         sensor_config=sensor_config,
         env_config=env_config,
         render_config=render_config,
-        mode=env_type,
+        mode=type,
         type_reward=reward_config,
     )
 
@@ -274,7 +290,7 @@ def training(
         env_config,
         render_config,
         use_render=False,
-        mode=env_type,
+        mode=type,
         type_reward=reward_config,
     )
 
@@ -326,7 +342,7 @@ def inference(
     env_config: EnvConfig,
     render_config: RenderConfig,
     reward_config: RewardConfig = REWARD_TYPE,
-    env_type: str = ENV_TYPE,
+    type: str = TYPE,
 ):
 
     text = [
@@ -343,7 +359,7 @@ def inference(
         print(line)
 
     config_dict = {
-        "Type mode": env_type,
+        "Type mode": type,
         "Reward Config": reward_config,
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
@@ -359,7 +375,7 @@ def inference(
         env_config,
         render_config,
         use_render=True,
-        mode=env_type,
+        mode=type,
         type_reward=reward_config,
     )
 
@@ -377,13 +393,13 @@ def probe_envs(
     mode=None,
     image=True,
     reward_config: RewardConfig = REWARD_TYPE,
-    env_type: str = ENV_TYPE,
+    type: str = TYPE,
 ):
     set_seed(seed)
 
     probe_config = ProbeEnvConfig(num_envs=num_envs, max_steps=max_steps)
     config_dict = {
-        "Type mode": env_type,
+        "Type mode": type,
         "Reward Config": reward_config,
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
@@ -400,7 +416,7 @@ def probe_envs(
         env_config,
         render_config,
         use_render=False,
-        mode=env_type,
+        mode=type,
         type_reward=reward_config,
     )
 
@@ -439,7 +455,7 @@ def probe_envs(
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=env_type,
+            mode=type,
             type_reward=reward_config,
         )
 
