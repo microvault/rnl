@@ -64,7 +64,7 @@ class Generator:
         resolution: float = 0.05,
         grid_length_x: float = 0,
         grid_length_y: float = 0,
-        porcentage_obstacle: float = 40.0,
+        porcentage_obstacle: float = 20.0,
     ):
         """
         Generates a maze world.
