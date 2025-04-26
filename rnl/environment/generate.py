@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
 from shapely.geometry import LineString, Polygon
-
+from shapely import affinity
 from rnl.engine.collisions import extract_segment_from_polygon
 from rnl.engine.polygons import find_contours, process
 from rnl.engine.world import GenerateWorld
@@ -53,10 +53,17 @@ class Generator:
 
         return np.vstack((coords[:, 0], coords[:, 1])).T
 
+    def cell_to_world(self, i, j, res):
+        x = (i + 0.5) * res
+        y = (j + 0.5) * res
+        return x, y
+
     def world(
         self,
         grid_length: float,
         resolution: float = 0.05,
+        grid_length_x: float = 0,
+        grid_length_y: float = 0,
         porcentage_obstacle: float = 40.0,
     ):
         """
@@ -98,7 +105,7 @@ class Generator:
 
             return path_patch, segment, poly
 
-        if self.mode in ("turn"):
+        elif self.mode in ("turn"):
             width = int(grid_length) + 1
             height = int(grid_length) + 1
 
@@ -130,7 +137,7 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        if self.mode in ("long"):
+        elif self.mode in ("long"):
             width = int(grid_length / resolution) + 1
             height = int(grid_length / resolution) + 1
 
@@ -162,9 +169,12 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        if self.mode in ("easy-01", "easy-02", "easy-03"):
-            width = int(grid_length / resolution) + 1
-            height = int(grid_length / resolution) + 1
+        elif self.mode == "custom":
+            gx = grid_length_x if grid_length_x > 0 else grid_length
+            gy = grid_length_y if grid_length_y > 0 else grid_length
+
+            width  = int(round(gx / resolution))
+            height = int(round(gy / resolution))
 
             exterior = []
             for x in range(width):
@@ -177,16 +187,48 @@ class Generator:
                 exterior.append((0, y * resolution))
 
             poly = Polygon(exterior, holes=[]).buffer(0)
-            if not poly.is_valid:
-                poly = poly.buffer(0)
-                if not poly.is_valid:
-                    raise ValueError("Polígono inválido.")
 
-            polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
-            stack = [polygon]
+            cx = (width  - 1) * resolution / 2
+            cy = (height - 1) * resolution / 2
+            poly = affinity.rotate(poly, -90, origin=(cx, cy), use_radians=False)
+
+            polygon  = np.array(poly.exterior.coords, dtype=np.float64)
+            stack    = [polygon]
             segments = extract_segment_from_polygon(stack)
-            path = Path.make_compound_path(
-                Path(np.asarray(poly.exterior.coords)[:, :2]),
+            path     = Path.make_compound_path(
+                Path(polygon[:, :2]),
+                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+            )
+            path_patch = PathPatch(
+                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+            )
+            return path_patch, segments, poly
+
+        elif self.mode in ("easy-01", "easy-02", "easy-03"):
+            width  = int(round(grid_length / resolution))
+            height = int(round(grid_length / resolution))
+
+            exterior = []
+            for x in range(width):
+                exterior.append((x * resolution, (height - 1) * resolution))
+            for y in range(height - 2, -1, -1):
+                exterior.append(((width - 1) * resolution, y * resolution))
+            for x in range(width - 2, -1, -1):
+                exterior.append((x * resolution, 0))
+            for y in range(1, height - 1):
+                exterior.append((0, y * resolution))
+
+            poly = Polygon(exterior, holes=[]).buffer(0)
+
+            cx = (width  - 1) * resolution / 2
+            cy = (height - 1) * resolution / 2
+            poly = affinity.rotate(poly, -90, origin=(cx, cy), use_radians=False)
+
+            polygon  = np.array(poly.exterior.coords, dtype=np.float32)
+            stack    = [polygon]
+            segments = extract_segment_from_polygon(stack)
+            path     = Path.make_compound_path(
+                Path(polygon[:, :2]),
                 *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
             path_patch = PathPatch(
