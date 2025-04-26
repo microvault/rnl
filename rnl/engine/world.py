@@ -100,15 +100,12 @@ def generate_maze(
         L[i] = i
         R[i] = i
 
-    # ----- Ajusta a porcentagem de obstáculos -----
     total_cells = map_size * map_size
-    # Calcula a quantidade desejada de obstáculos
     desired_obstacles = int(round(porcentage_obstacle / 100.0 * total_cells))
     if desired_obstacles < min_blocks:
         desired_obstacles = min_blocks
 
     current_obstacles = np.sum(maze == 1)
-    # Enquanto houver obstáculos a mais que o desejado, remova aleatoriamente
     while current_obstacles > desired_obstacles:
         idx = np.random.randint(0, total_cells)
         row_index = idx // map_size
