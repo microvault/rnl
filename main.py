@@ -30,9 +30,11 @@ def main(arg):
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map6",  # ./data/map4
-        name_map="map6z",  # map4
+        folder_map="./data/map6",
+        name_map="map6",
         max_timestep=10000,  # 1000
+        type=args.type,
+        grid_size=[1.5, 1.5]
     )
 
     # 4.step -> config render
@@ -73,15 +75,12 @@ def main(arg):
             update_epochs=args.update_epochs,
             name=args.name,
             verbose=args.verbose,
-            env_type=args.env_type,
-            obstacle_percentage=args.obstacle_percentage,
-            map_size=args.map_size,
             policy_type=args.policy_type,
         )
 
     elif args.mode == "sim":
         # 5.step -> config train robot
-        model = vault.Simulation(param_robot, param_sensor, param_env, param_render, env_type=args.env_type)
+        model = vault.Simulation(param_robot, param_sensor, param_env, param_render, type=args.type)
         # 6.step -> run robot
         model.run()
 
@@ -237,7 +236,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--env_type",
+        "--type",
         type=str,
     )
 
