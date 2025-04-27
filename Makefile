@@ -28,7 +28,7 @@ USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
 MAP_NAME          ?= map
-TYPE 		  		?= turn
+TYPE 		  		?= custom
 OBSTACLE_PERCENTAGE ?= 20.0
 MAP_SIZE          ?= 3.5
 POLICY_TYPE       ?= PPO
@@ -132,6 +132,7 @@ probe:
 		--device $(DEVICE) \
 		--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
 		--controller False \
+		--type $(TYPE) \
 		--seed $(SEED) \
 		--debug True \
 		--scalar $(SCALAR)
