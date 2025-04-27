@@ -14,8 +14,9 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.15,  # 4 # 0.03
+        threshold=0.10,  # 4 # 0.03
         collision=0.10,  # 2 # 0.075
+        noise=True,
         path_model="",
     )
 
@@ -24,7 +25,7 @@ def main(arg):
         fov=270,
         num_rays=5,  # min 5 max 20
         min_range=0.0,
-        max_range=3.5,  # 3.5
+        max_range=20.5,  # 3.5
     )
 
     # 3.step -> config env
