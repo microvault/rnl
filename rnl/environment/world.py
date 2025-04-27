@@ -11,7 +11,7 @@ from rnl.engine.collisions import (
     is_counter_clockwise,
 )
 from rnl.engine.map2d import Map2D
-from rnl.engine.polygons import find_contours, process
+from rnl.engine.polygons import find_contour, process
 
 
 @dataclass
@@ -77,7 +77,7 @@ class CreateWorld:
         if m is None or m.size == 0:
             raise ValueError("A máscara 'm' está vazia ou não foi gerada corretamente.")
 
-        conts = find_contours(m, 0.5)
+        conts = find_contour(m, 0.5)
         contours = process(conts)
 
         all_x = []

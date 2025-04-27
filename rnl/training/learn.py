@@ -27,7 +27,7 @@ from rnl.configs.config import (
 )
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.utils import clean_info, print_config_table, set_seed
-from rnl.engine.vector import make_vect_envs
+from rnl.engine.vector import make_vect_envs, make_vect_envs_norm
 from rnl.environment.env import NaviEnv
 from rnl.training.callback import DynamicTrainingCallback
 
@@ -389,10 +389,8 @@ def probe_envs(
     env_config,
     render_config,
     seed,
-    mode=None,
+    reward_config: RewardConfig,
     image=True,
-    reward_config: RewardConfig = REWARD_TYPE,
-    type: str = TYPE,
 ):
     set_seed(seed)
 
@@ -415,7 +413,7 @@ def probe_envs(
         env_config,
         render_config,
         use_render=False,
-        mode=type,
+        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -446,19 +444,18 @@ def probe_envs(
                 obs, _ = env.reset()
 
     else:
-        env = make_vect_envs(
+        env = make_vect_envs_norm(
             num_envs=num_envs,
             robot_config=robot_config,
             sensor_config=sensor_config,
             env_config=env_config,
             render_config=render_config,
             use_render=False,
-            mode=type,
+            mode=env_config.type,
             type_reward=reward_config,
         )
 
         obs, info = env.reset()
-        ep_rewards = np.zeros(num_envs)
         ep_lengths = np.zeros(num_envs)
 
         completed_rewards = []
@@ -484,13 +481,11 @@ def probe_envs(
             if robot_config.path_model != "None" and model is not None:
                 actions, _states = model.predict(obs)
             else:
-                actions = env.action_space.sample()
+                actions = [env.action_space.sample() for _ in range(num_envs)]
 
             obs, rewards, terminated, truncated, infos = env.step(actions)
             ep_rewards += np.array(rewards)
             ep_lengths += 1
-
-            infos = clean_info(infos)
 
             if infos is not None and infos:
                 for env_idx in range(num_envs):

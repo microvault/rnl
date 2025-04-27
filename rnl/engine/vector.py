@@ -3,7 +3,7 @@ from rnl.configs.rewards import RewardConfig
 from rnl.environment.env import NaviEnv
 from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 from stable_baselines3.common.env_checker import check_env
-
+import gymnasium as gym
 import numpy as np
 
 def make_vect_envs(
@@ -16,7 +16,6 @@ def make_vect_envs(
     type_reward: RewardConfig,
     mode: str = "random",
 ):
-    # task_pool = ("long", "turn", "avoid")
     task_pool = ("turn", "avoid")
     rng = np.random.default_rng()
 
@@ -47,3 +46,42 @@ def make_vect_envs(
 
     venv = SubprocVecEnv([make_env(i) for i in range(num_envs)])
     return VecMonitor(venv)
+
+
+def make_vect_envs_norm(
+    num_envs: int,
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    render_config: RenderConfig,
+    use_render: bool,
+    type_reward: RewardConfig,
+    mode: str,
+):
+    """Returns async-vectorized gym environments with custom parameters.
+
+    :param env_name: Gym environment name or custom environment class
+    :type env_name: str or type
+    :param num_envs: Number of vectorized environments, defaults to 1
+    :type num_envs: int, optional
+    :param env_kwargs: Additional keyword arguments for the environment
+    :type env_kwargs: dict
+    """
+
+    def make_env(i):
+        def _init():
+            env = NaviEnv(
+                robot_config,
+                sensor_config,
+                env_config,
+                render_config,
+                use_render,
+                mode=mode,
+                type_reward=type_reward,
+            )
+            env.reset(seed=13 + i)
+            return env
+
+        return _init
+
+    return gym.vector.AsyncVectorEnv([make_env(i) for i in range(num_envs)])

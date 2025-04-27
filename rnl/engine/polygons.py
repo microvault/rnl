@@ -275,7 +275,7 @@ def build_contours_from_segments(segments: typed.List, tol: float = 1e-6) -> typ
     return contours
 
 
-def find_contours(arr: np.ndarray, level: float = 0.5) -> typed.List:
+def find_contour(arr: np.ndarray, level: float = 0.5) -> typed.List:
     """
     Encontra os contornos de uma matriz de valores usando marching squares.
     """

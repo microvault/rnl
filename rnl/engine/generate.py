@@ -1,116 +1,73 @@
-import argparse
+#!/usr/bin/env python3
+# build_world.py – gera um SDF 2,20 m × 2,15 m (grade de 5 cm)
+
 import math
 from datetime import datetime
+from pathlib import Path
+from rnl.environment.generate import Generator
 
-from rnl.environment.world import CreateWorld
+# parâmetros fixos
+RES = 0.05         # m/px
+LEN_X, LEN_Y = 2.20, 2.15
+CELLS_X = int(LEN_X / RES) + 1   # 45
+CELLS_Y = int(LEN_Y / RES) + 1   # 44
+OUT_FILE = Path("../rnl/ros/src/playground/worlds/demo.world")
 
 
-def generate_gazebo_world_with_walls(segments):
-    """
-    segments: lista de tuplas (x1, y1, x2, y2) definindo cada parede.
-    """
-    now = datetime.now()
-    timestamp_str = now.strftime("%Y-%m-%d %H:%M:%S")
-
-    sdf_header = f"""<?xml version="1.0" ?>
-<!-- Gerado em: {timestamp_str} -->
+def generate_world(segments, out_file: Path) -> None:
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    header = f"""<?xml version="1.0" ?>
+<!-- Gerado em {now} -->
 <sdf version="1.6">
   <world name="default">
-    <include>
-      <uri>model://ground_plane</uri>
-    </include>
-    <include>
-      <uri>model://sun</uri>
-    </include>
+    <include><uri>model://ground_plane</uri></include>
+    <include><uri>model://sun</uri></include>
 """
-    sdf_footer = """
-  </world>
-</sdf>
-"""
-    models = ""
-    for i, seg in enumerate(segments):
-        x1, y1, x2, y2 = seg
-        cx = (x1 + x2) / 2.0
-        cy = (y1 + y2) / 2.0
-        dx, dy = x2 - x1, y2 - y1
-        length = math.sqrt(dx**2 + dy**2)
-        angle = math.atan2(dy, dx)
-
-        wall_model = f"""
+    models = []
+    for i, (x1, y1, x2, y2) in enumerate(segments):
+        cx, cy = (x1 + x2) / 2, (y1 + y2) / 2
+        length = math.hypot(x2 - x1, y2 - y1)
+        if length < 1e-4:  # ignora segmentos degenerados
+            continue
+        yaw = math.atan2(y2 - y1, x2 - x1)
+        models.append(
+            f"""
     <model name="wall_{i}">
       <static>true</static>
-      <pose>{cx} {cy} 0 0 0 {angle}</pose>
+      <pose>{cx} {cy} 0 0 0 {yaw}</pose>
       <link name="link">
-         <collision name="collision">
-             <geometry>
-                <box>
-                  <size>{length} 0.1 1</size>
-                </box>
-             </geometry>
-         </collision>
-         <visual name="visual">
-             <geometry>
-                <box>
-                  <size>{length} 0.1 1</size>
-                </box>
-             </geometry>
-         </visual>
+        <visual name="vis">
+          <geometry><box><size>{length} 0.10 1.00</size></box></geometry>
+        </visual>
+        <collision name="col">
+          <geometry><box><size>{length} 0.10 1.00</size></box></geometry>
+        </collision>
       </link>
-    </model>
-"""
-        models += wall_model
+    </model>"""
+        )
 
-    sdf_world = sdf_header + models + sdf_footer
-
-    file_name = "../rnl/ros/src/playground/worlds/demo.world"
-    with open(file_name, "w") as f:
-        f.write(sdf_world)
-    print("File: ", file_name)
+    sdf = header + "\n".join(models) + "\n  </world>\n</sdf>\n"
+    out_file.parent.mkdir(parents=True, exist_ok=True)
+    out_file.write_text(sdf)
+    print("⚡  Mundo salvo em:", out_file.resolve())
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Gera mundo Gazebo com paredes a partir do mapa"
-    )
-    parser.add_argument(
-        "--folder",
-        type=str,
-        required=True,
-    )
-    parser.add_argument(
-        "--name_map",
-        type=str,
-        required=True,
-    )
-    args = parser.parse_args()
-
-    create_world = CreateWorld(
-        folder=args.folder,
-        name=args.name_map,
+def main() -> None:
+    gen = Generator(mode="custom")
+    _, segs, _ = gen.world(
+        grid_length=0,
+        grid_length_x=CELLS_X,
+        grid_length_y=CELLS_Y,
+        resolution=RES,
     )
 
-    # Usa o método world para obter segmentos (modo exemplo)
-    _, segments_from_world, _ = create_world.world(mode="medium")
+    # centraliza no (0,0)
+    xs = [p for s in segs for p in (s[0], s[2])]
+    ys = [p for s in segs for p in (s[1], s[3])]
+    cx, cy = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
+    segs_centered = [(x1 - cx, y1 - cy, x2 - cx, y2 - cy) for x1, y1, x2, y2 in segs]
 
-    # Redimensiona e centraliza
-    xs = [seg[0] for seg in segments_from_world] + [
-        seg[2] for seg in segments_from_world
-    ]
-    ys = [seg[1] for seg in segments_from_world] + [
-        seg[3] for seg in segments_from_world
-    ]
-    center_x, center_y = (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2
-    scale = 0.2
-
-    new_segments = []
-    for x1, y1, x2, y2 in segments_from_world:
-        nx1 = (x1 - center_x) * scale
-        ny1 = (y1 - center_y) * scale
-        nx2 = (x2 - center_x) * scale
-        ny2 = (y2 - center_y) * scale
-        new_segments.append((nx1, ny1, nx2, ny2))
-
-    generate_gazebo_world_with_walls(new_segments)
+    generate_world(segs_centered, OUT_FILE)
 
 
 if __name__ == "__main__":

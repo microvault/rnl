@@ -6,12 +6,15 @@ from dataclasses import dataclass
 import numpy as np
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from shapely.geometry import LineString, Polygon
+from shapely.geometry import LineString, Polygon, MultiPolygon
 from shapely import affinity
 from rnl.engine.collisions import extract_segment_from_polygon
-from rnl.engine.polygons import find_contours, process
+from rnl.engine.polygons import find_contour, process
 from rnl.engine.world import GenerateWorld
-
+from rnl.engine.utils import load_pgm
+from skimage.measure import find_contours
+import yaml
+from shapely.ops import unary_union
 
 @dataclass
 class Generator:
@@ -169,40 +172,64 @@ class Generator:
             )
             return path_patch, segments, poly
 
-        elif self.mode == "custom":
-            gx = grid_length_x if grid_length_x > 0 else grid_length
-            gy = grid_length_y if grid_length_y > 0 else grid_length
+        elif "custom" in self.mode:
+            thresh = 0.65
 
-            width  = int(round(gx / resolution))
-            height = int(round(gy / resolution))
+            yaml_path = "/Users/nicolasalan/microvault/rnl/data/map6/map6.yaml"
+            with open(yaml_path) as f:
+                    info = yaml.safe_load(f)
+            res = float(info["resolution"])
+            ox, oy, oyaw = info["origin"]
+            pgm_path = os.path.join(os.path.dirname(yaml_path), info["image"])
+            img = load_pgm(pgm_path)
+            if info.get("negate", 0):
+                img = 255 - img
+            occ = img < int(thresh * 255)
+            h, w = occ.shape
+            gx, gy   = w*res, h*res
 
-            exterior = []
-            for x in range(width):
-                exterior.append((x * resolution, (height - 1) * resolution))
-            for y in range(height - 2, -1, -1):
-                exterior.append(((width - 1) * resolution, y * resolution))
-            for x in range(width - 2, -1, -1):
-                exterior.append((x * resolution, 0))
-            for y in range(1, height - 1):
-                exterior.append((0, y * resolution))
+            contours = find_contours(occ.astype(float), 0.5)
+            polys = []
+            for c in contours:
+                pts = np.stack([
+                    ox + c[:,1]*res,
+                    oy + (h - c[:,0])*res
+                ], axis=1)
+                polys.append(Polygon(pts).buffer(0))
+            poly = unary_union(polys).buffer(0)
 
-            poly = Polygon(exterior, holes=[]).buffer(0)
+            if oyaw:
+                cx, cy = ox + gx/2, oy + gy/2
+                poly = affinity.rotate(poly,
+                                       np.degrees(oyaw),
+                                       origin=(cx, cy),
+                                       use_radians=False)
 
-            cx = (width  - 1) * resolution / 2
-            cy = (height - 1) * resolution / 2
-            poly = affinity.rotate(poly, -90, origin=(cx, cy), use_radians=False)
+            stack = []
+            if isinstance(poly, MultiPolygon):
+                for p in poly.geoms:
+                    stack.append(np.asarray(p.exterior.coords, dtype=np.float64))
+            else:
+                stack.append(np.asarray(poly.exterior.coords, dtype=np.float64))
 
-            polygon  = np.array(poly.exterior.coords, dtype=np.float64)
-            stack    = [polygon]
             segments = extract_segment_from_polygon(stack)
-            path     = Path.make_compound_path(
-                Path(polygon[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+
+            paths = []
+            if isinstance(poly, MultiPolygon):
+                for p in poly.geoms:
+                    coords = np.asarray(p.exterior.coords, np.float64)
+                    paths.append(Path(coords[:, :2]))
+            else:
+                coords = stack[0]
+                paths.append(Path(coords[:, :2]))
+
+            patch = PathPatch(
+                Path.make_compound_path(*paths),
+                edgecolor=(0.1, 0.2, 0.5, 0.15),
+                facecolor=(0.1, 0.2, 0.5, 0.15),
             )
-            path_patch = PathPatch(
-                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
-            )
-            return path_patch, segments, poly
+
+            return patch, segments, poly
 
         elif self.mode in ("easy-01", "easy-02", "easy-03"):
             width  = int(round(grid_length / resolution))
@@ -248,7 +275,7 @@ class Generator:
             border = self._map_border(m)
             map_grid = 1 - border
 
-            conts = find_contours(map_grid, 0.5)
+            conts = find_contour(map_grid, 0.5)
             contours = process(conts)
 
             height, width = map_grid.shape
@@ -330,7 +357,7 @@ class Generator:
             border = self._map_border(m)
             map_grid = 1 - border
 
-            conts = find_contours(map_grid, 0.5)
+            conts = find_contour(map_grid, 0.5)
             contours = process(conts)
 
             height, width = map_grid.shape
@@ -412,7 +439,7 @@ class Generator:
             border = self._map_border(m)
             map_grid = 1 - border
 
-            conts = find_contours(map_grid, 0.5)
+            conts = find_contour(map_grid, 0.5)
             contours = process(conts)
 
             height, width = map_grid.shape

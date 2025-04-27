@@ -38,6 +38,7 @@ class RobotConfig:
     weight: float
     threshold: float
     collision: float
+    noise: bool
     path_model: str
 
 

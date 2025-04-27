@@ -21,6 +21,7 @@ def robot(
     weight: float,
     threshold: float,
     collision: float,
+    noise: bool,
     path_model: str,
 ) -> RobotConfig:
 
@@ -49,9 +50,9 @@ def robot(
         weight,
         threshold,
         collision,
+        noise,
         path_model,
     )
-
 
 def sensor(
     fov: float, num_rays: int, min_range: float, max_range: float
@@ -316,6 +317,15 @@ class Probe:
         if self.render_config.plot:
             raise ValueError("Error: Plot mode is not supported for training.")
 
+        reward_config = RewardConfig(
+            params={
+                "scale_orientation": 0.00,
+                "scale_distance": 0.00,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.000,
+            },
+        )
+
         probe_envs(
             self.num_envs,
             self.max_steps,
@@ -324,6 +334,7 @@ class Probe:
             self.env_config,
             self.render_config,
             self.seed,
+            reward_config
         )
 
         return None

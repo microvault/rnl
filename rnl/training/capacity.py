@@ -7,7 +7,6 @@ import psutil
 def check_system_usage():
     mem = psutil.virtual_memory()
     cpu = psutil.cpu_percent()
-    # Retorna uso de memória (GB) e CPU (%)
     return mem.used / (1024**3), cpu
 
 

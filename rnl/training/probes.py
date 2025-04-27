@@ -23,7 +23,7 @@ def poly_with_map():
 
 
 def poly():
-    generator = Generator(mode="easy-10")
+    generator = Generator(mode="custom")
     grid_length = 4
     _, _, poly = generator.world(grid_length)
 

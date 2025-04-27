@@ -9,9 +9,9 @@ from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
 from sensor_msgs.msg import LaserScan
-# import torch
-# import torch.nn as nn
-# from torch.distributions import Categorical
+import torch
+import torch.nn as nn
+from torch.distributions import Categorical
 
 
 def clamp(value, vmin, vmax):
@@ -29,56 +29,56 @@ def angle_to_goal(x: float, y: float, theta: float, goal_x: float, goal_y: float
     return float(abs(np.arctan2(np.linalg.norm(cross), dot)))
 
 
-# class FlexMLP(nn.Module):
-#     def __init__(self, in_dim: int, hidden: list[int]):
-#         super().__init__()
-#         layers, prev = [], in_dim
-#         for h in hidden:
-#             layers += [nn.Linear(prev, h), nn.ReLU()]
-#             prev = h
-#         self.body = nn.Sequential(*layers)
+class FlexMLP(nn.Module):
+    def __init__(self, in_dim: int, hidden: list[int]):
+        super().__init__()
+        layers, prev = [], in_dim
+        for h in hidden:
+            layers += [nn.Linear(prev, h), nn.ReLU()]
+            prev = h
+        self.body = nn.Sequential(*layers)
 
-#     def forward(self, x):
-#         return self.body(x)
-
-
-# def _map_sb3_keys(sd: dict) -> dict:
-#     new = {}
-#     for k, v in sd.items():
-#         if k.startswith("mlp_extractor.policy_net."):
-#             new_k = k.replace("mlp_extractor.policy_net.", "backbone.body.")
-#         elif k.startswith("action_net."):
-#             new_k = k.replace("action_net.", "head.")
-#         else:
-#             continue
-#         new[new_k] = v
-#     return new
+    def forward(self, x):
+        return self.body(x)
 
 
-# class RNLPolicy(nn.Module):
-#     def __init__(self, in_dim: int, n_act: int,
-#                  hidden: list[int], pth: str, device: str = "cpu"):
-#         super().__init__()
-#         self.backbone = FlexMLP(in_dim, hidden)
-#         self.head = nn.Linear(hidden[-1], n_act)
+def _map_sb3_keys(sd: dict) -> dict:
+    new = {}
+    for k, v in sd.items():
+        if k.startswith("mlp_extractor.policy_net."):
+            new_k = k.replace("mlp_extractor.policy_net.", "backbone.body.")
+        elif k.startswith("action_net."):
+            new_k = k.replace("action_net.", "head.")
+        else:
+            continue
+        new[new_k] = v
+    return new
 
-#         ckpt = torch.load(pth, map_location=device)
-#         if isinstance(ckpt, dict) and "state_dict" in ckpt:
-#             ckpt = ckpt["state_dict"]
 
-#         ckpt = _map_sb3_keys(ckpt)           # renomeia
-#         missing, unexpected = self.load_state_dict(ckpt, strict=False)
-#         assert not missing, f"Pesos faltando: {missing}"
-#         self.eval()
+class RNLPolicy(nn.Module):
+    def __init__(self, in_dim: int, n_act: int,
+                 hidden: list[int], pth: str, device: str = "cpu"):
+        super().__init__()
+        self.backbone = FlexMLP(in_dim, hidden)
+        self.head = nn.Linear(hidden[-1], n_act)
 
-#     @torch.no_grad()
-#     def act(self, obs):
-#         if not isinstance(obs, torch.Tensor):
-#             obs = torch.as_tensor(obs, dtype=torch.float32)
-#         if obs.dim() == 1:
-#             obs = obs.unsqueeze(0)
-#         logits = self.head(self.backbone(obs))
-#         return Categorical(logits=logits).sample().item()
+        ckpt = torch.load(pth, map_location=device)
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+
+        ckpt = _map_sb3_keys(ckpt)
+        missing, unexpected = self.load_state_dict(ckpt, strict=False)
+        assert not missing, f"Pesos faltando: {missing}"
+        self.eval()
+
+    @torch.no_grad()
+    def act(self, obs):
+        if not isinstance(obs, torch.Tensor):
+            obs = torch.as_tensor(obs, dtype=torch.float32)
+        if obs.dim() == 1:
+            obs = obs.unsqueeze(0)
+        logits = self.head(self.backbone(obs))
+        return Categorical(logits=logits).sample().item()
 
 class InferenceModel(Node):
     def __init__(self):
@@ -98,10 +98,10 @@ class InferenceModel(Node):
 
         pkg_dir = get_package_share_directory('playground')
         model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
-        # self.policy = RNLPolicy(in_dim=10,
-        #                     n_act=3,
-        #                     hidden=[20, 10],
-        #                     pth=model_path)
+        self.policy = RNLPolicy(in_dim=10,
+                            n_act=3,
+                            hidden=[20, 10],
+                            pth=model_path)
         self.get_logger().info(f'Model path: {model_path}')
 
         qos = QoSProfile(
@@ -160,8 +160,8 @@ class InferenceModel(Node):
             self.get_logger().info('Ainda não recebi /amcl_pose, aguardando...')
             return
 
-        action = 0
-        # action = int(self.policy.act(self.last_states))
+        # action = 0
+        action = int(self.policy.act(self.last_states))
 
         self.move_robot(action)
 

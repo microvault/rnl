@@ -8,6 +8,29 @@ from pathlib import Path
 
 import json, os
 
+
+def load_pgm(pgm_path: str) -> np.ndarray:
+    """
+    Lê PGM no formato P5 (binário) e retorna array uint8 ou uint16.
+    """
+    with open(pgm_path, 'rb') as f:
+        # cabeçalho
+        magic = f.readline().strip()
+        if magic != b'P5':
+            raise ValueError("Só PGM P5 suportado")
+        # pula comentários
+        line = f.readline()
+        while line.startswith(b'#'):
+            line = f.readline()
+        # resolução
+        width, height = map(int, line.split())
+        maxval = int(f.readline())
+        # lê pixels
+        dtype = np.uint8 if maxval < 256 else np.uint16
+        img = np.fromfile(f, dtype=dtype, count=width*height)
+    return img.reshape((height, width))
+
+
 def load_summary(run_dir: str) -> Dict[str, float]:
     """Lê *.json com as métricas finais."""
     path = os.path.join(run_dir, "files", "wandb-summary.json")

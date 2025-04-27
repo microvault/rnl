@@ -9,7 +9,6 @@ from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from rnl.network.policy import RNLPolicy
 
-# from rnl.engine.utils import clean_info
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
@@ -251,16 +250,16 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = 0.129 * self.scalar
+            self.vl = self.max_lr/2 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.action = 1
-            self.vl = 0.129 * self.scalar
-            self.vr = -0.79 * self.scalar
+            self.vl = self.max_lr/2 * self.scalar
+            self.vr = self.max_vr/4 * self.scalar
         elif event.key == "left":
             self.action = 2
-            self.vl = 0.129 * self.scalar
-            self.vr = 0.79 * self.scalar
+            self.vl = self.max_lr/2 * self.scalar
+            self.vr = -self.max_vr/4 * self.scalar
 
         # Control and test
         elif event.key == " ":
@@ -268,10 +267,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = -(self.max_vr/6) * self.scalar
+            self.vr = (self.max_vr/6) * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = (self.max_vr/6) * self.scalar
+            self.vr = -(self.max_vr/6) * self.scalar
 
     def step_animation(self, i):
         if self.pretrained_model != "None" or not self.controller:
@@ -301,12 +300,9 @@ class NaviEnv(gym.Env):
             self.body.angle,
         )
 
-        print(x, y)
-
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
-
         dist = distance_to_goal(x, y, self.target_x, self.target_y, self.max_dist)
 
         alpha = angle_to_goal(
@@ -417,11 +413,11 @@ class NaviEnv(gym.Env):
         elif action == 1:
             self.steps_command_angular += 1
             vl = (self.max_lr/2) * self.scalar
-            vr = -(self.max_vr/6) * self.scalar
+            vr = (self.max_vr/4) * self.scalar
         elif action == 2:
             self.steps_command_angular += 1
             vl = (self.max_lr/2) * self.scalar
-            vr = (self.max_vr/6) * self.scalar
+            vr = -(self.max_vr/4) * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -495,6 +491,8 @@ class NaviEnv(gym.Env):
             max_distance=self.max_dist,
         )
 
+        done = bool(done)
+
         reward = (
             collision_score + orientation_score + progress_score + time_score + obstacle
         )
@@ -504,7 +502,7 @@ class NaviEnv(gym.Env):
 
         self.timestep += 1
 
-        truncated = self.timestep >= self.max_timestep
+        truncated = bool(self.timestep >= self.max_timestep)  # Garantir booleano simples
 
         if self.debug:
 
@@ -901,8 +899,13 @@ class NaviEnv(gym.Env):
             ax.set_ylim(0, self.grid_length)
 
         elif "custom" in self.mode:
-            ax.set_xlim(0, self.x)
-            ax.set_ylim(0, self.y)
+            origin_x, origin_y = -0.96, -3.15 # -3.06, -3.62
+            # ax.set_xlim(origin_x, origin_x + self.x)
+            # ax.set_ylim(origin_y, origin_y + self.y)
+            gx, gy = 5.25, 5.3500000000000005
+            ax.set_xlim(origin_x, origin_x + gx)
+            ax.set_ylim(origin_y, origin_y + gy)
+            ax.invert_yaxis()
 
         elif "turn" in self.mode:
             ax.set_xlim(0, 2)
