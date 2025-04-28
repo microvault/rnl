@@ -8,7 +8,7 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from rnl.network.policy import RNLPolicy
-
+from sb3_contrib import RecurrentPPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
@@ -39,7 +39,7 @@ class NaviEnv(gym.Env):
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
-        state_size = self.max_num_rays + 5
+        state_size = self.max_num_rays + 3
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
@@ -64,12 +64,16 @@ class NaviEnv(gym.Env):
         self.steps_to_collision = 0
         self.map_size = env_config.map_size
         self.porcentage_obstacle = env_config.obstacle_percentage
-        self.lstm_states = None
-        self.episode_starts = np.ones((1,), dtype=bool)
         self.steps_unsafe_area = 0
         self.steps_command_angular = 0
         self.x = env_config.grid_size[0]
         self.y = env_config.grid_size[1]
+
+        # self.model_recurrent = RecurrentPPO.load("/Users/nicolasalan/microvault/rnl/checkpoints/model_190000_steps.zip")
+        # num_envs = 1
+        # self.episode_starts = np.ones((num_envs,), dtype=bool)
+        # self.lstm_states = None
+
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -173,7 +177,7 @@ class NaviEnv(gym.Env):
         )
         self.use_render = use_render
         self.max_dist = compute_polygon_diameter(self.poly) * 0.8  # fator
-        self.min_dist = 0.0  # robot_config.threshold
+        self.min_dist = 0.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
         self.min_alpha, self.max_alpha = 0.0, 3.5 * 0.89
@@ -211,7 +215,7 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
-                                hidden=[20, 10],
+                                hidden=[20, 64],
                                 pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -278,19 +282,35 @@ class NaviEnv(gym.Env):
                 self.policy.eval()
                 action = self.policy.act(self.last_states)
                 self.action = int(action)
+                print(action)
             else:
                 self.action = np.random.randint(0, 3)
 
         if not self.controller:
+
             if self.action == 0:
-                self.vl = 0.10 * self.scalar
+                self.vl = self.max_lr/2 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = 0.08 * self.scalar
-                self.vr = -0.36 * self.scalar
+                self.vl = self.max_lr/2 * self.scalar
+                self.vr = (self.max_vr/4) * self.scalar
             elif self.action == 2:
-                self.vl = 0.08 * self.scalar
-                self.vr = 0.36 * self.scalar
+                self.vl = self.max_lr/2 * self.scalar
+                self.vr = -(self.max_vr/4) * self.scalar
+
+        # self.action, self.lstm_states = self.model_recurrent.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts, deterministic=False)
+
+        # print("action: ", self.action)
+
+        # if self.action == 0:
+        #     self.vl = self.max_lr/2 * self.scalar
+        #     self.vr = 0.0
+        # elif self.action == 1:
+        #     self.vl = self.max_lr/2 * self.scalar
+        #     self.vr = (self.max_vr/4) * self.scalar
+        # elif self.action == 2:
+        #     self.vl = self.max_lr/2 * self.scalar
+        #     self.vr = -(self.max_vr/4) * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -324,10 +344,12 @@ class NaviEnv(gym.Env):
             np.array(alpha).reshape(1, -1)
         ).flatten()
 
-        if self.action > 2:
-            self.action = 0
+        # if self.action > 2:
+        #     self.action = 0
 
-        action_one_hot = np.eye(3)[self.action]
+        # action_one_hot = np.eye(3)[self.action]
+
+        action_one_hot = [np.int16(self.action != 0)]
         states = np.concatenate(
             (
                 np.array(lidar_norm, dtype=np.float32),
@@ -359,9 +381,13 @@ class NaviEnv(gym.Env):
             min_distance=self.min_dist,
             max_distance=self.max_dist,
         )
+        action_score = 0
+
+        if self.action == 1 or self.action == 2:
+            action_score = -0.01
 
         reward = (
-            collision_score + orientation_score + progress_score + time_score + obstacle
+            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
         )
 
         min_lidar_norm = np.min(lidar_norm)
@@ -401,6 +427,7 @@ class NaviEnv(gym.Env):
             )
 
         if done or truncated:
+            self.episode_starts = done
             self._stop()
 
     def step(self, action):
@@ -457,7 +484,12 @@ class NaviEnv(gym.Env):
             np.array(alpha).reshape(1, -1)
         ).flatten()
 
-        action_one_hot = np.eye(3)[action]
+        # if self.action > 2:
+        #     self.action = 0
+
+        # action_one_hot = np.eye(3)[action]
+
+        action_one_hot = [np.int16(action != 0)]
 
         states = np.concatenate(
             (
@@ -492,9 +524,13 @@ class NaviEnv(gym.Env):
         )
 
         done = bool(done)
+        action_score = 0
+
+        if action == 1 or action == 2:
+            action_score = -0.005
 
         reward = (
-            collision_score + orientation_score + progress_score + time_score + obstacle
+            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
         )
         self.last_states = states
 
@@ -502,7 +538,7 @@ class NaviEnv(gym.Env):
 
         self.timestep += 1
 
-        truncated = bool(self.timestep >= self.max_timestep)  # Garantir booleano simples
+        truncated = bool(self.timestep >= self.max_timestep)
 
         if self.debug:
 
@@ -803,7 +839,8 @@ class NaviEnv(gym.Env):
             ).flatten()
 
             action = np.random.randint(0, 3)
-            action_one_hot = np.eye(3)[action]
+            # action_one_hot = np.eye(3)[action]
+            action_one_hot = [np.int16(action != 0)]
             min_lidar_norm = np.min(lidar_norm)
 
             states = np.concatenate(

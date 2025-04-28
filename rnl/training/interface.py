@@ -224,7 +224,7 @@ class Trainer:
                 "scale_orientation": 0.0,  # 0.02
                 "scale_distance": 0.0,  # 0.06
                 "scale_time": 0.01,  # 0.01
-                "scale_obstacle": 0.0,  # 0.004
+                "scale_obstacle": 0.02,  # 0.004
             },
         )
 
@@ -262,10 +262,10 @@ class Simulation:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.00,
-                "scale_distance": 0.00,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.000,
+                "scale_orientation": 0.0,  # 0.02
+                "scale_distance": 0.0,  # 0.06
+                "scale_time": 0.01,  # 0.01
+                "scale_obstacle": 0.02,  # 0.004
             },
         )
 
@@ -321,8 +321,8 @@ class Probe:
             params={
                 "scale_orientation": 0.00,
                 "scale_distance": 0.00,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.000,
+                "scale_time": 0.02,
+                "scale_obstacle": 0.04,
             },
         )
 

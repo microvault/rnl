@@ -32,6 +32,7 @@ def create_single_env(i):
         weight=1.0,
         threshold=0.1,  # 4 # 0.03
         collision=0.075,  # 2 # 0.075
+        noise=False,
         path_model="None",
     )
     sensor_config = SensorConfig(

@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from sb3_contrib import TRPO, RecurrentPPO
+from sb3_contrib import TRPO, RecurrentPPO, QRDQN
 from stable_baselines3 import A2C, DQN, PPO
 
 from stable_baselines3.common.env_checker import check_env
@@ -9,7 +9,6 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
-
 import os
 import random
 import wandb
@@ -125,7 +124,7 @@ def training(
                 vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
             ),
             n_lstm_layers=1,
-            lstm_hidden_size=40,
+            lstm_hidden_size=32,
         )
 
         policy_kwargs_off_policy = dict(
@@ -186,7 +185,7 @@ def training(
         model = PPO.load(trainer_config.pretrained)
     else:
         if policy_kwargs_on_policy is not None or policy_kwargs_on_policy_recurrent is not None or policy_kwargs_off_policy is not None:
-            if POLICY == "TRPO":
+            if trainer_config.policy_type == "TRPO":
                 model = TRPO(
                     policy=network_config.type_model,
                     env=vec_env,
@@ -198,7 +197,8 @@ def training(
                     device=trainer_config.device,
                     seed=trainer_config.seed,
                 )
-            if POLICY == "Recurrent PPO":
+            if trainer_config.policy_type == "RecurrentPPO":
+                print("RecurrentPPO")
                 model = RecurrentPPO(
                     "MlpLstmPolicy",
                     vec_env,
@@ -214,7 +214,7 @@ def training(
                     n_epochs=trainer_config.update_epochs,
                     seed=trainer_config.seed,
                 )
-            elif POLICY == "PPO":
+            elif trainer_config.policy_type == "PPO":
                 model = PPO(
                     policy=network_config.type_model,
                     env=vec_env,
@@ -230,7 +230,7 @@ def training(
                     n_epochs=trainer_config.update_epochs,
                     seed=trainer_config.seed,
                 )
-            elif POLICY == "A2C":
+            elif trainer_config.policy_type == "A2C":
                 model = A2C(
                     policy=network_config.type_model,
                     env=vec_env,
@@ -245,9 +245,21 @@ def training(
                     policy_kwargs=policy_kwargs_on_policy,
                     device=trainer_config.device,
                 )
-            elif POLICY == "DQN":
+            elif trainer_config.policy_type == "DQN":
                 model = DQN(
-                    network_config.type_model,
+                    'MlpPolicy',
+                    DummyVecEnv([make_env]),
+                    learning_rate=trainer_config.lr,
+                    batch_size=trainer_config.batch_size,
+                    buffer_size=1000000,
+                    verbose=verbose_value,
+                    device=trainer_config.device,
+                    policy_kwargs=policy_kwargs_off_policy,
+                    seed=trainer_config.seed,
+                )
+            elif trainer_config.policy_type == "QRDQN":
+                model = QRDQN(
+                    'MlpPolicy',
                     DummyVecEnv([make_env]),
                     learning_rate=trainer_config.lr,
                     batch_size=trainer_config.batch_size,
