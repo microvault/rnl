@@ -402,7 +402,7 @@ def probe_envs(
     render_config,
     seed,
     reward_config: RewardConfig,
-    image=True,
+    image=False,
 ):
     set_seed(seed)
 
@@ -430,8 +430,6 @@ def probe_envs(
     )
 
     check_env(env)
-
-    print(num_envs)
 
     if num_envs == 1:
         obs, _ = env.reset()
@@ -717,6 +715,8 @@ def probe_envs(
         )
 
         plt.tight_layout()
+
+        print(image)
 
         if image:
             plt.savefig("probe.png", dpi=500, bbox_inches="tight")

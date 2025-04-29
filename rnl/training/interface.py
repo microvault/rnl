@@ -228,7 +228,7 @@ class Trainer:
             },
         )
 
-        metrics = training(
+        training(
             self.robot_config,
             self.sensor_config,
             self.env_config,
@@ -319,10 +319,10 @@ class Probe:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.00,
-                "scale_distance": 0.00,
-                "scale_time": 0.02,
-                "scale_obstacle": 0.04,
+                "scale_orientation": 0.0,  # 0.02
+                "scale_distance": 0.0,  # 0.06
+                "scale_time": 0.01,  # 0.01
+                "scale_obstacle": 0.02,  # 0.004
             },
         )
 

@@ -282,7 +282,6 @@ class NaviEnv(gym.Env):
                 self.policy.eval()
                 action = self.policy.act(self.last_states)
                 self.action = int(action)
-                print(action)
             else:
                 self.action = np.random.randint(0, 3)
 

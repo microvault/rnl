@@ -17,7 +17,7 @@ def main(arg):
         threshold=0.10,  # 4 # 0.03
         collision=0.10,  # 2 # 0.075
         noise=True,
-        path_model="",
+        path_model="/Users/nicolasalan/microvault/rnl/checkpoints/model_210000_steps/policy.pth",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -33,7 +33,7 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map5",
         name_map="map5",
-        max_timestep=500,  # 1000
+        max_timestep=50000,  # 1000
         type=args.type,
         grid_size=[2.2, 2.15]
     )
