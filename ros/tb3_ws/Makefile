@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 MAP_NAME = map6
-WORLD_SRC   := $(PWD)/tb3_ws/src/playground/worlds/demo.world
+WORLD_SRC   := $(PWD)/src/playground/worlds/demo.world
 WORLD_DST   := $(shell ros2 pkg prefix turtlebot3_gazebo)/share/turtlebot3_gazebo/worlds/turtlebot3_world.world
 
 .PHONY: build run nav start world map save teleop add
@@ -58,15 +58,15 @@ add:
 	tmux new-window
 
 world:
-	@echo ">> Linkando mundo customizado..."
+	@test -f $(WORLD_SRC) || (echo "Erro: Arquivo $(WORLD_SRC) não encontrado"; exit 1)
+	@test -w $(dir $(WORLD_DST)) || (echo "Erro: Sem permissão de escrita em $(dir $(WORLD_DST)). Tente com sudo."; exit 1)
 	@mkdir -p $(dir $(WORLD_DST))
-	@ln -sf $(WORLD_SRC) $(WORLD_DST)
-	@echo ">> Iniciando simulação..."
-	export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:$(ros2 pkg prefix turtlebot3_gazebo)/share/turtlebot3_gazebo/models
-	ros2 launch turtlebot3_gazebo empty_world.launch.py world:=$(WORLD_SRC)  # carrega seu world customizado :contentReference[oaicite:2]{index=2}
-
-	# @bash -c 'source /opt/ros/humble/setup.bash && \
- #    ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py'
+	@rm -f $(WORLD_DST) || true
+	@ln -sf $(realpath $(WORLD_SRC)) $(WORLD_DST)
+	@bash -c 'source /opt/ros/humble/setup.bash && \
+	source $(PWD)/install/setup.bash && \
+	export TURTLEBOT3_MODEL=burger && \
+	ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py'
 
 print:
 	$(env_setup) && \

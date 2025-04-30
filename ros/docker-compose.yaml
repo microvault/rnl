@@ -17,7 +17,6 @@ services:
     ipc: host
     volumes:
       - ./tb3_ws:/tb3_ws:rw
-      - ./Makefile:/tb3_ws/Makefile:rw
     depends_on:
       - xserver
     volumes_from:
