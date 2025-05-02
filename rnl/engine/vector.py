@@ -56,7 +56,6 @@ def make_vect_envs_norm(
     render_config: RenderConfig,
     use_render: bool,
     type_reward: RewardConfig,
-    mode: str,
 ):
     """Returns async-vectorized gym environments with custom parameters.
 
@@ -76,7 +75,7 @@ def make_vect_envs_norm(
                 env_config,
                 render_config,
                 use_render,
-                mode=mode,
+                mode=env_config.type,
                 type_reward=type_reward,
             )
             env.reset(seed=13 + i)

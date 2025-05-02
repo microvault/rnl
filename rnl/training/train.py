@@ -36,7 +36,7 @@ def train_worker(
         reward_config,
         policy_type,
         print_parameter=False,
-        training=True,
+        train=True,
     )
 
     return metrics
@@ -241,6 +241,7 @@ if __name__ == "__main__":
         weight=configs["robot"]["weight"],
         threshold=configs["robot"]["threshold"],
         collision=configs["robot"]["collision"],
+        noise=False,
         path_model="None",
     )
     sensor_config = SensorConfig(

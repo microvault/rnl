@@ -11,6 +11,7 @@ def main():
         weight=1.0,
         threshold=0.3,  # 4
         collision=0.075,  # 2
+        noise=False,
         path_model="",
     )
 
@@ -28,13 +29,15 @@ def main():
         folder_map="",  # ./data/map4
         name_map="",  # map4
         max_timestep=1000,
+        type="turn",
+        grid_size=5,
     )
 
     # 4.step -> config render
-    param_render = vault.render(controller=False, debug=True)
+    param_render = vault.render(controller=True, debug=True)
 
     # 5.step -> config sim robot
-    sim = vault.Simulation(param_robot, param_sensor, param_env, param_render)
+    sim = vault.Simulation(param_robot, param_sensor, param_env, param_render, type="turn")
     # 6.step -> run robot
     sim.run()
 

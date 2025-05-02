@@ -28,7 +28,9 @@ setup:
 nav:
 	@echo ">> Iniciando navegação..."
 	$(env_setup) && \
-	ros2 launch turtlebot3_navigation2 navigation2.launch.py map:=src/playground/maps/$(MAP_NAME)/$(MAP_NAME).yaml
+	ros2 launch turtlebot3_navigation2 navigation2.launch.py \
+    map:=src/playground/maps/${MAP_NAME}/${MAP_NAME}.yaml & \
+    rviz2 -d /tb3_ws/src/playground/rviz/tb3_small.rviz
 
 map:
 	@echo ">> Iniciando mapeamento..."
@@ -67,6 +69,10 @@ world:
 	source $(PWD)/install/setup.bash && \
 	export TURTLEBOT3_MODEL=burger && \
 	ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py'
+
+resolve:
+	ros2 param set /global_costmap/global_costmap resolution 0.10 \
+	ros2 param set /local_costmap/local_costmap resolution 0.10
 
 print:
 	$(env_setup) && \

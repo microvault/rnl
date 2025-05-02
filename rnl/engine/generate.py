@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# build_world.py – gera um SDF com possibilidade de escalonamento customizado
 import math
 from datetime import datetime
 from pathlib import Path
@@ -8,8 +7,6 @@ from rnl.environment.generate import Generator
 
 CONFIG_PATH = Path("/Users/nicolasalan/microvault/rnl/data/map6/map6.yaml")
 OUT_FILE    = Path("../rnl/ros/tb3_ws/src/playground/worlds/demo.world")
-
-SCALE_FACTOR = 2.0
 
 def generate_world(segments, out_file: Path) -> None:
     """Gera o arquivo .world a partir da lista de segmentos em metros (já escalados)."""
@@ -52,6 +49,8 @@ def main() -> None:
 
     gen = Generator(mode="custom")
     _, segs, _ = gen.world(grid_length=0)
+
+    SCALE_FACTOR = 2.0       # ou 0.05
 
     segs_scaled = [
         (x1 * SCALE_FACTOR, y1 * SCALE_FACTOR, x2 * SCALE_FACTOR, y2 * SCALE_FACTOR)

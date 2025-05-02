@@ -35,7 +35,7 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
         use_render: bool,
         type_reward: RewardConfig,
-        mode: str = "train-mode",
+        mode: str,
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
@@ -55,7 +55,7 @@ class NaviEnv(gym.Env):
 
         self.reward_config = type_reward
 
-        self.mode: str = mode
+        self.mode = mode
 
         self.grid_length = 0
         self.poly = None
@@ -213,6 +213,7 @@ class NaviEnv(gym.Env):
 
         self.policy = None
         if self.pretrained_model != "None":
+            print(state_size)
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
                                 hidden=[20, 64],

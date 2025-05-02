@@ -2,10 +2,10 @@ env:
   scalar: 10
   folder_map: ""
   name_map: ""
-  timestep: 10000
+  timestep: 500
   obstacle_percentage: 20.0
   map_size: 3
-  type: "random"
+  type: turn
   grid_size: [1.5, 1.5]
 
 render:
@@ -30,21 +30,21 @@ robot:
   path_model: ""
 
 network:
-  hidden_size: [20, 10]
+  hidden_size: [64, 64]
   mlp_activation: "ReLU"
   type_model: "MlpPolicy"
 
 trainer:
   pretrained: ""
   use_agents: false
-  max_timestep_global: 1_000_000_00
+  max_timestep_global: 1_000_000
   seed: 1
   batch_size: 8
   lr: 0.0003
   num_envs: 16
   device: "cpu"
   learn_step: 512
-  checkpoint: 50_000
+  checkpoint: 1000
   checkpoint_path: "./checkpoints"
   use_wandb: true
   wandb_api_key: "YOUR_WANDB_KEY"
