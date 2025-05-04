@@ -3,110 +3,177 @@ from google.genai import types
 
 
 class LLMTrainingEvaluator:
-    def __init__(self, evaluator_api_key: str, allow_domain: bool = True):
+    def __init__(self, evaluator_api_key: str):
         self.evaluator_api_key = evaluator_api_key
-        self.allow_domain = allow_domain
-        self.manual_schema = self.define_manual_schema(self.allow_domain)
+        self.manual_schema = self.define_manual_schema()
 
-    def define_manual_schema(self, allow_domain: bool = True):
+    def define_manual_schema(self, allow_domain: bool = False):
         base_reward_properties = {
             "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
             "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
-            "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.05},
+            "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.1},
             "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01},
-        }
-        domain_properties = {
-            "obstacle_percentage": {"type": "integer", "minimum": 0, "maximum": 50},
-            "map_size": {"type": "number", "minimum": 1.0, "maximum": 5.0},
+            "scale_angular": {"type": "number", "minimum": 0.001, "maximum": 0.01},
         }
         # Se allow_domain=True, unimos domain + reward
         all_properties = dict(base_reward_properties)
-        if allow_domain:
-            all_properties.update(domain_properties)
 
         item_schema = {
             "type": "object",
             "properties": all_properties,
-            "required": list(all_properties.keys()),
         }
 
         return {
             "type": "object",
             "properties": {"configurations": {"type": "array", "items": item_schema}},
-            "required": ["configurations"],
         }
 
-    # TODO: adicionar o codigo do ambiente e parametros
     def directed_reflection(self, best_population_metrics: dict) -> str:
-        print(best_population_metrics)
         prompt = f"""
-        Você é um engenheiro de recompensas. Analise as métricas do treinamento atual e proponha melhorias na função de recompensa e na configuração do ambiente para otimizar o desempenho do agente.​
+        Você é um engenheiro de recompensas. Analise as métricas do treinamento atual e proponha melhorias na função de recompensa para otimizar o desempenho do agente.​
 
         Com base nas métricas fornecidas, aplique as regras de análise para:​
             - Identificar possíveis causas de desempenho subótimo.
             - Forneça uma análise passo a passo justificando cada recomendação.
             - Não precisa mostrar como resolver, somente uma analise do que mudar.
+            - As escalas de recompensa podem ser 0 também.
 
-        Contexto:
-            Somente é possivel ajustar os seguintes parametros
-            * Escala de recompensa por tempo
-            * Escala de recompensa obstaculo
-            * Escala de recompensa distancia
-            * Escala de recompensa angulo
-            * tamanho do mapa
-            * Porcentagem de obstaculo
+        ## Contexto:
+            Somente é possivel ajustar os seguintes parametros:
+            * Escala de recompensa por tempo (sempre negativa)
+            * Escala de recompensa obstaculo (sempre negativa)
+            * Escala de recompensa distancia (sempre negativa)
+            * Escala de recompensa angulo (sempre negativa)
+            * Escala de recompensa por acao angular (sempre negativa)
 
-        ## Regras de Análise:
+        ## Ambiente
+        - 1000 steps totais, mas ~700 já levam o robô de ponta a ponta do mapa.
+        - 3 ações: 0 = frente, 1 = esquerda, 2 = direita.
+        - 8 estados: 5 leituras de LiDAR, distância ao objetivo, ângulo ao objetivo e estado do robô (frente/giro).
 
-            - Ambiente Muito Difícil:
-                Se a taxa de sucesso for baixa e a porcentagem de insegurança alta, considere reduzir o tamanho do mapa e a densidade de obstáculos.​
+        ## Funções de recompensa:
+            Colisão e chegada:
+                Código:
+                    def collision_and_target_reward(
+                        distance: float, threshold: float, collision: bool, x: float, y: float, poly
+                    ) -> Tuple[float, bool]:
+                        if not poly.contains(Point(x, y)):
+                            return -1.0, True
+                        if distance < threshold:
+                            return 1.0, True
+                        if collision:
+                            return -1.0, True
+                        return 0.0, False
+                Descrição:
+                    Colidiu → -1.0 e termina; chegou → +1.0 e termina.
+            Orientação:
+                Código:
+                    def orientation_reward(alpha: float, scale_orientation: float) -> float:
+                        alpha_norm = 1.0 - (alpha / np.pi)
+                        if alpha_norm < 0.0:
+                            alpha_norm = 0.0
+                        elif alpha_norm > 1.0:
+                            alpha_norm = 1.0
 
-            - Ajuste de Obstáculos:
-                Se a taxa de sucesso for razoável (>50%) mas a porcentagem de insegurança ainda alta, ajuste a densidade de obstáculos ou o tamanho do mapa para equilibrar a dificuldade.​
+                        return scale_orientation * alpha_norm - scale_orientation
+                Descrição:
+                    Orientação perfeita → 0.0; caso contrário penalidade proporcional.
+            Tempo:
+                Código:
+                    def time_and_collision_reward(scale_time: float = 0.01) -> float:
+                        return -scale_time
+                Descrição:
+                    Penalidade fixa a cada step.
 
-            - Penalidade por Proximidade:
-                Se a porcentagem de insegurança for alta, aumente a penalidade por proximidade a obstáculos para incentivar o agente a manter distância segura.​
 
-            - Comportamento de Giro:
-                Se os passos médios até o objetivo ou até a colisão forem altos e a orientação angular também for alta, o agente pode estar preso em um comportamento de giro. Modifique a função de recompensa para incentivar a exploração e o progresso.​
+            Progresso:
+                Código:
+                    def prog_reward(
+                        current_distance: float,
+                        min_distance: float,
+                        max_distance: float,
+                        scale_factor: float,
+                    ) -> float:
 
-        ## Exemplos de Análise:
+                        reward = -scale_factor * current_distance
+                        return reward
+                Descrição:
+                    Quanto mais perto do destino, menor a penalidade.
 
-        ### Métricas:
-            - Taxa de sucesso: 20% (min. 0% - max. 100%)
-            - Média de passos até o objetivo: 30 (min. 0 - max. 1000)
-            - Média de passos até colisão: 1000 (min. 0 - max. 1000)
-            - Porcentagem de insegurança: 10% (min. 0% - max. 100%)
-            - Porcentagem de uso de velocidade angular: 100% (min. 0% - max. 100%)
-            - Tempo por epsodio médio: 17.7 (min. 0 - max. 1000)
-            - Media de si
-            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+            Proximidade de obstaculo:
+                Código:
+                    def r3(x: float, threshold_collision: float, scale: float) -> float:
+                        margin = 0.3
+                        if x <= threshold_collision:
+                            return -scale
+                        elif x < threshold_collision + margin:
+                            return -scale * (threshold_collision + margin - x) / margin
+                        else:
+                            return 0.0
+                Descrição:
+                    Penalidade cresce conforme se aproxima do obstáculo.
 
-        ### Análise:
-            - A Taxa de sucesso esta em 20% indica um ambiente muito difícil. Reduza o tamanho do mapa de 3 para 2 para facilitar a tarefa.
-            - A Média de passos até colisão esta muito alta indicando que o robo esta girando em circulo.
+           Uso de ação angular:
+                Código:
+                    action_reward = 0
 
-        ### Métricas:
-            - Taxa de sucesso: 0% (0% - 100%)
-            - Média de passos até o objetivo: 24 (0 - 1000)
-            - Média de passos até colisão: 12 (0 - 1000)
-            - Porcentagem de insegurança: 10% (0% - 100%)
-            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+                    if action == 1 or action == 2:
+                        action_reward = -scale_angular
+                Descrição:
+                    Ações 1 ou 2 (giro) recebem penalidade fixa.
 
-        ### Análise:
-            O agente está colidindo rapidamente. Reduza a densidade de obstáculos de 40% para 20% para permitir melhor navegação.
+        ## Regras de reflexão:
+            - Porcentagem de insegurança alta → aumentar penalidade de proximidade.
+            - Episódios longos + muitos comandos angulares → penalizar ações angulares e/ou tempo.
 
-        ### Métricas:
+        ## Dados de um humano controlando o robo:
+            - Taxa de sucesso: 100% (min. 0% - max. 100%)
+            - Média de passos até o objetivo: 433.6 (min. 0 - max. 1000)
+            - Média de passos até colisão: 30 (min. 0 - max. 1000)
+            - Porcentagem de insegurança: 2% (min. 0% - max. 100%)
+            - Porcentagem de uso de velocidade angular: 1.13 % (min. 0% - max. 100%)
+            - Tempo por epsodio médio: 400 (min. 0 - max. 1000)
+
+            Leve esses dados como referência para melhorar o agente.
+
+        ## Exemplos de reflexão:
+
+        ### Dados:
             - Taxa de sucesso: 20%
-            - Média de passos até o objetivo: 24
-            - Média de passos até colisão: 12
+            - Média de passos até o objetivo: 30
+            - Média de passos até colisão: 900
+            - Porcentagem de insegurança: 22%
+            - Porcentagem de uso de velocidade angular: 80 %
+            - Tempo por epsodio médio: 834
+
+        ### reflexão:
+            - A Média de passos até colisão esta muito alta indicando que o robo esta girando em circulo. devo aumentar a penalidade
+            para comandos angulares e remover o reward orientation para ver o se melhora.
+
+        ### Dados:
+            - Taxa de sucesso: 0%
+            - Média de passos até o objetivo: 0
+            - Média de passos até colisão: 200
             - Porcentagem de insegurança: 10%
-            - Recompensas médias: tempo (-0.001), proximidade (-0.002), orientação (-0.003), distância (-0.004)​
+            - Porcentagem de uso de velocidade angular: 2 %
+            - Tempo por epsodio médio: 200
 
-        ## Análise:
-            A alta porcentagem de insegurança sugere proximidade excessiva a obstáculos. Aumente a penalidade por proximidade de 0.001 para 0.002 para desencorajar esse comportamento.
+        ### reflexão:
+            O agente está colidindo rapidamente, talvez seja por que esta somente indo reto e nao considerando as paredes. Aumentar a penalidade por colisao e reduzir a penalidade por proximidade.
 
-        ## Métricas Atuais:
+        ### Dados:
+            - Taxa de sucesso: 80%
+            - Média de passos até o objetivo: 723
+            - Média de passos até colisão: 150
+            - Porcentagem de insegurança: 15%
+            - Porcentagem de uso de velocidade angular: 70 %
+            - Tempo por epsodio médio: 764
+
+        ## reflexão:
+            A alta porcentagem de insegurança sugere proximidade excessiva a obstáculos. Aumente a penalidade por proximidade, alem disso esta usando muita velocidade angular, significa que esta sendo muito instavel.
+            Aumentar a velocidade angular para evitar colisões.
+
+        ## Dados Atuais:
             - Taxa de sucesso: {best_population_metrics['success_percentage']}%
             - Média de passos até o objetivo: {best_population_metrics['avg_goal_steps']}
             - Média de passos até colisão: {best_population_metrics['avg_collision_steps']}
@@ -116,7 +183,7 @@ class LLMTrainingEvaluator:
             - Recompensa média por orientação: {best_population_metrics['orientation_score_mean']}
             - Recompensa média por progresso: {best_population_metrics['progress_score_mean']}​
 
-        ## Análise:
+        ## reflexão:
         """
 
         client = genai.Client(api_key=self.evaluator_api_key)
@@ -132,7 +199,6 @@ class LLMTrainingEvaluator:
                 seed=5,
             ),
         )
-        print("Ref: ", str(response))
         return str(response.text)
 
     def build_configurations_prompt(
@@ -181,7 +247,7 @@ class LLMTrainingEvaluator:
             {best_pop_text}
 
             Retorne um JSON com o campo "configurations", contendo {num_populations} itens, onde cada item representa
-            uma configuração de treino (reward e domínio, se habilitado).
+            uma configuração de treino reward.
 
             Exemplo de JSON:
 
@@ -192,16 +258,14 @@ class LLMTrainingEvaluator:
                 "scale_distance": 0.05,
                 "scale_time": 0.01,
                 "scale_obstacle": 0.004,
-                "obstacle_percentage": 25,
-                "map_size": 3.0
+                "scale_angular": 0.004,
                 }},
                 {{
                 "scale_orientation": 0.015,
                 "scale_distance": 0.04,
                 "scale_time": 0.008,
                 "scale_obstacle": 0.003,
-                "obstacle_percentage": 10,
-                "map_size": 2.5
+                "scale_angular": 0.005,
                 }}
             ]
             }}
@@ -216,6 +280,7 @@ class LLMTrainingEvaluator:
         prompt = self.build_configurations_prompt(
             summary_data, history, reflections, num_populations
         )
+
         client = genai.Client(api_key=self.evaluator_api_key)
         response = client.models.generate_content(
             model="gemini-2.0-flash-001",  # gemini-2.5-pro-exp-03-25 # gemini-2.0-flash-001

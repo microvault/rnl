@@ -57,6 +57,7 @@ def create_single_env(i):
             "scale_distance": 0.06,
             "scale_time": 0.01,
             "scale_obstacle": 0.001,
+            "scale_angular": 0.005,
         },
     )
 

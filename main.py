@@ -15,17 +15,17 @@ def main(arg):
         wheel_distance=0.16,
         weight=1.0,
         threshold=0.10,  # 4 # 0.03
-        collision=0.10,  # 2 # 0.075
+        collision=0.05,  # 2 # 0.075
         noise=True,
-        path_model="/Users/nicolasalan/microvault/rnl/checkpoints/model_210000_steps/policy.pth",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
         fov=270,
         num_rays=5,  # min 5 max 20
-        min_range=0.0,
-        max_range=20.5,  # 3.5
+        min_range=0.001,
+        max_range=3.5,  # 3.5
     )
 
     # 3.step -> config env
@@ -33,9 +33,11 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map6",
         name_map="map6",
-        max_timestep=50000,  # 1000
+        max_timestep=500,
         type=args.type,
-        grid_size=[2.2, 2.15]
+        grid_size=[2.2, 2.15],
+        map_size=2,
+        obstacle_percentage=40
     )
 
     # arg.debug

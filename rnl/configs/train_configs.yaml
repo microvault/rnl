@@ -1,11 +1,11 @@
 env:
-  scalar: 10
-  folder_map: ""
-  name_map: ""
-  timestep: 500
-  obstacle_percentage: 20.0
+  scalar: 7
+  folder_map:
+  name_map:
+  timestep: 1000
+  obstacle_percentage: 50
   map_size: 3
-  type: turn
+  type: train-mode
   grid_size: [1.5, 1.5]
 
 render:
@@ -25,35 +25,35 @@ robot:
   vel_angular: [1.0, 2.84]
   wheel_distance: 0.16
   weight: 1.0
-  threshold: 0.1
-  collision: 0.075
-  path_model: ""
+  threshold: 0.10
+  collision: 0.010
+  path_model:
 
 network:
   hidden_size: [64, 64]
-  mlp_activation: "ReLU"
-  type_model: "MlpPolicy"
+  mlp_activation: ReLU
+  type_model: MlpPolicy
 
 trainer:
-  pretrained: ""
+  pretrained: None
   use_agents: false
   max_timestep_global: 1_000_000
   seed: 1
-  batch_size: 8
+  batch_size: 128
   lr: 0.0003
-  num_envs: 16
-  device: "cpu"
+  num_envs: 8
+  device: mps
   learn_step: 512
-  checkpoint: 1000
-  checkpoint_path: "./checkpoints"
-  use_wandb: true
-  wandb_api_key: "YOUR_WANDB_KEY"
-  llm_api_key: "YOUR_OPENAI_KEY"
+  checkpoint: 10000
+  checkpoint_path: ./checkpoint_models
+  use_wandb: false
+  wandb_api_key: YOUR_WANDB_KEY
+  llm_api_key: YOUR_OPENAI_KEY
   gae_lambda: 0.95
-  ent_coef: 0.05
+  ent_coef: 0.02
   vf_coef: 0.5
   max_grad_norm: 0.5
-  update_epochs: 4
-  name: "robot_nav_skills"
+  update_epochs: 6
+  name: robot_nav_skills
   verbose: true
-  policy_type: "MlpPolicy"
+  policy_type: PPO

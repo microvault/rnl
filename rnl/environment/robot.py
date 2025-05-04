@@ -47,6 +47,7 @@ class Robot:
         Create and add the robot to the given pymunk space.
         """
         body = pymunk.Body(self.mass, self.moment_of_inertia)
+        pymunk.Space.sleep_time_threshold = 0.5
         # body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         body.position = (position_x, position_y)
         # body.damping = 0.9

@@ -29,25 +29,20 @@ def generate_maze(
     porcentage_obstacle: float,
 ) -> np.ndarray:
     """
-    Gera um labirinto usando o algoritmo de Kruskal.
+    Gera um labirinto usando Kruskal.
 
-    Parâmetros:
-    map_size (int): Tamanho do labirinto.
-    decimation (float): Probabilidade de remover blocos (não utilizado na lógica atual).
-    min_blocks (int): Número mínimo de blocos (obstáculos) a manter.
-    no_mut (bool): Flag para controlar o método de mutação.
-    porcentage_obstaculo (float): Porcentagem desejada de obstáculos (0 a 100).
-
-    Retorna:
-    np.ndarray: Labirinto gerado representado como uma matriz binária.
+    porcentage_obstacle: valor máximo de obstáculos. O
+    resultado real ficará entre min_blocks e esse limite.
     """
     m = (map_size - 1) // 2
     n = (map_size - 1) // 2
     maze = np.ones((map_size, map_size))
+
+    # grade inicial 0-1-0-1-…
     for i in range(m):
         for j in range(n):
             maze[2 * i + 1, 2 * j + 1] = 0
-    m = m - 1
+    m -= 1
     L = np.arange(n + 1)
     R = np.arange(n)
     L[n] = n - 1
@@ -57,31 +52,22 @@ def generate_maze(
             j = L[i + 1]
             if no_mut:
                 if i != j and (i + j) % 2 == 0:
-                    R[j] = R[i]
-                    L[R[j]] = j
-                    R[i] = i + 1
-                    L[R[i]] = i
+                    R[j] = R[i]; L[R[j]] = j
+                    R[i] = i + 1; L[R[i]] = i
                     maze[2 * (n - m) - 1, 2 * i + 2] = 0
-
                 if i != L[i] and (i + j) % 2 == 0:
-                    L[R[i]] = L[i]
-                    R[L[i]] = R[i]
-                    L[i] = i
-                    R[i] = i
+                    L[R[i]] = L[i]; R[L[i]] = R[i]
+                    L[i] = i; R[i] = i
                 else:
                     maze[2 * (n - m), 2 * i + 1] = 0
             else:
                 if i != j and np.random.randint(0, 3) != 0:
-                    R[j] = R[i]
-                    L[R[j]] = j
-                    R[i] = i + 1
-                    L[R[i]] = i
+                    R[j] = R[i]; L[R[j]] = j
+                    R[i] = i + 1; L[R[i]] = i
                     maze[2 * (n - m) - 1, 2 * i + 2] = 0
                 if i != L[i] and np.random.randint(0, 3) != 0:
-                    L[R[i]] = L[i]
-                    R[L[i]] = R[i]
-                    L[i] = i
-                    R[i] = i
+                    L[R[i]] = L[i]; R[L[i]] = R[i]
+                    L[i] = i; R[i] = i
                 else:
                     maze[2 * (n - m), 2 * i + 1] = 0
         m -= 1
@@ -89,29 +75,22 @@ def generate_maze(
     for i in range(n):
         j = L[i + 1]
         if i != j and (i == L[i] or np.random.randint(0, 3) != 0):
-            R[j] = R[i]
-            L[R[j]] = j
-            R[i] = i + 1
-            L[R[i]] = i
+            R[j] = R[i]; L[R[j]] = j
+            R[i] = i + 1; L[R[i]] = i
             maze[2 * (n - m) - 1, 2 * i + 2] = 0
+        L[R[i]] = L[i]; R[L[i]] = R[i]
+        L[i] = i; R[i] = i
 
-        L[R[i]] = L[i]
-        R[L[i]] = R[i]
-        L[i] = i
-        R[i] = i
-
-    total_cells = map_size * map_size
-    desired_obstacles = int(round(porcentage_obstacle / 100.0 * total_cells))
-    if desired_obstacles < min_blocks:
-        desired_obstacles = min_blocks
+    total_cells      = map_size * map_size
+    max_obstacles    = int(round(porcentage_obstacle / 100.0 * total_cells))
+    target_obstacles = np.random.randint(min_blocks, max_obstacles + 1)
 
     current_obstacles = np.sum(maze == 1)
-    while current_obstacles > desired_obstacles:
-        idx = np.random.randint(0, total_cells)
-        row_index = idx // map_size
-        col_index = idx % map_size
-        if maze[row_index, col_index] == 1:
-            maze[row_index, col_index] = 0
+    while current_obstacles > target_obstacles:
+        idx        = np.random.randint(0, total_cells)
+        row, col   = divmod(idx, map_size)
+        if maze[row, col] == 1:
+            maze[row, col] = 0
             current_obstacles -= 1
 
     return maze

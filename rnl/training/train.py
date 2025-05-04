@@ -24,7 +24,6 @@ def train_worker(
     trainer_config,
     network_config,
     reward_config,
-    policy_type,
 ):
     metrics = training(
         robot_config,
@@ -34,9 +33,8 @@ def train_worker(
         trainer_config,
         network_config,
         reward_config,
-        policy_type,
-        print_parameter=False,
         train=True,
+        print_parameter=False,
     )
 
     return metrics
@@ -58,10 +56,6 @@ def run_parallel_trainings(list_of_configs):
                 cfg["trainer_config"],
                 cfg["network_config"],
                 cfg["reward_config"],
-                cfg["env_config"].type,
-                cfg["env_config"].obstacle_percentage,
-                cfg["env_config"].map_size,
-                cfg["trainer_config"].policy_type,
             )
             async_results.append(pool.apply_async(train_worker, args))
 
@@ -88,12 +82,12 @@ def run_parallel_trainings(list_of_configs):
 
 
 def run_multiple_parallel_trainings(
-    num_loops, initial_configs, allow_domain_modifications, num_populations
+    num_loops, initial_configs, num_populations
 ):
     evaluator = LLMTrainingEvaluator(
         evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key,
-        allow_domain=allow_domain_modifications,
     )
+
     history = []
     reflections = []
     current_configs = initial_configs.copy()
@@ -105,6 +99,8 @@ def run_multiple_parallel_trainings(
         reflection = evaluator.directed_reflection(best_metrics)
         reflections.append(reflection)
 
+
+
         summary_data = [
             {
                 "pop_id": 1,
@@ -113,12 +109,12 @@ def run_multiple_parallel_trainings(
                     "angle": best_metrics.get("orientation_score_mean", 0.0),
                     "distance": best_metrics.get("progress_score_mean", 0.0),
                     "time": best_metrics.get("time_score_mean", 0.0),
+                    "angular": best_metrics.get("angular_score_mean", 0.0)
                 },
                 "metrics": {
                     "success_pct": best_metrics.get("success_percentage", 0.0),
-                    "unsafe_pct": best_metrics.get("percentage_unsafe", 0.0) * 100,
-                    "angular_use_pct": best_metrics.get("percentage_angular", 0.0)
-                    * 100,
+                    "unsafe_pct": best_metrics.get("percentage_unsafe", 0.0),
+                    "angular_use_pct": best_metrics.get("percentage_angular", 0.0),
                 },
             }
         ]
@@ -126,44 +122,27 @@ def run_multiple_parallel_trainings(
         llm_response = evaluator.request_configurations_for_all(
             summary_data, history, reflections, num_populations
         )
-        print(llm_response)
+
+        print("llm_response: ", llm_response)
         new_configs_data = llm_response.get("configurations", [])
 
         new_configs = []
         for idx, cfg in enumerate(current_configs):
             if idx < len(new_configs_data):
                 item = new_configs_data[idx]
-                obstacle_percentage = (
-                    item.get("obstacle_percentage", 40)
-                    if allow_domain_modifications
-                    else 40
-                )
-                map_size = (
-                    item.get("map_size", 3.0) if allow_domain_modifications else 3.0
-                )
-
-                updated_env = EnvConfig(
-                    scalar=cfg["env_config"].scalar,
-                    folder_map=cfg["env_config"].folder_map,
-                    name_map=cfg["env_config"].name_map,
-                    timestep=cfg["env_config"].timestep,
-                    obstacle_percentage=obstacle_percentage,
-                    map_size=map_size,
-                    type=cfg["env_config"].type,
-                    grid_size=[1.5, 1.5]
-                )
                 updated_reward = RewardConfig(
                     params={
                         "scale_orientation": item.get("scale_orientation", 0.02),
                         "scale_distance": item.get("scale_distance", 0.06),
                         "scale_time": item.get("scale_time", 0.01),
                         "scale_obstacle": item.get("scale_obstacle", 0.004),
+                        "scale_angular": item.get("scale_angular", 0.005),
                     }
                 )
                 new_cfg = {
                     "robot_config": cfg["robot_config"],
                     "sensor_config": cfg["sensor_config"],
-                    "env_config": updated_env,
+                    "env_config": cfg["env_config"],
                     "render_config": cfg["render_config"],
                     "trainer_config": cfg["trainer_config"],
                     "network_config": cfg["network_config"],
@@ -208,12 +187,10 @@ def print_new_configs(configs):
     print("\n=== Resumo das Novas Configurações ===")
     for idx, cfg in enumerate(configs, start=1):
         reward = cfg["reward_config"].params
-        env = cfg["env_config"]
         print(
             f"População {idx}: "
             f"Reward -> (Ori: {reward['scale_orientation']:.4f}, Dist: {reward['scale_distance']:.4f}, "
-            f"Time: {reward['scale_time']:.4f}, Obst: {reward['scale_obstacle']:.4f}), "
-            f"Domínio -> (Obs%: {env.obstacle_percentage}, Map Size: {env.map_size})"
+            f"Time: {reward['scale_time']:.4f}, Angular: {reward['scale_angular']:.4f}, Obst: {reward['scale_obstacle']:.4f}), "
         )
 
 
@@ -223,8 +200,8 @@ def print_population_metrics(population_summaries):
         print(
             f"População {i+1}: "
             f"Sucesso = {pop['success_percentage']}%, "
-            f"Inseguro = {pop['percentage_unsafe']*100}%, "
-            f"Vel Angular = {pop['percentage_angular']*100}%, "
+            f"Inseguro = {pop['percentage_unsafe']}%, "
+            f"Vel Angular = {pop['percentage_angular']}%, "
             f"Collisions = {pop['avg_collision_steps']:.2f}, "
             f"Goal Steps = {pop['avg_goal_steps']:.2f}"
         )
@@ -300,14 +277,15 @@ if __name__ == "__main__":
 
     reward_config = RewardConfig(
         params={
-            "scale_orientation": 0.02,
-            "scale_distance": 0.06,
+            "scale_orientation": 0.0,
+            "scale_distance": 0.0,
             "scale_time": 0.01,
-            "scale_obstacle": 0.004,
+            "scale_obstacle": 0.02,
+            "scale_angular": 0.005,
         },
     )
 
-    config1 = {
+    config = {
         "robot_config": robot_config,
         "sensor_config": sensor_config,
         "env_config": env_config,
@@ -317,13 +295,10 @@ if __name__ == "__main__":
         "reward_config": reward_config,
     }
 
-    pop = 2
+    pop = 4
 
-    base_configs = [config1]
-
-    configs = base_configs * pop
-
-    num_loops = 4
+    configs = [config] * pop
+    num_loops_feedback = 10
     all_results = run_multiple_parallel_trainings(
-        num_loops, configs, allow_domain_modifications=False, num_populations=pop
+        num_loops_feedback, configs, num_populations=pop
     )

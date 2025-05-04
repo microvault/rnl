@@ -89,11 +89,13 @@ class RewardConfig:
         threshold_collision: float,
         min_distance: float,
         max_distance: float,
-    ) -> Tuple[float, float, float, float, float, bool]:
+        action: int,
+    ) -> Tuple[float, float, float, float, float, float, bool]:
         scale_time = self.params.get("scale_time", 0.01)
         scale_distance = self.params.get("scale_distance", 0.1)
         scale_orientation = self.params.get("scale_orientation", 0.003)
         scale_obstacle = self.params.get("scale_obstacle", 0.001)
+        scale_angular = self.params.get("scale_angular", 0.001)
 
         rew_coll_target, done_coll_target = collision_and_target_reward(
             current_distance, threshold, collision, position_x, position_y, poly
@@ -107,8 +109,14 @@ class RewardConfig:
             max_distance,
             scale_distance,
         )
+
+        action_reward = 0
+
+        if action == 1 or action == 2:
+            action_reward = -scale_angular
+
         if done_coll_target:
-            return rew_coll_target, 0.0, 0.0, 0.0, 0.0, True
+            return rew_coll_target, 0.0, 0.0, 0.0, 0.0, action_reward, True
 
         else:
             return (
@@ -117,5 +125,6 @@ class RewardConfig:
                 progress_reward,
                 time_reward,
                 obstacle_reward,
+                action_reward,
                 False,
             )

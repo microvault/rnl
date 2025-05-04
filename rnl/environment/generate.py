@@ -15,6 +15,7 @@ from rnl.engine.utils import load_pgm
 from skimage.measure import find_contours
 import yaml
 from shapely.ops import unary_union
+from shapely.validation import make_valid
 
 @dataclass
 class Generator:
@@ -79,10 +80,28 @@ class Generator:
         - List: List of LineString segments representing the maze segments.
         """
         if self.mode in ("avoid"):
+            maps = [
+                (
+                    [(0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0),
+                        (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)],
+                    [(2.0, 1.5), (1.5, 2.0), (1.0, 2.5), (0.5, 2.0),
+                        (1.0, 1.5), (1.5, 1.0), (2.0, 0.5), (2.5, 1.0),
+                        (2.0, 1.5)]
+                ),
+                (
+                    [(0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0),
+                        (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)],
+                    [(2.0, 2.5), (1.5, 2.0), (1.0, 1.5), (0.5, 1.0),
+                        (1.0, 0.5), (1.5, 1.0), (2.0, 1.5), (2.5, 2.0),
+                        (2.0, 2.5)]
+                ),
+                (
+                    [(0, 0), (3, 0), (3, 3), (0, 3)],
+                    [(1, 1), (1, 2), (2, 2), (2, 1)]
+                )
+            ]
 
-            exterior = [(0, 0), (3, 0), (3, 3), (0, 3)]
-
-            interior = [(1, 1), (1, 2), (2, 2), (2, 1)]
+            exterior, interior = random.choice(maps)
 
             segments = [
                 LineString(exterior + [exterior[0]]),
@@ -141,6 +160,7 @@ class Generator:
             return path_patch, segments, poly
 
         elif self.mode in ("long"):
+
             width = int(grid_length / resolution) + 1
             height = int(grid_length / resolution) + 1
 
@@ -436,6 +456,9 @@ class Generator:
                 porcentage_obstacle=porcentage_obstacle,
             )
 
+
+            print("###############################")
+
             border = self._map_border(m)
             map_grid = 1 - border
 
@@ -471,6 +494,7 @@ class Generator:
             for y in range(1, height - 1):
                 exterior.append((0, y))
 
+            print("exterior: ", exterior)
             interiors = []
             segments = []
 
@@ -484,6 +508,8 @@ class Generator:
                 interior_segment = LineString(poly)
                 segments.append(interior_segment)
 
+            print("interior: ", interiors)
+
             exterior_segment = LineString(exterior + [exterior[0]])
             segments.insert(0, exterior_segment)
 
@@ -494,9 +520,9 @@ class Generator:
             poly = Polygon(exterior, holes=interiors).buffer(0)
 
             if not poly.is_valid:
-                poly = poly.buffer(0)
-                if not poly.is_valid:
-                    raise ValueError("The polygon is not valid.")
+                poly = make_valid(poly)
+                if poly.is_empty:
+                    raise ValueError("Polígono vazio após make_valid.")
 
             path = Path.make_compound_path(
                 Path(np.asarray(poly.exterior.coords)[:, :2]),

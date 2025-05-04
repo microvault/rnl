@@ -8,7 +8,6 @@ from rnl.configs.config import (
     SensorConfig,
     TrainerConfig,
 )
-from rnl.network.model import CustomActorCriticPolicy
 from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import inference, probe_envs, training
 
@@ -87,7 +86,9 @@ def make(
     name_map: str,
     max_timestep: int,
     type: str,
-    grid_size: List
+    grid_size: List,
+    map_size: int,
+    obstacle_percentage: float
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -100,8 +101,8 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
-        obstacle_percentage=20.0,
-        map_size=5,
+        obstacle_percentage=obstacle_percentage,
+        map_size=map_size,
         type=type,
         grid_size=grid_size,
     )
@@ -176,8 +177,8 @@ class Trainer:
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
 
-        if type_model == "MlpPolicy":
-            type_model = CustomActorCriticPolicy
+        # if type_model == "MlpPolicy":
+        #     type_model = CustomActorCriticPolicy
 
         network_config = NetworkConfig(
             hidden_size=hidden_size,
@@ -221,10 +222,11 @@ class Trainer:
         train = False
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.0,  # 0.02
-                "scale_distance": 0.0,  # 0.06
-                "scale_time": 0.01,  # 0.01
-                "scale_obstacle": 0.02,  # 0.004
+                "scale_orientation": 0.0,
+                "scale_distance": 0.0,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.0,
+                "scale_angular": 0.0,
             },
         )
 
@@ -262,10 +264,11 @@ class Simulation:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.0,  # 0.02
-                "scale_distance": 0.0,  # 0.06
-                "scale_time": 0.01,  # 0.01
-                "scale_obstacle": 0.02,  # 0.004
+                "scale_orientation": 0.0,
+                "scale_distance": 0.0,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.02,
+                "scale_angular": 0.005,
             },
         )
 
@@ -323,6 +326,7 @@ class Probe:
                 "scale_distance": 0.0,  # 0.06
                 "scale_time": 0.01,  # 0.01
                 "scale_obstacle": 0.02,  # 0.004
+                "scale_angular": 0.005,
             },
         )
 

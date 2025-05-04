@@ -1,5 +1,4 @@
 from typing import Callable, Tuple
-
 import torch as th
 from torch import nn
 from gymnasium import spaces
@@ -7,28 +6,28 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 
 
 class CustomNetwork(nn.Module):
-    def __init__(
-        self,
-        feature_dim: int,
-        last_layer_dim_pi: int = 20,
-        last_layer_dim_vf: int = 10,
-    ):
+    """8 → 64 → 64 → 20 (layer norm entre cada linear)"""
+    def __init__(self, feature_dim: int):
         super().__init__()
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
+        self.latent_dim_pi = 20
+        self.latent_dim_vf = 20
+
+        def block(in_f, out_f):
+            return nn.Sequential(
+                nn.Linear(in_f, out_f),
+                nn.ReLU(),
+            )
 
         self.policy_net = nn.Sequential(
-            nn.Linear(feature_dim, 20),
-            nn.ReLU(),
-            nn.Linear(20, last_layer_dim_pi),
-            nn.ReLU(),
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 20),
         )
 
         self.value_net = nn.Sequential(
-            nn.Linear(feature_dim, 20),
-            nn.ReLU(),
-            nn.Linear(20, last_layer_dim_vf),
-            nn.ReLU(),
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 20),
         )
 
     def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
@@ -47,18 +46,12 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
         observation_space: spaces.Space,
         action_space: spaces.Space,
         lr_schedule: Callable[[float], float],
-        last_layer_dim_pi: int = 20,
-        last_layer_dim_vf: int = 10,
         **kwargs,
     ):
-        self.latent_dim_pi = last_layer_dim_pi
-        self.latent_dim_vf = last_layer_dim_vf
         kwargs["ortho_init"] = False
         super().__init__(observation_space, action_space, lr_schedule, **kwargs)
 
     def _build_mlp_extractor(self) -> None:
         self.mlp_extractor = CustomNetwork(
-            feature_dim=self.features_extractor.features_dim,
-            last_layer_dim_pi=self.latent_dim_pi,
-            last_layer_dim_vf=self.latent_dim_vf,
+            feature_dim=self.features_extractor.features_dim
         )
