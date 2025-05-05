@@ -6,7 +6,8 @@ from torch.distributions import Categorical
 def block(in_f, out_f):
     return nn.Sequential(
         nn.Linear(in_f, out_f),
-        nn.ReLU(),
+        nn.LayerNorm(out_f),
+        nn.LeakyReLU(),
     )
 
 
@@ -16,7 +17,7 @@ class PolicyBackbone(nn.Module):
         self.body = nn.Sequential(
             block(feature_dim, 32),
             block(32, 32),
-            block(32, 20),
+            block(32, 16),
         )
 
 
@@ -25,7 +26,7 @@ class RNLPolicy(nn.Module):
                  pth: str, device: str = "cpu"):
         super().__init__()
         self.backbone = PolicyBackbone(in_dim)
-        self.head = nn.Linear(20, n_act)
+        self.head = nn.Linear(16, n_act)
 
         ckpt = torch.load(pth, map_location=device)
         if isinstance(ckpt, dict) and "state_dict" in ckpt:

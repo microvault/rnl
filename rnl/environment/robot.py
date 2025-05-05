@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
-import numpy as np
 import pymunk
-
+import math
 from rnl.configs.config import RobotConfig
 
 
@@ -12,21 +11,21 @@ class Robot:
     A class representing a robot with physical and sensor properties.
     """
 
-    def __init__(self, robot_config: RobotConfig):
-        """
-        Initialize additional attributes after dataclass initialization.
-        """
-        # Constant acceleration due to gravity
+    # ⏱️ passo fixo do simulador
+    dt: float = 1 / 60
+    inv_dt: float = 60  # 1/dt
+
+    def __init__(self, robot_config: RobotConfig) -> None:
         g = 9.81  # m/s²
 
-        # Calculating the mass of the robot
-        self.mass = robot_config.weight / g  # kg
-        self.robot_radius = robot_config.base_radius
-        self.wheel_base = robot_config.wheel_distance
+        self.mass = robot_config.weight / g                     # kg
+        self.radius = robot_config.base_radius                  # m
+        self.wheel_base = robot_config.wheel_distance           # m
 
-        # Calculating the moment of inertia of the robot
-        # I = (1/2) * m * r²
-        self.moment_of_inertia = 0.5 * self.mass * (self.robot_radius**2)
+        # momento calculado em C (pymunk.moment_for_circle) → mais rápido
+        self.moment_of_inertia = pymunk.moment_for_circle(
+            self.mass, 0, self.radius
+        )
 
     @staticmethod
     def create_space() -> pymunk.Space:
@@ -38,23 +37,12 @@ class Robot:
         return space
 
     def create_robot(
-        self,
-        space: pymunk.Space,
-        position_x: float = 0.0,
-        position_y: float = 0.0,
-    ) -> pymunk.Body:
-        """
-        Create and add the robot to the given pymunk space.
-        """
+            self, space: pymunk.Space, position_x: float = 0.0, position_y: float = 0.0
+        ) -> pymunk.Body:
         body = pymunk.Body(self.mass, self.moment_of_inertia)
-        pymunk.Space.sleep_time_threshold = 0.5
-        # body = pymunk.Body(body_type=pymunk.Body.KINEMATIC)
         body.position = (position_x, position_y)
-        # body.damping = 0.9
-        # body.angular_damping = 0.9
 
-        shape = pymunk.Circle(body, self.robot_radius)
-        # shape.friction = 1.0
+        shape = pymunk.Circle(body, self.radius)
         shape.friction = 0.0
         space.add(body, shape)
         return body
@@ -62,35 +50,26 @@ class Robot:
     def move_robot(
         self,
         space: pymunk.Space,
-        robot_body: pymunk.Body,
+        body: pymunk.Body,
         v_linear: float,
         v_angular: float,
     ) -> None:
-        """
-        Moves the robot using forces and torque, without setting the speed directly.
-        """
-        direction = pymunk.Vec2d(np.cos(robot_body.angle), np.sin(robot_body.angle))
-        desired_velocity = v_linear * direction
+        dir_x, dir_y = math.cos(body.angle), math.sin(body.angle)
+        desired_vx, desired_vy = v_linear * dir_x, v_linear * dir_y
+        dvx, dvy = desired_vx - body.velocity.x, desired_vy - body.velocity.y
 
-        velocity_diff = desired_velocity - robot_body.velocity
-        delta_time = 1 / 60
+        impulse = (dvx * self.mass, dvy * self.mass)          # Δv * m
+        body.apply_impulse_at_world_point(impulse, body.position)
 
-        force = (velocity_diff * self.mass) / delta_time
-        robot_body.apply_force_at_world_point(force, robot_body.position)
-
-        desired_angular_velocity = v_angular
-        angular_velocity_diff = desired_angular_velocity - robot_body.angular_velocity
-        angular_acceleration = angular_velocity_diff / delta_time
-        torque = self.moment_of_inertia * angular_acceleration
-        robot_body.torque += torque
+        desired_w = v_angular
+        dw = desired_w - body.angular_velocity
+        torque = self.moment_of_inertia * dw * self.inv_dt     # τ = I * α
+        body.torque += torque
 
     def reset_robot(
-        self, robot_body: pymunk.Body, x: float, y: float, angle: float
-    ) -> None:
-        """
-        Reset the robot's position and velocity.
-        """
+            self, robot_body: pymunk.Body, x: float, y: float, angle: float
+        ) -> None:
         robot_body.position = (x, y)
         robot_body.angle = angle
-        robot_body.velocity = (0, 0)
-        robot_body.angular_velocity = 0
+        robot_body.velocity = (0.0, 0.0)
+        robot_body.angular_velocity = 0.0

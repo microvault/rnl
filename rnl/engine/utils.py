@@ -5,9 +5,8 @@ import numpy as np
 import torch
 from numba import njit
 from pathlib import Path
-
 import json, os
-
+import math
 
 def load_pgm(pgm_path: str) -> np.ndarray:
     """
@@ -97,7 +96,7 @@ def _parse_simple_yaml(path: str) -> dict:
 
     return root
 
-@njit
+@njit(fastmath=True, cache=True)
 def normalize_module(value, min_val, max_val):
     if value < min_val:
         return min_val
@@ -107,7 +106,7 @@ def normalize_module(value, min_val, max_val):
         return value
 
 
-@njit
+@njit(fastmath=True, cache=True)
 def distance_to_goal(
     x: float, y: float, goal_x: float, goal_y: float, max_value: float
 ) -> float:
@@ -118,26 +117,20 @@ def distance_to_goal(
         return dist
 
 
-# @njit # !!!!!!
-def angle_to_goal(
-    x: float, y: float, theta: float, goal_x: float, goal_y: float, max_value: float
-) -> float:
-    o_t = np.array([np.cos(theta), np.sin(theta)])
-    g_t = np.array([goal_x - x, goal_y - y])
+@njit(fastmath=True, cache=True)
+def angle_to_goal(x, y, theta, goal_x, goal_y, max_value):
+    ox, oy = math.cos(theta), math.sin(theta)          # orientação
+    gx, gy = goal_x - x, goal_y - y                    # vetor p/ alvo
 
-    cross_product = np.cross(o_t, g_t)
-    dot_product = np.dot(o_t, g_t)
+    # cross escalar 2-D
+    cross_val = ox * gy - oy * gx                      # -> float32 já ok
+    dot_val   = ox * gx + oy * gy
 
-    alpha = np.abs(np.arctan2(np.linalg.norm(cross_product), dot_product))
-
-    if alpha >= max_value:
-        return max_value
-
-    else:
-        return alpha
+    alpha = abs(math.atan2(abs(cross_val), dot_val))
+    return max_value if alpha >= max_value else alpha
 
 
-@njit
+@njit(fastmath=True, cache=True)
 def min_laser(measurement: np.ndarray, threshold: float):
     laser = np.min(measurement)
     if laser <= threshold:

@@ -19,8 +19,9 @@ from shapely.validation import make_valid
 
 @dataclass
 class Generator:
-    def __init__(self, mode: str):
+    def __init__(self, mode: str, render: bool = False):
         self.mode = mode
+        self.render = render
         self.generate = GenerateWorld()
 
     @staticmethod
@@ -64,7 +65,7 @@ class Generator:
 
     def world(
         self,
-        grid_length: float,
+        grid_length: float = 0,
         resolution: float = 0.05,
         grid_length_x: float = 0,
         grid_length_y: float = 0,
@@ -80,116 +81,90 @@ class Generator:
         - List: List of LineString segments representing the maze segments.
         """
         if self.mode in ("avoid"):
-            maps = [
-                (
-                    [(0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0),
-                        (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)],
-                    [(2.0, 1.5), (1.5, 2.0), (1.0, 2.5), (0.5, 2.0),
-                        (1.0, 1.5), (1.5, 1.0), (2.0, 0.5), (2.5, 1.0),
-                        (2.0, 1.5)]
-                ),
-                (
-                    [(0, 3), (1, 3), (2, 3), (3, 3), (3, 2), (3, 1), (3, 0),
-                        (2, 0), (1, 0), (0, 0), (0, 1), (0, 2)],
-                    [(2.0, 2.5), (1.5, 2.0), (1.0, 1.5), (0.5, 1.0),
-                        (1.0, 0.5), (1.5, 1.0), (2.0, 1.5), (2.5, 2.0),
-                        (2.0, 2.5)]
-                ),
-                (
-                    [(0, 0), (3, 0), (3, 3), (0, 3)],
-                    [(1, 1), (1, 2), (2, 2), (2, 1)]
+            ext = [(0, 0), (2, 0), (2, 2), (0, 2)]
+            inner = [(0.75, 0.75), (1.25, 0.75), (1.25, 1.25), (0.75, 1.25)]
+
+            poly = Polygon(ext, holes=[inner]).buffer(0)
+            segments = [(0.0, 0.0, 2.0, 0.0),
+                (2.0, 0.0, 2.0, 2.0),
+                (2.0, 2.0, 0.0, 2.0),
+                (0.0, 2.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 0.0),
+                (0.75, 0.75, 1.25, 0.75),
+                (1.25, 0.75, 1.25, 1.25),
+                (1.25, 1.25, 0.75, 1.25),
+                (0.75, 1.25, 0.75, 0.75),
+                (0.75, 0.75, 0.75, 0.75)]
+
+            path_patch = None
+            if self.render:
+                path = Path.make_compound_path(
+                    Path(np.asarray(poly.exterior.coords)[:, :2]),
+                    *[Path(np.asarray(r.coords)[:, :2]) for r in poly.interiors],
                 )
-            ]
+                path_patch = PathPatch(path, facecolor=(0.1,0.2,0.5,0.15), edgecolor=(0.1,0.2,0.5,0.15))
 
-            exterior, interior = random.choice(maps)
-
-            segments = [
-                LineString(exterior + [exterior[0]]),
-                LineString(interior + [interior[0]])
-            ]
-            stacks   = [self.line_to_np_stack(line) for line in segments]
-            segment  = extract_segment_from_polygon(stacks)
-
-            poly = Polygon(exterior, holes=[interior])
-            if not poly.is_valid:
-                poly = poly.buffer(0)
-
-            path = Path.make_compound_path(
-                Path(np.asarray(exterior)[:, :2]),
-                Path(np.asarray(interior)[:, :2])
-            )
-
-            path_patch = PathPatch(
-                path,
-                facecolor=(0.1, 0.2, 0.5, 0.15),
-                edgecolor=(0.1, 0.2, 0.5, 0.15)
-            )
-
-            return path_patch, segment, poly
+            return path_patch, segments, poly
 
         elif self.mode in ("turn"):
-            width = int(grid_length) + 1
-            height = int(grid_length) + 1
+            exterior = [(0, 0), (2, 0), (2, 2), (0, 2)]
 
-            exterior = []
-            for x in range(width):
-                exterior.append((x, (height - 1)))
-            for y in range(height - 2, -1, -1):
-                exterior.append(((width - 1), y))
-            for x in range(width - 2, -1, -1):
-                exterior.append((x, 0))
-            for y in range(1, height - 1):
-                exterior.append((0, y))
+            poly = Polygon(exterior, holes=[])
+            segments = [(0.0, 0.0, 2.0, 0.0),
+                (2.0, 0.0, 2.0, 2.0),
+                (2.0, 2.0, 0.0, 2.0),
+                (0.0, 2.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 0.0)]
 
-            poly = Polygon(exterior, holes=[]).buffer(0)
-            if not poly.is_valid:
-                poly = poly.buffer(0)
-                if not poly.is_valid:
-                    raise ValueError("Polígono inválido.")
-
-            polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
-            stack = [polygon]
-            segments = extract_segment_from_polygon(stack)
-            path = Path.make_compound_path(
-                Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
-            )
-            path_patch = PathPatch(
-                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
-            )
+            path_patch = None
+            if self.render:
+                path = Path.make_compound_path(
+                    Path(np.asarray(poly.exterior.coords)[:, :2]),
+                    *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+                )
+                path_patch = PathPatch(
+                    path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+                )
             return path_patch, segments, poly
 
         elif self.mode in ("long"):
+            exterior = [(0, 4), (1, 4),
+                (2, 4), (3, 4),
+                (4, 4), (4, 3),
+                (4, 2), (4, 1),
+                (4, 0), (3, 0),
+                (2, 0), (1, 0),
+                (0, 0), (0, 1),
+                (0, 2), (0, 3)]
 
-            width = int(grid_length / resolution) + 1
-            height = int(grid_length / resolution) + 1
+            poly = Polygon(exterior, holes=[])
+            segments = [(0.0, 4.0, 1.0, 4.0),
+                (1.0, 4.0, 2.0, 4.0),
+                (2.0, 4.0, 3.0, 4.0),
+                (3.0, 4.0, 4.0, 4.0),
+                (4.0, 4.0, 4.0, 3.0),
+                (4.0, 3.0, 4.0, 2.0),
+                (4.0, 2.0, 4.0, 1.0),
+                (4.0, 1.0, 4.0, 0.0),
+                (4.0, 0.0, 3.0, 0.0),
+                (3.0, 0.0, 2.0, 0.0),
+                (2.0, 0.0, 1.0, 0.0),
+                (1.0, 0.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 1.0),
+                (0.0, 1.0, 0.0, 2.0),
+                (0.0, 2.0, 0.0, 3.0),
+                (0.0, 3.0, 0.0, 4.0),
+                (0.0, 4.0, 0.0, 4.0)]
 
-            exterior = []
-            for x in range(width):
-                exterior.append((x * resolution, (height - 1) * resolution))
-            for y in range(height - 2, -1, -1):
-                exterior.append(((width - 1) * resolution, y * resolution))
-            for x in range(width - 2, -1, -1):
-                exterior.append((x * resolution, 0))
-            for y in range(1, height - 1):
-                exterior.append((0, y * resolution))
-
-            poly = Polygon(exterior, holes=[]).buffer(0)
-            if not poly.is_valid:
-                poly = poly.buffer(0)
-                if not poly.is_valid:
-                    raise ValueError("Polígono inválido.")
-
-            polygon = np.array(exterior + [exterior[0]], dtype=np.float32)
-            stack = [polygon]
-            segments = extract_segment_from_polygon(stack)
-            path = Path.make_compound_path(
-                Path(np.asarray(poly.exterior.coords)[:, :2]),
-                *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
-            )
-            path_patch = PathPatch(
-                path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
-            )
+            path_patch = None
+            if self.render:
+                path = Path.make_compound_path(
+                    Path(np.asarray(poly.exterior.coords)[:, :2]),
+                    *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
+                )
+                path_patch = PathPatch(
+                    path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+                )
             return path_patch, segments, poly
 
         elif "custom" in self.mode:
@@ -456,9 +431,6 @@ class Generator:
                 porcentage_obstacle=porcentage_obstacle,
             )
 
-
-            print("###############################")
-
             border = self._map_border(m)
             map_grid = 1 - border
 
@@ -494,7 +466,6 @@ class Generator:
             for y in range(1, height - 1):
                 exterior.append((0, y))
 
-            print("exterior: ", exterior)
             interiors = []
             segments = []
 
@@ -507,8 +478,6 @@ class Generator:
 
                 interior_segment = LineString(poly)
                 segments.append(interior_segment)
-
-            print("interior: ", interiors)
 
             exterior_segment = LineString(exterior + [exterior[0]])
             segments.insert(0, exterior_segment)

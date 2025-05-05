@@ -1,6 +1,8 @@
 import argparse
 import os
 
+from torch import clip, clip_
+
 import rnl as vault
 
 
@@ -16,16 +18,15 @@ def main(arg):
         weight=1.0,
         threshold=0.10,  # 4 # 0.03
         collision=0.05,  # 2 # 0.075
-        noise=True,
         path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=270,
-        num_rays=5,  # min 5 max 20
-        min_range=0.001,
-        max_range=3.5,  # 3.5
+        fov=90,
+        num_rays=3,  # min 5 max 20
+        min_range=0.0,
+        max_range=5.0,  # 3.5
     )
 
     # 3.step -> config env
@@ -79,6 +80,8 @@ def main(arg):
             vf_coef=args.vf_coef,
             max_grad_norm=args.max_grad_norm,
             update_epochs=args.update_epochs,
+            clip_range_vf=args.clip_range_vf,
+            target_kl=args.target_kl,
             name=args.name,
             verbose=args.verbose,
             policy_type=args.policy_type,
@@ -193,6 +196,16 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--ent_coef",
+        type=float,
+    )
+
+    parser.add_argument(
+        "--clip_range_vf",
+        type=float,
+    )
+
+    parser.add_argument(
+        "--target_kl",
         type=float,
     )
 

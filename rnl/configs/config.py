@@ -38,7 +38,6 @@ class RobotConfig:
     weight: float
     threshold: float
     collision: float
-    noise: bool
     path_model: str
 
 
@@ -71,6 +70,8 @@ class TrainerConfig:
     vf_coef: float
     max_grad_norm: float
     update_epochs: int
+    clip_range_vf: float
+    target_kl: float
     name: str
     verbose: bool
     policy_type: str

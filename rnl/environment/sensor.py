@@ -10,9 +10,10 @@ from rnl.engine.lidar import lidar_segments
 
 @dataclass
 class SensorRobot:
-    def __init__(self, sensor_config: SensorConfig, map_segments):
+    def __init__(self, sensor_config: SensorConfig, map_segments, mode: str):
         self.spatial_index = SpatialIndex(map_segments)
         self.max_range = sensor_config.max_range
+        self.mode = mode
         self.sensor_config = sensor_config
         half_fov = np.radians(self.sensor_config.fov) / 2
         self.lidar_angle = np.linspace(half_fov, -half_fov, self.sensor_config.num_rays)
@@ -24,7 +25,44 @@ class SensorRobot:
         Perform sensor measurements based on the robot's position and environment segments.
         """
 
-        seg = self.spatial_index.filter_segments(x, y, self.max_range)
+        if self.mode == "long":
+            seg = [(0.0, 4.0, 1.0, 4.0),
+            (1.0, 4.0, 2.0, 4.0),
+            (2.0, 4.0, 3.0, 4.0),
+            (3.0, 4.0, 4.0, 4.0),
+            (4.0, 4.0, 4.0, 3.0),
+            (4.0, 3.0, 4.0, 2.0),
+            (4.0, 2.0, 4.0, 1.0),
+            (4.0, 1.0, 4.0, 0.0),
+            (4.0, 0.0, 3.0, 0.0),
+            (3.0, 0.0, 2.0, 0.0),
+            (2.0, 0.0, 1.0, 0.0),
+            (1.0, 0.0, 0.0, 0.0),
+            (0.0, 0.0, 0.0, 1.0),
+            (0.0, 1.0, 0.0, 2.0),
+            (0.0, 2.0, 0.0, 3.0),
+            (0.0, 3.0, 0.0, 4.0),
+            (0.0, 4.0, 0.0, 4.0)]
+
+        elif self.mode == "turn":
+            seg = [(0.0, 0.0, 2.0, 0.0),
+                (2.0, 0.0, 2.0, 2.0),
+                (2.0, 2.0, 0.0, 2.0),
+                (0.0, 2.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 0.0)]
+        elif self.mode == "avoid":
+            seg = [(0.0, 0.0, 2.0, 0.0),
+                (2.0, 0.0, 2.0, 2.0),
+                (2.0, 2.0, 0.0, 2.0),
+                (0.0, 2.0, 0.0, 0.0),
+                (0.0, 0.0, 0.0, 0.0),
+                (0.75, 0.75, 1.25, 0.75),
+                (1.25, 0.75, 1.25, 1.25),
+                (1.25, 1.25, 0.75, 1.25),
+                (0.75, 1.25, 0.75, 0.75),
+                (0.75, 0.75, 0.75, 0.75)]
+        else:
+            seg = self.spatial_index.filter_segments(x, y, self.max_range)
         if not seg:
             return np.array([]), np.full(
                 self.sensor_config.num_rays, self.sensor_config.max_range

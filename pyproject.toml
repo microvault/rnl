@@ -20,7 +20,8 @@ dependencies = [
     "numpy>=1.26.4",
     "sb3-contrib>=2.6.0",
     "scikit-image>=0.25.2",
-    "pandas>=2.2.3",
+    "backoff>=2.2.1",
+    "google-api-core>=2.24.2",
 ]
 
 [project.urls]

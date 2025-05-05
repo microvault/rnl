@@ -20,7 +20,6 @@ def robot(
     weight: float,
     threshold: float,
     collision: float,
-    noise: bool,
     path_model: str,
 ) -> RobotConfig:
 
@@ -49,7 +48,6 @@ def robot(
         weight,
         threshold,
         collision,
-        noise,
         path_model,
     )
 
@@ -149,6 +147,8 @@ class Trainer:
         vf_coef: float,
         max_grad_norm: float,
         update_epochs: int,
+        clip_range_vf: float,
+        target_kl: float,
         name: str,
         verbose: bool,
         policy_type: str,
@@ -206,6 +206,8 @@ class Trainer:
             vf_coef=vf_coef,
             max_grad_norm=max_grad_norm,
             update_epochs=update_epochs,
+            clip_range_vf=clip_range_vf,
+            target_kl=target_kl,
             name=name,
             verbose=verbose,
             policy_type=policy_type,
@@ -322,11 +324,11 @@ class Probe:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.0,  # 0.02
-                "scale_distance": 0.0,  # 0.06
+                "scale_orientation": 0.01,  # 0.02
+                "scale_distance": 0.01,  # 0.06
                 "scale_time": 0.01,  # 0.01
-                "scale_obstacle": 0.02,  # 0.004
-                "scale_angular": 0.005,
+                "scale_obstacle": 0.01,  # 0.004
+                "scale_angular": 0.01,
             },
         )
 

@@ -4,32 +4,34 @@ IMAGE        = $(IMAGE_NAME):$(TAG)
 VERSION      = 1.1
 
 MODE              ?= learn
-MAX_TIMESTEP_GLOBAL ?= 20000
+MAX_TIMESTEP_GLOBAL ?= 250000
 SEED              ?= 1
-HIDDEN_SIZE       ?= 20,10
+HIDDEN_SIZE       ?= 32,32
 ACTIVATION        ?= ReLU
-BATCH_SIZE        ?= 8
-NUM_ENVS          ?= 16
+BATCH_SIZE        ?= 64
+NUM_ENVS          ?= 12
 DEVICE            ?= mps
-LEARN_STEP        ?= 512
+LEARN_STEP        ?= 256
 CHECKPOINT        ?= 10000
-CHECKPOINT_PATH   ?= ppo_policy_network_custom
-LR                ?= 5e-4
-GAE_LAMBDA        ?= 0.95
+CHECKPOINT_PATH   ?= checkpoint_models
+LR                ?= 1e-4
+GAE_LAMBDA        ?= 0.90
 ENT_COEF          ?= 0.02
-VF_COEF           ?= 0.5
+CLIP_RANGE_VF        ?= 0.2
+TARGET_KL          ?= 0.025
+VF_COEF           ?= 0.4
 MAX_GRAD_NORM     ?= 0.5
-UPDATE_EPOCHS     ?= 6
+UPDATE_EPOCHS     ?= 3
 NAME              ?= rnl-real
-SCALAR            ?= 1
+SCALAR            ?= 30
 CONTROL           ?= False
 USE_WANDB         ?= True
 USE_AGENTS        ?= False
 PRETRAINED        ?= None
 VERBOSE           ?= True
 MAP_NAME          ?= map
-TYPE 		  		?= custom
-OBSTACLE_PERCENTAGE ?= 20.0
+TYPE 		  		?= random
+OBSTACLE_PERCENTAGE ?= 40.0
 MAP_SIZE          ?= 3.5
 POLICY_TYPE       ?= PPO
 TYPE_MODEL        ?= MlpPolicy
@@ -53,6 +55,8 @@ TRAIN_ARGS = \
 	--vf_coef $(VF_COEF) \
 	--max_grad_norm $(MAX_GRAD_NORM) \
 	--update_epochs $(UPDATE_EPOCHS) \
+	--clip_range_vf $(CLIP_RANGE_VF) \
+	--target_kl $(TARGET_KL) \
 	--name $(NAME) \
 	--controller False \
 	--pretrained $(PRETRAINED) \
@@ -92,6 +96,8 @@ define PRINT_CONFIG
 	@echo "VF_COEF=$(VF_COEF)"
 	@echo "MAX_GRAD_NORM=$(MAX_GRAD_NORM)"
 	@echo "UPDATE_EPOCHS=$(UPDATE_EPOCHS)"
+	@echo "CLIP_RANGE_VF=$(CLIP_RANGE_VF)"
+	@echo "TARGET_KL=$(TARGET_KL)"
 	@echo "NAME=$(NAME)"
 	@echo "WANDB_API_KEY=$(WANDB_API_KEY)"
 	@echo "GEMINI_API_KEY=$(GEMINI_API_KEY)"

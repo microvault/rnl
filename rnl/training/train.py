@@ -1,5 +1,8 @@
 import multiprocessing
 import os
+from multiprocessing import get_context
+from multiprocessing.pool import Pool
+from multiprocessing import Process
 
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
@@ -40,12 +43,37 @@ def train_worker(
     return metrics
 
 
+# Define a non-daemon context for multiprocessing
+class NonDaemonContext(type(multiprocessing.get_context())):
+    Process = Process
+
+# We sub-class multiprocessing.Process to make the daemon attribute fixed
+class NoDaemonProcess(Process):
+    def _get_daemon(self):
+        return False
+
+    def _set_daemon(self, value):
+        pass
+
+    daemon = property(_get_daemon, _set_daemon)
+
+
+# A simple function that creates a pool using non-daemon processes
+def create_non_daemon_pool(processes=None):
+    # Create a context with custom Process class
+    context = NonDaemonContext()
+    context.Process = NoDaemonProcess
+
+    # Use this context to create a pool
+    return Pool(processes=processes, context=context)
+
+
 def run_parallel_trainings(list_of_configs):
     results = []
     best_index = None
     best_criteria = None
 
-    with multiprocessing.Pool(processes=len(list_of_configs)) as pool:
+    with create_non_daemon_pool(processes=len(list_of_configs)) as pool:
         async_results = []
         for cfg in list_of_configs:
             args = (
@@ -85,7 +113,7 @@ def run_multiple_parallel_trainings(
     num_loops, initial_configs, num_populations
 ):
     evaluator = LLMTrainingEvaluator(
-        evaluator_api_key=initial_configs[0]["trainer_config"].llm_api_key,
+        api_key=initial_configs[0]["trainer_config"].llm_api_key,
     )
 
     history = []
@@ -97,10 +125,9 @@ def run_multiple_parallel_trainings(
 
         best_metrics = run_parallel_trainings(current_configs)
         reflection = evaluator.directed_reflection(best_metrics)
+
+        print("reflection: ", reflection)
         reflections.append(reflection)
-
-
-
         summary_data = [
             {
                 "pop_id": 1,
@@ -123,7 +150,6 @@ def run_multiple_parallel_trainings(
             summary_data, history, reflections, num_populations
         )
 
-        print("llm_response: ", llm_response)
         new_configs_data = llm_response.get("configurations", [])
 
         new_configs = []
@@ -218,7 +244,6 @@ if __name__ == "__main__":
         weight=configs["robot"]["weight"],
         threshold=configs["robot"]["threshold"],
         collision=configs["robot"]["collision"],
-        noise=False,
         path_model="None",
     )
     sensor_config = SensorConfig(
@@ -264,6 +289,8 @@ if __name__ == "__main__":
         vf_coef=configs["trainer"]["vf_coef"],
         max_grad_norm=configs["trainer"]["max_grad_norm"],
         update_epochs=configs["trainer"]["update_epochs"],
+        clip_range_vf=configs["trainer"]["clip_range_vf"],
+        target_kl=configs["trainer"]["target_kl"],
         name=configs["trainer"]["name"],
         verbose=configs["trainer"]["verbose"],
         policy_type=configs["trainer"]["policy_type"],
@@ -275,30 +302,47 @@ if __name__ == "__main__":
         type_model=configs["network"]["type_model"],
     )
 
-    reward_config = RewardConfig(
+    reward_config_1 = RewardConfig(
         params={
             "scale_orientation": 0.0,
             "scale_distance": 0.0,
             "scale_time": 0.01,
-            "scale_obstacle": 0.02,
+            "scale_obstacle": 0.0,
+            "scale_angular": 0.0,
+        },
+    )
+
+    reward_config_2 = RewardConfig(
+        params={
+            "scale_orientation": 0.0,
+            "scale_distance": 0.0,
+            "scale_time": 0.01,
+            "scale_obstacle": 0.0,
             "scale_angular": 0.005,
         },
     )
 
-    config = {
+    config_1 = {
         "robot_config": robot_config,
         "sensor_config": sensor_config,
         "env_config": env_config,
         "render_config": render_config,
         "trainer_config": trainer_config,
         "network_config": network_config,
-        "reward_config": reward_config,
+        "reward_config": reward_config_1,
     }
 
-    pop = 4
-
-    configs = [config] * pop
+    config_2 = {
+        "robot_config": robot_config,
+        "sensor_config": sensor_config,
+        "env_config": env_config,
+        "render_config": render_config,
+        "trainer_config": trainer_config,
+        "network_config": network_config,
+        "reward_config": reward_config_2,
+    }
+    configs = [config_1, config_2]
     num_loops_feedback = 10
     all_results = run_multiple_parallel_trainings(
-        num_loops_feedback, configs, num_populations=pop
+        num_loops_feedback, configs, num_populations=2
     )

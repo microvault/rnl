@@ -6,6 +6,25 @@ from stable_baselines3.common.env_checker import check_env
 import gymnasium as gym
 import numpy as np
 
+def _safe_plot(ax, y, color, label):
+    """Plota apenas se houver dados; caso contrário esconde o subplot."""
+    if len(y) == 0:
+        ax.set_visible(False)
+        return
+    x = range(1, len(y) + 1)
+    ax.plot(x, y, color=color, label=label, linewidth=1.5)
+    ax.set_ylabel(label, fontsize=8)
+    ax.legend(fontsize=6)
+    ax.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
+    ax.tick_params(axis="x", labelsize=6)
+    ax.tick_params(axis="y", labelsize=6)
+    ax.text(
+        0.5, -0.25,
+        f"µ {np.mean(y):.4f} | min {np.min(y):.4f} | max {np.max(y):.4f}",
+        transform=ax.transAxes, ha="center", fontsize=6,
+    )
+
+
 def make_vect_envs(
     num_envs: int,
     robot_config: RobotConfig,
@@ -16,7 +35,7 @@ def make_vect_envs(
     type_reward: RewardConfig,
     mode: str = "random",
 ):
-    task_pool = ("turn", "avoid")
+    task_pool = ("turn", "avoid", "long")
     rng = np.random.default_rng()
 
     if mode == "random":
@@ -57,14 +76,24 @@ def make_vect_envs_norm(
     use_render: bool,
     type_reward: RewardConfig,
 ):
-    """Returns async-vectorized gym environments with custom parameters.
+    """Returns subprocess-vectorized environments with custom parameters.
 
-    :param env_name: Gym environment name or custom environment class
-    :type env_name: str or type
-    :param num_envs: Number of vectorized environments, defaults to 1
-    :type num_envs: int, optional
-    :param env_kwargs: Additional keyword arguments for the environment
-    :type env_kwargs: dict
+    :param num_envs: Number of vectorized environments
+    :type num_envs: int
+    :param robot_config: Robot configuration
+    :type robot_config: RobotConfig
+    :param sensor_config: Sensor configuration
+    :type sensor_config: SensorConfig
+    :param env_config: Environment configuration
+    :type env_config: EnvConfig
+    :param render_config: Render configuration
+    :type render_config: RenderConfig
+    :param use_render: Whether to render the environment
+    :type use_render: bool
+    :param type_reward: Reward configuration
+    :type type_reward: RewardConfig
+    :return: Vectorized environment
+    :rtype: VecMonitor
     """
 
     def make_env(i):
@@ -83,4 +112,5 @@ def make_vect_envs_norm(
 
         return _init
 
-    return gym.vector.AsyncVectorEnv([make_env(i) for i in range(num_envs)])
+    venv = SubprocVecEnv([make_env(i) for i in range(num_envs)])
+    return VecMonitor(venv)

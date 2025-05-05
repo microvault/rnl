@@ -1,32 +1,99 @@
+from __future__ import annotations
+
+import json
+import logging
+
+import backoff
 from google import genai
 from google.genai import types
+import google.api_core.exceptions as gae
+
+
+DEFAULT_CONFIG = {
+    "scale_orientation": 0.02,
+    "scale_distance": 0.05,
+    "scale_time": 0.01,
+    "scale_obstacle": 0.004,
+    "scale_angular": 0.004,
+}
 
 
 class LLMTrainingEvaluator:
-    def __init__(self, evaluator_api_key: str):
-        self.evaluator_api_key = evaluator_api_key
-        self.manual_schema = self.define_manual_schema()
+    def __init__(self, api_key: str, num_populations: int = 5) -> None:
+            self.api_key = api_key
+            self.num_populations = num_populations
+            self.client = genai.Client(api_key=self.api_key)
+            self.manual_schema = self._build_schema()
 
-    def define_manual_schema(self, allow_domain: bool = False):
-        base_reward_properties = {
-            "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
-            "scale_distance": {"type": "number", "minimum": 0.01, "maximum": 0.1},
-            "scale_time": {"type": "number", "minimum": 0.001, "maximum": 0.1},
-            "scale_obstacle": {"type": "number", "minimum": 0.001, "maximum": 0.01},
-            "scale_angular": {"type": "number", "minimum": 0.001, "maximum": 0.01},
-        }
-        # Se allow_domain=True, unimos domain + reward
-        all_properties = dict(base_reward_properties)
-
+    def _build_schema(self) -> dict:
         item_schema = {
             "type": "object",
-            "properties": all_properties,
+            "required": [
+                "scale_orientation",
+                "scale_distance",
+                "scale_time",
+                "scale_obstacle",
+                "scale_angular",
+            ],
+            "properties": {
+                "scale_orientation": {"type": "number", "minimum": 0.001, "maximum": 0.1},
+                "scale_distance":  {"type": "number", "minimum": 0.01,  "maximum": 0.1},
+                "scale_time":      {"type": "number", "minimum": 0.001, "maximum": 0.1},
+                "scale_obstacle":  {"type": "number", "minimum": 0.001, "maximum": 0.01},
+                "scale_angular":   {"type": "number", "minimum": 0.001, "maximum": 0.01},
+            },
         }
 
         return {
             "type": "object",
-            "properties": {"configurations": {"type": "array", "items": item_schema}},
+            "required": ["configurations"],
+            "properties": {
+                "configurations": {
+                    "type": "array",
+                    "minItems": self.num_populations,
+                    "maxItems": self.num_populations,
+                    "items": item_schema,
+                }
+            },
         }
+
+    @staticmethod
+    def _wrap_prompt(prompt: str) -> str:
+        return prompt.strip() + "\n\nResponda SOMENTE com o JSON válido."
+
+    # ------------------------------------------------------------------
+    # Retry exponencial automaticamente em 429/503/JSON inválido
+    @backoff.on_exception(
+        backoff.expo,
+        (gae.InternalServerError, gae.TooManyRequests, ValueError),
+        max_tries=5,
+        jitter=None,
+    )
+
+    def _call_gemini(self, prompt: str) -> dict:
+        response = self.client.models.generate_content(
+            model="gemini-2.0-flash-001",
+            contents=self._wrap_prompt(prompt),
+            config=types.GenerateContentConfig(
+                response_schema=self.manual_schema,
+                response_mime_type="application/json",
+                candidate_count=3,      # pega o 1º candidato que bate no schema
+                temperature=0.2,
+                top_p=0.95,
+                top_k=30,
+                seed=5,
+            ),
+        )
+
+        data = response.parsed
+        if data is None:                 # fallback: tenta parsear manual
+            try:
+                data = json.loads(response.text)
+            except Exception as exc:
+                logging.warning("JSON inválido do Gemini: %s", exc)
+                raise ValueError("Nenhum JSON retornado") from exc
+
+        return data
 
     def directed_reflection(self, best_population_metrics: dict) -> str:
         prompt = f"""
@@ -186,7 +253,7 @@ class LLMTrainingEvaluator:
         ## reflexão:
         """
 
-        client = genai.Client(api_key=self.evaluator_api_key)
+        client = genai.Client(api_key=self.api_key)
         response = client.models.generate_content(
             model="gemini-1.5-pro",
             contents=prompt,
@@ -276,23 +343,17 @@ class LLMTrainingEvaluator:
 
     def request_configurations_for_all(
         self, summary_data, history, reflections, num_populations
-    ):
+    ) -> dict:
+        """Envia prompt, garante JSON e devolve dicionário pronto para uso."""
         prompt = self.build_configurations_prompt(
             summary_data, history, reflections, num_populations
         )
-
-        client = genai.Client(api_key=self.evaluator_api_key)
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-001",  # gemini-2.5-pro-exp-03-25 # gemini-2.0-flash-001
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=self.manual_schema,
-                temperature=0.2,
-                top_p=0.95,
-                top_k=30,
-                candidate_count=1,
-                seed=5,
-            ),
-        )
-        return response.parsed
+        try:
+            return self._call_gemini(prompt)
+        except Exception:
+            logging.exception("Gemini falhou — usando configs padrão")
+            return {
+                "configurations": [
+                    DEFAULT_CONFIG.copy() for _ in range(self.num_populations)
+                ]
+            }
