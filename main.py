@@ -18,13 +18,13 @@ def main(arg):
         weight=1.0,
         threshold=0.10,  # 4 # 0.03
         collision=0.05,  # 2 # 0.075
-        path_model="",
+        path_model="/Users/nicolasalan/microvault/rnl/checkpoints/model_210000_steps/policy.pth",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=90,
-        num_rays=3,  # min 5 max 20
+        fov=270, # 90, 270
+        num_rays=5,  # min 3 max 5
         min_range=0.0,
         max_range=5.0,  # 3.5
     )

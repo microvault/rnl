@@ -203,6 +203,7 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
+                                hidden=[20, 64],
                                 pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -905,12 +906,12 @@ class NaviEnv(gym.Env):
             ax.invert_yaxis()
 
         elif "turn" in self.mode:
-            ax.set_xlim(0, 5)
-            ax.set_ylim(0, 5)
+            ax.set_xlim(0, 2)
+            ax.set_ylim(0, 2)
 
         elif "avoid" in self.mode:
-            ax.set_xlim(0, 5)
-            ax.set_ylim(0, 5)
+            ax.set_xlim(0, 2)
+            ax.set_ylim(0, 2)
 
         elif "long" in self.mode:
             ax.set_xlim(0, 5)

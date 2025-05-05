@@ -1,8 +1,7 @@
 import multiprocessing
 import os
-from multiprocessing import get_context
-from multiprocessing.pool import Pool
-from multiprocessing import Process
+from collections import deque
+
 
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
@@ -42,38 +41,12 @@ def train_worker(
 
     return metrics
 
-
-# Define a non-daemon context for multiprocessing
-class NonDaemonContext(type(multiprocessing.get_context())):
-    Process = Process
-
-# We sub-class multiprocessing.Process to make the daemon attribute fixed
-class NoDaemonProcess(Process):
-    def _get_daemon(self):
-        return False
-
-    def _set_daemon(self, value):
-        pass
-
-    daemon = property(_get_daemon, _set_daemon)
-
-
-# A simple function that creates a pool using non-daemon processes
-def create_non_daemon_pool(processes=None):
-    # Create a context with custom Process class
-    context = NonDaemonContext()
-    context.Process = NoDaemonProcess
-
-    # Use this context to create a pool
-    return Pool(processes=processes, context=context)
-
-
 def run_parallel_trainings(list_of_configs):
     results = []
     best_index = None
     best_criteria = None
 
-    with create_non_daemon_pool(processes=len(list_of_configs)) as pool:
+    with multiprocessing.Pool(processes=len(list_of_configs)) as pool:
         async_results = []
         for cfg in list_of_configs:
             args = (
@@ -114,20 +87,18 @@ def run_multiple_parallel_trainings(
 ):
     evaluator = LLMTrainingEvaluator(
         api_key=initial_configs[0]["trainer_config"].llm_api_key,
+        num_populations=num_populations,
     )
 
-    history = []
-    reflections = []
+    history     = deque(maxlen=10)   # guarda só os 10 últimos
+    reflections = deque(maxlen=10)
     current_configs = initial_configs.copy()
 
     for loop in range(num_loops):
         print(f"\n=== Loop {loop+1}/{num_loops} ===")
 
         best_metrics = run_parallel_trainings(current_configs)
-        reflection = evaluator.directed_reflection(best_metrics)
 
-        print("reflection: ", reflection)
-        reflections.append(reflection)
         summary_data = [
             {
                 "pop_id": 1,
@@ -138,6 +109,13 @@ def run_multiple_parallel_trainings(
                     "time": best_metrics.get("time_score_mean", 0.0),
                     "angular": best_metrics.get("angular_score_mean", 0.0)
                 },
+                "scales": {
+                    "scale obstacle": best_metrics.get("scale_obstacle", 0.0),
+                    "scale angle": best_metrics.get("scale_orientation", 0.0),
+                    "scale distance": best_metrics.get("scale_distance", 0.0),
+                    "scale time": best_metrics.get("scale_time", 0.0),
+                    "scale angular": best_metrics.get("scale_angular", 0.0)
+                },
                 "metrics": {
                     "success_pct": best_metrics.get("success_percentage", 0.0),
                     "unsafe_pct": best_metrics.get("percentage_unsafe", 0.0),
@@ -146,9 +124,16 @@ def run_multiple_parallel_trainings(
             }
         ]
 
+        reflection = evaluator.directed_reflection(best_metrics, history, summary_data)
+        reflections.append(reflection)
+        print(f"\033[35m{reflection}\033[0m")
+
+
         llm_response = evaluator.request_configurations_for_all(
             summary_data, history, reflections, num_populations
         )
+
+        print(f"\033[33m{llm_response}\033[0m")
 
         new_configs_data = llm_response.get("configurations", [])
 
@@ -186,6 +171,14 @@ def run_multiple_parallel_trainings(
                     {
                         "metrics": summary_data[0]["metrics"],
                         "params": summary_data[0]["rewards"],
+                        "scales": {
+                            "scale obstacle": best_metrics.get("scale_obstacle", 0.0),
+                            "scale angle": best_metrics.get("scale_orientation", 0.0),
+                            "scale distance": best_metrics.get("scale_distance", 0.0),
+                            "scale time": best_metrics.get("scale_time", 0.0),
+                            "scale angular": best_metrics.get("scale_angular", 0.0)
+                        },
+
                     }
                 ],
             }
@@ -306,7 +299,7 @@ if __name__ == "__main__":
         params={
             "scale_orientation": 0.0,
             "scale_distance": 0.0,
-            "scale_time": 0.01,
+            "scale_time": 0.02,
             "scale_obstacle": 0.0,
             "scale_angular": 0.0,
         },
@@ -316,9 +309,9 @@ if __name__ == "__main__":
         params={
             "scale_orientation": 0.0,
             "scale_distance": 0.0,
-            "scale_time": 0.01,
+            "scale_time": 0.0,
             "scale_obstacle": 0.0,
-            "scale_angular": 0.005,
+            "scale_angular": 0.05,
         },
     )
 

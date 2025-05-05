@@ -316,6 +316,14 @@ def training(
 
         metrics = stats
 
+    scales = {
+        "scale_orientation": reward_config.params["scale_orientation"],
+        "scale_distance":   reward_config.params["scale_distance"],
+        "scale_time":       reward_config.params["scale_time"],
+        "scale_obstacle":   reward_config.params["scale_obstacle"],
+        "scale_angular":    reward_config.params["scale_angular"],
+    }
+
     eval_keys = [
         "success_percentage",
         "total_timesteps",
@@ -328,7 +336,7 @@ def training(
 
     final_eval_dict = dict(zip(eval_keys, final_eval))
 
-    merged_dict = {**metrics, **final_eval_dict}
+    merged_dict = {**metrics, **final_eval_dict, **scales}
 
     return merged_dict
 

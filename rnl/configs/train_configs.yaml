@@ -1,12 +1,12 @@
 env:
-  scalar: 20
+  scalar: 30
   folder_map:
   name_map:
-  timestep: 50
-  obstacle_percentage: 50
-  map_size: 3
+  timestep: 500
+  obstacle_percentage: 0
+  map_size: 0
   type: turn
-  grid_size: [1.5, 1.5]
+  grid_size: [0, 0]
 
 render:
   controller: false
@@ -30,33 +30,33 @@ robot:
   path_model:
 
 network:
-  hidden_size: [32, 32]
-  mlp_activation: ReLU
+  hidden_size: [16, 16]
+  mlp_activation: LeakyReLU
   type_model: MlpPolicy
 
 trainer:
   pretrained: None
   use_agents: false
+  max_timestep_global: 40000
   # max_timestep_global: 1000
-  max_timestep_global: 200000
   seed: 1
   batch_size: 64
-  lr: 1e-4
+  lr: 1e-3
   num_envs: 12
   device: mps
   learn_step: 256
-  checkpoint: 10000
+  checkpoint: 40000
   checkpoint_path: ./checkpoint_models
   use_wandb: false
   wandb_api_key: YOUR_WANDB_KEY
   llm_api_key: YOUR_OPENAI_KEY
   gae_lambda: 0.90
-  ent_coef: 0.02
+  ent_coef: 0.002
   vf_coef: 0.4
   max_grad_norm: 0.5
   update_epochs: 3
   clip_range_vf: 0.2
   target_kl: 0.025
   name: robot_nav_skills
-  verbose: true
+  verbose: false
   policy_type: PPO
