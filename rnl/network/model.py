@@ -1,8 +1,9 @@
 from typing import Callable, Tuple
+
 import torch as th
-from torch import nn
 from gymnasium import spaces
 from stable_baselines3.common.policies import ActorCriticPolicy
+from torch import nn
 
 
 class CustomNetwork(nn.Module):

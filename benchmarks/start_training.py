@@ -37,7 +37,9 @@ def main():
     param_render = vault.render(controller=True, debug=True)
 
     # 5.step -> config sim robot
-    sim = vault.Simulation(param_robot, param_sensor, param_env, param_render, type="turn")
+    sim = vault.Simulation(
+        param_robot, param_sensor, param_env, param_render, type="turn"
+    )
     # 6.step -> run robot
     sim.run()
 
