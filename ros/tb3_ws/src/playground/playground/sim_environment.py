@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-import math, os, random, signal, sys
+import math
+import os
+import random
+import signal
+import sys
 from pathlib import Path
 
 import numpy as np
 import rclpy
-from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
-from sensor_msgs.msg import LaserScan
 import torch
 import torch.nn as nn
+from ament_index_python.packages import get_package_share_directory
+from geometry_msgs.msg import PoseWithCovarianceStamped, Twist
+from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
+from sensor_msgs.msg import LaserScan
 from torch.distributions import Categorical
 
 
@@ -77,45 +81,55 @@ class RNLPolicy(nn.Module):
 
 class InferenceModel(Node):
     def __init__(self):
-        super().__init__('sim_environment')
+        super().__init__("sim_environment")
         self.position = None
         self.last_states = np.zeros(8)
 
-        self.goal_positions = [(3.0925, 2.6864), (4.6748, 1.3596),
-                               (3.7367, -0.2997), (2.0904, 0.6386)]
-        self.goal_order = random.sample(range(len(self.goal_positions)),
-                                        len(self.goal_positions))
+        self.goal_positions = [
+            (3.0925, 2.6864),
+            (4.6748, 1.3596),
+            (3.7367, -0.2997),
+            (2.0904, 0.6386),
+        ]
+        self.goal_order = random.sample(
+            range(len(self.goal_positions)), len(self.goal_positions)
+        )
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[0]]
 
         self.lidar_ranges = [0.0] * 5
-        self.data_min = [0.5]*5 + [1.0, 0.0, 0, 0, 0]
-        self.data_max = [3.5]*5 + [9.0, 3.5, 1, 1, 1]
+        self.data_min = [0.5] * 5 + [1.0, 0.0, 0, 0, 0]
+        self.data_max = [3.5] * 5 + [9.0, 3.5, 1, 1, 1]
 
-        pkg_dir = get_package_share_directory('playground')
-        model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
+        pkg_dir = get_package_share_directory("playground")
+        model_path = os.path.join(pkg_dir, "models", "policy.pth")
         self.policy = RNLPolicy(8, 3, [20, 64], model_path)
 
-        qos = QoSProfile(depth=10,
-                         reliability=QoSReliabilityPolicy.RELIABLE,
-                         durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        lidar_qos = QoSProfile(depth=5,
-                               reliability=QoSReliabilityPolicy.BEST_EFFORT,
-                               durability=QoSDurabilityPolicy.VOLATILE)
+        qos = QoSProfile(
+            depth=10,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        lidar_qos = QoSProfile(
+            depth=5,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.VOLATILE,
+        )
 
-        self.scan_sub = self.create_subscription(LaserScan, '/scan',
-                                                 self.laser_callback, lidar_qos)
-        self.amcl_sub = self.create_subscription(PoseWithCovarianceStamped,
-                                                 '/amcl_pose',
-                                                 self.amcl_callback, qos)
-        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.scan_sub = self.create_subscription(
+            LaserScan, "/scan", self.laser_callback, lidar_qos
+        )
+        self.amcl_sub = self.create_subscription(
+            PoseWithCovarianceStamped, "/amcl_pose", self.amcl_callback, qos
+        )
+        self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.timer = self.create_timer(0.1, self.update)
 
     # ---------- callbacks ----------
     def laser_callback(self, msg):
         step = (len(msg.ranges) - 1) / 4.0
         for i in range(5):
-            idx = min(int(round(step * i)), len(msg.ranges)-1)
+            idx = min(int(round(step * i)), len(msg.ranges) - 1)
             val = msg.ranges[idx] if math.isfinite(msg.ranges[idx]) else msg.range_max
             self.lidar_ranges[i] = val
 
@@ -144,12 +158,12 @@ class InferenceModel(Node):
     # ---------- loop ----------
     def update(self):
         if self.position is None:
-            self.get_logger().debug('Aguardando /amcl_pose…')
+            self.get_logger().debug("Aguardando /amcl_pose…")
             return
 
         action = self.policy.act(self.last_states)
         self.move_robot(action)
-        self.get_logger().info(f'Meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
+        self.get_logger().info(f"Meta: ({self.goal_x:.2f}, {self.goal_y:.2f})")
 
         x, y = self.position.position.x, self.position.position.y
         z, w = self.position.orientation.z, self.position.orientation.w
@@ -160,14 +174,16 @@ class InferenceModel(Node):
 
         norm_lidar = (np.clip(self.lidar_ranges, 0.5, 3.5) - 0.5) / 3.0
         action_one_hot = [int(action != 0)]
-        self.last_states = np.concatenate([norm_lidar,
-                                           action_one_hot,
-                                           [dist/9.0, alpha/3.5]]).astype(np.float32)
+        self.last_states = np.concatenate(
+            [norm_lidar, action_one_hot, [dist / 9.0, alpha / 3.5]]
+        ).astype(np.float32)
 
         if dist <= 0.8:
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)
-            self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
-            self.get_logger().info(f'Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
+            self.goal_x, self.goal_y = self.goal_positions[
+                self.goal_order[self.goal_index]
+            ]
+            self.get_logger().info(f"Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})")
 
 
 # -------------------- main --------------------
@@ -176,14 +192,14 @@ def main(args=None):
     node = InferenceModel()
 
     try:
-        rclpy.spin(node)               # fica rodando até Ctrl-C
+        rclpy.spin(node)  # fica rodando até Ctrl-C
     except KeyboardInterrupt:
-        node.get_logger().info('Ctrl-C detectado, parando robô…')
+        node.get_logger().info("Ctrl-C detectado, parando robô…")
     finally:
-        node.stop_robot()              # zera velocidade
+        node.stop_robot()  # zera velocidade
         node.destroy_node()
         rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

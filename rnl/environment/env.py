@@ -7,7 +7,6 @@ import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
-from rnl.network.policy import RNLPolicy
 # from sb3_contrib import RecurrentPPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
@@ -24,6 +23,7 @@ from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
 from rnl.environment.world import CreateWorld
+from rnl.network.policy import RNLPolicy
 
 
 class NaviEnv(gym.Env):
@@ -73,7 +73,6 @@ class NaviEnv(gym.Env):
         # num_envs = 1
         # self.episode_starts = np.ones((num_envs,), dtype=bool)
         # self.lstm_states = None
-
 
         if "hard" in self.mode:
             self.grid_lengt = 0
@@ -201,10 +200,9 @@ class NaviEnv(gym.Env):
 
         self.policy = None
         if self.pretrained_model != "None":
-            self.policy = RNLPolicy(in_dim=state_size,
-                                n_act=3,
-                                hidden=[20, 64],
-                                pth=robot_config.path_model)
+            self.policy = RNLPolicy(
+                in_dim=state_size, n_act=3, hidden=[20, 64], pth=robot_config.path_model
+            )
         if self.use_render:
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
@@ -242,21 +240,21 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = self.max_lr/2 * self.scalar
+            self.vl = self.max_lr / 2 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.steps_command_angular += 1
             self.action = 1
-            self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
+            self.vr = -self.max_vr / 8 * self.scalar
         elif event.key == "left":
             self.steps_command_angular += 1
             self.action = 2
-            self.vl = self.max_lr/6 * self.scalar
-            self.vr = self.max_vr/8 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
+            self.vr = self.max_vr / 8 * self.scalar
         elif event.key == "down":
             self.action = 3
-            self.vl = self.max_lr/6 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
             self.vr = 0.0 * self.scalar
 
         # Control and test
@@ -265,10 +263,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = (self.max_vr/6) * self.scalar
+            self.vr = (self.max_vr / 6) * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = -(self.max_vr/6) * self.scalar
+            self.vr = -(self.max_vr / 6) * self.scalar
 
     def step_animation(self, i):
         if self.pretrained_model != "None" or not self.controller:
@@ -281,18 +279,18 @@ class NaviEnv(gym.Env):
 
         if not self.controller:
             if self.action == 0:
-                self.vl = self.max_lr/2 * self.scalar
+                self.vl = self.max_lr / 2 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
                 self.steps_command_angular += 1
-                self.vl = self.max_lr/6 * self.scalar
-                self.vr = -self.max_vr/8 * self.scalar
+                self.vl = self.max_lr / 6 * self.scalar
+                self.vr = -self.max_vr / 8 * self.scalar
             elif self.action == 2:
                 self.steps_command_angular += 1
-                self.vl = self.max_lr/6 * self.scalar
-                self.vr = self.max_vr/8 * self.scalar
+                self.vl = self.max_lr / 6 * self.scalar
+                self.vr = self.max_vr / 8 * self.scalar
             elif self.action == 3:
-                self.vl = self.max_lr/6 * self.scalar
+                self.vl = self.max_lr / 6 * self.scalar
                 self.vr = 0.0 * self.scalar
 
         # self.action, self.lstm_states = self.model_recurrent.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts, deterministic=False)
@@ -377,7 +375,12 @@ class NaviEnv(gym.Env):
             action=self.action,
         )
         reward = (
-            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
+            collision_score
+            + orientation_score
+            + progress_score
+            + time_score
+            + obstacle
+            + action_score
         )
 
         min_lidar_norm = np.min(lidar_norm)
@@ -407,7 +410,7 @@ class NaviEnv(gym.Env):
         truncated = self.timestep >= self.max_timestep
 
         if collision and self.steps_to_collision == 0:
-            self.steps_to_collision = self.timestep         # registra a PRIMEIRA colisão
+            self.steps_to_collision = self.timestep  # registra a PRIMEIRA colisão
 
         if reward == 1 and self.steps_to_goal == 0:
             self.steps_to_goal = self.timestep
@@ -432,18 +435,18 @@ class NaviEnv(gym.Env):
         vr = 0.0
 
         if action == 0:
-            vl = self.max_lr/2 * self.scalar
+            vl = self.max_lr / 2 * self.scalar
             vr = 0.0
         elif action == 1:
             self.steps_command_angular += 1
-            vl = self.max_lr/6 * self.scalar
-            vr = -self.max_vr/8 * self.scalar
+            vl = self.max_lr / 6 * self.scalar
+            vr = -self.max_vr / 8 * self.scalar
         elif action == 2:
             self.steps_command_angular += 1
-            vl = self.max_lr/6 * self.scalar
-            vr = self.max_vr/8 * self.scalar
+            vl = self.max_lr / 6 * self.scalar
+            vr = self.max_vr / 8 * self.scalar
         elif action == 3:
-            self.vl = self.max_lr/6 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
             self.vr = 0.0 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
@@ -517,13 +520,18 @@ class NaviEnv(gym.Env):
             threshold_collision=self.collision,
             min_distance=self.min_dist,
             max_distance=self.max_dist,
-            action=action
+            action=action,
         )
 
         done = bool(done)
 
         reward = float(
-            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
+            collision_score
+            + orientation_score
+            + progress_score
+            + time_score
+            + obstacle
+            + action_score
         )
         self.last_states = states
 
@@ -535,7 +543,7 @@ class NaviEnv(gym.Env):
         if self.debug:
 
             if collision and self.steps_to_collision == 0:
-                self.steps_to_collision = self.timestep         # registra a PRIMEIRA colisão
+                self.steps_to_collision = self.timestep  # registra a PRIMEIRA colisão
 
             if reward == 1 and self.steps_to_goal == 0:
                 self.steps_to_goal = self.timestep
@@ -571,8 +579,13 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world()
                 targets = np.array([[0.35, 0.35], [1.75, 1.75]])
                 idx = np.random.randint(2)
-                (self.target_x, self.target_y), _ = targets[idx], targets[1 - idx]  # spawn fixo no centro
-                self.robot.reset_robot(self.body, 1.0, 1.0, np.random.uniform(0, 2 * np.pi))
+                (self.target_x, self.target_y), _ = (
+                    targets[idx],
+                    targets[1 - idx],
+                )  # spawn fixo no centro
+                self.robot.reset_robot(
+                    self.body, 1.0, 1.0, np.random.uniform(0, 2 * np.pi)
+                )
 
             elif self.mode == "avoid":
                 self.new_map_path, self.segments, self.poly = self.generator.world()
@@ -590,7 +603,9 @@ class NaviEnv(gym.Env):
                     min_robot_goal_dist=0.1,
                 )
                 self.target_x, self.target_y = goal_pos
-                self.robot.reset_robot(self.body, *robot_pos, np.random.uniform(0, 2 * np.pi))
+                self.robot.reset_robot(
+                    self.body, *robot_pos, np.random.uniform(0, 2 * np.pi)
+                )
 
             elif self.mode in ("custom"):
 
@@ -630,8 +645,6 @@ class NaviEnv(gym.Env):
 
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
-
-
 
             elif self.mode in ("easy-02", "easy-03", "easy-04"):
 
@@ -851,7 +864,6 @@ class NaviEnv(gym.Env):
                 "total_timestep": self.timestep,
             }
 
-
             self.steps_to_goal = 0
             self.steps_to_collision = 0
             self.timestep = 0
@@ -897,7 +909,7 @@ class NaviEnv(gym.Env):
             ax.set_ylim(0, self.grid_length)
 
         elif "custom" in self.mode:
-            origin_x, origin_y = -0.96, -3.15 # -3.06, -3.62
+            origin_x, origin_y = -0.96, -3.15  # -3.06, -3.62
             # ax.set_xlim(origin_x, origin_x + self.x)
             # ax.set_ylim(origin_y, origin_y + self.y)
             gx, gy = 5.25, 5.3500000000000005
@@ -1090,7 +1102,16 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if self.mode in ("easy-01", "easy-02", "easy-03", "easy-04", "easy-05", "avoid", "turn", "custom"):
+        if self.mode in (
+            "easy-01",
+            "easy-02",
+            "easy-03",
+            "easy-04",
+            "easy-05",
+            "avoid",
+            "turn",
+            "custom",
+        ):
             if self.mode == "easy-03":
                 x2 = x + 0.2 * np.cos(self.body.angle)
                 y2 = y + 0.2 * np.sin(self.body.angle)

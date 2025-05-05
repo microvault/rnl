@@ -2,7 +2,6 @@ import multiprocessing
 import os
 from collections import deque
 
-
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
@@ -13,9 +12,8 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.rewards import RewardConfig
-from rnl.training.learn import training
 from rnl.engine.utils import _parse_simple_yaml
-
+from rnl.training.learn import training
 
 
 def train_worker(
@@ -40,6 +38,7 @@ def train_worker(
     )
 
     return metrics
+
 
 def run_parallel_trainings(list_of_configs):
     results = []
@@ -82,15 +81,13 @@ def run_parallel_trainings(list_of_configs):
         return None
 
 
-def run_multiple_parallel_trainings(
-    num_loops, initial_configs, num_populations
-):
+def run_multiple_parallel_trainings(num_loops, initial_configs, num_populations):
     evaluator = LLMTrainingEvaluator(
         api_key=initial_configs[0]["trainer_config"].llm_api_key,
         num_populations=num_populations,
     )
 
-    history     = deque(maxlen=10)   # guarda só os 10 últimos
+    history = deque(maxlen=10)  # guarda só os 10 últimos
     reflections = deque(maxlen=10)
     current_configs = initial_configs.copy()
 
@@ -107,14 +104,14 @@ def run_multiple_parallel_trainings(
                     "angle": best_metrics.get("orientation_score_mean", 0.0),
                     "distance": best_metrics.get("progress_score_mean", 0.0),
                     "time": best_metrics.get("time_score_mean", 0.0),
-                    "angular": best_metrics.get("angular_score_mean", 0.0)
+                    "angular": best_metrics.get("angular_score_mean", 0.0),
                 },
                 "scales": {
                     "scale obstacle": best_metrics.get("scale_obstacle", 0.0),
                     "scale angle": best_metrics.get("scale_orientation", 0.0),
                     "scale distance": best_metrics.get("scale_distance", 0.0),
                     "scale time": best_metrics.get("scale_time", 0.0),
-                    "scale angular": best_metrics.get("scale_angular", 0.0)
+                    "scale angular": best_metrics.get("scale_angular", 0.0),
                 },
                 "metrics": {
                     "success_pct": best_metrics.get("success_percentage", 0.0),
@@ -127,7 +124,6 @@ def run_multiple_parallel_trainings(
         reflection = evaluator.directed_reflection(best_metrics, history, summary_data)
         reflections.append(reflection)
         print(f"\033[35m{reflection}\033[0m")
-
 
         llm_response = evaluator.request_configurations_for_all(
             summary_data, history, reflections, num_populations
@@ -176,9 +172,8 @@ def run_multiple_parallel_trainings(
                             "scale angle": best_metrics.get("scale_orientation", 0.0),
                             "scale distance": best_metrics.get("scale_distance", 0.0),
                             "scale time": best_metrics.get("scale_time", 0.0),
-                            "scale angular": best_metrics.get("scale_angular", 0.0)
+                            "scale angular": best_metrics.get("scale_angular", 0.0),
                         },
-
                     }
                 ],
             }
@@ -231,8 +226,14 @@ if __name__ == "__main__":
 
     robot_config = RobotConfig(
         base_radius=configs["robot"]["base_radius"],
-        vel_linear=[configs["robot"]["vel_linear"][0], configs["robot"]["vel_linear"][1]],
-        vel_angular=[configs["robot"]["vel_angular"][0], configs["robot"]["vel_angular"][1]],
+        vel_linear=[
+            configs["robot"]["vel_linear"][0],
+            configs["robot"]["vel_linear"][1],
+        ],
+        vel_angular=[
+            configs["robot"]["vel_angular"][0],
+            configs["robot"]["vel_angular"][1],
+        ],
         wheel_distance=configs["robot"]["wheel_distance"],
         weight=configs["robot"]["weight"],
         threshold=configs["robot"]["threshold"],
@@ -243,7 +244,7 @@ if __name__ == "__main__":
         fov=configs["sensor"]["fov"],
         num_rays=configs["sensor"]["num_rays"],
         min_range=configs["sensor"]["min_range"],
-        max_range=configs["sensor"]["max_range"]
+        max_range=configs["sensor"]["max_range"],
     )
     env_config = EnvConfig(
         scalar=configs["env"]["scalar"],
@@ -253,12 +254,12 @@ if __name__ == "__main__":
         obstacle_percentage=configs["env"]["obstacle_percentage"],
         map_size=configs["env"]["map_size"],
         type=configs["env"]["type"],
-        grid_size=configs["env"]["grid_size"]
+        grid_size=configs["env"]["grid_size"],
     )
     render_config = RenderConfig(
         controller=configs["render"]["controller"],
         debug=configs["render"]["debug"],
-        plot=configs["render"]["plot"]
+        plot=configs["render"]["plot"],
     )
 
     trainer_config = TrainerConfig(

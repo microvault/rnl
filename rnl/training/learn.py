@@ -1,20 +1,19 @@
+import os
+import random
+
 import matplotlib.pyplot as plt
 import numpy as np
-from sb3_contrib import TRPO, RecurrentPPO, QRDQN
+import wandb
+from sb3_contrib import QRDQN, TRPO, RecurrentPPO
 from stable_baselines3 import A2C, DQN, PPO
-
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.vec_env import DummyVecEnv
 from torch import nn
 from tqdm import trange
-import os
-import random
-import wandb
-from rnl.network.model import CustomActorCriticPolicy
-from rnl.agents.evaluate import evaluate_agent, statistics
 
+from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.configs.config import (
     EnvConfig,
     NetworkConfig,
@@ -26,8 +25,9 @@ from rnl.configs.config import (
 )
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.utils import print_config_table, set_seed
-from rnl.engine.vector import make_vect_envs, make_vect_envs_norm, _safe_plot
+from rnl.engine.vector import _safe_plot, make_vect_envs, make_vect_envs_norm
 from rnl.environment.env import NaviEnv
+from rnl.network.model import CustomActorCriticPolicy
 from rnl.training.callback import DynamicTrainingCallback
 
 TYPE = "turn"
@@ -123,6 +123,7 @@ def training(
     model = None
 
     if train:
+
         def make_env():
             env = NaviEnv(
                 robot_config,
@@ -152,7 +153,9 @@ def training(
         task_pool = ("long", "turn", "avoid")
 
         env_config.type = (
-            np.random.choice(task_pool) if env_config.type == "random" else env_config.type
+            np.random.choice(task_pool)
+            if env_config.type == "random"
+            else env_config.type
         )
 
         def make_env():
@@ -232,7 +235,7 @@ def training(
             )
         elif trainer_config.policy_type == "DQN":
             model = DQN(
-                'MlpPolicy',
+                "MlpPolicy",
                 DummyVecEnv([make_env]),
                 learning_rate=trainer_config.lr,
                 batch_size=trainer_config.batch_size,
@@ -244,7 +247,7 @@ def training(
             )
         elif trainer_config.policy_type == "QRDQN":
             model = QRDQN(
-                'MlpPolicy',
+                "MlpPolicy",
                 DummyVecEnv([make_env]),
                 learning_rate=trainer_config.lr,
                 batch_size=trainer_config.batch_size,
@@ -318,10 +321,10 @@ def training(
 
     scales = {
         "scale_orientation": reward_config.params["scale_orientation"],
-        "scale_distance":   reward_config.params["scale_distance"],
-        "scale_time":       reward_config.params["scale_time"],
-        "scale_obstacle":   reward_config.params["scale_obstacle"],
-        "scale_angular":    reward_config.params["scale_angular"],
+        "scale_distance": reward_config.params["scale_distance"],
+        "scale_time": reward_config.params["scale_time"],
+        "scale_obstacle": reward_config.params["scale_obstacle"],
+        "scale_angular": reward_config.params["scale_angular"],
     }
 
     eval_keys = [
@@ -426,7 +429,11 @@ def probe_envs(
 
     if num_envs == 1:
         obs = env.reset()
-        model = PPO.load(robot_config.path_model) if robot_config.path_model != "None" else None
+        model = (
+            PPO.load(robot_config.path_model)
+            if robot_config.path_model != "None"
+            else None
+        )
 
         # ---- buffers ----------------------------------------------------------
         rewards_history = []
@@ -440,22 +447,26 @@ def probe_envs(
         # ---- probe loop -------------------------------------------------------
         pbar = trange(max_steps, desc="Probe single env", unit="step")
         for _ in pbar:
-            action = model.predict(obs)[0] if model is not None else env.action_space.sample()
+            action = (
+                model.predict(obs)[0]
+                if model is not None
+                else env.action_space.sample()
+            )
             obs, reward, term, trunc, info = env.step(action)
 
             # ---- store step metrics -------------------------------------------
             rewards_history.append(float(reward))
             if info:
-                obstacle_hist .append(info.get("obstacle_score",     0.0))
-                orient_hist   .append(info.get("orientation_score",  0.0))
-                progress_hist .append(info.get("progress_score",     0.0))
-                time_hist     .append(info.get("time_score",         0.0))
-                dist_hist     .append(info.get("dist",               0.0))
-                alpha_hist    .append(info.get("alpha",              0.0))
+                obstacle_hist.append(info.get("obstacle_score", 0.0))
+                orient_hist.append(info.get("orientation_score", 0.0))
+                progress_hist.append(info.get("progress_score", 0.0))
+                time_hist.append(info.get("time_score", 0.0))
+                dist_hist.append(info.get("dist", 0.0))
+                alpha_hist.append(info.get("alpha", 0.0))
 
             # ---- track episode stats ------------------------------------------
             ep_reward += float(reward)
-            ep_len    += 1
+            ep_len += 1
 
             if term:
                 completed_rewards.append(ep_reward)
@@ -474,13 +485,13 @@ def probe_envs(
         steps_range = np.arange(1, len(rewards_history) + 1)
 
         step_metrics = [
-            ("Obstacles Score",  obstacle_hist,  "brown"),
-            ("Orientation Score",orient_hist,    "green"),
-            ("Progress Score",   progress_hist,  "blue"),
-            ("Total Reward",     rewards_history,"purple"),
-            ("Distance",         dist_hist,      "cyan"),
-            ("Alpha",            alpha_hist,     "magenta"),
-            ("Time Score",       time_hist,      "orange"),
+            ("Obstacles Score", obstacle_hist, "brown"),
+            ("Orientation Score", orient_hist, "green"),
+            ("Progress Score", progress_hist, "blue"),
+            ("Total Reward", rewards_history, "purple"),
+            ("Distance", dist_hist, "cyan"),
+            ("Alpha", alpha_hist, "magenta"),
+            ("Time Score", time_hist, "orange"),
         ]
 
         fig, axes = plt.subplots(2, 4, figsize=(16, 8))
@@ -498,16 +509,19 @@ def probe_envs(
 
             mean_val, min_val, max_val = np.mean(data), np.min(data), np.max(data)
             ax.text(
-                0.5, -0.25,
+                0.5,
+                -0.25,
                 f"µ {mean_val:.4f} | min {min_val:.4f} | max {max_val:.4f}",
-                transform=ax.transAxes, ha="center", fontsize=6
+                transform=ax.transAxes,
+                ha="center",
+                fontsize=6,
             )
 
         # --- último subplot: métricas por episódio ----------------------------
         ax_ep = axes[-1]
         ep_range = np.arange(1, len(completed_rewards) + 1)
         ax_ep.plot(ep_range, completed_rewards, color="black", label="Episode Rewards")
-        ax_ep.plot(ep_range, completed_lengths, color="gray",  label="Episode Lengths")
+        ax_ep.plot(ep_range, completed_lengths, color="gray", label="Episode Lengths")
         ax_ep.set_ylabel("Episódios", fontsize=8)
         ax_ep.legend(fontsize=6)
         ax_ep.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
@@ -515,13 +529,24 @@ def probe_envs(
         ax_ep.tick_params(axis="y", labelsize=6)
 
         if completed_rewards:
-            r_mean, r_min, r_max = np.mean(completed_rewards), np.min(completed_rewards), np.max(completed_rewards)
-            l_mean, l_min, l_max = np.mean(completed_lengths), np.min(completed_lengths), np.max(completed_lengths)
+            r_mean, r_min, r_max = (
+                np.mean(completed_rewards),
+                np.min(completed_rewards),
+                np.max(completed_rewards),
+            )
+            l_mean, l_min, l_max = (
+                np.mean(completed_lengths),
+                np.min(completed_lengths),
+                np.max(completed_lengths),
+            )
             ax_ep.text(
-                0.5, -0.4,
+                0.5,
+                -0.4,
                 f"Rewards → µ {r_mean:.2f} | min {r_min:.2f} | max {r_max:.2f}\n"
                 f"Lengths → µ {l_mean:.0f} | min {l_min} | max {l_max}",
-                transform=ax_ep.transAxes, ha="center", fontsize=6
+                transform=ax_ep.transAxes,
+                ha="center",
+                fontsize=6,
             )
 
         plt.tight_layout()
@@ -543,17 +568,30 @@ def probe_envs(
         ep_rewards = np.zeros(num_envs, dtype=np.float32)
 
         completed_rewards, completed_lengths = [], []
-        obstacles_scores, orientation_scores, progress_scores, time_scores = [], [], [], []
+        obstacles_scores, orientation_scores, progress_scores, time_scores = (
+            [],
+            [],
+            [],
+            [],
+        )
         actions_list, dists_list, alphas_list = [], [], []
         min_lidars_list, max_lidars_list = [], []
         total_rewards = []
 
-        model = PPO.load(robot_config.path_model) if robot_config.path_model != "None" else None
+        model = (
+            PPO.load(robot_config.path_model)
+            if robot_config.path_model != "None"
+            else None
+        )
 
         pbar = trange(max_steps, desc="Probe envs", unit="step")
 
         for _ in pbar:
-            actions = model.predict(obs)[0] if model else [env.action_space.sample() for _ in range(num_envs)]
+            actions = (
+                model.predict(obs)[0]
+                if model
+                else [env.action_space.sample() for _ in range(num_envs)]
+            )
             obs, rewards, dones, infos = env.step(actions)
 
             rewards = np.asarray(rewards, dtype=np.float32)
@@ -562,15 +600,15 @@ def probe_envs(
 
             # -------- métricas por passo ----------------------------------------
             for env_idx, info in enumerate(infos):
-                obstacles_scores .append(info.get("obstacle_score", 0.0))
+                obstacles_scores.append(info.get("obstacle_score", 0.0))
                 orientation_scores.append(info.get("orientation_score", 0.0))
-                progress_scores  .append(info.get("progress_score", 0.0))
-                time_scores      .append(info.get("time_score", 0.0))
+                progress_scores.append(info.get("progress_score", 0.0))
+                time_scores.append(info.get("time_score", 0.0))
                 total_rewards.append(rewards[env_idx])
 
-                actions_list .append(info.get("action", 0.0))
-                dists_list   .append(info.get("dist", 0.0))
-                alphas_list  .append(info.get("alpha", 0.0))
+                actions_list.append(info.get("action", 0.0))
+                dists_list.append(info.get("dist", 0.0))
+                alphas_list.append(info.get("alpha", 0.0))
                 min_lidars_list.append(info.get("min_lidar", 0.0))
                 max_lidars_list.append(info.get("max_lidar", 0.0))
 
@@ -588,9 +626,13 @@ def probe_envs(
                 avg_l = np.mean(completed_lengths[-100:])
             else:
                 avg_r = avg_l = 0
-            pbar.set_postfix({"Ep Comp.": len(completed_rewards),
-                                "Mean Reward(100)": f"{avg_r:.2f}",
-                                "Mean length(100)": f"{avg_l:.2f}"})
+            pbar.set_postfix(
+                {
+                    "Ep Comp.": len(completed_rewards),
+                    "Mean Reward(100)": f"{avg_r:.2f}",
+                    "Mean length(100)": f"{avg_l:.2f}",
+                }
+            )
 
         # adiciona episódios inacabados
         for idx in range(num_envs):
@@ -607,13 +649,13 @@ def probe_envs(
         axes = axes.flatten()
 
         metrics = [
-            ("Obstacles Score",  obstacles_scores, "brown"),
-            ("Orientation Score",orientation_scores,"green"),
-            ("Progress Score",   progress_scores,  "blue"),
-            ("Total Reward",     total_rewards,    "purple"),
-            ("Distance",         dists_list,       "cyan"),
-            ("Alpha",            alphas_list,      "magenta"),
-            ("Min Lidar",        min_lidars_list,  "yellow"),
+            ("Obstacles Score", obstacles_scores, "brown"),
+            ("Orientation Score", orientation_scores, "green"),
+            ("Progress Score", progress_scores, "blue"),
+            ("Total Reward", total_rewards, "purple"),
+            ("Distance", dists_list, "cyan"),
+            ("Alpha", alphas_list, "magenta"),
+            ("Min Lidar", min_lidars_list, "yellow"),
         ]
 
         for ax, (title, data, color) in zip(axes[:-1], metrics):
@@ -624,19 +666,30 @@ def probe_envs(
         if completed_rewards:
             x_ep = range(1, len(completed_rewards) + 1)
             ax_ep.plot(x_ep, completed_rewards, color="black", label="Episode Rewards")
-            ax_ep.plot(x_ep, completed_lengths, color="gray",  label="Episode Lengths")
+            ax_ep.plot(x_ep, completed_lengths, color="gray", label="Episode Lengths")
             ax_ep.set_ylabel("Episódios", fontsize=8)
             ax_ep.legend(fontsize=6)
             ax_ep.grid(True, linestyle="--", linewidth=0.5, alpha=0.7)
             ax_ep.tick_params(axis="x", labelsize=6)
             ax_ep.tick_params(axis="y", labelsize=6)
-            rµ, rmin, rmax = np.mean(completed_rewards), np.min(completed_rewards), np.max(completed_rewards)
-            lµ, lmin, lmax = np.mean(completed_lengths), np.min(completed_lengths), np.max(completed_lengths)
+            rµ, rmin, rmax = (
+                np.mean(completed_rewards),
+                np.min(completed_rewards),
+                np.max(completed_rewards),
+            )
+            lµ, lmin, lmax = (
+                np.mean(completed_lengths),
+                np.min(completed_lengths),
+                np.max(completed_lengths),
+            )
             ax_ep.text(
-                0.5, -0.4,
+                0.5,
+                -0.4,
                 f"Rewards → µ {rµ:.2f} | min {rmin:.2f} | max {rmax:.2f}\n"
                 f"Lengths → µ {lµ:.0f} | min {lmin} | max {lmax}",
-                transform=ax_ep.transAxes, ha="center", fontsize=6,
+                transform=ax_ep.transAxes,
+                ha="center",
+                fontsize=6,
             )
         else:
             ax_ep.set_visible(False)

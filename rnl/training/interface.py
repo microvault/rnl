@@ -51,6 +51,7 @@ def robot(
         path_model,
     )
 
+
 def sensor(
     fov: float, num_rays: int, min_range: float, max_range: float
 ) -> SensorConfig:
@@ -86,7 +87,7 @@ def make(
     type: str,
     grid_size: List,
     map_size: int,
-    obstacle_percentage: float
+    obstacle_percentage: float,
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -254,7 +255,7 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        type: str
+        type: str,
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
@@ -340,7 +341,7 @@ class Probe:
             self.env_config,
             self.render_config,
             self.seed,
-            reward_config
+            reward_config,
         )
 
         return None
