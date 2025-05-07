@@ -50,7 +50,7 @@ def main() -> None:
     gen = Generator(mode="custom")
     _, segs, _ = gen.world(grid_length=0)
 
-    SCALE_FACTOR = 2.0       # ou 0.05
+    SCALE_FACTOR = 1.0
 
     segs_scaled = [
         (x1 * SCALE_FACTOR, y1 * SCALE_FACTOR, x2 * SCALE_FACTOR, y2 * SCALE_FACTOR)

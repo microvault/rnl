@@ -86,6 +86,7 @@ def make(
     type: str,
     grid_size: List,
     map_size: int,
+    noise: bool,
     obstacle_percentage: float
 ) -> EnvConfig:
 
@@ -102,6 +103,7 @@ def make(
         obstacle_percentage=obstacle_percentage,
         map_size=map_size,
         type=type,
+        noise=noise,
         grid_size=grid_size,
     )
 

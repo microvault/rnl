@@ -1,8 +1,6 @@
 import argparse
 import os
 
-from torch import clip, clip_
-
 import rnl as vault
 
 
@@ -16,9 +14,9 @@ def main(arg):
         vel_angular=[1.0, 2.84],
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.10,  # 4 # 0.03
+        threshold=0.00001,  # 4 # 0.10
         collision=0.05,  # 2 # 0.075
-        path_model="/Users/nicolasalan/microvault/rnl/checkpoints/model_210000_steps/policy.pth",
+        path_model="",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
@@ -34,10 +32,11 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="./data/map6",
         name_map="map6",
-        max_timestep=500,
+        max_timestep=10000000,
         type=args.type,
         grid_size=[2.2, 2.15],
         map_size=2,
+        noise=True,
         obstacle_percentage=40
     )
 

@@ -11,6 +11,7 @@ class EnvConfig:
     obstacle_percentage: float
     map_size: float
     type: str
+    noise: bool
     grid_size: List[float]
 
 

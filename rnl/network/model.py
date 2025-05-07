@@ -8,8 +8,8 @@ from stable_baselines3.common.policies import ActorCriticPolicy
 class CustomNetwork(nn.Module):
     def __init__(self, feature_dim: int):
         super().__init__()
-        self.latent_dim_pi = 8
-        self.latent_dim_vf = 8
+        self.latent_dim_pi = 16
+        self.latent_dim_vf = 16
 
         def block(in_f, out_f):
             return nn.Sequential(
@@ -19,15 +19,15 @@ class CustomNetwork(nn.Module):
             )
 
         self.policy_net = nn.Sequential(
-            block(feature_dim, 16),
-            block(16, 16),
-            block(16, 8),
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 16),
         )
 
         self.value_net = nn.Sequential(
-            block(feature_dim, 16),
-            block(16, 16),
-            block(16, 8),
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 16),
         )
 
     def forward(self, features: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:

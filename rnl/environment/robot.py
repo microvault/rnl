@@ -11,7 +11,6 @@ class Robot:
     A class representing a robot with physical and sensor properties.
     """
 
-    # ⏱️ passo fixo do simulador
     dt: float = 1 / 60
     inv_dt: float = 60  # 1/dt
 

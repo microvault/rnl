@@ -68,6 +68,10 @@ class NaviEnv(gym.Env):
         self.steps_command_angular = 0
         self.x = env_config.grid_size[0]
         self.y = env_config.grid_size[1]
+        self.pos_noise_std = 0.01  # metros
+        self.ang_noise_std = 0.005  # radianos
+        self.lidar_noise_std = 0.02
+        self.noise = env_config.noise
 
         # self.model_recurrent = RecurrentPPO.load("/Users/nicolasalan/microvault/rnl/checkpoint_models/model_70000_steps.zip")
         # num_envs = 1
@@ -154,17 +158,17 @@ class NaviEnv(gym.Env):
         self.scaler_dist = CustomMinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = CustomMinMaxScaler(feature_range=(0, 1))
 
-        max_lidar, min_lidar = sensor_config.max_range, sensor_config.min_range
+        self.max_lidar, self.min_lidar = sensor_config.max_range, sensor_config.min_range
         self.scaler_lidar.fit(
             np.array(
                 [
-                    [min_lidar] * self.max_num_rays,
-                    [max_lidar] * self.max_num_rays,
+                    [self.min_lidar] * self.max_num_rays,
+                    [self.max_lidar] * self.max_num_rays,
                 ]
             )
         )
         self.use_render = use_render
-        self.max_dist = compute_polygon_diameter(self.poly) * 0.8  # fator
+        self.max_dist = compute_polygon_diameter(self.poly) * 0.8
         self.min_dist = 0.0
         self.scaler_dist.fit(np.array([[self.min_dist], [self.max_dist]]))
 
@@ -203,7 +207,6 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
-                                hidden=[20, 64],
                                 pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -248,12 +251,12 @@ class NaviEnv(gym.Env):
             self.steps_command_angular += 1
             self.action = 1
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vr = self.max_vr/8 * self.scalar
         elif event.key == "left":
             self.steps_command_angular += 1
             self.action = 2
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = self.max_vr/8 * self.scalar
+            self.vr = -self.max_vr/8 * self.scalar
         elif event.key == "down":
             self.action = 3
             self.vl = self.max_lr/6 * self.scalar
@@ -309,15 +312,31 @@ class NaviEnv(gym.Env):
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
+
         x, y, theta = (
             self.body.position.x,
             self.body.position.y,
             self.body.angle,
         )
 
+        if self.noise:
+            x = x + np.random.normal(0, self.pos_noise_std)
+            y = y + np.random.normal(0, self.pos_noise_std)
+            theta = theta + np.random.normal(0, self.ang_noise_std)
+
+
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
+
+        if self.noise:
+            lidar_measurements = np.clip(
+                lidar_measurements + np.random.normal(
+                    0, self.lidar_noise_std, size=lidar_measurements.shape
+                ),
+                self.min_lidar,
+                self.max_lidar
+            )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y, self.max_dist)
 
@@ -349,6 +368,7 @@ class NaviEnv(gym.Env):
                 np.array(alpha_norm, dtype=np.float32),
             )
         )
+
         if laser < (self.collision * 1.2):
             self.steps_unsafe_area += 1
 
@@ -611,7 +631,7 @@ class NaviEnv(gym.Env):
                     goal_clearance=self.collision + 0.1,
                     min_robot_goal_dist=0.3,
                 )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+                self.target_x, self.target_y = 3.74, -0.30# goal_pos[0], goal_pos[1]
                 x, y = robot_pos[0], robot_pos[1]
 
                 self.sensor.update_map(self.segments)
