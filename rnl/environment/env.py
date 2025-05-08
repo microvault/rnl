@@ -48,7 +48,7 @@ class NaviEnv(gym.Env):
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space)
 
-        self.max_lr = robot_config.max_vel_angular
+        self.max_lr = robot_config.max_vel_linear
         self.max_vr = robot_config.max_vel_angular
 
         self.reward_config = type_reward
@@ -205,6 +205,8 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
+                                hidden_sizes=(32, 32, 32),
+                                activation="LeakyReLU",
                                 pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(

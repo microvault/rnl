@@ -156,7 +156,7 @@ class Trainer:
         name: str,
         verbose: bool,
         policy: str,
-    ) -> None:
+    ):
 
         if seed < 0:
             raise ValueError("Error: Seed must be greater than or equal to 0.")
@@ -245,9 +245,10 @@ class Trainer:
                 num_populations=population,
                 description_task=description_task
             )
+            return None
 
         else:
-            training(
+            metrics = training(
                 self.robot_config,
                 self.sensor_config,
                 self.env_config,
@@ -258,8 +259,8 @@ class Trainer:
                 print_parameter=True,
                 train=False,
             )
+            return metrics
 
-        return None
 
 
 class Simulation:

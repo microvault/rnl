@@ -14,7 +14,7 @@ def main(arg):
         max_vel_angular=2.84,
         wheel_distance=0.16,
         weight=1.0,
-        threshold=0.00001,  # 4 # 0.10
+        threshold=0.1,  # 4 # 0.10
         collision=0.05,  # 2 # 0.075
         path_model="",
     )
@@ -36,7 +36,7 @@ def main(arg):
         type=args.type,
         grid_size=[2.2, 2.15],
         map_size=2,
-        noise=True,
+        noise=False,
         obstacle_percentage=40
     )
 

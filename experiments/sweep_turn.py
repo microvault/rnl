@@ -4,15 +4,14 @@ import rnl as vault
 
 sweep_config = {
     'method': 'random',
-    'metric': {'name': 'reward_mean', 'goal': 'maximize'},
+    'metric': {'name': 'composite_score', 'goal': 'maximize'},
     'parameters': {
         'max_timestep_global': {'values': [20000, 30000, 40000]},
         'seed': {'values': [1, 2, 3, 4, 5]},
         'hidden_size': {'values': [[128, 64], [64, 32], [32, 16]]},
-        'activation': {'values': ['ReLU', 'LeakyReLU', 'Tanh']},
+        'activation': {'values': ['ReLU', 'LeakyReLU', 'Tanh', 'Sigmoid']},
         'batch_size': {'values': [8, 16, 32, 64, 128]},
         'num_envs': {'values': [4, 8, 12]},
-        'device': {'values': ['cpu', 'mps']},
         'lr': {'values': [1e-2, 1e-3, 1e-4, 1e-5]},
         'learn_step': {'values': [128, 256, 512]},
         'gae_lambda': {'min': 0.90, 'max': 0.95},
@@ -64,7 +63,7 @@ def train():
         param_env,
         param_render,
     )
-    model.learn(
+    metrics = model.learn(
         population=0,
         loop_feedback=0,
         description_task="",
@@ -76,8 +75,8 @@ def train():
         activation=cfg.activation,
         batch_size=cfg.batch_size,
         num_envs=cfg.num_envs,
-        device=cfg.device,
-        checkpoint=0,
+        device="mps",
+        checkpoint=40001,
         checkpoint_path=".",
         use_wandb=False,
         wandb_api_key="",
@@ -92,9 +91,29 @@ def train():
         clip_range_vf=cfg.clip_range_vf,
         target_kl=cfg.target_kl,
         name="",
-        verbose=False,
+        verbose=True,
         policy=cfg.policy,
     )
+
+    keys = [
+        'success_percentage',
+        'percentage_unsafe',
+        'percentage_angular',
+        'ep_mean_length',
+        'avg_collision_steps',
+        'avg_goal_steps'
+        ]
+    m = {k: metrics[k] for k in keys}
+
+    # 3) inverte as que têm que ser minimizadas
+    for k in keys[1:]:
+        m[k + '_inv'] = -m[k]
+
+    # 4) compõe o score
+    m['composite_score'] = m['success_percentage'] + sum(m[k + '_inv'] for k in keys[1:])
+
+    # 5) loga tudo
+    wandb.log(m)
 
 if __name__ == "__main__":
     sweep_id = wandb.sweep(sweep_config, project="sweep-turn")

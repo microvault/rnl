@@ -77,7 +77,7 @@ def train():
         batch_size=cfg.batch_size,
         num_envs=cfg.num_envs,
         device=cfg.device,
-        checkpoint=0,
+        checkpoint=40001,
         checkpoint_path=".",
         use_wandb=False,
         wandb_api_key="",
