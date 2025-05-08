@@ -10,12 +10,12 @@ from rnl.configs.config import (
 )
 from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import inference, probe_envs, training
-
+from rnl.training.train import run_multiple_parallel_trainings
 
 def robot(
     base_radius: float,
-    vel_linear: List,
-    vel_angular: List,
+    max_vel_linear: float,
+    max_vel_angular: float,
     wheel_distance: float,
     weight: float,
     threshold: float,
@@ -42,8 +42,8 @@ def robot(
 
     return RobotConfig(
         base_radius,
-        vel_linear,
-        vel_angular,
+        max_vel_linear,
+        max_vel_angular,
         wheel_distance,
         weight,
         threshold,
@@ -127,12 +127,14 @@ class Trainer:
 
     def learn(
         self,
+        population: int,
+        loop_feedback: int,
+        description_task: str,
         pretrained: str,
         use_agents: bool,
         max_timestep_global: int,
         seed: int,
         hidden_size: List[int],
-        type_model: str,
         batch_size: int,
         num_envs: int,
         device: str,
@@ -153,7 +155,7 @@ class Trainer:
         target_kl: float,
         name: str,
         verbose: bool,
-        policy_type: str,
+        policy: str,
     ) -> None:
 
         if seed < 0:
@@ -179,13 +181,9 @@ class Trainer:
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
 
-        # if type_model == "MlpPolicy":
-        #     type_model = CustomActorCriticPolicy
-
         network_config = NetworkConfig(
             hidden_size=hidden_size,
             mlp_activation=activation,
-            type_model=type_model,
         )
         trainer_config = TrainerConfig(
             pretrained=pretrained,
@@ -212,18 +210,14 @@ class Trainer:
             target_kl=target_kl,
             name=name,
             verbose=verbose,
-            policy_type=policy_type,
+            policy=policy,
         )
 
-        # if not self.render_config.debug:
-        #     raise ValueError("Error: Debug mode is not supported for training.")
         if self.render_config.plot:
             raise ValueError("Error: Plot mode is not supported for training.")
         if self.render_config.controller:
             raise ValueError("Error: Controller mode is not supported for training.")
 
-        print_parameter = True
-        train = False
         reward_config = RewardConfig(
             params={
                 "scale_orientation": 0.0,
@@ -234,17 +228,36 @@ class Trainer:
             },
         )
 
-        training(
-            self.robot_config,
-            self.sensor_config,
-            self.env_config,
-            self.render_config,
-            trainer_config,
-            network_config,
-            reward_config,
-            print_parameter,
-            train=train,
-        )
+        if use_agents:
+            config = {
+                "robot_config": self.robot_config,
+                "sensor_config": self.sensor_config,
+                "env_config": self.env_config,
+                "render_config": self.render_config,
+                "trainer_config": trainer_config,
+                "network_config": network_config,
+                "reward_config": reward_config,
+            }
+            configs = population * [config]
+            run_multiple_parallel_trainings(
+                num_loops=loop_feedback,
+                initial_configs=configs,
+                num_populations=population,
+                description_task=description_task
+            )
+
+        else:
+            training(
+                self.robot_config,
+                self.sensor_config,
+                self.env_config,
+                self.render_config,
+                trainer_config,
+                network_config,
+                reward_config,
+                print_parameter=True,
+                train=False,
+            )
 
         return None
 
@@ -299,8 +312,6 @@ class Probe:
         render_config: RenderConfig,
     ) -> None:
 
-        print(seed)
-
         if seed < 0:
             raise ValueError("Error: Seed must be greater than or equal to 0.")
         if max_steps < 0:
@@ -326,10 +337,10 @@ class Probe:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.01,  # 0.02
-                "scale_distance": 0.01,  # 0.06
-                "scale_time": 0.01,  # 0.01
-                "scale_obstacle": 0.01,  # 0.004
+                "scale_orientation": 0.01,
+                "scale_distance": 0.01,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.01,
                 "scale_angular": 0.01,
             },
         )

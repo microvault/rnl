@@ -83,7 +83,7 @@ def run_parallel_trainings(list_of_configs):
 
 
 def run_multiple_parallel_trainings(
-    num_loops, initial_configs, num_populations
+    num_loops, initial_configs, num_populations, description_task
 ):
     evaluator = LLMTrainingEvaluator(
         api_key=initial_configs[0]["trainer_config"].llm_api_key,
@@ -124,7 +124,7 @@ def run_multiple_parallel_trainings(
             }
         ]
 
-        reflection = evaluator.directed_reflection(best_metrics, history, summary_data)
+        reflection = evaluator.directed_reflection(best_metrics, history, summary_data, description_task)
         reflections.append(reflection)
         print(f"\033[35m{reflection}\033[0m")
 
@@ -226,116 +226,118 @@ def print_population_metrics(population_summaries):
         )
 
 
-if __name__ == "__main__":
-    configs = _parse_simple_yaml("rnl/configs/train_configs.yaml")
+# if __name__ == "__main__":
+#     configs = _parse_simple_yaml("rnl/configs/train.yaml")
 
-    robot_config = RobotConfig(
-        base_radius=configs["robot"]["base_radius"],
-        vel_linear=[configs["robot"]["vel_linear"][0], configs["robot"]["vel_linear"][1]],
-        vel_angular=[configs["robot"]["vel_angular"][0], configs["robot"]["vel_angular"][1]],
-        wheel_distance=configs["robot"]["wheel_distance"],
-        weight=configs["robot"]["weight"],
-        threshold=configs["robot"]["threshold"],
-        collision=configs["robot"]["collision"],
-        path_model="None",
-    )
-    sensor_config = SensorConfig(
-        fov=configs["sensor"]["fov"],
-        num_rays=configs["sensor"]["num_rays"],
-        min_range=configs["sensor"]["min_range"],
-        max_range=configs["sensor"]["max_range"]
-    )
-    env_config = EnvConfig(
-        scalar=configs["env"]["scalar"],
-        folder_map=configs["env"]["folder_map"],
-        name_map=configs["env"]["name_map"],
-        timestep=configs["env"]["timestep"],
-        obstacle_percentage=configs["env"]["obstacle_percentage"],
-        map_size=configs["env"]["map_size"],
-        type=configs["env"]["type"],
-        grid_size=configs["env"]["grid_size"]
-    )
-    render_config = RenderConfig(
-        controller=configs["render"]["controller"],
-        debug=configs["render"]["debug"],
-        plot=configs["render"]["plot"]
-    )
+#     robot_config = RobotConfig(
+#         base_radius=configs["robot"]["base_radius"],
+#         max_vel_linear=configs["robot"]["max_vel_linear"],
+#         max_vel_angular=configs["robot"]["max_vel_angular"],
+#         wheel_distance=configs["robot"]["wheel_distance"],
+#         weight=configs["robot"]["weight"],
+#         threshold=configs["robot"]["threshold"],
+#         collision=configs["robot"]["collision"],
+#         path_model="None",
+#     )
+#     sensor_config = SensorConfig(
+#         fov=configs["sensor"]["fov"],
+#         num_rays=configs["sensor"]["num_rays"],
+#         min_range=configs["sensor"]["min_range"],
+#         max_range=configs["sensor"]["max_range"]
+#     )
+#     env_config = EnvConfig(
+#         scalar=configs["env"]["scalar"],
+#         folder_map=configs["env"]["folder_map"],
+#         name_map=configs["env"]["name_map"],
+#         timestep=configs["env"]["timestep"],
+#         obstacle_percentage=configs["env"]["obstacle_percentage"],
+#         map_size=configs["env"]["map_size"],
+#         type=configs["env"]["type"],
+#         grid_size=configs["env"]["grid_size"],
+#         noise=False,
+#     )
+#     render_config = RenderConfig(
+#         controller=configs["render"]["controller"],
+#         debug=configs["render"]["debug"],
+#         plot=configs["render"]["plot"]
+#     )
 
-    trainer_config = TrainerConfig(
-        pretrained=configs["trainer"]["pretrained"],
-        use_agents=configs["trainer"]["use_agents"],
-        max_timestep_global=configs["trainer"]["max_timestep_global"],
-        seed=configs["trainer"]["seed"],
-        batch_size=configs["trainer"]["batch_size"],
-        num_envs=configs["trainer"]["num_envs"],
-        device=configs["trainer"]["device"],
-        checkpoint=configs["trainer"]["checkpoint"],
-        checkpoint_path=configs["trainer"]["checkpoint_path"],
-        use_wandb=configs["trainer"]["use_wandb"],
-        wandb_api_key=str(os.environ.get("WANDB_API_KEY")),
-        wandb_mode="offline",
-        llm_api_key=str(os.environ.get("GEMINI_API_KEY")),
-        lr=configs["trainer"]["lr"],
-        learn_step=configs["trainer"]["learn_step"],
-        gae_lambda=configs["trainer"]["gae_lambda"],
-        ent_coef=configs["trainer"]["ent_coef"],
-        vf_coef=configs["trainer"]["vf_coef"],
-        max_grad_norm=configs["trainer"]["max_grad_norm"],
-        update_epochs=configs["trainer"]["update_epochs"],
-        clip_range_vf=configs["trainer"]["clip_range_vf"],
-        target_kl=configs["trainer"]["target_kl"],
-        name=configs["trainer"]["name"],
-        verbose=configs["trainer"]["verbose"],
-        policy_type=configs["trainer"]["policy_type"],
-    )
+#     trainer_config = TrainerConfig(
+#         pretrained=configs["trainer"]["pretrained"],
+#         use_agents=configs["trainer"]["use_agents"],
+#         max_timestep_global=configs["trainer"]["max_timestep_global"],
+#         seed=configs["trainer"]["seed"],
+#         batch_size=configs["trainer"]["batch_size"],
+#         num_envs=configs["trainer"]["num_envs"],
+#         device=configs["trainer"]["device"],
+#         checkpoint=configs["trainer"]["checkpoint"],
+#         checkpoint_path=configs["trainer"]["checkpoint_path"],
+#         use_wandb=configs["trainer"]["use_wandb"],
+#         wandb_api_key=str(os.environ.get("WANDB_API_KEY")),
+#         wandb_mode="offline",
+#         llm_api_key=str(os.environ.get("GEMINI_API_KEY")),
+#         lr=configs["trainer"]["lr"],
+#         learn_step=configs["trainer"]["learn_step"],
+#         gae_lambda=configs["trainer"]["gae_lambda"],
+#         ent_coef=configs["trainer"]["ent_coef"],
+#         vf_coef=configs["trainer"]["vf_coef"],
+#         max_grad_norm=configs["trainer"]["max_grad_norm"],
+#         update_epochs=configs["trainer"]["update_epochs"],
+#         clip_range_vf=configs["trainer"]["clip_range_vf"],
+#         target_kl=configs["trainer"]["target_kl"],
+#         name=configs["trainer"]["name"],
+#         verbose=configs["trainer"]["verbose"],
+#         policy=configs["trainer"]["policy"],
+#     )
 
-    network_config = NetworkConfig(
-        hidden_size=configs["network"]["hidden_size"],
-        mlp_activation=configs["network"]["mlp_activation"],
-        type_model=configs["network"]["type_model"],
-    )
+#     network_config = NetworkConfig(
+#         hidden_size=configs["network"]["hidden_size"],
+#         mlp_activation=configs["network"]["mlp_activation"],
+#     )
 
-    reward_config_1 = RewardConfig(
-        params={
-            "scale_orientation": 0.0,
-            "scale_distance": 0.0,
-            "scale_time": 0.02,
-            "scale_obstacle": 0.0,
-            "scale_angular": 0.0,
-        },
-    )
+#     reward_config_1 = RewardConfig(
+#         params={
+#             "scale_orientation": 0.0,
+#             "scale_distance": 0.0,
+#             "scale_time": 0.02,
+#             "scale_obstacle": 0.0,
+#             "scale_angular": 0.0,
+#         },
+#     )
 
-    reward_config_2 = RewardConfig(
-        params={
-            "scale_orientation": 0.0,
-            "scale_distance": 0.0,
-            "scale_time": 0.0,
-            "scale_obstacle": 0.0,
-            "scale_angular": 0.05,
-        },
-    )
+#     reward_config_2 = RewardConfig(
+#         params={
+#             "scale_orientation": 0.0,
+#             "scale_distance": 0.0,
+#             "scale_time": 0.0,
+#             "scale_obstacle": 0.0,
+#             "scale_angular": 0.05,
+#         },
+#     )
 
-    config_1 = {
-        "robot_config": robot_config,
-        "sensor_config": sensor_config,
-        "env_config": env_config,
-        "render_config": render_config,
-        "trainer_config": trainer_config,
-        "network_config": network_config,
-        "reward_config": reward_config_1,
-    }
+#     config_1 = {
+#         "robot_config": robot_config,
+#         "sensor_config": sensor_config,
+#         "env_config": env_config,
+#         "render_config": render_config,
+#         "trainer_config": trainer_config,
+#         "network_config": network_config,
+#         "reward_config": reward_config_1,
+#     }
 
-    config_2 = {
-        "robot_config": robot_config,
-        "sensor_config": sensor_config,
-        "env_config": env_config,
-        "render_config": render_config,
-        "trainer_config": trainer_config,
-        "network_config": network_config,
-        "reward_config": reward_config_2,
-    }
-    configs = [config_1, config_2]
-    num_loops_feedback = 10
-    all_results = run_multiple_parallel_trainings(
-        num_loops_feedback, configs, num_populations=2
-    )
+#     config_2 = {
+#         "robot_config": robot_config,
+#         "sensor_config": sensor_config,
+#         "env_config": env_config,
+#         "render_config": render_config,
+#         "trainer_config": trainer_config,
+#         "network_config": network_config,
+#         "reward_config": reward_config_2,
+#     }
+
+#     configs = [config_1, config_2]
+#     num_loops_feedback = 10
+#     description_task = ""
+#     all_results = run_multiple_parallel_trainings(
+#         num_loops_feedback, configs, 2, description_task
+#     )

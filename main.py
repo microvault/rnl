@@ -10,8 +10,8 @@ def main(arg):
     # 1.step -> config robot
     param_robot = vault.robot(
         base_radius=0.105,
-        vel_linear=[0.0, 0.22],
-        vel_angular=[1.0, 2.84],
+        max_vel_linear=0.22,
+        max_vel_angular=2.84,
         wheel_distance=0.16,
         weight=1.0,
         threshold=0.00001,  # 4 # 0.10
@@ -57,12 +57,14 @@ def main(arg):
 
         # 6.step -> train robot
         model.learn(
+            population=args.population,
+            loop_feedback=args.loop_feedback,
+            description_task=args.description_task,
             pretrained=args.pretrained,
             use_agents=args.agents,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
             hidden_size=list(map(int, args.hidden_size.split(","))),
-            type_model=args.type_model,
             activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
@@ -83,7 +85,7 @@ def main(arg):
             target_kl=args.target_kl,
             name=args.name,
             verbose=args.verbose,
-            policy_type=args.policy_type,
+            policy=args.policy,
         )
 
     elif args.mode == "sim":
@@ -137,6 +139,21 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--population",
+        type=int,
+    )
+
+    parser.add_argument(
+        "--loop_feedback",
+        type=int,
+    )
+
+    parser.add_argument(
+        "--description_task",
+        type=str,
+    )
+
+    parser.add_argument(
         "--seed",
         type=int,
     )
@@ -149,7 +166,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--activation",
         type=str,
-        choices=["LeakyReLU", "ReLU"],
+        choices=["LeakyReLU", "ReLU", "Tanh", "Sigmoid"],
     )
 
     parser.add_argument(
@@ -269,14 +286,10 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--policy_type",
+        "--policy",
         type=str,
     )
 
-    parser.add_argument(
-        "--type_model",
-        type=str,
-    )
 
     args = parser.parse_args()
     main(args)

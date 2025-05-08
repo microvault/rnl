@@ -104,10 +104,9 @@ class LLMTrainingEvaluator:
                 except json.JSONDecodeError as e:
                     logging.debug("Falha manual: %s\n%s", e, clean)
 
-        # fallback
         raise ValueError("Nenhum JSON parseável")
 
-    def directed_reflection(self, best_population_metrics, history, summary_data) -> str:
+    def directed_reflection(self, best_population_metrics, history, summary_data, task) -> str:
 
         hist_str = ""
         for loop_idx, loop_entry in enumerate(history, start=1):
@@ -156,10 +155,7 @@ class LLMTrainingEvaluator:
             * Escala de recompensa por acao angular (sempre negativa) -> minimo: 0.001, maximo: 0.1
 
         ## Ambiente
-        - O mapa é 2x2 m, onde o robô comeca sempre no meio com randomização de angulo theta, e o target randomizado nas duas extremidades do mapa.
-        - 500 steps totais, mas ~100 já levam o robô de ponta a ponta do mapa.
-        - 3 ações: 0 = frente, 1 = esquerda, 2 = direita.
-        - 6 estados: 5 leituras de LiDAR, distância ao objetivo, ângulo ao objetivo e estado do robô (frente/giro).
+            {task}
 
         ## Funções de recompensa:
             Colisão e chegada: Colidiu → -1.0 e termina; chegou → +1.0 e termina.

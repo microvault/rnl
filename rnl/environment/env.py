@@ -48,10 +48,8 @@ class NaviEnv(gym.Env):
         self.space = self.robot.create_space()
         self.body = self.robot.create_robot(space=self.space)
 
-        self.min_lr = robot_config.vel_linear[0]
-        self.max_lr = robot_config.vel_linear[1]
-        self.min_vr = robot_config.vel_angular[0]
-        self.max_vr = robot_config.vel_angular[1]
+        self.max_lr = robot_config.max_vel_angular
+        self.max_vr = robot_config.max_vel_angular
 
         self.reward_config = type_reward
 

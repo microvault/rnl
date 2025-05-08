@@ -33,8 +33,8 @@ class SensorConfig:
 @dataclass
 class RobotConfig:
     base_radius: float
-    vel_linear: List[float]
-    vel_angular: List[float]
+    max_vel_linear: float
+    max_vel_angular: float
     wheel_distance: float
     weight: float
     threshold: float
@@ -46,7 +46,6 @@ class RobotConfig:
 class NetworkConfig:
     hidden_size: List[int]
     mlp_activation: str
-    type_model: str
 
 
 @dataclass
@@ -75,7 +74,7 @@ class TrainerConfig:
     target_kl: float
     name: str
     verbose: bool
-    policy_type: str
+    policy: str
 
 
 @dataclass

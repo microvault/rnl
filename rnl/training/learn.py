@@ -59,7 +59,7 @@ def training(
 
     extra_info = {
         "Type mode": env_config.type,
-        "Type policy": trainer_config.policy_type,
+        "Type policy": trainer_config.policy,
         "scale_orientation": reward_config.params["scale_orientation"],
         "scale_distance": reward_config.params["scale_distance"],
         "scale_time": reward_config.params["scale_time"],
@@ -101,6 +101,8 @@ def training(
     activation_fn_map = {
         "ReLU": nn.ReLU,
         "LeakyReLU": nn.LeakyReLU,
+        'Tanh': nn.Tanh,
+        'Sigmoid': nn.Sigmoid,
     }
     activation_fn = activation_fn_map[network_config.mlp_activation]
 
@@ -168,12 +170,19 @@ def training(
             env = Monitor(env)
             return env
 
+    policy_kwargs = dict(
+        h1=network_config.hidden_size[0],
+        h2=network_config.hidden_size[1],
+        activation_fn=activation_fn
+    )
+
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
     else:
-        if trainer_config.policy_type == "TRPO":
+        if trainer_config.policy == "TRPO":
             model = TRPO(
                 policy=CustomActorCriticPolicy,
+                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=verbose_value,
@@ -182,7 +191,7 @@ def training(
                 device=trainer_config.device,
                 seed=trainer_config.seed,
             )
-        if trainer_config.policy_type == "RecurrentPPO":
+        if trainer_config.policy == "RecurrentPPO":
             model = RecurrentPPO(
                 "MlpLstmPolicy",
                 vec_env,
@@ -199,9 +208,10 @@ def training(
                 clip_range_vf=trainer_config.clip_range_vf,
                 seed=trainer_config.seed,
             )
-        elif trainer_config.policy_type == "PPO":
+        elif trainer_config.policy == "PPO":
             model = PPO(
                 policy=CustomActorCriticPolicy,
+                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=verbose_value,
@@ -216,9 +226,10 @@ def training(
                 target_kl=trainer_config.target_kl,
                 seed=trainer_config.seed,
             )
-        elif trainer_config.policy_type == "A2C":
+        elif trainer_config.policy == "A2C":
             model = A2C(
                 policy=CustomActorCriticPolicy,
+                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 verbose=verbose_value,
                 learning_rate=trainer_config.lr,
@@ -230,7 +241,7 @@ def training(
                 seed=trainer_config.seed,
                 device=trainer_config.device,
             )
-        elif trainer_config.policy_type == "DQN":
+        elif trainer_config.policy == "DQN":
             model = DQN(
                 'MlpPolicy',
                 DummyVecEnv([make_env]),
@@ -242,7 +253,7 @@ def training(
                 policy_kwargs=policy_kwargs_off_policy,
                 seed=trainer_config.seed,
             )
-        elif trainer_config.policy_type == "QRDQN":
+        elif trainer_config.policy == "QRDQN":
             model = QRDQN(
                 'MlpPolicy',
                 DummyVecEnv([make_env]),

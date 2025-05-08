@@ -3,6 +3,7 @@ import time
 
 from stable_baselines3.common.callbacks import BaseCallback
 
+import torch
 import numpy as np
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.training.utils import make_environemnt
@@ -50,14 +51,12 @@ class DynamicTrainingCallback(BaseCallback):
             os.makedirs(self.model_save_path)
 
     def _on_step(self) -> bool:
-        # Inicialização de métricas de episódio
         if len(self.locals["infos"]) > 0:
             for info in self.locals["infos"]:
                 if "episode" in info:
                     self.episode_rewards.append(info["episode"]["r"])
                     self.episode_lengths.append(info["episode"]["l"])
 
-        # Avaliação periódica
         if self.n_calls % self.check_freq == 0:
             eval_env = make_environemnt(
                 self.robot_config,
@@ -77,14 +76,12 @@ class DynamicTrainingCallback(BaseCallback):
                 avg_goal_steps,
             ) = evaluate_agent(self.model, eval_env)
 
-            # Coleta infos adicionais dos ambientes de treino
             infos_list = []
             for i in range(self.model.n_envs):
                 env_info = self.training_env.env_method("get_infos", indices=i)[0]
                 if env_info:
                     infos_list.extend(env_info)
 
-            # Estatísticas de scores extras
             stats = {}
             for campo in [
                 "obstacle_score",
@@ -96,9 +93,7 @@ class DynamicTrainingCallback(BaseCallback):
                     media, _, _, _ = statistics(infos_list, campo)
                     stats[campo + "_mean"] = media
 
-            # Prepara dicionário de métricas
             mean_metrics = {
-                # Avaliação
                 "success_rate_mean": sucess_rate,
                 "percentage_unsafe_mean": percentage_unsafe,
                 "percentage_angular_mean": percentage_angular,
@@ -112,20 +107,30 @@ class DynamicTrainingCallback(BaseCallback):
                 "ep_len_mean": float(np.mean(self.episode_lengths)) if self.episode_lengths else 0.0,
             }
 
-            # Logging apenas das métricas médias e totais
             for k, v in mean_metrics.items():
                 self.logger.record(f"rollout/{k}", v)
 
-            # W&B logging
             if self.wandb_run is not None:
                 wandb_log = {f"rollout/{k}": v for k, v in mean_metrics.items()}
                 self.wandb_run.log(wandb_log, step=self.n_calls)
 
-            # Salvamento de checkpoint
             if self.n_calls % self.save_checkpoint == 0:
                 save_path = f"{self.model_save_path}/model_{self.n_calls}_steps"
+                policy_sd = self.model.policy.state_dict()
+                h1 = self.model.policy.h1
+                h2 = self.model.policy.h2
+                act_name = self.model.policy.activation_fn.__name__
+
+                ckpt = {
+                    "state_dict": policy_sd,
+                    "config": {
+                        "hidden_sizes": [h1, h2],
+                        "activation":   act_name,
+                    }
+                }
+                torch.save(ckpt, save_path + ".pth")
                 print(f"Saving model to {save_path}")
-                self.model.save(save_path)
+                # self.model.save(save_path)
                 if self.wandb_run is not None:
                     self.wandb_run.save(save_path + ".zip")
 

@@ -21,8 +21,8 @@ sensor:
 
 robot:
   base_radius: 0.105
-  vel_linear: [0.0, 0.22]
-  vel_angular: [1.0, 2.84]
+  max_vel_linear: 0.22
+  max_vel_angular: 2.84
   wheel_distance: 0.16
   weight: 1.0
   threshold: 0.10
@@ -32,13 +32,11 @@ robot:
 network:
   hidden_size: [16, 16]
   mlp_activation: LeakyReLU
-  type_model: MlpPolicy
 
 trainer:
   pretrained: None
   use_agents: false
   max_timestep_global: 40000
-  # max_timestep_global: 1000
   seed: 1
   batch_size: 64
   lr: 1e-3
@@ -59,4 +57,4 @@ trainer:
   target_kl: 0.025
   name: robot_nav_skills
   verbose: false
-  policy_type: PPO
+  policy: PPO

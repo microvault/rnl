@@ -5,11 +5,14 @@ VERSION      = 1.1
 
 MODE              ?= learn
 MAX_TIMESTEP_GLOBAL ?= 250000
+POPULATION 		  ?= 2
+LOOP_FEEDBACK 	  ?= 10
+DESCRIPTION_TASK  ?= None
 SEED              ?= 1
 HIDDEN_SIZE       ?= 32,32
 ACTIVATION        ?= LeakyReLU
 BATCH_SIZE        ?= 64
-NUM_ENVS          ?= 12
+NUM_ENVS          ?= 2
 DEVICE            ?= mps
 LEARN_STEP        ?= 256
 CHECKPOINT        ?= 10000
@@ -33,13 +36,15 @@ MAP_NAME          ?= map
 TYPE 		  		?= custom
 OBSTACLE_PERCENTAGE ?= 0
 MAP_SIZE          ?= 0
-POLICY_TYPE       ?= PPO
-TYPE_MODEL        ?= MlpPolicy
+POLICY       ?= PPO
 
 TRAIN_ARGS = \
 	$(MODE) \
 	--agent $(USE_AGENTS) \
 	--max_timestep_global $(MAX_TIMESTEP_GLOBAL) \
+	--population $(POPULATION) \
+	--loop_feedback $(LOOP_FEEDBACK) \
+	--description_task $(DESCRIPTION_TASK) \
 	--seed $(SEED) \
 	--hidden_size $(HIDDEN_SIZE) \
 	--activation $(ACTIVATION) \
@@ -67,8 +72,7 @@ TRAIN_ARGS = \
 	--type $(TYPE) \
  	--obstacle_percentage $(OBSTACLE_PERCENTAGE) \
   	--map_size $(MAP_SIZE) \
-   	--policy_type $(POLICY_TYPE) \
-    --type_model $(TYPE_MODEL)
+   	--policy $(POLICY) \
 
 DOCKER_RUN_COMMON = -e WANDB_API_KEY=$(WANDB_API_KEY) \
 	-e GEMINI_API_KEY=$(GEMINI_API_KEY) \
@@ -83,6 +87,9 @@ DOCKER_RUN_COMMON = -e WANDB_API_KEY=$(WANDB_API_KEY) \
 define PRINT_CONFIG
 	@echo "MODE=$(MODE)"
 	@echo "MAX_TIMESTEP_GLOBAL=$(MAX_TIMESTEP_GLOBAL)"
+	@echo "POPULATION=$(POPULATION)"
+	@echo "LOOP_FEEDBACK=$(LOOP_FEEDBACK)"
+	@echo "DESCRIPTION_TASK=$(DESCRIPTION_TASK)"
 	@echo "SEED=$(SEED)"
 	@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
 	@echo "ACTIVATION=$(ACTIVATION)"
@@ -110,8 +117,7 @@ define PRINT_CONFIG
 	@echo "TYPE=$(TYPE)"
 	@echo "OBSTACLE_PERCENTAGE=$(OBSTACLE_PERCENTAGE)"
 	@echo "MAP_SIZE=$(MAP_SIZE)"
-	@echo "POLICY_TYPE=$(POLICY_TYPE)"
-	@echo "TYPE_MODEL=$(TYPE_MODEL)"
+	@echo "POLICY=$(POLICY)"
 	@echo
 endef
 
