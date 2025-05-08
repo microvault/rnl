@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-import math, os, random, signal, sys
-from pathlib import Path
+import math, os, random
 
 import numpy as np
 import rclpy
@@ -12,36 +11,85 @@ from sensor_msgs.msg import LaserScan
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
+from nav2_msgs.action import NavigateToPose
+from geometry_msgs.msg import PoseStamped
+from rclpy.action import ActionClient
+
+MAX_DISTANCE = 2.6593232221751464
+MIN_DISTANCE = 0.0
+MAX_LIDAR_RANGE = 5.0
+MIN_LIDAR_RANGE = 0.0
+MAX_ALPHA = 3.5 * 0.89
+MIN_ALPHA = 0.0
+VEL_LINEAR = 0.22
+VEL_ANGULAR = 2.84
+
+def distance_to_goal(
+    x: float, y: float, goal_x: float, goal_y: float, max_value: float
+) -> float:
+    dist = np.sqrt((x - goal_x) ** 2 + (y - goal_y) ** 2)
+    if dist >= max_value:
+        return max_value
+    else:
+        return dist
 
 
-def clamp(value, vmin, vmax):
-    return max(vmin, min(value, vmax))
+def angle_to_goal(x, y, theta, goal_x, goal_y, max_value):
+    ox, oy = math.cos(theta), math.sin(theta)          # orientação
+    gx, gy = goal_x - x, goal_y - y                    # vetor p/ alvo
+
+    # cross escalar 2-D
+    cross_val = ox * gy - oy * gx                      # -> float32 já ok
+    dot_val   = ox * gx + oy * gy
+
+    alpha = abs(math.atan2(abs(cross_val), dot_val))
+    return max_value if alpha >= max_value else alpha
+
+def block(in_f, out_f):
+    return nn.Sequential(
+        nn.Linear(in_f, out_f),
+        nn.LayerNorm(out_f),
+        nn.LeakyReLU(),
+    )
 
 
-def distance_to_goal(x, y, goal_x, goal_y):
-    return min(np.hypot(x - goal_x, y - goal_y), 9.0)
-
-
-def angle_to_goal(x, y, theta, goal_x, goal_y):
-    o_t = np.array([np.cos(theta), np.sin(theta)])
-    g_t = np.array([goal_x - x, goal_y - y])
-    return float(abs(np.arctan2(np.cross(o_t, g_t), np.dot(o_t, g_t))))
-
-
-class FlexMLP(nn.Module):
-    def __init__(self, in_dim, hidden):
+class PolicyBackbone(nn.Module):
+    def __init__(self, feature_dim: int):
         super().__init__()
-        layers, prev = [], in_dim
-        for h in hidden:
-            layers += [nn.Linear(prev, h), nn.ReLU()]
-            prev = h
-        self.body = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.body(x)
+        self.body = nn.Sequential(
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 16),
+        )
 
 
-def _map_sb3_keys(sd):
+class RNLPolicy(nn.Module):
+    def __init__(self, in_dim: int, n_act: int,
+                 pth: str, device: str = "cpu"):
+        super().__init__()
+        self.backbone = PolicyBackbone(in_dim)
+        self.head = nn.Linear(16, n_act)
+
+        ckpt = torch.load(pth, map_location=device)
+        if isinstance(ckpt, dict) and "state_dict" in ckpt:
+            ckpt = ckpt["state_dict"]
+
+        ckpt = _map_sb3_keys(ckpt)           # renomeia
+        missing, unexpected = self.load_state_dict(ckpt, strict=False)
+        assert not missing, f"Pesos faltando: {missing}"
+        self.eval()
+
+    @torch.no_grad()
+    def act(self, obs):
+        if not isinstance(obs, torch.Tensor):
+            obs = torch.as_tensor(obs, dtype=torch.float32)
+        if obs.dim() == 1:
+            obs = obs.unsqueeze(0)
+        logits = self.head(self.backbone.body(obs))
+        return Categorical(logits=logits).sample().item()
+
+
+def _map_sb3_keys(sd: dict) -> dict:
     new = {}
     for k, v in sd.items():
         if k.startswith("mlp_extractor.policy_net."):
@@ -53,48 +101,79 @@ def _map_sb3_keys(sd):
         new[new_k] = v
     return new
 
+def quat_to_yaw(x, y, z, w):
+    # yaw (em rad) = atan2(2*(w*z + x*y), 1 – 2*(y*y + z*z))
+    siny = 2.0 * (w * z + x * y)
+    cosy = 1.0 - 2.0 * (y * y + z * z)
+    return math.atan2(siny, cosy)
 
-class RNLPolicy(nn.Module):
-    def __init__(self, in_dim, n_act, hidden, pth, device="cpu"):
-        super().__init__()
-        self.backbone = FlexMLP(in_dim, hidden)
-        self.head = nn.Linear(hidden[-1], n_act)
 
-        ckpt = torch.load(pth, map_location=device)
-        if isinstance(ckpt, dict) and "state_dict" in ckpt:
-            ckpt = ckpt["state_dict"]
-        ckpt = _map_sb3_keys(ckpt)
-        self.load_state_dict(ckpt, strict=False)
-        self.eval()
+class CustomMinMaxScaler:
+    def __init__(self, feature_range=(0, 1)):
+        self.feature_range = feature_range
+        self.data_min = None
+        self.data_max = None
+        self.scale_ = None
+        self.min_ = None
 
-    @torch.no_grad()
-    def act(self, obs):
-        obs = torch.as_tensor(obs, dtype=torch.float32)
-        if obs.dim() == 1:
-            obs = obs.unsqueeze(0)
-        return Categorical(logits=self.head(self.backbone(obs))).sample().item()
+    def fit(self, X):
+        X = np.array(X)
+        self.data_min = np.min(X, axis=0)
+        self.data_max = np.max(X, axis=0)
+        data_range = self.data_max - self.data_min
+        data_range[data_range == 0] = 1
+        self.scale_ = (self.feature_range[1] - self.feature_range[0]) / data_range
+        self.min_ = self.feature_range[0] - self.data_min * self.scale_
+        return self
 
+    def transform(self, X):
+        X = np.array(X)
+        return X * self.scale_ + self.min_
+
+    def fit_transform(self, X):
+        return self.fit(X).transform(X)
 
 class InferenceModel(Node):
     def __init__(self):
         super().__init__('sim_environment')
         self.position = None
         self.last_states = np.zeros(8)
+        self.action = 0
+        self.target = False
 
-        self.goal_positions = [(3.0925, 2.6864), (4.6748, 1.3596),
-                               (3.7367, -0.2997), (2.0904, 0.6386)]
+        self.goal_positions = [(-0.370, -1.321), (-0.096, -0.814), (0.737, -1.210), (0.252, -1.905)]
         self.goal_order = random.sample(range(len(self.goal_positions)),
                                         len(self.goal_positions))
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[0]]
 
-        self.lidar_ranges = [0.0] * 5
-        self.data_min = [0.5]*5 + [1.0, 0.0, 0, 0, 0]
-        self.data_max = [3.5]*5 + [9.0, 3.5, 1, 1, 1]
+        self.max_num_rays = 5
+        self.goto_x = -0.00859
+        self.goto_y = -1.28529
+        self.lidar_ranges = [0.0] * self.max_num_rays
+        self.i_update = 0
+        self.update_rates = 2
 
         pkg_dir = get_package_share_directory('playground')
         model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
-        self.policy = RNLPolicy(8, 3, [20, 64], model_path)
+        # self.policy = RNLPolicy(8, 3, [20, 64], model_path)
+        self.policy = RNLPolicy(in_dim=8, n_act=3, pth=model_path)
+
+        self.scaler_lidar = CustomMinMaxScaler(feature_range=(0, 1))
+        self.scaler_dist = CustomMinMaxScaler(feature_range=(0, 1))
+        self.scaler_alpha = CustomMinMaxScaler(feature_range=(0, 1))
+
+        self.max_lidar, self.min_lidar = MAX_LIDAR_RANGE, MIN_LIDAR_RANGE
+        self.scaler_lidar.fit(
+            np.array(
+                [
+                    [self.min_lidar] * self.max_num_rays,
+                    [self.max_lidar] * self.max_num_rays,
+                ]
+            )
+        )
+        self.scaler_dist.fit(np.array([[MIN_DISTANCE], [MAX_DISTANCE]]))
+        self.scaler_alpha.fit(np.array([[MIN_ALPHA], [MAX_ALPHA]]))
 
         qos = QoSProfile(depth=10,
                          reliability=QoSReliabilityPolicy.RELIABLE,
@@ -103,6 +182,7 @@ class InferenceModel(Node):
                                reliability=QoSReliabilityPolicy.BEST_EFFORT,
                                durability=QoSDurabilityPolicy.VOLATILE)
 
+        self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         self.scan_sub = self.create_subscription(LaserScan, '/scan',
                                                  self.laser_callback, lidar_qos)
         self.amcl_sub = self.create_subscription(PoseWithCovarianceStamped,
@@ -125,11 +205,14 @@ class InferenceModel(Node):
     # ---------- robo ----------
     def move_robot(self, action):
         if action == 0:
-            vl, vr = 0.129, 0.0
+            vl = VEL_LINEAR/2
+            vr = 0.0
         elif action == 1:
-            vl, vr = 0.08, 0.7
+            vl = VEL_LINEAR/6
+            vr = -VEL_ANGULAR/8
         elif action == 2:
-            vl, vr = 0.08, -0.7
+            vl = VEL_LINEAR/6
+            vr = VEL_ANGULAR/8
         else:
             vl, vr = 0.0, 0.0
 
@@ -139,7 +222,7 @@ class InferenceModel(Node):
         self.cmd_vel_pub.publish(twist)
 
     def stop_robot(self):
-        self.cmd_vel_pub.publish(Twist())  # zero tudo
+        self.cmd_vel_pub.publish(Twist())
 
     # ---------- loop ----------
     def update(self):
@@ -147,40 +230,64 @@ class InferenceModel(Node):
             self.get_logger().debug('Aguardando /amcl_pose…')
             return
 
-        action = self.policy.act(self.last_states)
-        self.move_robot(action)
-        self.get_logger().info(f'Meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
+        if any(r < 0.4 for r in self.lidar_ranges):
+            self.get_logger().warn('Obstáculo! Parando robô...')
+            self.stop_robot()
+            self.action = 3
+            return
+
+        else:
+            # if self.i_update == self.update_rates: #and self.target == False:
+            #     self.i_update = 0
+            self.action = self.policy.act(self.last_states)
+            # self.get_logger().info(f'Meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
+            self.move_robot(self.action)
 
         x, y = self.position.position.x, self.position.position.y
-        z, w = self.position.orientation.z, self.position.orientation.w
-        theta = 2.0 * math.atan2(z, w)
+        q = self.position.orientation
+        theta = quat_to_yaw(q.x, q.y, q.z, q.w)
 
-        dist = distance_to_goal(x, y, self.goal_x, self.goal_y)
-        alpha = angle_to_goal(x, y, theta, self.goal_x, self.goal_y)
+        dist = distance_to_goal(x, y, self.goal_x, self.goal_y, MAX_DISTANCE)
+        alpha = angle_to_goal(x, y, theta, self.goal_x, self.goal_y, MAX_ALPHA)
 
-        norm_lidar = (np.clip(self.lidar_ranges, 0.5, 3.5) - 0.5) / 3.0
-        action_one_hot = [int(action != 0)]
-        self.last_states = np.concatenate([norm_lidar,
-                                           action_one_hot,
-                                           [dist/9.0, alpha/3.5]]).astype(np.float32)
+        lidar_array = np.array(self.lidar_ranges, dtype=np.float32)
+        lidar_norm = self.scaler_lidar.transform(lidar_array.reshape(1, -1)).flatten()
+        dist_norm = self.scaler_dist.transform(np.array(dist).reshape(1, -1)).flatten()
+        alpha_norm = self.scaler_alpha.transform(
+            np.array(alpha).reshape(1, -1)
+        ).flatten()
 
-        if dist <= 0.8:
+        action_one_hot = [np.int16(self.action != 0)]
+        self.last_states = np.concatenate(
+            (
+                np.array(lidar_norm, dtype=np.float32),
+                np.array(action_one_hot, dtype=np.int16),
+                np.array(dist_norm, dtype=np.float32),
+                np.array(alpha_norm, dtype=np.float32),
+            )
+        )
+
+        self.i_update += 1
+
+        # self.get_logger().warn(f'States: {self.last_states}')
+
+        if dist <= 0.2:
+            # self.target = True
+            # self.get_logger().info('SUCESS')
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)
             self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
             self.get_logger().info(f'Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
 
-
-# -------------------- main --------------------
 def main(args=None):
     rclpy.init(args=args)
     node = InferenceModel()
 
     try:
-        rclpy.spin(node)               # fica rodando até Ctrl-C
+        rclpy.spin(node)
     except KeyboardInterrupt:
         node.get_logger().info('Ctrl-C detectado, parando robô…')
     finally:
-        node.stop_robot()              # zera velocidade
+        node.stop_robot()
         node.destroy_node()
         rclpy.shutdown()
 
