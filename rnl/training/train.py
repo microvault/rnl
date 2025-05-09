@@ -90,7 +90,7 @@ def run_multiple_parallel_trainings(
         num_populations=num_populations,
     )
 
-    history     = deque(maxlen=10)   # guarda só os 10 últimos
+    history     = deque(maxlen=10)
     reflections = deque(maxlen=10)
     current_configs = initial_configs.copy()
 

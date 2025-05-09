@@ -182,7 +182,6 @@ def training(
         if trainer_config.policy == "TRPO":
             model = TRPO(
                 policy=CustomActorCriticPolicy,
-                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=verbose_value,
@@ -211,7 +210,6 @@ def training(
         elif trainer_config.policy == "PPO":
             model = PPO(
                 policy=CustomActorCriticPolicy,
-                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 batch_size=trainer_config.batch_size,
                 verbose=verbose_value,
@@ -229,7 +227,6 @@ def training(
         elif trainer_config.policy == "A2C":
             model = A2C(
                 policy=CustomActorCriticPolicy,
-                policy_kwargs=policy_kwargs,
                 env=vec_env,
                 verbose=verbose_value,
                 learning_rate=trainer_config.lr,
@@ -269,7 +266,6 @@ def training(
     id = random.randint(0, 1000000)
     callback = DynamicTrainingCallback(
         check_freq=100,
-        sample_checkpoint_freq=1000,
         run_id=str(id),
         wandb_run=run,
         save_checkpoint=trainer_config.checkpoint,
@@ -337,7 +333,6 @@ def training(
 
     eval_keys = [
         "success_percentage",
-        "total_timesteps",
         "percentage_unsafe",
         "percentage_angular",
         "ep_mean_length",

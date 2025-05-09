@@ -220,11 +220,11 @@ class Trainer:
 
         reward_config = RewardConfig(
             params={
-                "scale_orientation": 0.0,
+                "scale_orientation": 0.02,
                 "scale_distance": 0.0,
                 "scale_time": 0.01,
                 "scale_obstacle": 0.0,
-                "scale_angular": 0.0,
+                "scale_angular": 0.001,
             },
         )
 

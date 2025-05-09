@@ -248,15 +248,13 @@ class NaviEnv(gym.Env):
             self.vl = self.max_lr/2 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
-            self.steps_command_angular += 1
             self.action = 1
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = self.max_vr/8 * self.scalar
+            self.vr = -self.max_vr/8 * self.scalar
         elif event.key == "left":
-            self.steps_command_angular += 1
             self.action = 2
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vr = self.max_vr/8 * self.scalar
         elif event.key == "down":
             self.action = 3
             self.vl = self.max_lr/6 * self.scalar
@@ -287,11 +285,9 @@ class NaviEnv(gym.Env):
                 self.vl = self.max_lr/2 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.steps_command_angular += 1
                 self.vl = self.max_lr/6 * self.scalar
                 self.vr = -self.max_vr/8 * self.scalar
             elif self.action == 2:
-                self.steps_command_angular += 1
                 self.vl = self.max_lr/6 * self.scalar
                 self.vr = self.max_vr/8 * self.scalar
             elif self.action == 3:
@@ -311,7 +307,6 @@ class NaviEnv(gym.Env):
         #     self.vr = self.max_vr/8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
-
 
         x, y, theta = (
             self.body.position.x,
@@ -427,10 +422,13 @@ class NaviEnv(gym.Env):
         truncated = self.timestep >= self.max_timestep
 
         if collision and self.steps_to_collision == 0:
-            self.steps_to_collision = self.timestep         # registra a PRIMEIRA colisão
+            self.steps_to_collision = self.timestep
 
         if reward == 1 and self.steps_to_goal == 0:
             self.steps_to_goal = self.timestep
+
+        if self.action == 1 or self.action == 2:
+            self.steps_command_angular += 1
 
         if self.plot:
 
@@ -444,6 +442,20 @@ class NaviEnv(gym.Env):
             )
 
         if done or truncated:
+            if done or truncated:
+                info = {
+                    "steps_to_goal":        self.steps_to_goal,
+                    "steps_to_collision":   self.steps_to_collision,
+                    "steps_unsafe_area":    self.steps_unsafe_area,
+                    "steps_command_angular": self.steps_command_angular,
+                    "total_timestep":       self.timestep,
+                }
+
+                self.steps_to_goal        = 0
+                self.steps_to_collision   = 0
+                self.steps_unsafe_area    = 0
+                self.steps_command_angular = 0
+                self.timestep             = 0
             self.episode_starts = done
             self._stop()
 
@@ -571,7 +583,21 @@ class NaviEnv(gym.Env):
                 "min_lidar": float(min(lidar_norm)),
                 "max_lidar": float(max(lidar_norm)),
             }
-            info = clean_info(info)
+            if done or truncated:
+                info.update({
+                    "steps_to_goal":        self.steps_to_goal,
+                    "steps_to_collision":   self.steps_to_collision,
+                    "steps_unsafe_area":    self.steps_unsafe_area,
+                    "steps_command_angular": self.steps_command_angular,
+                    "total_timestep":       self.timestep,
+                })
+
+                self.steps_to_goal        = 0
+                self.steps_to_collision   = 0
+                self.steps_unsafe_area    = 0
+                self.steps_command_angular = 0
+                self.timestep             = 0
+
             self.infos_list.append(info)
             return states, reward, done, truncated, info
 
@@ -598,8 +624,14 @@ class NaviEnv(gym.Env):
                 self.new_map_path, self.segments, self.poly = self.generator.world()
                 targets = np.array([[1.75, 1.75], [0.35, 0.35]])
                 idx = np.random.randint(2)
+
+                if idx == 1:
+                    theta = 0.7853981633974483 + np.pi + np.random.uniform(-np.pi/6, np.pi/6)
+                else:
+                    theta = np.random.uniform(0, np.pi/2)
+
                 (self.target_x, self.target_y), (x, y) = targets[idx], targets[1 - idx]
-                self.robot.reset_robot(self.body, x, y, np.random.uniform(0, 2 * np.pi))
+                self.robot.reset_robot(self.body, x, y, theta)
 
             elif self.mode == "long":
                 self.new_map_path, self.segments, self.poly = self.generator.world()
@@ -861,29 +893,9 @@ class NaviEnv(gym.Env):
                 f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}"
             )
             raise
+        info = {}
 
-        if self.debug:
-            info = {
-                "steps_to_goal": self.steps_to_goal,
-                "steps_to_collision": self.steps_to_collision,
-                "steps_unsafe_area": self.steps_unsafe_area,
-                "steps_command_angular": self.steps_command_angular,
-                "total_timestep": self.timestep,
-            }
-
-
-            self.steps_to_goal = 0
-            self.steps_to_collision = 0
-            self.timestep = 0
-            self.steps_unsafe_area = 0
-            self.steps_command_angular = 0
-
-            return states, info
-
-        else:
-            info = {}
-
-            return states, info
+        return states, info
 
     def render(self, mode="human"):
         self.ani = animation.FuncAnimation(

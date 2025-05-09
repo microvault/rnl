@@ -4,15 +4,11 @@ import rnl as vault
 
 sweep_config = {
     'method': 'random',
-    'metric': {'name': 'reward_mean', 'goal': 'maximize'},
+    'metric': {'name': 'time_score_mean', 'goal': 'maximize'},
     'parameters': {
         'max_timestep_global': {'values': [20000, 30000, 40000]},
-        'seed': {'values': [1, 2, 3, 4, 5]},
-        'hidden_size': {'values': [[128, 64], [64, 32], [32, 16]]},
-        'activation': {'values': ['ReLU', 'LeakyReLU', 'Tanh']},
-        'batch_size': {'values': [8, 16, 32, 64, 128]},
-        'num_envs': {'values': [4, 8, 12]},
-        'device': {'values': ['cpu', 'mps']},
+        'activation': {'values': ['ReLU', 'LeakyReLU', 'Tanh', 'Sigmoid']},
+        'batch_size': {'values': [8, 16, 32]},
         'lr': {'values': [1e-2, 1e-3, 1e-4, 1e-5]},
         'learn_step': {'values': [128, 256, 512]},
         'gae_lambda': {'min': 0.90, 'max': 0.95},
@@ -20,8 +16,7 @@ sweep_config = {
         'vf_coef': {'min': 0.3, 'max': 0.5},
         'update_epochs': {'values': [3, 5, 7, 9]},
         'clip_range_vf': {'min': 0.2, 'max': 0.5},
-        'target_kl': {'values': [0.025, 0.05, 0.075, 0.1]},
-        'policy': {'values': ['PPO', 'A2C', 'DQN', 'TRPO', 'QRDQN']},
+        'target_kl': {'values': [0.025, 0.05]},
     }
 }
 
@@ -64,19 +59,19 @@ def train():
         param_env,
         param_render,
     )
-    model.learn(
+    metrics = model.learn(
         population=0,
         loop_feedback=0,
         description_task="",
         pretrained="None",
         use_agents=False,
-        max_timestep_global=cfg.max_timestep_global,
-        seed=cfg.seed,
-        hidden_size=cfg.hidden_size,
+        max_timestep_global=30000,
+        seed=1,
+        hidden_size=[16, 16],
         activation=cfg.activation,
         batch_size=cfg.batch_size,
-        num_envs=cfg.num_envs,
-        device=cfg.device,
+        num_envs=8,
+        device="mps",
         checkpoint=40001,
         checkpoint_path=".",
         use_wandb=False,
@@ -93,8 +88,10 @@ def train():
         target_kl=cfg.target_kl,
         name="",
         verbose=False,
-        policy=cfg.policy,
+        policy="PPO",
     )
+
+    wandb.log({'time_score_mean': metrics['time_score_mean']})
 
 if __name__ == "__main__":
     sweep_id = wandb.sweep(sweep_config, project="sweep-avoid")

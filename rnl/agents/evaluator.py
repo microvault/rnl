@@ -20,7 +20,7 @@ DEFAULT_CONFIG = {
 
 
 class LLMTrainingEvaluator:
-    def __init__(self, api_key: str, num_populations: int = 5) -> None:
+    def __init__(self, api_key: str, num_populations: int) -> None:
             self.api_key = api_key
             self.num_populations = num_populations
             self.client = genai.Client(api_key=self.api_key)
@@ -48,7 +48,7 @@ class LLMTrainingEvaluator:
                 "configurations": {
                     "type": "array",
                     "minItems": n,
-                    "maxItems": n,          #  ← aqui trava no “exatamente n”
+                    "maxItems": n,
                     "items": item,
                 }
             },
@@ -74,7 +74,6 @@ class LLMTrainingEvaluator:
         data["configurations"] = cfgs[: self.num_populations]
         return data
 
-    # ---------- chamada robusta ----------
     @backoff.on_exception(backoff.expo,
                           (gae.InternalServerError, gae.TooManyRequests, ValueError),
                           max_tries=4, jitter=None)
@@ -89,12 +88,9 @@ class LLMTrainingEvaluator:
                 max_output_tokens=250,
             ),
         )
-
-        # tenta parse direto
         if resp.parsed:
             return self._pad_configs(resp.parsed)
 
-        # log & parse manual
         for part in resp.candidates[0].content.parts:
             txt = getattr(part, "text", "")
             clean = self._clean_json_text(txt)
@@ -172,6 +168,8 @@ class LLMTrainingEvaluator:
             - Seja o mais direto e curto possivel, evite ações desnecessárias. Faca em 1 paragrafo no imperativo, mas mostrando numeros e justificativas claras e curtas.
             - Use pequenas escalas de recompensa, pois o ambiente é muito pequeno.
             - Leve em consideracao a melhor populacao e o historico, caso veja que nao esta progredindo, volte com as recompensas.
+            - Utilize recompensas isoladas, como por exemplo so usar time e zerar as reatantes para ver o resultado de cada um.
+            - O que pode ser feito é pedir para isolar cada recompensa selecionando qual delas você quer testar.
 
         ### Historico de dados:
             {hist_str}
@@ -180,9 +178,9 @@ class LLMTrainingEvaluator:
             {scale_pop_text}
 
         ### Dados Atuais:
-            - Taxa de sucesso: {best_population_metrics['success_percentage']}%
-            - Média de passos até o objetivo: {best_population_metrics['avg_goal_steps']}
-            - Média de passos até colisão: {best_population_metrics['avg_collision_steps']}
+            - Porcentagem de sucesso: {best_population_metrics['success_percentage']}%
+            - Porcentagem de passos até o objetivo: {best_population_metrics['avg_goal_steps']}
+            - Porcentagem de passos até colisão: {best_population_metrics['avg_collision_steps']}
             - Porcentagem de insegurança: {best_population_metrics['percentage_unsafe']}
             - Porcentagem de uso de velocidade angular: {best_population_metrics['percentage_angular']}
             - Recompensa média por tempo: {best_population_metrics['time_score_mean']}
@@ -220,6 +218,7 @@ class LLMTrainingEvaluator:
             "Mesmo que só tenhamos as métricas da melhor população, gere diferentes "
             "variações para comparar. Porem siga o feedback anteriormente fornecido."
             "Alem disso gere outras amostras para explorar mais."
+            "Se pedir para testar recompensas isoladas, crie uma configuracao usando somente um valor isolado de cada moduloe zerando os restantea para ver o que cada modulo pode contribuir separadamente"
         )
         reflection_text = (
             "\n- ".join(reflections) if reflections else "Nenhuma reflexão anterior"

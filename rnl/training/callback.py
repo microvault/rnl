@@ -3,7 +3,6 @@ import time
 
 from stable_baselines3.common.callbacks import BaseCallback
 
-import torch
 import numpy as np
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.training.utils import make_environemnt
@@ -18,7 +17,6 @@ class DynamicTrainingCallback(BaseCallback):
         wandb_run,
         save_checkpoint: int,
         model_save_path: str,
-        sample_checkpoint_freq: int,
         run_id: str,
         robot_config: RobotConfig,
         sensor_config: SensorConfig,
@@ -32,7 +30,6 @@ class DynamicTrainingCallback(BaseCallback):
         self.wandb_run = wandb_run
         self.save_checkpoint = save_checkpoint
         self.model_save_path = model_save_path
-        self.sample_checkpoint_freq = sample_checkpoint_freq
         self.run_id = run_id
         self.robot_config = robot_config
         self.sensor_config = sensor_config
@@ -68,13 +65,18 @@ class DynamicTrainingCallback(BaseCallback):
             )
             (
                 sucess_rate,
-                total_timesteps,
                 percentage_unsafe,
                 percentage_angular,
                 ep_mean_length,
                 avg_collision_steps,
                 avg_goal_steps,
             ) = evaluate_agent(self.model, eval_env)
+            # print("sucess_rate: ", sucess_rate,
+            # "percentage_unsafe: ", percentage_unsafe,
+            # "percentage_angular: ", percentage_angular,
+            # "ep_mean_length: ", ep_mean_length,
+            # "avg_collision_steps: ", avg_collision_steps,
+            # "avg_goal_steps: ", avg_goal_steps)
 
             infos_list = []
             for i in range(self.model.n_envs):
@@ -99,7 +101,6 @@ class DynamicTrainingCallback(BaseCallback):
                 "percentage_angular_mean": percentage_angular,
                 "avg_collision_steps_mean": avg_collision_steps,
                 "avg_goal_steps_mean": avg_goal_steps,
-                "total_timesteps": total_timesteps,
                 **{campo + "_mean": stats.get(campo + "_mean", 0.0) for campo in [
                     "time_score", "progress_score", "orientation_score", "obstacle_score"
                 ]},
@@ -116,21 +117,8 @@ class DynamicTrainingCallback(BaseCallback):
 
             if self.n_calls % self.save_checkpoint == 0:
                 save_path = f"{self.model_save_path}/model_{self.n_calls}_steps"
-                policy_sd = self.model.policy.state_dict()
-                h1 = self.model.policy.h1
-                h2 = self.model.policy.h2
-                act_name = self.model.policy.activation_fn.__name__
-
-                ckpt = {
-                    "state_dict": policy_sd,
-                    "config": {
-                        "hidden_sizes": [h1, h2],
-                        "activation":   act_name,
-                    }
-                }
-                torch.save(ckpt, save_path + ".pth")
                 print(f"Saving model to {save_path}")
-                # self.model.save(save_path)
+                self.model.save(save_path)
                 if self.wandb_run is not None:
                     self.wandb_run.save(save_path + ".zip")
 
