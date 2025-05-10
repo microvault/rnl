@@ -10,8 +10,8 @@ metrics = [
 ]
 
 # Dados atualizados
-com_raw = [100.0, 0.00, 11.24, 0.00, 14.76]
-sem_raw = [50.0, 0.00, 7.12, 0.00, 7.18]
+com_raw = [100.0, 0.00, 17.92, 0.00, 26.62]
+sem_raw = [20.0, 0.10, 10.1, 2.12, 6.24]
 
 # Intervalos máximos por métrica
 ranges_max = [100, 100, 100, 100, 100]
@@ -58,5 +58,5 @@ ax.legend(bbox_to_anchor=(0.5, 1.06), loc='lower center',
           ncol=2, frameon=False, fontsize=9)
 
 plt.tight_layout()
-plt.savefig("result_turn.png", dpi=300)
+plt.savefig("result_long.png", dpi=300)
 plt.show()

@@ -48,12 +48,12 @@ def train():
         param_render,
     )
     model.learn(
-        population=2,
-        loop_feedback=10,
+        population=3,
+        loop_feedback=20,
         description_task=task,
         pretrained="None",
         use_agents=True,
-        max_timestep_global=50000,
+        max_timestep_global=20000,
         seed=1,
         hidden_size=[16, 16],
         activation="LeakyReLU",

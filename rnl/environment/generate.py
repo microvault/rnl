@@ -170,58 +170,66 @@ class Generator:
         elif "custom" in self.mode:
             thresh = 0.65
 
-            yaml_path = "/Users/nicolasalan/microvault/rnl/data/map6/map6.yaml"
+            yaml_path = "/Users/nicolasalan/microvault/rnl/data/map8/map8.yaml"
             with open(yaml_path) as f:
-                    info = yaml.safe_load(f)
+                info = yaml.safe_load(f)
+
             res = float(info["resolution"])
             ox, oy, oyaw = info["origin"]
             pgm_path = os.path.join(os.path.dirname(yaml_path), info["image"])
+
             img = load_pgm(pgm_path)
             if info.get("negate", 0):
                 img = 255 - img
+
             occ = img < int(thresh * 255)
             h, w = occ.shape
-            gx, gy   = w*res, h*res
+            gx, gy = w * res, h * res
 
+            # ------------------------------------------------------------------------
             contours = find_contours(occ.astype(float), 0.5)
-            polys = []
-            for c in contours:
-                pts = np.stack([
-                    ox + c[:,1]*res,
-                    oy + (h - c[:,0])*res
-                ], axis=1)
-                polys.append(Polygon(pts).buffer(0))
-            poly = unary_union(polys).buffer(0)
 
+            # Guarda tudo separadinho
+            stacks   = []      # p/ segmentos
+            paths    = []      # p/ PathPatch
+            all_poly = []      # se ainda quiser usar como área/colisão
+            for c in contours:
+                pts = np.stack(
+                    [ox + c[:, 1] * res,
+                     oy + (h - c[:, 0]) * res],
+                    axis=1,
+                )
+
+                # polígono do contorno (parede) — sem union!
+                p = Polygon(pts)
+                all_poly.append(p)
+
+                # segmentos
+                stacks.append(pts.astype(np.float64))
+
+                # path p/ desenhar; sentido CCW ou CW pouco importa porque face=none
+                paths.append(Path(pts))
+
+            # opcional – só se você realmente precisa da área ocupada
+            poly = unary_union(all_poly)   # isso não afeta a visualização
+
+            # rotaciona, se tiver offset
             if oyaw:
-                cx, cy = ox + gx/2, oy + gy/2
+                cx, cy = ox + gx / 2, oy + gy / 2
                 poly = affinity.rotate(poly,
                                        np.degrees(oyaw),
                                        origin=(cx, cy),
                                        use_radians=False)
 
-            stack = []
-            if isinstance(poly, MultiPolygon):
-                for p in poly.geoms:
-                    stack.append(np.asarray(p.exterior.coords, dtype=np.float64))
-            else:
-                stack.append(np.asarray(poly.exterior.coords, dtype=np.float64))
-
-            segments = extract_segment_from_polygon(stack)
-
-            paths = []
-            if isinstance(poly, MultiPolygon):
-                for p in poly.geoms:
-                    coords = np.asarray(p.exterior.coords, np.float64)
-                    paths.append(Path(coords[:, :2]))
-            else:
-                coords = stack[0]
-                paths.append(Path(coords[:, :2]))
+            segments = []
+            for stk in stacks:
+                segments.extend(extract_segment_from_polygon([stk]))
 
             patch = PathPatch(
                 Path.make_compound_path(*paths),
-                edgecolor=(0.1, 0.2, 0.5, 0.15),
-                facecolor=(0.1, 0.2, 0.5, 0.15),
+                edgecolor=(0.1, 0.2, 0.5, 0.15),  # contorno azul-escuro translúcido
+                facecolor=(0.1, 0.2, 0.5, 0.15),  # preenchimento idem
+                linewidth=1.0,
             )
 
             return patch, segments, poly

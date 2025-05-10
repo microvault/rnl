@@ -30,13 +30,13 @@ def main(arg):
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map6",
-        name_map="map6",
-        max_timestep=10000000,
+        folder_map="./data/map7",
+        name_map="map7",
+        max_timestep=1000,
         type=args.type,
         grid_size=[2.2, 2.15],
         map_size=2,
-        noise=False,
+        noise=True,
         obstacle_percentage=40
     )
 

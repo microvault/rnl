@@ -250,11 +250,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vr = self.max_vr/8 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = self.max_vr/8 * self.scalar
+            self.vr = -self.max_vr/8 * self.scalar
         elif event.key == "down":
             self.action = 3
             self.vl = self.max_lr/6 * self.scalar
@@ -663,7 +663,7 @@ class NaviEnv(gym.Env):
                     goal_clearance=self.collision + 0.1,
                     min_robot_goal_dist=0.3,
                 )
-                self.target_x, self.target_y = 3.74, -0.30# goal_pos[0], goal_pos[1]
+                self.target_x, self.target_y = goal_pos[0], goal_pos[1] # 3.74, -0.30
                 x, y = robot_pos[0], robot_pos[1]
 
                 self.sensor.update_map(self.segments)

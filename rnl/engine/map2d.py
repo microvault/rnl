@@ -407,8 +407,8 @@ class Map2D:
 
 # if __name__ == "__main__":
 #     map2d = Map2D(
-#         folder="/Users/nicolasalan/microvault/rnl/data/map5", name="map5"
+#         folder="/Users/nicolasalan/microvault/rnl/data/map7", name="map7"
 #     )
 #     contour_mask = map2d.initial_environment2d(plot=True, mode="medium-07")
 
-#     # raw_mask = map2d.raw_map_mask(plot=True, border=10)
+#     raw_mask = map2d.raw_map_mask(plot=True, border=10)
