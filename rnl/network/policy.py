@@ -30,8 +30,9 @@ def _map_sb3_keys(sd: dict) -> dict:
 
 
 class RNLPolicy(nn.Module):
-    def __init__(self, in_dim: int, n_act: int,
-                 hidden: list[int], pth: str, device: str = "cpu"):
+    def __init__(
+        self, in_dim: int, n_act: int, hidden: list[int], pth: str, device: str = "cpu"
+    ):
         super().__init__()
         self.backbone = FlexMLP(in_dim, hidden)
         self.head = nn.Linear(hidden[-1], n_act)
@@ -40,7 +41,7 @@ class RNLPolicy(nn.Module):
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        ckpt = _map_sb3_keys(ckpt)           # renomeia
+        ckpt = _map_sb3_keys(ckpt)  # renomeia
         missing, unexpected = self.load_state_dict(ckpt, strict=False)
         assert not missing, f"Pesos faltando: {missing}"
         self.eval()

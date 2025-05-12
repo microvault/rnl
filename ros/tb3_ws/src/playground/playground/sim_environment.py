@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-import math, os, random
+import math
+import os
+import random
 
 import numpy as np
 import rclpy
-from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Twist, PoseWithCovarianceStamped
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSDurabilityPolicy
-from sensor_msgs.msg import LaserScan
 import torch
 import torch.nn as nn
-from torch.distributions import Categorical
+from ament_index_python.packages import get_package_share_directory
+from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped, Twist
 from nav2_msgs.action import NavigateToPose
-from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionClient
+from rclpy.node import Node
+from rclpy.qos import QoSDurabilityPolicy, QoSProfile, QoSReliabilityPolicy
+from sensor_msgs.msg import LaserScan
+from torch.distributions import Categorical
 
 MAX_DISTANCE = 2.6593232221751464
 MIN_DISTANCE = 0.0
@@ -23,6 +24,7 @@ MAX_ALPHA = 3.5 * 0.89
 MIN_ALPHA = 0.0
 VEL_LINEAR = 0.22
 VEL_ANGULAR = 2.84
+
 
 def distance_to_goal(
     x: float, y: float, goal_x: float, goal_y: float, max_value: float
@@ -35,15 +37,16 @@ def distance_to_goal(
 
 
 def angle_to_goal(x, y, theta, goal_x, goal_y, max_value):
-    ox, oy = math.cos(theta), math.sin(theta)          # orientação
-    gx, gy = goal_x - x, goal_y - y                    # vetor p/ alvo
+    ox, oy = math.cos(theta), math.sin(theta)  # orientação
+    gx, gy = goal_x - x, goal_y - y  # vetor p/ alvo
 
     # cross escalar 2-D
-    cross_val = ox * gy - oy * gx                      # -> float32 já ok
-    dot_val   = ox * gx + oy * gy
+    cross_val = ox * gy - oy * gx  # -> float32 já ok
+    dot_val = ox * gx + oy * gy
 
     alpha = abs(math.atan2(abs(cross_val), dot_val))
     return max_value if alpha >= max_value else alpha
+
 
 def block(in_f, out_f):
     return nn.Sequential(
@@ -64,8 +67,7 @@ class PolicyBackbone(nn.Module):
 
 
 class RNLPolicy(nn.Module):
-    def __init__(self, in_dim: int, n_act: int,
-                 pth: str, device: str = "cpu"):
+    def __init__(self, in_dim: int, n_act: int, pth: str, device: str = "cpu"):
         super().__init__()
         self.backbone = PolicyBackbone(in_dim)
         self.head = nn.Linear(16, n_act)
@@ -74,7 +76,7 @@ class RNLPolicy(nn.Module):
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        ckpt = _map_sb3_keys(ckpt)           # renomeia
+        ckpt = _map_sb3_keys(ckpt)  # renomeia
         missing, unexpected = self.load_state_dict(ckpt, strict=False)
         assert not missing, f"Pesos faltando: {missing}"
         self.eval()
@@ -100,6 +102,7 @@ def _map_sb3_keys(sd: dict) -> dict:
             continue
         new[new_k] = v
     return new
+
 
 def quat_to_yaw(x, y, z, w):
     # yaw (em rad) = atan2(2*(w*z + x*y), 1 – 2*(y*y + z*z))
@@ -133,17 +136,24 @@ class CustomMinMaxScaler:
     def fit_transform(self, X):
         return self.fit(X).transform(X)
 
+
 class InferenceModel(Node):
     def __init__(self):
-        super().__init__('sim_environment')
+        super().__init__("sim_environment")
         self.position = None
         self.last_states = np.zeros(8)
         self.action = 0
         self.target = False
 
-        self.goal_positions = [(-0.370, -1.321), (-0.096, -0.814), (0.737, -1.210), (0.252, -1.905)]
-        self.goal_order = random.sample(range(len(self.goal_positions)),
-                                        len(self.goal_positions))
+        self.goal_positions = [
+            (-0.370, -1.321),
+            (-0.096, -0.814),
+            (0.737, -1.210),
+            (0.252, -1.905),
+        ]
+        self.goal_order = random.sample(
+            range(len(self.goal_positions)), len(self.goal_positions)
+        )
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[0]]
 
@@ -154,8 +164,8 @@ class InferenceModel(Node):
         self.i_update = 0
         self.update_rates = 2
 
-        pkg_dir = get_package_share_directory('playground')
-        model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
+        pkg_dir = get_package_share_directory("playground")
+        model_path = os.path.join(pkg_dir, "models", "policy.pth")
         # self.policy = RNLPolicy(8, 3, [20, 64], model_path)
         self.policy = RNLPolicy(in_dim=8, n_act=3, pth=model_path)
 
@@ -175,27 +185,32 @@ class InferenceModel(Node):
         self.scaler_dist.fit(np.array([[MIN_DISTANCE], [MAX_DISTANCE]]))
         self.scaler_alpha.fit(np.array([[MIN_ALPHA], [MAX_ALPHA]]))
 
-        qos = QoSProfile(depth=10,
-                         reliability=QoSReliabilityPolicy.RELIABLE,
-                         durability=QoSDurabilityPolicy.TRANSIENT_LOCAL)
-        lidar_qos = QoSProfile(depth=5,
-                               reliability=QoSReliabilityPolicy.BEST_EFFORT,
-                               durability=QoSDurabilityPolicy.VOLATILE)
+        qos = QoSProfile(
+            depth=10,
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+        )
+        lidar_qos = QoSProfile(
+            depth=5,
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.VOLATILE,
+        )
 
-        self.nav_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
-        self.scan_sub = self.create_subscription(LaserScan, '/scan',
-                                                 self.laser_callback, lidar_qos)
-        self.amcl_sub = self.create_subscription(PoseWithCovarianceStamped,
-                                                 '/amcl_pose',
-                                                 self.amcl_callback, qos)
-        self.cmd_vel_pub = self.create_publisher(Twist, '/cmd_vel', 10)
+        self.nav_client = ActionClient(self, NavigateToPose, "navigate_to_pose")
+        self.scan_sub = self.create_subscription(
+            LaserScan, "/scan", self.laser_callback, lidar_qos
+        )
+        self.amcl_sub = self.create_subscription(
+            PoseWithCovarianceStamped, "/amcl_pose", self.amcl_callback, qos
+        )
+        self.cmd_vel_pub = self.create_publisher(Twist, "/cmd_vel", 10)
         self.timer = self.create_timer(0.1, self.update)
 
     # ---------- callbacks ----------
     def laser_callback(self, msg):
         step = (len(msg.ranges) - 1) / 4.0
         for i in range(5):
-            idx = min(int(round(step * i)), len(msg.ranges)-1)
+            idx = min(int(round(step * i)), len(msg.ranges) - 1)
             val = msg.ranges[idx] if math.isfinite(msg.ranges[idx]) else msg.range_max
             self.lidar_ranges[i] = val
 
@@ -205,14 +220,14 @@ class InferenceModel(Node):
     # ---------- robo ----------
     def move_robot(self, action):
         if action == 0:
-            vl = VEL_LINEAR/2
+            vl = VEL_LINEAR / 2
             vr = 0.0
         elif action == 1:
-            vl = VEL_LINEAR/6
-            vr = -VEL_ANGULAR/8
+            vl = VEL_LINEAR / 6
+            vr = -VEL_ANGULAR / 8
         elif action == 2:
-            vl = VEL_LINEAR/6
-            vr = VEL_ANGULAR/8
+            vl = VEL_LINEAR / 6
+            vr = VEL_ANGULAR / 8
         else:
             vl, vr = 0.0, 0.0
 
@@ -227,11 +242,11 @@ class InferenceModel(Node):
     # ---------- loop ----------
     def update(self):
         if self.position is None:
-            self.get_logger().debug('Aguardando /amcl_pose…')
+            self.get_logger().debug("Aguardando /amcl_pose…")
             return
 
         if any(r < 0.4 for r in self.lidar_ranges):
-            self.get_logger().warn('Obstáculo! Parando robô...')
+            self.get_logger().warn("Obstáculo! Parando robô...")
             self.stop_robot()
             self.action = 3
             return
@@ -275,8 +290,11 @@ class InferenceModel(Node):
             # self.target = True
             # self.get_logger().info('SUCESS')
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)
-            self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
-            self.get_logger().info(f'Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
+            self.goal_x, self.goal_y = self.goal_positions[
+                self.goal_order[self.goal_index]
+            ]
+            self.get_logger().info(f"Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})")
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -285,12 +303,12 @@ def main(args=None):
     try:
         rclpy.spin(node)
     except KeyboardInterrupt:
-        node.get_logger().info('Ctrl-C detectado, parando robô…')
+        node.get_logger().info("Ctrl-C detectado, parando robô…")
     finally:
         node.stop_robot()
         node.destroy_node()
         rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
