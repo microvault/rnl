@@ -12,6 +12,7 @@ from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import inference, probe_envs, training
 from rnl.training.train import run_multiple_parallel_trainings
 
+
 def robot(
     base_radius: float,
     max_vel_linear: float,
@@ -51,6 +52,7 @@ def robot(
         path_model,
     )
 
+
 def sensor(
     fov: float, num_rays: int, min_range: float, max_range: float
 ) -> SensorConfig:
@@ -87,7 +89,7 @@ def make(
     grid_size: List,
     map_size: int,
     noise: bool,
-    obstacle_percentage: float
+    obstacle_percentage: float,
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -243,7 +245,7 @@ class Trainer:
                 num_loops=loop_feedback,
                 initial_configs=configs,
                 num_populations=population,
-                description_task=description_task
+                description_task=description_task,
             )
             return None
 
@@ -262,7 +264,6 @@ class Trainer:
             return metrics
 
 
-
 class Simulation:
     def __init__(
         self,
@@ -270,7 +271,7 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        type: str
+        type: str,
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
@@ -354,7 +355,7 @@ class Probe:
             self.env_config,
             self.render_config,
             self.seed,
-            reward_config
+            reward_config,
         )
 
         return None

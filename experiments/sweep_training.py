@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 import wandb
+
 import rnl as vault
 
 sweep_config = {
-    'method': 'random',
-    'metric': {'name': 'time_score_mean', 'goal': 'maximize'},
-    'parameters': {
-        'max_timestep_global': {'values': [20000, 30000, 40000]},
-        'activation': {'values': ['ReLU', 'LeakyReLU', 'Tanh', 'Sigmoid']},
-        'batch_size': {'values': [8, 16, 32]},
-        'lr': {'values': [1e-2, 1e-3, 1e-4, 1e-5]},
-        'learn_step': {'values': [128, 256, 512]},
-        'gae_lambda': {'min': 0.90, 'max': 0.95},
-        'ent_coef': {'min': 0.001, 'max': 0.005},
-        'vf_coef': {'min': 0.3, 'max': 0.5},
-        'update_epochs': {'values': [3, 5, 7, 9]},
-        'clip_range_vf': {'min': 0.2, 'max': 0.5},
-        'target_kl': {'values': [0.025, 0.05]},
-    }
+    "method": "random",
+    "metric": {"name": "time_score_mean", "goal": "maximize"},
+    "parameters": {
+        "max_timestep_global": {"values": [20000, 30000, 40000]},
+        "activation": {"values": ["ReLU", "LeakyReLU", "Tanh", "Sigmoid"]},
+        "batch_size": {"values": [8, 16, 32]},
+        "lr": {"values": [1e-2, 1e-3, 1e-4, 1e-5]},
+        "learn_step": {"values": [128, 256, 512]},
+        "gae_lambda": {"min": 0.90, "max": 0.95},
+        "ent_coef": {"min": 0.001, "max": 0.005},
+        "vf_coef": {"min": 0.3, "max": 0.5},
+        "update_epochs": {"values": [3, 5, 7, 9]},
+        "clip_range_vf": {"min": 0.2, "max": 0.5},
+        "target_kl": {"values": [0.025, 0.05]},
+    },
 }
+
 
 def train():
     wandb.init(project="sweep-avoid")
@@ -49,7 +51,7 @@ def train():
         grid_size=[0, 0],
         map_size=0,
         noise=False,
-        obstacle_percentage=0
+        obstacle_percentage=0,
     )
     param_render = vault.render(controller=False, debug=True)
 
@@ -91,7 +93,8 @@ def train():
         policy="PPO",
     )
 
-    wandb.log({'time_score_mean': metrics['time_score_mean']})
+    wandb.log({"time_score_mean": metrics["time_score_mean"]})
+
 
 if __name__ == "__main__":
     sweep_id = wandb.sweep(sweep_config, project="sweep-avoid")

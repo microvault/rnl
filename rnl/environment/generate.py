@@ -4,18 +4,20 @@ import random
 from dataclasses import dataclass
 
 import numpy as np
+import yaml
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from shapely.geometry import LineString, Polygon, MultiPolygon
 from shapely import affinity
-from rnl.engine.collisions import extract_segment_from_polygon
-from rnl.engine.polygons import find_contour, process
-from rnl.engine.world import GenerateWorld
-from rnl.engine.utils import load_pgm
-from skimage.measure import find_contours
-import yaml
+from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.ops import unary_union
 from shapely.validation import make_valid
+from skimage.measure import find_contours
+
+from rnl.engine.collisions import extract_segment_from_polygon
+from rnl.engine.polygons import find_contour, process
+from rnl.engine.utils import load_pgm
+from rnl.engine.world import GenerateWorld
+
 
 @dataclass
 class Generator:
@@ -85,7 +87,8 @@ class Generator:
             inner = [(0.75, 0.75), (1.25, 0.75), (1.25, 1.25), (0.75, 1.25)]
 
             poly = Polygon(ext, holes=[inner]).buffer(0)
-            segments = [(0.0, 0.0, 2.0, 0.0),
+            segments = [
+                (0.0, 0.0, 2.0, 0.0),
                 (2.0, 0.0, 2.0, 2.0),
                 (2.0, 2.0, 0.0, 2.0),
                 (0.0, 2.0, 0.0, 0.0),
@@ -94,7 +97,8 @@ class Generator:
                 (1.25, 0.75, 1.25, 1.25),
                 (1.25, 1.25, 0.75, 1.25),
                 (0.75, 1.25, 0.75, 0.75),
-                (0.75, 0.75, 0.75, 0.75)]
+                (0.75, 0.75, 0.75, 0.75),
+            ]
 
             path_patch = None
             if self.render:
@@ -102,7 +106,11 @@ class Generator:
                     Path(np.asarray(poly.exterior.coords)[:, :2]),
                     *[Path(np.asarray(r.coords)[:, :2]) for r in poly.interiors],
                 )
-                path_patch = PathPatch(path, facecolor=(0.1,0.2,0.5,0.15), edgecolor=(0.1,0.2,0.5,0.15))
+                path_patch = PathPatch(
+                    path,
+                    facecolor=(0.1, 0.2, 0.5, 0.15),
+                    edgecolor=(0.1, 0.2, 0.5, 0.15),
+                )
 
             return path_patch, segments, poly
 
@@ -110,11 +118,13 @@ class Generator:
             exterior = [(0, 0), (2, 0), (2, 2), (0, 2)]
 
             poly = Polygon(exterior, holes=[])
-            segments = [(0.0, 0.0, 2.0, 0.0),
+            segments = [
+                (0.0, 0.0, 2.0, 0.0),
                 (2.0, 0.0, 2.0, 2.0),
                 (2.0, 2.0, 0.0, 2.0),
                 (0.0, 2.0, 0.0, 0.0),
-                (0.0, 0.0, 0.0, 0.0)]
+                (0.0, 0.0, 0.0, 0.0),
+            ]
 
             path_patch = None
             if self.render:
@@ -123,22 +133,35 @@ class Generator:
                     *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
                 )
                 path_patch = PathPatch(
-                    path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+                    path,
+                    edgecolor=(0.1, 0.2, 0.5, 0.15),
+                    facecolor=(0.1, 0.2, 0.5, 0.15),
                 )
             return path_patch, segments, poly
 
         elif self.mode in ("long"):
-            exterior = [(0, 4), (1, 4),
-                (2, 4), (3, 4),
-                (4, 4), (4, 3),
-                (4, 2), (4, 1),
-                (4, 0), (3, 0),
-                (2, 0), (1, 0),
-                (0, 0), (0, 1),
-                (0, 2), (0, 3)]
+            exterior = [
+                (0, 4),
+                (1, 4),
+                (2, 4),
+                (3, 4),
+                (4, 4),
+                (4, 3),
+                (4, 2),
+                (4, 1),
+                (4, 0),
+                (3, 0),
+                (2, 0),
+                (1, 0),
+                (0, 0),
+                (0, 1),
+                (0, 2),
+                (0, 3),
+            ]
 
             poly = Polygon(exterior, holes=[])
-            segments = [(0.0, 4.0, 1.0, 4.0),
+            segments = [
+                (0.0, 4.0, 1.0, 4.0),
                 (1.0, 4.0, 2.0, 4.0),
                 (2.0, 4.0, 3.0, 4.0),
                 (3.0, 4.0, 4.0, 4.0),
@@ -154,7 +177,8 @@ class Generator:
                 (0.0, 1.0, 0.0, 2.0),
                 (0.0, 2.0, 0.0, 3.0),
                 (0.0, 3.0, 0.0, 4.0),
-                (0.0, 4.0, 0.0, 4.0)]
+                (0.0, 4.0, 0.0, 4.0),
+            ]
 
             path_patch = None
             if self.render:
@@ -163,7 +187,9 @@ class Generator:
                     *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
                 )
                 path_patch = PathPatch(
-                    path, edgecolor=(0.1, 0.2, 0.5, 0.15), facecolor=(0.1, 0.2, 0.5, 0.15)
+                    path,
+                    edgecolor=(0.1, 0.2, 0.5, 0.15),
+                    facecolor=(0.1, 0.2, 0.5, 0.15),
                 )
             return path_patch, segments, poly
 
@@ -190,13 +216,12 @@ class Generator:
             contours = find_contours(occ.astype(float), 0.5)
 
             # Guarda tudo separadinho
-            stacks   = []      # p/ segmentos
-            paths    = []      # p/ PathPatch
-            all_poly = []      # se ainda quiser usar como área/colisão
+            stacks = []  # p/ segmentos
+            paths = []  # p/ PathPatch
+            all_poly = []  # se ainda quiser usar como área/colisão
             for c in contours:
                 pts = np.stack(
-                    [ox + c[:, 1] * res,
-                     oy + (h - c[:, 0]) * res],
+                    [ox + c[:, 1] * res, oy + (h - c[:, 0]) * res],
                     axis=1,
                 )
 
@@ -211,15 +236,14 @@ class Generator:
                 paths.append(Path(pts))
 
             # opcional – só se você realmente precisa da área ocupada
-            poly = unary_union(all_poly)   # isso não afeta a visualização
+            poly = unary_union(all_poly)  # isso não afeta a visualização
 
             # rotaciona, se tiver offset
             if oyaw:
                 cx, cy = ox + gx / 2, oy + gy / 2
-                poly = affinity.rotate(poly,
-                                       np.degrees(oyaw),
-                                       origin=(cx, cy),
-                                       use_radians=False)
+                poly = affinity.rotate(
+                    poly, np.degrees(oyaw), origin=(cx, cy), use_radians=False
+                )
 
             segments = []
             for stk in stacks:
@@ -235,7 +259,7 @@ class Generator:
             return patch, segments, poly
 
         elif self.mode in ("easy-01", "easy-02", "easy-03"):
-            width  = int(round(grid_length / resolution))
+            width = int(round(grid_length / resolution))
             height = int(round(grid_length / resolution))
 
             exterior = []
@@ -250,14 +274,14 @@ class Generator:
 
             poly = Polygon(exterior, holes=[]).buffer(0)
 
-            cx = (width  - 1) * resolution / 2
+            cx = (width - 1) * resolution / 2
             cy = (height - 1) * resolution / 2
             poly = affinity.rotate(poly, -90, origin=(cx, cy), use_radians=False)
 
-            polygon  = np.array(poly.exterior.coords, dtype=np.float32)
-            stack    = [polygon]
+            polygon = np.array(poly.exterior.coords, dtype=np.float32)
+            stack = [polygon]
             segments = extract_segment_from_polygon(stack)
-            path     = Path.make_compound_path(
+            path = Path.make_compound_path(
                 Path(polygon[:, :2]),
                 *[Path(np.asarray(ring.coords)[:, :2]) for ring in poly.interiors],
             )
@@ -523,7 +547,7 @@ class Generator:
             file_path = os.path.join(json_dir, random_file)
 
             data = None
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 data = json.load(f)
 
             if "verts" not in data:
