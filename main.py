@@ -16,12 +16,12 @@ def main(arg):
         weight=1.0,
         threshold=0.1,  # 4 # 0.10
         collision=0.05,  # 2 # 0.075
-        path_model="",
+        path_model="/Users/nicolasalan/microvault/rnl/checkpoint_models_noise/model_340000_steps.zip",
     )
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=270, # 90, 270
+        fov=360, # 90, 270
         num_rays=5,  # min 3 max 5
         min_range=0.0,
         max_range=5.0,  # 3.5
@@ -32,11 +32,11 @@ def main(arg):
         scalar=arg.scalar,
         folder_map="/Users/nicolasalan/microvault/rnl/data/map8",
         name_map="map8",
-        max_timestep=500,
+        max_timestep=100000,
         type=args.type,
         grid_size=[0, 0],
         map_size=0,
-        noise=True,
+        noise=False,
         obstacle_percentage=0
     )
     # 4.step -> config render
@@ -60,8 +60,6 @@ def main(arg):
             use_agents=args.agents,
             max_timestep_global=args.max_timestep_global,
             seed=args.seed,
-            hidden_size=list(map(int, args.hidden_size.split(","))),
-            activation=args.activation,
             batch_size=args.batch_size,
             num_envs=args.num_envs,
             device=args.device,

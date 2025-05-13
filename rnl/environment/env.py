@@ -207,8 +207,7 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
-                                hidden=[16, 16],
-                                pth=robot_config.path_model)
+                                archive_path=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
@@ -568,7 +567,7 @@ class NaviEnv(gym.Env):
         if self.debug:
 
             if collision and self.steps_to_collision == 0:
-                self.steps_to_collision = self.timestep         # registra a PRIMEIRA colisão
+                self.steps_to_collision = self.timestep
 
             if reward == 1 and self.steps_to_goal == 0:
                 self.steps_to_goal = self.timestep

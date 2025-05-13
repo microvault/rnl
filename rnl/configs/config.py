@@ -41,13 +41,6 @@ class RobotConfig:
     collision: float
     path_model: str
 
-
-@dataclass
-class NetworkConfig:
-    hidden_size: List[int]
-    mlp_activation: str
-
-
 @dataclass
 class TrainerConfig:
     pretrained: str

@@ -17,7 +17,6 @@ from rnl.agents.evaluate import evaluate_agent, statistics
 
 from rnl.configs.config import (
     EnvConfig,
-    NetworkConfig,
     ProbeEnvConfig,
     RenderConfig,
     RobotConfig,
@@ -51,7 +50,6 @@ def training(
     env_config: EnvConfig,
     render_config: RenderConfig,
     trainer_config: TrainerConfig,
-    network_config: NetworkConfig,
     reward_config: RewardConfig,
     print_parameter: bool,
     train: bool,
@@ -69,7 +67,6 @@ def training(
 
     config_dict = {
         "Trainer Config": trainer_config.__dict__,
-        "Network Config": network_config.__dict__,
         "Robot Config": robot_config.__dict__,
         "Sensor Config": sensor_config.__dict__,
         "Env Config": env_config.__dict__,
@@ -97,28 +94,19 @@ def training(
 
     policy_kwargs_on_policy_recurrent = None
     policy_kwargs_off_policy = None
-
-    activation_fn_map = {
-        "ReLU": nn.ReLU,
-        "LeakyReLU": nn.LeakyReLU,
-        'Tanh': nn.Tanh,
-        'Sigmoid': nn.Sigmoid,
-    }
-    activation_fn = activation_fn_map[network_config.mlp_activation]
-
     policy_kwargs_on_policy_recurrent = dict(
-        activation_fn=activation_fn,
+        activation_fn=nn.LeakyReLU,
         net_arch=dict(
-            pi=[network_config.hidden_size[0], network_config.hidden_size[1]],
-            vf=[network_config.hidden_size[0], network_config.hidden_size[1]],
+            pi=[32, 32],
+            vf=[32, 32],
         ),
         n_lstm_layers=1,
         lstm_hidden_size=64,
     )
 
     policy_kwargs_off_policy = dict(
-        activation_fn=activation_fn,
-        net_arch=[network_config.hidden_size[0], network_config.hidden_size[1]],
+        activation_fn=nn.LeakyReLU,
+        net_arch=[32, 32],
     )
 
     verbose_value = 0 if not trainer_config.verbose else 1
@@ -169,12 +157,6 @@ def training(
             )
             env = Monitor(env)
             return env
-
-    policy_kwargs = dict(
-        h1=network_config.hidden_size[0],
-        h2=network_config.hidden_size[1],
-        activation_fn=activation_fn
-    )
 
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)

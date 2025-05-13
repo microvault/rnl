@@ -171,7 +171,7 @@ class Generator:
 
         elif "custom" in self.mode:
             thresh = 0.65
-            yaml_path = self.folder + "/" +self.name + ".yaml"
+            yaml_path = self.folder + "/" + self.name + ".yaml"
 
             with open(yaml_path) as f:
                 info = yaml.safe_load(f)
@@ -198,30 +198,32 @@ class Generator:
             for c in contours:
                 pts = np.stack(
                     [ox + c[:, 1] * res,
-                     oy + (h - c[:, 0]) * res],
+                    oy + (h - c[:, 0]) * res],
                     axis=1,
                 )
+                # Fechar o polígono adicionando o primeiro ponto ao final
+                closed_pts = np.vstack([pts, pts[0]])
+                # Definir códigos: MOVETO para o primeiro, LINETO para os demais, CLOSEPOLY para fechar
+                codes = [Path.MOVETO] + [Path.LINETO] * (len(pts) - 1) + [Path.CLOSEPOLY]
 
-                # polígono do contorno (parede) — sem union!
-                p = Polygon(pts)
+                # Path para visualização com pontos fechados e códigos
+                paths.append(Path(closed_pts, codes))
+                # Polígono para área/colisão
+                p = Polygon(closed_pts)
                 all_poly.append(p)
+                # Segmentos com pontos fechados
+                stacks.append(closed_pts.astype(np.float64))
 
-                # segmentos
-                stacks.append(pts.astype(np.float64))
+            # Opcional – só se você realmente precisa da área ocupada
+            poly = unary_union(all_poly)   # Isso não afeta a visualização
 
-                # path p/ desenhar; sentido CCW ou CW pouco importa porque face=none
-                paths.append(Path(pts))
-
-            # opcional – só se você realmente precisa da área ocupada
-            poly = unary_union(all_poly)   # isso não afeta a visualização
-
-            # rotaciona, se tiver offset
+            # Rotaciona, se tiver offset
             if oyaw:
                 cx, cy = ox + gx / 2, oy + gy / 2
                 poly = affinity.rotate(poly,
-                                       np.degrees(oyaw),
-                                       origin=(cx, cy),
-                                       use_radians=False)
+                                    np.degrees(oyaw),
+                                    origin=(cx, cy),
+                                    use_radians=False)
 
             segments = []
             for stk in stacks:

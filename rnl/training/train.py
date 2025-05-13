@@ -6,7 +6,6 @@ from collections import deque
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.config import (
     EnvConfig,
-    NetworkConfig,
     RenderConfig,
     RobotConfig,
     SensorConfig,

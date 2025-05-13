@@ -9,22 +9,20 @@ POPULATION 		  ?= 2
 LOOP_FEEDBACK 	  ?= 10
 DESCRIPTION_TASK  ?= None
 SEED              ?= 1
-HIDDEN_SIZE       ?= 32,32
-ACTIVATION        ?= LeakyReLU
 BATCH_SIZE        ?= 64
-NUM_ENVS          ?= 8
+NUM_ENVS          ?= 16
 DEVICE            ?= mps
-LEARN_STEP        ?= 256
+LEARN_STEP        ?= 512
 CHECKPOINT        ?= 500
 CHECKPOINT_PATH   ?= checkpoint_models_noise
 LR                ?= 1e-4
-GAE_LAMBDA        ?= 0.90
-ENT_COEF          ?= 0.02
+GAE_LAMBDA        ?= 0.95
+ENT_COEF          ?= 0.05
 CLIP_RANGE_VF        ?= 0.2
 TARGET_KL          ?= 0.025
-VF_COEF           ?= 0.4
+VF_COEF           ?= 0.5
 MAX_GRAD_NORM     ?= 0.5
-UPDATE_EPOCHS     ?= 3
+UPDATE_EPOCHS     ?= 6
 NAME              ?= rnl-real
 SCALAR            ?= 15
 CONTROL           ?= False
@@ -46,8 +44,6 @@ TRAIN_ARGS = \
 	--loop_feedback $(LOOP_FEEDBACK) \
 	--description_task $(DESCRIPTION_TASK) \
 	--seed $(SEED) \
-	--hidden_size $(HIDDEN_SIZE) \
-	--activation $(ACTIVATION) \
 	--batch_size $(BATCH_SIZE) \
 	--num_envs $(NUM_ENVS) \
 	--device $(DEVICE) \
@@ -91,8 +87,6 @@ define PRINT_CONFIG
 	@echo "LOOP_FEEDBACK=$(LOOP_FEEDBACK)"
 	@echo "DESCRIPTION_TASK=$(DESCRIPTION_TASK)"
 	@echo "SEED=$(SEED)"
-	@echo "HIDDEN_SIZE=$(HIDDEN_SIZE)"
-	@echo "ACTIVATION=$(ACTIVATION)"
 	@echo "BATCH_SIZE=$(BATCH_SIZE)"
 	@echo "NUM_ENVS=$(NUM_ENVS)"
 	@echo "DEVICE=$(DEVICE)"

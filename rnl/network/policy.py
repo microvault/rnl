@@ -1,48 +1,46 @@
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
+import zipfile
+import io
 
 
-class FlexMLP(nn.Module):
-    def __init__(self, in_dim: int, hidden: list[int]):
+def block(in_f, out_f):
+    return nn.Sequential(
+        nn.Linear(in_f, out_f),
+        nn.LayerNorm(out_f),
+        nn.LeakyReLU(),
+    )
+
+
+class PolicyBackbone(nn.Module):
+    def __init__(self, feature_dim: int):
         super().__init__()
-        layers, prev = [], in_dim
-        for h in hidden:
-            layers += [nn.Linear(prev, h), nn.ReLU()]
-            prev = h
-        self.body = nn.Sequential(*layers)
-
-    def forward(self, x):
-        return self.body(x)
-
-
-def _map_sb3_keys(sd: dict) -> dict:
-    new = {}
-    for k, v in sd.items():
-        if k.startswith("mlp_extractor.policy_net."):
-            new_k = k.replace("mlp_extractor.policy_net.", "backbone.body.")
-        elif k.startswith("action_net."):
-            new_k = k.replace("action_net.", "head.")
-        else:
-            continue
-        new[new_k] = v
-    return new
+        self.body = nn.Sequential(
+            block(feature_dim, 32),
+            block(32, 32),
+            block(32, 16),
+        )
 
 
 class RNLPolicy(nn.Module):
     def __init__(self, in_dim: int, n_act: int,
-                 hidden: list[int], pth: str, device: str = "cpu"):
+                 archive_path: str, device: str = "cpu"):
         super().__init__()
-        self.backbone = FlexMLP(in_dim, hidden)
-        self.head = nn.Linear(hidden[-1], n_act)
+        self.backbone = PolicyBackbone(in_dim)
+        self.head = nn.Linear(16, n_act)
 
-        ckpt = torch.load(pth, map_location=device)
+        with zipfile.ZipFile(archive_path, 'r') as archive:
+            with archive.open('policy.pth') as f:
+                raw = f.read()
+                ckpt = torch.load(io.BytesIO(raw), map_location=device, weights_only=True)
+
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
-        ckpt = _map_sb3_keys(ckpt)           # renomeia
+        ckpt = self._map_sb3_keys(ckpt)
         missing, unexpected = self.load_state_dict(ckpt, strict=False)
-        assert not missing, f"Pesos faltando: {missing}"
+        assert not missing, f"Error: {missing}"
         self.eval()
 
     @torch.no_grad()
@@ -51,5 +49,17 @@ class RNLPolicy(nn.Module):
             obs = torch.as_tensor(obs, dtype=torch.float32)
         if obs.dim() == 1:
             obs = obs.unsqueeze(0)
-        logits = self.head(self.backbone(obs))
+        logits = self.head(self.backbone.body(obs))
         return Categorical(logits=logits).sample().item()
+
+    def _map_sb3_keys(self, sd: dict) -> dict:
+        new = {}
+        for k, v in sd.items():
+            if k.startswith("mlp_extractor.policy_net."):
+                new_k = k.replace("mlp_extractor.policy_net.", "backbone.body.")
+            elif k.startswith("action_net."):
+                new_k = k.replace("action_net.", "head.")
+            else:
+                continue
+            new[new_k] = v
+        return new

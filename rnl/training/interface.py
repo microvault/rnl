@@ -2,7 +2,6 @@ from typing import List
 
 from rnl.configs.config import (
     EnvConfig,
-    NetworkConfig,
     RenderConfig,
     RobotConfig,
     SensorConfig,
@@ -134,11 +133,9 @@ class Trainer:
         use_agents: bool,
         max_timestep_global: int,
         seed: int,
-        hidden_size: List[int],
         batch_size: int,
         num_envs: int,
         device: str,
-        activation: str,
         checkpoint: int,
         checkpoint_path: str,
         use_wandb: bool,
@@ -181,10 +178,6 @@ class Trainer:
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
 
-        network_config = NetworkConfig(
-            hidden_size=hidden_size,
-            mlp_activation=activation,
-        )
         trainer_config = TrainerConfig(
             pretrained=pretrained,
             use_agents=use_agents,
@@ -224,7 +217,7 @@ class Trainer:
                 "scale_distance": 0.0,
                 "scale_time": 0.01,
                 "scale_obstacle": 0.0,
-                "scale_angular": 0.001,
+                "scale_angular": 0.0,
             },
         )
 
