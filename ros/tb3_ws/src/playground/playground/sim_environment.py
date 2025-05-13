@@ -102,7 +102,6 @@ def _map_sb3_keys(sd: dict) -> dict:
     return new
 
 def quat_to_yaw(x, y, z, w):
-    # yaw (em rad) = atan2(2*(w*z + x*y), 1 – 2*(y*y + z*z))
     siny = 2.0 * (w * z + x * y)
     cosy = 1.0 - 2.0 * (y * y + z * z)
     return math.atan2(siny, cosy)
@@ -141,7 +140,7 @@ class InferenceModel(Node):
         self.action = 0
         self.target = False
 
-        self.goal_positions = [(-0.370, -1.321), (-0.096, -0.814), (0.737, -1.210), (0.252, -1.905)]
+        self.goal_positions = [(0.218, -1.247), (0.063, -0.568), (0.218, -1.247), (0.932, -1.259), (0.218, -1.247), (0.226, -2.0677), (0.218, -1.247), (-0.438, -1.386)]
         self.goal_order = random.sample(range(len(self.goal_positions)),
                                         len(self.goal_positions))
         self.goal_index = 0
@@ -156,7 +155,6 @@ class InferenceModel(Node):
 
         pkg_dir = get_package_share_directory('playground')
         model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
-        # self.policy = RNLPolicy(8, 3, [20, 64], model_path)
         self.policy = RNLPolicy(in_dim=8, n_act=3, pth=model_path)
 
         self.scaler_lidar = CustomMinMaxScaler(feature_range=(0, 1))
@@ -209,10 +207,10 @@ class InferenceModel(Node):
             vr = 0.0
         elif action == 1:
             vl = VEL_LINEAR/6
-            vr = -VEL_ANGULAR/8
+            vr = -VEL_ANGULAR/2
         elif action == 2:
             vl = VEL_LINEAR/6
-            vr = VEL_ANGULAR/8
+            vr = VEL_ANGULAR/2
         else:
             vl, vr = 0.0, 0.0
 
@@ -230,17 +228,14 @@ class InferenceModel(Node):
             self.get_logger().debug('Aguardando /amcl_pose…')
             return
 
-        if any(r < 0.4 for r in self.lidar_ranges):
+        if any(r < 0.3 for r in self.lidar_ranges):
             self.get_logger().warn('Obstáculo! Parando robô...')
             self.stop_robot()
             self.action = 3
             return
 
         else:
-            # if self.i_update == self.update_rates: #and self.target == False:
-            #     self.i_update = 0
             self.action = self.policy.act(self.last_states)
-            # self.get_logger().info(f'Meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
             self.move_robot(self.action)
 
         x, y = self.position.position.x, self.position.position.y
@@ -272,8 +267,6 @@ class InferenceModel(Node):
         # self.get_logger().warn(f'States: {self.last_states}')
 
         if dist <= 0.2:
-            # self.target = True
-            # self.get_logger().info('SUCESS')
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)
             self.goal_x, self.goal_y = self.goal_positions[self.goal_order[self.goal_index]]
             self.get_logger().info(f'Nova meta: ({self.goal_x:.2f}, {self.goal_y:.2f})')
