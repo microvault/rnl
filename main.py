@@ -30,19 +30,15 @@ def main(arg):
     # 3.step -> config env
     param_env = vault.make(
         scalar=arg.scalar,
-        folder_map="./data/map7",
-        name_map="map7",
-        max_timestep=1000,
+        folder_map="/Users/nicolasalan/microvault/rnl/data/map8",
+        name_map="map8",
+        max_timestep=500,
         type=args.type,
-        grid_size=[2.2, 2.15],
-        map_size=2,
+        grid_size=[0, 0],
+        map_size=0,
         noise=True,
-        obstacle_percentage=40
+        obstacle_percentage=0
     )
-
-    # arg.debug
-
-
     # 4.step -> config render
     param_render = vault.render(controller=arg.controller, debug=True, plot=False)
 

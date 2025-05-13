@@ -19,7 +19,9 @@ from shapely.validation import make_valid
 
 @dataclass
 class Generator:
-    def __init__(self, mode: str, render: bool = False):
+    def __init__(self, mode: str, render: bool = False, folder: str = "", name: str = ""):
+        self.folder = folder
+        self.name = name
         self.mode = mode
         self.render = render
         self.generate = GenerateWorld()
@@ -169,8 +171,8 @@ class Generator:
 
         elif "custom" in self.mode:
             thresh = 0.65
+            yaml_path = self.folder + "/" +self.name + ".yaml"
 
-            yaml_path = "/Users/nicolasalan/microvault/rnl/data/map8/map8.yaml"
             with open(yaml_path) as f:
                 info = yaml.safe_load(f)
 

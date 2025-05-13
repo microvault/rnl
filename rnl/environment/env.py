@@ -95,7 +95,10 @@ class NaviEnv(gym.Env):
             )
 
         elif self.mode in ("custom"):
-            self.generator = Generator(mode=self.mode)
+            self.generator = Generator(
+                mode=self.mode,
+                folder=env_config.folder_map,
+                name=env_config.name_map)
             self.new_map_path, self.segments, self.poly = self.generator.world(
                 grid_length=0,
                 grid_length_x=self.x,
@@ -181,7 +184,6 @@ class NaviEnv(gym.Env):
         self.controller = render_config.controller
 
         # -- Local Variables -- #
-
         self.timestep: int = 0
         self.target_x: float = 0.0
         self.target_y: float = 0.0
@@ -205,8 +207,7 @@ class NaviEnv(gym.Env):
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
                                 n_act=3,
-                                hidden_sizes=(32, 32, 32),
-                                activation="LeakyReLU",
+                                hidden=[16, 16],
                                 pth=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
