@@ -50,7 +50,9 @@ def generate_launch_description():
     # Diff-drive controller (publica /odom e /tf dinâmico)
     tb3_drive = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(pkg_tb3_gazebo, "launch", "turtlebot3_differential_drive.launch.py")
+            os.path.join(
+                pkg_tb3_gazebo, "launch", "turtlebot3_differential_drive.launch.py"
+            )
         ),
         launch_arguments={"use_sim_time": use_sim_time}.items(),
     )
@@ -82,20 +84,29 @@ def generate_launch_description():
         package="gazebo_ros",
         executable="spawn_entity.py",
         arguments=[
-            "-entity", "target",
-            "-file", target_file,
-            "-x", "0.0", "-y", "0.0", "-z", "0.001",
+            "-entity",
+            "target",
+            "-file",
+            target_file,
+            "-x",
+            "0.0",
+            "-y",
+            "0.0",
+            "-z",
+            "0.001",
         ],
         output="screen",
         parameters=[{"use_sim_time": True}],
     )
 
-    return LaunchDescription([
-        use_sim_time_arg,
-        gazebo,
-        tb3_state_pub,
-        tb3_drive,
-        tb3_lidar,
-        tb3_spawn,
-        target,
-    ])
+    return LaunchDescription(
+        [
+            use_sim_time_arg,
+            gazebo,
+            tb3_state_pub,
+            tb3_drive,
+            tb3_lidar,
+            tb3_spawn,
+            target,
+        ]
+    )

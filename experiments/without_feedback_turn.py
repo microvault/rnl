@@ -1,5 +1,6 @@
 import rnl as vault
 
+
 def train():
     param_robot = vault.robot(
         base_radius=0.105,
@@ -26,7 +27,7 @@ def train():
         grid_size=[0, 0],
         map_size=0,
         noise=False,
-        obstacle_percentage=0
+        obstacle_percentage=0,
     )
     param_render = vault.render(controller=False, debug=True)
 

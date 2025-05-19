@@ -36,15 +36,15 @@ def evaluate_agent(
          collision_steps_pct,
          goal_steps_pct)
     """
-    num_goals          = 0
-    unsafe_steps       = 0
-    angular_steps      = 0
-    total_timesteps    = 0
+    num_goals = 0
+    unsafe_steps = 0
+    angular_steps = 0
+    total_timesteps = 0
 
-    total_steps_col    = 0
-    count_collision    = 0
-    total_steps_goal   = 0
-    count_goal         = 0
+    total_steps_col = 0
+    count_collision = 0
+    total_steps_goal = 0
+    count_goal = 0
     info = {}
 
     for ep in range(num_episodes):
@@ -57,10 +57,10 @@ def evaluate_agent(
             state, _, done, truncated, info = env.step(action)
 
         # usa os dados do último passo
-        steps_collision  = info.get("steps_to_collision", 0)
-        steps_goal       = info.get("steps_to_goal", 0)
-        unsafe_steps    += info.get("steps_unsafe_area", 0)
-        angular_steps   += info.get("steps_command_angular", 0)
+        steps_collision = info.get("steps_to_collision", 0)
+        steps_goal = info.get("steps_to_goal", 0)
+        unsafe_steps += info.get("steps_unsafe_area", 0)
+        angular_steps += info.get("steps_command_angular", 0)
         total_timesteps += info.get("total_timestep", 0)
 
         if steps_collision > 0:
@@ -68,22 +68,20 @@ def evaluate_agent(
             count_collision += 1
         if steps_goal > 0:
             total_steps_goal += steps_goal
-            count_goal      += 1
+            count_goal += 1
             if steps_collision == 0:
                 num_goals += 1
 
     # ---------- métricas em % ----------
-    success_pct  = (num_goals / num_episodes) * 100
-    denom_steps  = num_episodes * max_steps_ep
-    unsafe_pct   = (unsafe_steps  / denom_steps) * 100
-    angular_pct  = (angular_steps / denom_steps) * 100
-    ep_len_pct   = (total_timesteps / denom_steps) * 100
+    success_pct = (num_goals / num_episodes) * 100
+    denom_steps = num_episodes * max_steps_ep
+    unsafe_pct = (unsafe_steps / denom_steps) * 100
+    angular_pct = (angular_steps / denom_steps) * 100
+    ep_len_pct = (total_timesteps / denom_steps) * 100
     collision_steps_pct = (
         (total_steps_col / denom_steps) * 100 if count_collision else 0
     )
-    goal_steps_pct = (
-        (total_steps_goal / denom_steps) * 100 if count_goal else 0
-    )
+    goal_steps_pct = (total_steps_goal / denom_steps) * 100 if count_goal else 0
 
     return (
         round(success_pct, 2),
