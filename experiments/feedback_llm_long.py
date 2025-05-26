@@ -1,5 +1,6 @@
-import rnl as vault
 import os
+
+import rnl as vault
 
 gemini_api_key = os.environ.get("GEMINI_API_KEY")
 
@@ -9,6 +10,7 @@ task = (
     "- 3 ações: 0 = frente, 1 = esquerda, 2 = direita.\n"
     "- 6 estados: 3 valores de leituras de LiDAR, 1 valor de distância ao objetivo, 1 valor de ângulo ao objetivo e 1 valor do estado do robô (frente/giro).\n"
 )
+
 
 def train():
     param_robot = vault.robot(
@@ -36,7 +38,7 @@ def train():
         grid_size=[0, 0],
         map_size=0,
         noise=False,
-        obstacle_percentage=0
+        obstacle_percentage=0,
     )
     param_render = vault.render(controller=False, debug=True)
 
@@ -77,6 +79,7 @@ def train():
         verbose=False,
         policy="PPO",
     )
+
 
 if __name__ == "__main__":
     train()
