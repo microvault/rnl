@@ -853,3 +853,4 @@ pip-selfcheck.json
 *.jsonl
 *.png
 ppo_policy_network
+checkpoint*
