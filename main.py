@@ -21,7 +21,7 @@ def main(arg):
 
     # 2.step -> config sensors [for now only lidar sensor!!]
     param_sensor = vault.sensor(
-        fov=360, # 90, 270
+        fov=360,  # 90, 270
         num_rays=5,  # min 3 max 5
         min_range=0.0,
         max_range=5.0,  # 3.5
@@ -37,7 +37,7 @@ def main(arg):
         grid_size=[0, 0],
         map_size=0,
         noise=False,
-        obstacle_percentage=0
+        obstacle_percentage=0,
     )
     # 4.step -> config render
     param_render = vault.render(controller=arg.controller, debug=True, plot=False)
@@ -84,7 +84,9 @@ def main(arg):
 
     elif args.mode == "sim":
         # 5.step -> config train robot
-        model = vault.Simulation(param_robot, param_sensor, param_env, param_render, type=args.type)
+        model = vault.Simulation(
+            param_robot, param_sensor, param_env, param_render, type=args.type
+        )
         # 6.step -> run robot
         model.run()
 
@@ -283,7 +285,6 @@ if __name__ == "__main__":
         "--policy",
         type=str,
     )
-
 
     args = parser.parse_args()
     main(args)
