@@ -12,10 +12,9 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 from nav2_msgs.action import NavigateToPose
-from geometry_msgs.msg import PoseStamped
 from rclpy.action import ActionClient
 
-MAX_DISTANCE = 2.6593232221751464
+MAX_DISTANCE = 1.9103926298015286 # 4.277756421303112 # quadrado -> 2.6593232221751464
 MIN_DISTANCE = 0.0
 MAX_LIDAR_RANGE = 5.0
 MIN_LIDAR_RANGE = 0.0
@@ -70,7 +69,7 @@ class RNLPolicy(nn.Module):
         self.backbone = PolicyBackbone(in_dim)
         self.head = nn.Linear(16, n_act)
 
-        ckpt = torch.load(pth, map_location=device)
+        ckpt = torch.load(pth, map_location=device, weights_only=True)
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]
 
@@ -140,15 +139,16 @@ class InferenceModel(Node):
         self.action = 0
         self.target = False
 
-        self.goal_positions = [(0.218, -1.247), (0.063, -0.568), (0.218, -1.247), (0.932, -1.259), (0.218, -1.247), (0.226, -2.0677), (0.218, -1.247), (-0.438, -1.386)]
+        # QUADRADO -> self.goal_positions = [(0.218, -1.247), (0.063, -0.568), (0.218, -1.247), (0.932, -1.259), (0.218, -1.247), (0.226, -2.0677), (0.218, -1.247), (-0.438, -1.386)]
+        # GRANDE ->self.goal_positions = [(0.401, 0.176)]
+        self.goal_positions = [(0.232, 0.308), (0.684, 0.546), (0.232, 0.308), (0.1483, 0.749), (0.232, 0.308), (-0.155, -0.0536), (0.232, 0.308), (0.342, -0.160)]
+
         self.goal_order = random.sample(range(len(self.goal_positions)),
                                         len(self.goal_positions))
         self.goal_index = 0
         self.goal_x, self.goal_y = self.goal_positions[self.goal_order[0]]
 
         self.max_num_rays = 5
-        self.goto_x = -0.00859
-        self.goto_y = -1.28529
         self.lidar_ranges = [0.0] * self.max_num_rays
         self.i_update = 0
         self.update_rates = 2
@@ -228,7 +228,7 @@ class InferenceModel(Node):
             self.get_logger().debug('Aguardando /amcl_pose…')
             return
 
-        if any(r < 0.3 for r in self.lidar_ranges):
+        if any(r < 0.1 for r in self.lidar_ranges):
             self.get_logger().warn('Obstáculo! Parando robô...')
             self.stop_robot()
             self.action = 3

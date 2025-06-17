@@ -8,7 +8,6 @@ from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from rnl.network.policy import RNLPolicy
-# from sb3_contrib import RecurrentPPO
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
@@ -16,7 +15,6 @@ from rnl.engine.spawn import spawn_robot_and_goal
 from rnl.engine.utils import (
     CustomMinMaxScaler,
     angle_to_goal,
-    clean_info,
     distance_to_goal,
     min_laser,
 )
@@ -60,41 +58,17 @@ class NaviEnv(gym.Env):
         self.infos_list = []
         self.steps_to_goal = 0
         self.steps_to_collision = 0
-        self.map_size = env_config.map_size
-        self.porcentage_obstacle = env_config.obstacle_percentage
         self.steps_unsafe_area = 0
         self.steps_command_angular = 0
         self.x = env_config.grid_size[0]
         self.y = env_config.grid_size[1]
-        self.pos_noise_std = 0.01  # metros
-        self.ang_noise_std = 0.005  # radianos
+        self.pos_noise_std = 0.01
+        self.ang_noise_std = 0.005
         self.lidar_noise_std = 0.02
         self.noise = env_config.noise
+        self.episode_id = 0
 
-        # self.model_recurrent = RecurrentPPO.load("/Users/nicolasalan/microvault/rnl/checkpoint_models/model_70000_steps.zip")
-        # num_envs = 1
-        # self.episode_starts = np.ones((num_envs,), dtype=bool)
-        # self.lstm_states = None
-
-
-        if "hard" in self.mode:
-            self.grid_lengt = 0
-            self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(
-                self.grid_lengt
-            )
-
-        if "medium" in self.mode:
-            self.create_world = CreateWorld(
-                folder=env_config.folder_map,
-                name=env_config.name_map,
-            )
-
-            self.new_map_path, self.segments, self.poly = self.create_world.world(
-                mode=self.mode
-            )
-
-        elif self.mode in ("custom"):
+        if self.mode is "map":
             self.generator = Generator(
                 mode=self.mode,
                 folder=env_config.folder_map,
@@ -105,48 +79,11 @@ class NaviEnv(gym.Env):
                 grid_length_y=self.y,
             )
 
-        elif "easy" in self.mode:
-            if self.mode in ("easy-01", "easy-02"):
-                self.grid_length = 2
-
-                self.generator = Generator(mode=self.mode)
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-            elif self.mode == "easy-03":
-                self.grid_length = 5
-                self.generator = Generator(mode=self.mode)
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-            elif self.mode == "easy-05":
-                self.grid_length = 10
-                self.generator = Generator(mode=self.mode)
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-            else:
-                self.generator = Generator(mode=self.mode)
-                self.grid_length = 10
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-
-        elif "visualize" in self.mode:
+        elif self.mode is "gen":
             self.generator = Generator(mode=self.mode)
-            self.grid_length = 3
             self.new_map_path, self.segments, self.poly = self.generator.world(
                 self.grid_length
             )
-
-        elif "train-mode" in self.mode:
-            self.generator = Generator(mode=self.mode)
-            if self.map_size is not None:
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.map_size
-                )
-            else:
-                raise ValueError("map_size é obrigatório para o modo train-mode")
 
         else:
             self.generator = Generator(mode=self.mode, render=True)
@@ -250,11 +187,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = self.max_vr/8 * self.scalar
+            self.vr = -self.max_vr/8 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vr = +self.max_vr/8 * self.scalar
         elif event.key == "down":
             self.action = 3
             self.vl = self.max_lr/6 * self.scalar
@@ -293,18 +230,6 @@ class NaviEnv(gym.Env):
             elif self.action == 3:
                 self.vl = self.max_lr/6 * self.scalar
                 self.vr = 0.0 * self.scalar
-
-        # self.action, self.lstm_states = self.model_recurrent.predict(self.last_states, state=self.lstm_states, episode_start=self.episode_starts, deterministic=False)
-
-        # if self.action == 0:
-        #     self.vl = self.max_lr/2 * self.scalar
-        #     self.vr = 0.0
-        # elif self.action == 1:
-        #     self.vl = self.max_lr/4 * self.scalar
-        #     self.vr = -self.max_vr/8 * self.scalar
-        # elif self.action == 2:
-        #     self.vl = self.max_lr/4 * self.scalar
-        #     self.vr = self.max_vr/8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -612,50 +537,15 @@ class NaviEnv(gym.Env):
     def reset(self, *, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed, options=options)
 
+        self.episode_id += 1
+
         try:
-            if self.mode == "turn":
-                self.new_map_path, self.segments, self.poly = self.generator.world()
-                targets = np.array([[0.35, 0.35], [1.75, 1.75]])
-                idx = np.random.randint(2)
-                (self.target_x, self.target_y), _ = targets[idx], targets[1 - idx]  # spawn fixo no centro
-                self.robot.reset_robot(self.body, 1.0, 1.0, np.random.uniform(0, 2 * np.pi))
-
-            elif self.mode == "avoid":
-                self.new_map_path, self.segments, self.poly = self.generator.world()
-                targets = np.array([[1.75, 1.75], [0.35, 0.35]])
-                idx = np.random.randint(2)
-
-                if idx == 1:
-                    theta = 0.7853981633974483 + np.pi + np.random.uniform(-np.pi/6, np.pi/6)
-                else:
-                    theta = np.random.uniform(0, np.pi/2)
-
-                (self.target_x, self.target_y), (x, y) = targets[idx], targets[1 - idx]
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode == "long":
-                self.new_map_path, self.segments, self.poly = self.generator.world()
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold + 0.5,
-                    goal_clearance=self.collision + 0.2,
-                    min_robot_goal_dist=0.1,
-                )
-                self.target_x, self.target_y = goal_pos
-                self.robot.reset_robot(self.body, *robot_pos, np.random.uniform(0, 2 * np.pi))
-
-            elif self.mode in ("custom"):
-
-                if self.porcentage_obstacle is None:
-                    raise ValueError(
-                        "porcentage_obstacle é obrigatório para o modo train-mode"
-                    )
-
+            if self.mode in ("map"):
                 self.new_map_path, self.segments, self.poly = self.generator.world(
                     grid_length=0,
                     grid_length_x=self.x,
                     grid_length_y=self.y,
-                    porcentage_obstacle=self.porcentage_obstacle,
+                    porcentage_obstacle=0,
                 )
                 robot_pos, goal_pos = spawn_robot_and_goal(
                     poly=self.poly,
@@ -663,150 +553,11 @@ class NaviEnv(gym.Env):
                     goal_clearance=self.collision + 0.1,
                     min_robot_goal_dist=0.3,
                 )
+
                 self.target_x, self.target_y = goal_pos[0], goal_pos[1] # 3.74, -0.30
                 x, y = robot_pos[0], robot_pos[1]
 
                 self.sensor.update_map(self.segments)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode == "easy-01":
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-                targets = np.array([[0.35, 0.35], [0.35, 1.8], [1.8, 0.35], [1.8, 1.8]])
-                choice = targets[np.random.randint(0, len(targets))]
-                self.target_x, self.target_y = choice[0], choice[1]
-                x, y = 1.07, 1.07
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-
-
-            elif self.mode in ("easy-02", "easy-03", "easy-04"):
-
-                if self.porcentage_obstacle is None:
-                    raise ValueError(
-                        "porcentage_obstacle é obrigatório para o modo train-mode"
-                    )
-
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    grid_length=self.grid_length,
-                    porcentage_obstacle=self.porcentage_obstacle,
-                )
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold + 0.4,
-                    goal_clearance=self.collision + 0.4,
-                    min_robot_goal_dist=0.03,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
-
-                self.sensor.update_map(self.segments)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode in ("easy-05"):
-                self.grid_length = round(np.random.choice(np.arange(2, 10.05, 0.05)), 2)
-
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length
-                )
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
-                    min_robot_goal_dist=0.03,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
-
-                self.sensor.update_map(self.segments)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode in ("visualize"):
-                if self.timestep % 10 == 0:
-                    self.new_map_path, self.segments, self.poly = self.generator.world(
-                        self.grid_length
-                    )
-
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
-                    min_robot_goal_dist=0.03,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
-
-                self.sensor.update_map(self.segments)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif self.mode in ("train-mode"):
-                if self.map_size is None:
-                    raise ValueError("map_size é obrigatório para o modo train-mode")
-
-                if self.porcentage_obstacle is None:
-                    raise ValueError(
-                        "porcentage_obstacle é obrigatório para o modo train-mode"
-                    )
-
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    grid_length=self.map_size,
-                    porcentage_obstacle=self.porcentage_obstacle,
-                )
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=0.5,
-                    goal_clearance=0.2,
-                    min_robot_goal_dist=0.2,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
-
-                self.sensor.update_map(self.segments)
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif "medium" in self.mode:
-                self.new_map_path, self.segments, self.poly = self.create_world.world(
-                    mode=self.mode
-                )
-                self.sensor.update_map(self.segments)
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
-                    min_robot_goal_dist=0.03,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
-
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
-
-            elif "hard" in self.mode:
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    self.grid_length,
-                )
-                self.sensor.update_map(self.segments)
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold,
-                    goal_clearance=self.collision,
-                    min_robot_goal_dist=0.03,
-                )
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1]
-                x, y = robot_pos[0], robot_pos[1]
 
                 theta = np.random.uniform(0, 2 * np.pi)
                 self.robot.reset_robot(self.body, x, y, theta)
@@ -851,7 +602,6 @@ class NaviEnv(gym.Env):
             ).flatten()
 
             action = np.random.randint(0, 3)
-            # action_one_hot = np.eye(3)[action]
             action_one_hot = [np.int16(action != 0)]
             min_lidar_norm = np.min(lidar_norm)
 
@@ -897,7 +647,7 @@ class NaviEnv(gym.Env):
 
         return states, info
 
-    def render(self, mode="human"):
+    def render(self, mode="human", record: bool = False):
         self.ani = animation.FuncAnimation(
             self.fig,
             self.step_animation,
@@ -923,58 +673,13 @@ class NaviEnv(gym.Env):
         None
         """
         # ------ Create wordld ------ #
-
-        if "easy" in self.mode:
-            ax.set_xlim(0, self.grid_length)
-            ax.set_ylim(0, self.grid_length)
-
-        elif "custom" in self.mode:
+        if "map" in self.mode:
             origin_x, origin_y = -0.96, -3.15 # -3.06, -3.62
-            # ax.set_xlim(origin_x, origin_x + self.x)
-            # ax.set_ylim(origin_y, origin_y + self.y)
+
             gx, gy = 5.25, 5.3500000000000005
             ax.set_xlim(origin_x, origin_x + gx)
             ax.set_ylim(origin_y, origin_y + gy)
             ax.invert_yaxis()
-
-        elif "turn" in self.mode:
-            ax.set_xlim(0, 2)
-            ax.set_ylim(0, 2)
-
-        elif "avoid" in self.mode:
-            ax.set_xlim(0, 2)
-            ax.set_ylim(0, 2)
-
-        elif "long" in self.mode:
-            ax.set_xlim(0, 5)
-            ax.set_ylim(0, 5)
-
-        elif "train-mode" in self.mode:
-            if self.map_size is not None:
-                ax.set_xlim(0, int(self.map_size / 0.5))
-                ax.set_ylim(0, int(self.map_size / 0.5))
-            else:
-                ax.set_xlim(0, 5)
-                ax.set_ylim(0, 5)
-
-        elif "visualize" in self.mode:
-            ax.set_xlim(0, 3)
-            ax.set_ylim(0, 3)
-
-        elif "medium" in self.mode:
-            minx, miny, maxx, maxy = self.poly.bounds
-            center_x = (minx + maxx) / 2.0
-            center_y = (miny + maxy) / 2.0
-
-            width = maxx - minx
-            height = maxy - miny
-
-            ax.set_xlim(center_x - width / 2, center_x + width / 2)
-            ax.set_ylim(center_y - height / 2, center_y + height / 2)
-
-        elif "hard" in self.mode:
-            ax.set_xlim(0.1, 16)
-            ax.set_ylim(0.1, 16)
 
         ax.add_patch(self.new_map_path)
 
@@ -1137,8 +842,8 @@ class NaviEnv(gym.Env):
             )[0]
 
         if self.mode in ("long"):
-            x2 = x + 0.2 * np.cos(self.body.angle)
-            y2 = y + 0.2 * np.sin(self.body.angle)
+            x2 = x + 0.15 * np.cos(self.body.angle)
+            y2 = y + 0.15 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=1
             )[0]
@@ -1165,8 +870,8 @@ class NaviEnv(gym.Env):
             )[0]
 
         elif "hard" in self.mode:
-            x2 = x + 1.0 * np.cos(self.body.angle)
-            y2 = y + 1.0 * np.sin(self.body.angle)
+            x2 = x + 0.4 * np.cos(self.body.angle)
+            y2 = y + 0.4 * np.sin(self.body.angle)
             self.heading_line = self.ax.plot3D(
                 [x, x2], [y, y2], [0, 0], color="red", linewidth=2
             )[0]

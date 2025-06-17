@@ -8,8 +8,6 @@ class EnvConfig:
     folder_map: str
     name_map: str
     timestep: int
-    obstacle_percentage: float
-    map_size: float
     type: str
     noise: bool
     grid_size: List[float]
@@ -44,7 +42,7 @@ class RobotConfig:
 @dataclass
 class TrainerConfig:
     pretrained: str
-    use_agents: bool
+    use_llm: bool
     max_timestep_global: int
     seed: int
     batch_size: int
@@ -67,10 +65,3 @@ class TrainerConfig:
     target_kl: float
     name: str
     verbose: bool
-    policy: str
-
-
-@dataclass
-class ProbeEnvConfig:
-    num_envs: int
-    max_steps: int

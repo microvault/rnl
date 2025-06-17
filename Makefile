@@ -1,10 +1,37 @@
+# Documentation commands
+.PHONY: docs-install docs-build docs-serve docs-check docs
+
+# Install documentation dependencies
+docs-install:
+	@echo "Installing documentation dependencies..."
+	@uv pip install -r docs/requirements.txt
+	# Alternative with pip: pip install -r docs/requirements.txt
+
+# Build documentation
+docs-build:
+	@echo "Building documentation..."
+	@mkdocs build --clean
+
+# Serve documentation locally
+docs-serve:
+	@echo "Serving documentation at http://localhost:8000"
+	@mkdocs serve
+
+# Check documentation for issues
+docs-check:
+	@echo "Checking documentation for issues..."
+	@mkdocs build --strict
+
+# Combined target for quick builds and serving
+docs: docs-install docs-build docs-serve
+
 IMAGE_NAME   = rnl-docker-cuda
 TAG          = latest
 IMAGE        = $(IMAGE_NAME):$(TAG)
 VERSION      = 1.1
 
 MODE              ?= learn
-MAX_TIMESTEP_GLOBAL ?= 250000
+MAX_TIMESTEP_GLOBAL ?= 5_000_000
 POPULATION 		  ?= 2
 LOOP_FEEDBACK 	  ?= 10
 DESCRIPTION_TASK  ?= None
@@ -12,19 +39,19 @@ SEED              ?= 1
 BATCH_SIZE        ?= 64
 NUM_ENVS          ?= 16
 DEVICE            ?= mps
-LEARN_STEP        ?= 512
-CHECKPOINT        ?= 500
-CHECKPOINT_PATH   ?= checkpoint_models_noise
-LR                ?= 1e-4
-GAE_LAMBDA        ?= 0.95
+LEARN_STEP        ?= 256
+CHECKPOINT        ?= 10000
+CHECKPOINT_PATH   ?= checkpoint_models_custom_banca
+LR                ?= 1e-5
+GAE_LAMBDA        ?= 0.90
 ENT_COEF          ?= 0.05
 CLIP_RANGE_VF        ?= 0.2
 TARGET_KL          ?= 0.025
 VF_COEF           ?= 0.5
 MAX_GRAD_NORM     ?= 0.5
-UPDATE_EPOCHS     ?= 6
+UPDATE_EPOCHS     ?= 3
 NAME              ?= rnl-real
-SCALAR            ?= 15
+SCALAR            ?= 20
 CONTROL           ?= False
 USE_WANDB         ?= True
 USE_AGENTS        ?= False
@@ -34,7 +61,7 @@ MAP_NAME          ?= map
 TYPE 		  		?= custom
 OBSTACLE_PERCENTAGE ?= 0
 MAP_SIZE          ?= 0
-POLICY       ?= PPO
+POLICY       	  ?= PPO
 
 TRAIN_ARGS = \
 	$(MODE) \

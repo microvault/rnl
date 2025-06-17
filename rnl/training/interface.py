@@ -8,7 +8,7 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.rewards import RewardConfig
-from rnl.training.learn import inference, probe_envs, training
+from rnl.training.learn import inference, training
 from rnl.training.train import run_multiple_parallel_trainings
 
 def robot(
@@ -17,9 +17,9 @@ def robot(
     max_vel_angular: float,
     wheel_distance: float,
     weight: float,
-    threshold: float,
-    collision: float,
-    path_model: str,
+    threshold: float = 0.1,
+    collision: float = 0.2,
+    path_model: str =  "",
 ) -> RobotConfig:
 
     parameter = {
@@ -51,7 +51,7 @@ def robot(
     )
 
 def sensor(
-    fov: float, num_rays: int, min_range: float, max_range: float
+    fov: float = 270, num_rays: int = 10, min_range: float = 0.1, max_range: float = 10.0
 ) -> SensorConfig:
     if min_range < 0 or max_range < 0:
         raise ValueError(
@@ -78,15 +78,13 @@ def sensor(
 
 
 def make(
-    scalar: int,
-    folder_map: str,
-    name_map: str,
-    max_timestep: int,
-    type: str,
-    grid_size: List,
-    map_size: int,
-    noise: bool,
-    obstacle_percentage: float
+    scalar: int = 1,
+    folder_map: str = "None",
+    name_map: str = "None",
+    max_timestep: int = 1000,
+    type: str = "map",
+    grid_size: List = [2, 2],
+    noise: bool =  False,
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -99,15 +97,13 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
-        obstacle_percentage=obstacle_percentage,
-        map_size=map_size,
         type=type,
         noise=noise,
         grid_size=grid_size,
     )
 
 
-def render(controller: bool, debug: bool, plot: bool = False) -> RenderConfig:
+def render(controller: bool = False, debug: bool = True, plot: bool = False) -> RenderConfig:
     return RenderConfig(controller, debug, plot)
 
 
@@ -126,33 +122,32 @@ class Trainer:
 
     def learn(
         self,
-        population: int,
-        loop_feedback: int,
-        description_task: str,
-        pretrained: str,
-        use_agents: bool,
-        max_timestep_global: int,
-        seed: int,
-        batch_size: int,
-        num_envs: int,
-        device: str,
-        checkpoint: int,
-        checkpoint_path: str,
-        use_wandb: bool,
-        wandb_api_key: str,
-        llm_api_key: str,
-        lr: float,
-        learn_step: int,
-        gae_lambda: float,
-        ent_coef: float,
-        vf_coef: float,
-        max_grad_norm: float,
-        update_epochs: int,
-        clip_range_vf: float,
-        target_kl: float,
-        name: str,
-        verbose: bool,
-        policy: str,
+        population: int = 2,
+        loop_feedback: int = 10,
+        description_task: str = "reach the goal without crashing",
+        pretrained: str = "",
+        use_llm: bool =  False,
+        max_timestep_global: int = 1_000_000,
+        seed: int = 1,
+        batch_size: int = 64,
+        num_envs: int = 8,
+        device: str = "cpu",
+        checkpoint: int = 10000,
+        checkpoint_path: str = "checkpoints",
+        use_wandb: bool =  False,
+        wandb_api_key: str = "",
+        llm_api_key: str = "",
+        lr: float = 1e-5,
+        learn_step: int = 256,
+        gae_lambda: float = 0.90,
+        ent_coef: float = 0.05,
+        vf_coef: float = 0.5,
+        max_grad_norm: float = 0.5,
+        update_epochs: int = 3,
+        clip_range_vf: float = 0.2,
+        target_kl: float = 0.025,
+        name: str = "rnl",
+        verbose: bool = False,
     ):
 
         if seed < 0:
@@ -180,7 +175,7 @@ class Trainer:
 
         trainer_config = TrainerConfig(
             pretrained=pretrained,
-            use_agents=use_agents,
+            use_llm=use_llm,
             max_timestep_global=max_timestep_global,
             seed=seed,
             batch_size=batch_size,
@@ -203,7 +198,6 @@ class Trainer:
             target_kl=target_kl,
             name=name,
             verbose=verbose,
-            policy=policy,
         )
 
         if self.render_config.plot:
@@ -217,18 +211,17 @@ class Trainer:
                 "scale_distance": 0.0,
                 "scale_time": 0.01,
                 "scale_obstacle": 0.0,
-                "scale_angular": 0.0,
+                "scale_angular": 0.001,
             },
         )
 
-        if use_agents:
+        if use_llm:
             config = {
                 "robot_config": self.robot_config,
                 "sensor_config": self.sensor_config,
                 "env_config": self.env_config,
                 "render_config": self.render_config,
                 "trainer_config": trainer_config,
-                "network_config": network_config,
                 "reward_config": reward_config,
             }
             configs = population * [config]
@@ -247,10 +240,9 @@ class Trainer:
                 self.env_config,
                 self.render_config,
                 trainer_config,
-                network_config,
                 reward_config,
                 print_parameter=True,
-                train=False,
+                train=True,
             )
             return metrics
 
@@ -278,8 +270,8 @@ class Simulation:
                 "scale_orientation": 0.0,
                 "scale_distance": 0.0,
                 "scale_time": 0.01,
-                "scale_obstacle": 0.02,
-                "scale_angular": 0.005,
+                "scale_obstacle": 0.04,
+                "scale_angular": 0.0,
             },
         )
 
@@ -289,65 +281,6 @@ class Simulation:
             self.env_config,
             self.render_config,
             reward_config,
-        )
-
-        return None
-
-
-class Probe:
-    def __init__(
-        self,
-        seed: int,
-        num_envs: int,
-        max_steps: int,
-        robot_config: RobotConfig,
-        sensor_config: SensorConfig,
-        env_config: EnvConfig,
-        render_config: RenderConfig,
-    ) -> None:
-
-        if seed < 0:
-            raise ValueError("Error: Seed must be greater than or equal to 0.")
-        if max_steps < 0:
-            raise ValueError("Error: Maximum steps must be greater than 0.")
-        if num_envs < 0:
-            raise ValueError("Error: Number of environments must be greater than 0.")
-
-        self.num_envs = num_envs
-        self.max_steps = max_steps
-        self.robot_config = robot_config
-        self.sensor_config = sensor_config
-        self.env_config = env_config
-        self.render_config = render_config
-        self.seed = seed
-
-    def execute(self) -> None:
-
-        if self.render_config.controller:
-            raise ValueError("Error: Controller mode is not supported for training.")
-
-        if self.render_config.plot:
-            raise ValueError("Error: Plot mode is not supported for training.")
-
-        reward_config = RewardConfig(
-            params={
-                "scale_orientation": 0.01,
-                "scale_distance": 0.01,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.01,
-                "scale_angular": 0.01,
-            },
-        )
-
-        probe_envs(
-            self.num_envs,
-            self.max_steps,
-            self.robot_config,
-            self.sensor_config,
-            self.env_config,
-            self.render_config,
-            self.seed,
-            reward_config
         )
 
         return None

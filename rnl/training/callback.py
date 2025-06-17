@@ -71,12 +71,6 @@ class DynamicTrainingCallback(BaseCallback):
                 avg_collision_steps,
                 avg_goal_steps,
             ) = evaluate_agent(self.model, eval_env)
-            # print("sucess_rate: ", sucess_rate,
-            # "percentage_unsafe: ", percentage_unsafe,
-            # "percentage_angular: ", percentage_angular,
-            # "ep_mean_length: ", ep_mean_length,
-            # "avg_collision_steps: ", avg_collision_steps,
-            # "avg_goal_steps: ", avg_goal_steps)
 
             infos_list = []
             for i in range(self.model.n_envs):
