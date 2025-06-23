@@ -81,7 +81,9 @@ def main(arg):
 
     elif args.mode == "sim":
         # 5.step -> config train robot
-        model = vault.Simulation(param_robot, param_sensor, param_env, param_render, type=args.type)
+        model = vault.Simulation(
+            param_robot, param_sensor, param_env, param_render, type=args.type
+        )
         # 6.step -> run robot
         model.run()
 

@@ -11,6 +11,7 @@ from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import inference, training
 from rnl.training.train import run_multiple_parallel_trainings
 
+
 def robot(
     base_radius: float,
     max_vel_linear: float,
@@ -19,7 +20,7 @@ def robot(
     weight: float,
     threshold: float = 0.1,
     collision: float = 0.2,
-    path_model: str =  "",
+    path_model: str = "",
 ) -> RobotConfig:
 
     parameter = {
@@ -50,8 +51,12 @@ def robot(
         path_model,
     )
 
+
 def sensor(
-    fov: float = 270, num_rays: int = 10, min_range: float = 0.1, max_range: float = 10.0
+    fov: float = 270,
+    num_rays: int = 10,
+    min_range: float = 0.1,
+    max_range: float = 10.0,
 ) -> SensorConfig:
     if min_range < 0 or max_range < 0:
         raise ValueError(
@@ -84,7 +89,7 @@ def make(
     max_timestep: int = 1000,
     type: str = "map",
     grid_size: List = [2, 2],
-    noise: bool =  False,
+    noise: bool = False,
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -103,7 +108,9 @@ def make(
     )
 
 
-def render(controller: bool = False, debug: bool = True, plot: bool = False) -> RenderConfig:
+def render(
+    controller: bool = False, debug: bool = True, plot: bool = False
+) -> RenderConfig:
     return RenderConfig(controller, debug, plot)
 
 
@@ -126,7 +133,7 @@ class Trainer:
         loop_feedback: int = 10,
         description_task: str = "reach the goal without crashing",
         pretrained: str = "",
-        use_llm: bool =  False,
+        use_llm: bool = False,
         max_timestep_global: int = 1_000_000,
         seed: int = 1,
         batch_size: int = 64,
@@ -134,7 +141,7 @@ class Trainer:
         device: str = "cpu",
         checkpoint: int = 10000,
         checkpoint_path: str = "checkpoints",
-        use_wandb: bool =  False,
+        use_wandb: bool = False,
         wandb_api_key: str = "",
         llm_api_key: str = "",
         lr: float = 1e-5,
@@ -229,7 +236,7 @@ class Trainer:
                 num_loops=loop_feedback,
                 initial_configs=configs,
                 num_populations=population,
-                description_task=description_task
+                description_task=description_task,
             )
             return None
 
@@ -247,7 +254,6 @@ class Trainer:
             return metrics
 
 
-
 class Simulation:
     def __init__(
         self,
@@ -255,7 +261,7 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        type: str
+        type: str,
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
