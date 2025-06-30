@@ -39,6 +39,7 @@ class RobotConfig:
     collision: float
     path_model: str
 
+
 @dataclass
 class TrainerConfig:
     pretrained: str
