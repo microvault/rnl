@@ -1,3 +1,5 @@
+# RNL: Robot Navigation Learning Framework
+
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
   <a href="https://pypi.org/project/rnl/"><img alt="PyPI" src="https://img.shields.io/pypi/v/rnl"></a>
@@ -7,12 +9,6 @@
 
 </p>
 
-# RNL: Robot Navigation Learning Framework
-
-<div align="center">
-  <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="RNL Framework">
-</div>
-
 <p align="center">
   <strong>End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in PyTorch</strong>
 </p>
@@ -20,8 +16,6 @@
 ## Overview
 
 **RNL (Robot Navigation Learning)** is a comprehensive framework for training autonomous robots to navigate in unknown environments using Deep Reinforcement Learning (DRL). The framework provides a complete pipeline from environment simulation to model deployment, with support for both training and inference phases.
-
-## Framework Architecture
 
 ## Key Features
 
@@ -112,7 +106,7 @@ env_config = vault.make(
 
 # Configure rendering
 render_config = vault.render(
-    controller=False,        # Disable manual control
+    controller=False,        # Disable manual control (set True to control robot with arrow keys)
     debug=True,             # Enable debug visualization
     plot=False              # Disable plotting
 )
@@ -236,7 +230,6 @@ make run
 
 3. **Unstable Training**
    - Adjust learning rate (`lr`)
-   - Modify reward function parameters
    - Increase `update_epochs`
 
 ## Contributing
@@ -260,19 +253,6 @@ pytest tests/
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Citation
-
-If you use RNL in your research, please cite:
-
-```bibtex
-@software{rnl2024,
-  title={RNL: Robot Navigation Learning Framework},
-  author={Nicolas Alan},
-  year={2024},
-  url={https://github.com/microvault/rnl}
-}
-```
-
 ## Support
 
 - **Documentation**: [https://rnl.readthedocs.io](https://rnl.readthedocs.io)
@@ -283,9 +263,3 @@ If you use RNL in your research, please cite:
 ## Acknowledgments
 
 Special thanks to the open-source community and contributors who have made this project possible.
-
----
-
-<div align="center">
-  <strong>Built with ❤️ for the robotics community</strong>
-</div>
