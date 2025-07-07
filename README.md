@@ -20,9 +20,9 @@
 ## Demo
 
 <div align="center">
-    <p align="center">
-      <video src="docs/demo.mp4" width="640" controls loop muted></video>
-    </p>
+  <p align="center">
+    <video src="docs/demo.mp4?raw=true" width="640" controls loop muted></video>
+  </p>
 </div>
 
 ## Key Features
