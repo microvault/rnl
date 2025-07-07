@@ -21,7 +21,7 @@
 
 <div align="center">
   <video width="600" controls>
-    <source src="docs/demo.mov" type="video/quicktime">
+    <source src="docs/demo.mp4" type="video/mp4">
     Your browser does not support the video tag.
   </video>
 </div>
