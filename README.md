@@ -25,35 +25,14 @@
 
 ## Key Features
 
-### 🤖 **Robot Configuration**
-- Configurable robot parameters (size, speed, weight)
-- Wheel-based differential drive model
-- Collision detection and avoidance
-- Physics-based movement simulation
-
-### 🔍 **Sensor System**
-- LIDAR sensor simulation with customizable field of view
-- Ray-casting for obstacle detection
-- Noise simulation for realistic sensor behavior
-- Multi-ray configuration support
-
-### 🌍 **Environment Generation**
-- Dynamic map generation
-- Obstacle placement algorithms
-- Goal positioning system
-- Spawn point management
-
-### 🧠 **Learning Algorithm**
-- PPO (Proximal Policy Optimization) implementation
-- Parallel environment training
-- Experience replay and normalization
-- Adaptive learning rates
-
-### 📊 **Monitoring & Visualization**
-- Real-time training visualization
-- Wandb integration for experiment tracking
-- Performance metrics logging
-- 3D environment rendering
+- 3D environment
+- Wandb integration
+- LIDAR simulation
+- Robot parameters
+- Differential drive
+- Physics simulation
+- Dynamic maps
+- LLM integration
 
 ## Installation
 
@@ -65,13 +44,6 @@
 ### Install from PyPI
 ```bash
 pip install rnl
-```
-
-### Development Installation
-```bash
-git clone https://github.com/microvault/rnl.git
-cd rnl
-pip install -e .
 ```
 
 ## Quick Start
