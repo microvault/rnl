@@ -19,7 +19,9 @@
 
 ## Demo
 
-[Demo Video (MP4)](https://raw.githubusercontent.com/microvault/rnl/main/docs/demo.mp4)
+<div align="center">
+  <img src="docs/demo.gif" alt="RNL Framework Demo" width="600">
+</div>
 
 ## Key Features
 
