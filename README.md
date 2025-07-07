@@ -7,8 +7,6 @@
 
 </p>
 
-<div align="center">
-
 # RNL: Robot Navigation Learning Framework
 
 <div align="center">
