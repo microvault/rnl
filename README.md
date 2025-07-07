@@ -20,10 +20,9 @@
 ## Demo
 
 <div align="center">
-  <video width="600" controls>
-    <source src="docs/demo.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
+    <p align="center">
+      <video src="docs/demo.mp4" width="640" controls loop muted></video>
+    </p>
 </div>
 
 ## Key Features
