@@ -17,6 +17,15 @@
 
 **RNL (Robot Navigation Learning)** is a comprehensive framework for training autonomous robots to navigate in unknown environments using Deep Reinforcement Learning (DRL). The framework provides a complete pipeline from environment simulation to model deployment, with support for both training and inference phases.
 
+## Demo
+
+<div align="center">
+  <video width="600" controls>
+    <source src="docs/demo.mov" type="video/quicktime">
+    Your browser does not support the video tag.
+  </video>
+</div>
+
 ## Key Features
 
 ### 🤖 **Robot Configuration**
