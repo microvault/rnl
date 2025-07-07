@@ -236,30 +236,11 @@ make run
 
 We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
-### Development Setup
-```bash
-git clone https://github.com/microvault/rnl.git
-cd rnl
-pip install -e ".[dev]"
-pre-commit install
-```
-
-### Testing
-```bash
-pytest tests/
-```
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 
-- **Documentation**: [https://rnl.readthedocs.io](https://rnl.readthedocs.io)
 - **Issues**: [GitHub Issues](https://github.com/microvault/rnl/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/microvault/rnl/discussions)
 - **Email**: grottimeireles@gmail.com
-
-## Acknowledgments
-
-Special thanks to the open-source community and contributors who have made this project possible.
