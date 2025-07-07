@@ -82,9 +82,6 @@ def make(
     folder_map: str = "None",
     name_map: str = "None",
     max_timestep: int = 1000,
-    type: str = "map",
-    grid_size: List = [2, 2],
-    noise: bool =  False,
 ) -> EnvConfig:
 
     if scalar < 0 or scalar > 100:
@@ -97,9 +94,6 @@ def make(
         folder_map=folder_map,
         name_map=name_map,
         timestep=max_timestep,
-        type=type,
-        noise=noise,
-        grid_size=grid_size,
     )
 
 
@@ -127,9 +121,10 @@ class Trainer:
         description_task: str = "reach the goal without crashing",
         pretrained: str = "",
         use_llm: bool =  False,
-        max_timestep_global: int = 1_000_000,
+        max_timestep_global: int = 5_000_000,
         seed: int = 1,
         batch_size: int = 64,
+        hidden_size: int = 128,
         num_envs: int = 8,
         device: str = "cpu",
         checkpoint: int = 10000,
@@ -172,6 +167,8 @@ class Trainer:
             raise ValueError("Error: Maximum gradient norm must be greater than 0.")
         if update_epochs < 0:
             raise ValueError("Error: Update epochs must be greater than 0.")
+        if pretrained == "":
+            pretrained = "None"
 
         trainer_config = TrainerConfig(
             pretrained=pretrained,
@@ -179,6 +176,7 @@ class Trainer:
             max_timestep_global=max_timestep_global,
             seed=seed,
             batch_size=batch_size,
+            hidden_size=hidden_size,
             num_envs=num_envs,
             device=device,
             checkpoint=checkpoint,
@@ -209,9 +207,9 @@ class Trainer:
             params={
                 "scale_orientation": 0.0,
                 "scale_distance": 0.0,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.0,
-                "scale_angular": 0.001,
+                "scale_time": 0.02,
+                "scale_obstacle": 0.01,
+                "scale_angular": 0.005,
             },
         )
 
@@ -242,7 +240,6 @@ class Trainer:
                 trainer_config,
                 reward_config,
                 print_parameter=True,
-                train=True,
             )
             return metrics
 
@@ -255,13 +252,11 @@ class Simulation:
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        type: str
     ) -> None:
         self.robot_config = robot_config
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.type = type
 
     def run(self) -> None:
 
@@ -269,9 +264,9 @@ class Simulation:
             params={
                 "scale_orientation": 0.0,
                 "scale_distance": 0.0,
-                "scale_time": 0.01,
-                "scale_obstacle": 0.04,
-                "scale_angular": 0.0,
+                "scale_time": 0.02,
+                "scale_obstacle": 0.01,
+                "scale_angular": 0.005,
             },
         )
 

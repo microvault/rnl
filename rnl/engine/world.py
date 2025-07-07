@@ -29,16 +29,15 @@ def generate_maze(
     porcentage_obstacle: float,
 ) -> np.ndarray:
     """
-    Gera um labirinto usando Kruskal.
+    Generates a maze using Kruskal's algorithm.
 
-    porcentage_obstacle: valor máximo de obstáculos. O
-    resultado real ficará entre min_blocks e esse limite.
+    percentage_obstacle: maximum obstacle ratio. The actual result
+    will fall between min_blocks and this upper limit.
     """
     m = (map_size - 1) // 2
     n = (map_size - 1) // 2
     maze = np.ones((map_size, map_size))
 
-    # grade inicial 0-1-0-1-…
     for i in range(m):
         for j in range(n):
             maze[2 * i + 1, 2 * j + 1] = 0
@@ -103,7 +102,6 @@ def _point_in_ring(px, py, ring):
     for i in range(n):
         x1, y1 = ring[i]
         x2, y2 = ring[(i + 1) % n]
-        # Ray casting
         if ((y1 > py) != (y2 > py)) and (
             px < (x2 - x1) * (py - y1) / (y2 - y1 + 1e-15) + x1
         ):
@@ -113,10 +111,8 @@ def _point_in_ring(px, py, ring):
 
 @njit
 def _point_in_polygon(px, py, exterior, holes):
-    # Verifica se está dentro do contorno exterior
     if not _point_in_ring(px, py, exterior):
         return False
-    # Se encontrar dentro de um furo, retorna False
     for hole in holes:
         if _point_in_ring(px, py, hole):
             return False
@@ -141,12 +137,11 @@ def spawn_robot_and_goal_with_maze(
     min_robot_goal_dist=2.0,
     max_tries=1000,
 ):
-    # Faz buffer negativo para clearance
     safe_poly_robot = poly.buffer(-robot_clearance)
     safe_poly_goal = poly.buffer(-goal_clearance)
 
     if safe_poly_robot.is_empty or safe_poly_goal.is_empty:
-        raise ValueError("Clearance muito grande. Polígono invalido.")
+        raise ValueError("Clearance too large. Invalid polygon.")
 
     def to_single_polygon(shp):
         if shp.geom_type == "Polygon":
@@ -155,7 +150,7 @@ def spawn_robot_and_goal_with_maze(
             largest = max(shp.geoms, key=lambda g: g.area)
             return largest
         else:
-            raise ValueError("Geometria não é Polygon nem MultiPolygon.")
+            raise ValueError("Geometry is neither Polygon nor MultiPolygon.")
 
     safe_poly_robot = to_single_polygon(safe_poly_robot)
     safe_poly_goal = to_single_polygon(safe_poly_goal)
@@ -190,13 +185,13 @@ def spawn_robot_and_goal_with_maze(
         robo_x, robo_y = random_point_in_poly(
             (minx_r, miny_r, maxx_r, maxy_r), ext_robot_arr, holes_robot_nb, max_tries
         )
-        if robo_x < 0:  # Falhou pra achar posicao do robo
+        if robo_x < 0:
             continue
 
         goal_x, goal_y = random_point_in_poly(
             (minx_g, miny_g, maxx_g, maxy_g), ext_goal_arr, holes_goal_nb, max_tries
         )
-        if goal_x < 0:  # Falhou pra achar posicao da meta
+        if goal_x < 0:
             continue
 
         dx = robo_x - goal_x
@@ -206,4 +201,4 @@ def spawn_robot_and_goal_with_maze(
         if dist >= min_robot_goal_dist:
             return (robo_x, robo_y), (goal_x, goal_y)
 
-    raise ValueError("Falha ao gerar posições válidas para robô e objetivo.")
+    raise ValueError("Failed to generate valid positions for robot and goal.")

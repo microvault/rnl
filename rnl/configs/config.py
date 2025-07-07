@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List
 
 
 @dataclass
@@ -8,9 +7,6 @@ class EnvConfig:
     folder_map: str
     name_map: str
     timestep: int
-    type: str
-    noise: bool
-    grid_size: List[float]
 
 
 @dataclass
@@ -46,6 +42,7 @@ class TrainerConfig:
     max_timestep_global: int
     seed: int
     batch_size: int
+    hidden_size: int
     lr: float
     num_envs: int
     device: str

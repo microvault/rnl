@@ -7,7 +7,6 @@ def make_environemnt(
     sensor_config: SensorConfig,
     env_config: EnvConfig,
     render_config: RenderConfig,
-    mode: str,
     type_reward: RewardConfig,
 ):
     env = NaviEnv(
@@ -16,7 +15,6 @@ def make_environemnt(
         env_config,
         render_config,
         False,
-        mode=mode,
         type_reward=type_reward,
     )
 

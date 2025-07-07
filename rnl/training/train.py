@@ -6,8 +6,6 @@ from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import training
 
-
-
 def train_worker(
     robot_config,
     sensor_config,

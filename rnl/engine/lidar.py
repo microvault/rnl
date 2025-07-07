@@ -9,7 +9,7 @@ def lidar_segments(
     robot_theta: float,
     lidar_range: float,
     lidar_angles: np.ndarray,
-    segments,  # Lista de UniTuples (x1, y1, x2, y2)
+    segments,
 ):
     n = lidar_angles.shape[0]
     points = np.zeros((n, 2), dtype=np.float64)
@@ -17,7 +17,6 @@ def lidar_segments(
 
     for i in prange(n):
         ang = lidar_angles[i] + robot_theta
-        # Calcula as componentes do vetor do raio
         r0 = lidar_range * np.cos(ang)
         r1 = lidar_range * np.sin(ang)
 
@@ -26,7 +25,6 @@ def lidar_segments(
         best_y = 0.0
         found = False
 
-        # Itera sobre a lista de segmentos
         for j in range(len(segments)):
             seg = segments[j]
             seg0 = seg[0]
@@ -34,14 +32,11 @@ def lidar_segments(
             seg2 = seg[2]
             seg3 = seg[3]
 
-            # Vetor do segmento
             s0 = seg2 - seg0
             s1 = seg3 - seg1
-            # Vetor do robô até o início do segmento
             d0 = seg0 - robot_x
             d1 = seg1 - robot_y
 
-            # Produto vetorial entre o raio e o segmento
             cross_rs = r0 * s1 - r1 * s0
             if abs(cross_rs) < 1e-12:
                 continue

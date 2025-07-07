@@ -14,9 +14,9 @@ from torch.distributions import Categorical
 from nav2_msgs.action import NavigateToPose
 from rclpy.action import ActionClient
 
-MAX_DISTANCE = 1.9103926298015286 # 4.277756421303112 # quadrado -> 2.6593232221751464
+MAX_DISTANCE = 2.440000000000001 # 1.9103926298015286 # 4.277756421303112 # quadrado -> 2.6593232221751464
 MIN_DISTANCE = 0.0
-MAX_LIDAR_RANGE = 5.0
+MAX_LIDAR_RANGE = 3.5
 MIN_LIDAR_RANGE = 0.0
 MAX_ALPHA = 3.5 * 0.89
 MIN_ALPHA = 0.0
@@ -56,9 +56,9 @@ class PolicyBackbone(nn.Module):
     def __init__(self, feature_dim: int):
         super().__init__()
         self.body = nn.Sequential(
-            block(feature_dim, 32),
-            block(32, 32),
-            block(32, 16),
+            block(feature_dim, 16),
+            block(16, 16),
+            block(16, 8),
         )
 
 
@@ -67,7 +67,7 @@ class RNLPolicy(nn.Module):
                  pth: str, device: str = "cpu"):
         super().__init__()
         self.backbone = PolicyBackbone(in_dim)
-        self.head = nn.Linear(16, n_act)
+        self.head = nn.Linear(8, n_act)
 
         ckpt = torch.load(pth, map_location=device, weights_only=True)
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
@@ -140,8 +140,10 @@ class InferenceModel(Node):
         self.target = False
 
         # QUADRADO -> self.goal_positions = [(0.218, -1.247), (0.063, -0.568), (0.218, -1.247), (0.932, -1.259), (0.218, -1.247), (0.226, -2.0677), (0.218, -1.247), (-0.438, -1.386)]
-        # GRANDE ->self.goal_positions = [(0.401, 0.176)]
-        self.goal_positions = [(0.232, 0.308), (0.684, 0.546), (0.232, 0.308), (0.1483, 0.749), (0.232, 0.308), (-0.155, -0.0536), (0.232, 0.308), (0.342, -0.160)]
+        # GRANDE -> self.goal_positions = [(0.401, 0.176)]
+        # self.goal_positions = [(0.232, 0.308), (0.684, 0.546), (0.232, 0.308), (0.1483, 0.749), (0.232, 0.308), (-0.155, -0.0536), (0.232, 0.308), (0.342, -0.160)]
+        # self.goal_positions = [(0.6428,  0.0853), (1.9496,  0.4140), (1.0948, -0.4113), (1.1501,  0.8220)]
+        self.goal_positions = [(1.9496,  0.4140)]
 
         self.goal_order = random.sample(range(len(self.goal_positions)),
                                         len(self.goal_positions))
@@ -155,7 +157,7 @@ class InferenceModel(Node):
 
         pkg_dir = get_package_share_directory('playground')
         model_path = os.path.join(pkg_dir, 'models', 'policy.pth')
-        self.policy = RNLPolicy(in_dim=8, n_act=3, pth=model_path)
+        self.policy = RNLPolicy(in_dim=8, n_act=2, pth=model_path)
 
         self.scaler_lidar = CustomMinMaxScaler(feature_range=(0, 1))
         self.scaler_dist = CustomMinMaxScaler(feature_range=(0, 1))
@@ -206,10 +208,10 @@ class InferenceModel(Node):
             vl = VEL_LINEAR/2
             vr = 0.0
         elif action == 1:
-            vl = VEL_LINEAR/6
+            vl = VEL_LINEAR/2
             vr = -VEL_ANGULAR/2
         elif action == 2:
-            vl = VEL_LINEAR/6
+            vl = VEL_LINEAR/2
             vr = VEL_ANGULAR/2
         else:
             vl, vr = 0.0, 0.0
@@ -261,10 +263,9 @@ class InferenceModel(Node):
                 np.array(alpha_norm, dtype=np.float32),
             )
         )
+        # self.get_logger().info(f'{self.last_states}')
 
         self.i_update += 1
-
-        # self.get_logger().warn(f'States: {self.last_states}')
 
         if dist <= 0.2:
             self.goal_index = (self.goal_index + 1) % len(self.goal_positions)

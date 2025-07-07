@@ -17,9 +17,10 @@ class PolicyBackbone(nn.Module):
     def __init__(self, feature_dim: int):
         super().__init__()
         self.body = nn.Sequential(
-            block(feature_dim, 16),
-            block(16, 16),
-            block(16, 8),
+            block(feature_dim, 128),
+            block(128, 128),
+            block(128, 64),
+            block(64, 32),
         )
 
 
@@ -28,14 +29,14 @@ class RNLPolicy(nn.Module):
                  archive_path: str, device: str = "cpu"):
         super().__init__()
         self.backbone = PolicyBackbone(in_dim)
-        self.head = nn.Linear(8, n_act)
+        self.head = nn.Linear(32, n_act)
 
-        # with zipfile.ZipFile(archive_path, 'r') as archive:
-        #     with archive.open('policy.pth') as f:
-        #         raw = f.read()
-        #         ckpt = torch.load(io.BytesIO(raw), map_location=device, weights_only=True)
+        with zipfile.ZipFile(archive_path, 'r') as archive:
+            with archive.open('policy.pth') as f:
+                raw = f.read()
+                ckpt = torch.load(io.BytesIO(raw), map_location=device, weights_only=True)
 
-        ckpt = torch.load(archive_path, map_location=device, weights_only=True)
+        # ckpt = torch.load(archive_path, map_location=device, weights_only=True)
 
         if isinstance(ckpt, dict) and "state_dict" in ckpt:
             ckpt = ckpt["state_dict"]

@@ -8,13 +8,6 @@ from shapely.geometry import Point
 def collision_and_target_reward(
     distance: float, threshold: float, collision: bool, x: float, y: float, poly
 ) -> Tuple[float, bool]:
-    """
-    Calcula a recompensa baseada na proximidade do alvo e colisões.
-
-    Retorna:
-      - reward: Recompensa (1 para sucesso, -1 para colisão ou fora da área, 0 caso contrário)
-      - done: Booleano indicando se a condição de término foi atingida.
-    """
     if not poly.contains(Point(x, y)):
         return -1.0, True
     if distance < threshold:
@@ -43,17 +36,12 @@ def time_and_collision_reward(scale_time: float = 0.01) -> float:
 @njit
 def prog_reward(
     current_distance: float,
-    min_distance: float,
-    max_distance: float,
     scale_factor: float,
 ) -> float:
 
-    # A recompensa é negativa: quanto maior o normalized, mais longe está e maior a penalização.
     reward = -scale_factor * current_distance
     return reward
 
-
-# Função 5: Recompensa baseada em obstáculos (usando o valor mínimo medido)
 @njit
 def r3(x: float, threshold_collision: float, scale: float) -> float:
     margin = 0.3
@@ -67,11 +55,6 @@ def r3(x: float, threshold_collision: float, scale: float) -> float:
 
 class RewardConfig:
     def __init__(self, params: Dict[str, Any]):
-        """
-        Parâmetros:
-          - params: Dicionário com os parâmetros, como escalas:
-              * scale_orientation, scale_distance, scale_time, scale_obstacle.
-        """
         self.params = params
 
     def get_reward(
@@ -80,11 +63,9 @@ class RewardConfig:
         poly,
         position_x: float,
         position_y: float,
-        initial_distance: float,
         current_distance: float,
         collision: bool,
         alpha: float,
-        step: int,
         threshold: float,
         threshold_collision: float,
         min_distance: float,
@@ -105,8 +86,6 @@ class RewardConfig:
         obstacle_reward = r3(min(measurement), threshold_collision, scale_obstacle)
         progress_reward = prog_reward(
             current_distance,
-            min_distance,
-            max_distance,
             scale_distance,
         )
 

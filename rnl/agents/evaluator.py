@@ -65,7 +65,7 @@ class LLMTrainingEvaluator:
         return txt
 
     def _only_json_prompt(self, p: str) -> str:
-        return p.strip() + "\n\nSomente JSON, sem markdown ou explicações."
+        return p.strip() + "\n\nJSON only, no markdown or explanations."
 
     def _pad_configs(self, data: dict) -> dict:
         cfgs = data.get("configurations", [])
@@ -80,7 +80,7 @@ class LLMTrainingEvaluator:
     def _call_gemini(self, prompt: str) -> dict:
         resp = self.client.models.generate_content(
             model="gemini-2.0-flash-001",
-            contents=prompt + "\n\nSó JSON, sem explicações.",
+            contents = prompt + "\n\nJSON only, no explanations.",
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 candidate_count=1,           # + rápido
@@ -98,9 +98,9 @@ class LLMTrainingEvaluator:
                 try:
                     return self._pad_configs(json.loads(clean))
                 except json.JSONDecodeError as e:
-                    logging.debug("Falha manual: %s\n%s", e, clean)
+                    logging.debug("Manual failure: %s\n%s", e, clean)
 
-        raise ValueError("Nenhum JSON parseável")
+        raise ValueError("No parseable JSON")
 
     def directed_reflection(self, best_population_metrics, history, summary_data, task) -> str:
 
@@ -110,86 +110,85 @@ class LLMTrainingEvaluator:
                 met = pop_data.get("metrics", {})
                 scales = pop_data.get("scales", {})
                 hist_str += (
-                    f"\n  Sucesso={met.get('success_pct', 0)}, "
-                    f"Inseguro={met.get('unsafe_pct', 0)}, "
+                    f"\n  Success={met.get('success_pct', 0)}, "
+                    f"Unsafe={met.get('unsafe_pct', 0)}, "
                     f"Angular={met.get('angular_use_pct', 0)}"
-                    f" Escala obstaculo={scales['scale obstacle']}"
-                    f" Escala orientacao={scales['scale angle']}"
-                    f" Escala distancia={scales['scale distance']}"
-                    f" Escala tempo={scales['scale time']}"
-                    f" Escala angular={scales['scale angular']}"
-
+                    f" Obstacle scale={scales['scale obstacle']}"
+                    f" Orientation scale={scales['scale angle']}"
+                    f" Distance scale={scales['scale distance']}"
+                    f" Time scale={scales['scale time']}"
+                    f" Angular scale={scales['scale angular']}"
                 )
-
 
         scale_pop_text = ""
         for pop in summary_data:
             s = pop["scales"]
             scale_pop_text += (
-                f"\nEscala Obstaculo={s['scale obstacle']}, "
-                f"Escala Orientacão={s['scale angle']}, Escala Distancia={s['scale distance']}, Escala Tempo={s['scale time']}, Escala Angular={s['scale angular']},"
+                f"\nObstacle Scale={s['scale obstacle']}, "
+                f"Orientation Scale={s['scale angle']}, Distance Scale={s['scale distance']}, Time Scale={s['scale time']}, Angular Scale={s['scale angular']},"
             )
 
         prompt = f"""
-        Você é um engenheiro de recompensas. Analise as métricas do treinamento atual e proponha melhorias na função de recompensa para otimizar o desempenho do agente.​
+        You are a reward engineer. Analyze the current training metrics and propose improvements to the reward function to optimize agent performance.
 
-        Com base nas métricas fornecidas, aplique as regras de análise para:​
-            - Identificar possíveis causas de desempenho subótimo.
-            - Forneça uma análise passo a passo justificando cada recomendação.
-            - Não precisa mostrar como resolver, somente uma analise do que mudar.
-            - As escalas de recompensa podem ser 0 também.
-            - O objetivo 1 Taxa de sucesso 100% ou quase;
-            - O objetivo 2 é usar o minimo de garantir velocidade angular
-            - O objetivo 3 é ter uma taxa de insegurança baixa
+        Based on the provided metrics, apply analysis rules to:
+            - Identify potential causes of suboptimal performance.
+            - Provide a step-by-step analysis justifying each recommendation.
+            - Do not show how to fix it, only analyze what to change.
+            - Reward scales can also be set to 0.
+            - Goal 1: Achieve a success rate of 100% or close;
+            - Goal 2: Minimize angular velocity usage;
+            - Goal 3: Maintain a low unsafe rate
 
-        ## Contexto:
-            Somente é possivel ajustar os seguintes parametros:
-            * Escala de recompensa por tempo (sempre negativa) -> minimo: 0.001, maximo: 0.1
-            * Escala de recompensa obstaculo (sempre negativa) -> minimo: 0.001, maximo: 0.1
-            * Escala de recompensa distancia (sempre negativa) -> minimo: 0.001, maximo: 0.1
-            * Escala de recompensa angulo (sempre negativa) -> minimo: 0.001, maximo: 0.1
-            * Escala de recompensa por acao angular (sempre negativa) -> minimo: 0.001, maximo: 0.1
+        ## Context:
+            Only the following parameters can be adjusted:
+            * Time reward scale (always negative) -> min: 0.001, max: 0.1
+            * Obstacle reward scale (always negative) -> min: 0.001, max: 0.1
+            * Distance reward scale (always negative) -> min: 0.001, max: 0.1
+            * Angle reward scale (always negative) -> min: 0.001, max: 0.1
+            * Angular action reward scale (always negative) -> min: 0.001, max: 0.1
 
-        ## Ambiente
+        ## Environment
             {task}
 
-        ## Funções de recompensa:
-            Colisão e chegada: Colidiu → -1.0 e termina; chegou → +1.0 e termina.
-            Orientação: Orientação perfeita → 0.0; caso contrário penalidade proporcional.
-            Tempo: Penalidade fixa a cada step.
-            Progresso: Quanto mais perto do destino, menor a penalidade.
-            Proximidade de obstaculo: Penalidade cresce conforme se aproxima do obstáculo.
-            Uso de ação angular: Ações 1 ou 2 (giro) recebem penalidade fixa.
+        ## Reward functions:
+            Collision and goal: Collided → -1.0 and ends; reached → +1.0 and ends.
+            Orientation: Perfect orientation → 0.0; otherwise proportional penalty.
+            Time: Fixed penalty per step.
+            Progress: The closer to the goal, the lower the penalty.
+            Obstacle proximity: Penalty increases when close to obstacles.
+            Angular action usage: Actions 1 or 2 (turning) receive fixed penalty.
 
-        ## Regras de reflexão:
-            - Porcentagem de insegurança alta → aumentar penalidade de proximidade.
-            - Episódios longos + muitos comandos angulares → penalizar ações angulares e/ou tempo.
-            - Nem sempre prefica usar todas os modulos de recompensa, pode zera-los, exemplo se a insegurança estiver muito baixa, e ja nao esta zerada, não precisa usar o reward de obstacle.
-            - Seja o mais direto e curto possivel, evite ações desnecessárias. Faca em 1 paragrafo no imperativo, mas mostrando numeros e justificativas claras e curtas.
-            - Use pequenas escalas de recompensa, pois o ambiente é muito pequeno.
-            - Leve em consideracao a melhor populacao e o historico, caso veja que nao esta progredindo, volte com as recompensas.
-            - Utilize recompensas isoladas, como por exemplo so usar time e zerar as reatantes para ver o resultado de cada um.
-            - O que pode ser feito é pedir para isolar cada recompensa selecionando qual delas você quer testar.
+        ## Reflection rules:
+            - High unsafe percentage → increase obstacle proximity penalty.
+            - Long episodes + many angular commands → penalize angular actions and/or time.
+            - It's not necessary to use all reward modules; they can be set to zero. For example, if unsafe rate is very low, obstacle reward can be zeroed.
+            - Be as direct and concise as possible; avoid unnecessary actions. Write in 1 paragraph using imperative voice, but include clear and short justifications with numbers.
+            - Use small reward scales since the environment is small.
+            - Consider the best population and history; if no progress is seen, revert previous rewards.
+            - Use isolated rewards, e.g., only time reward and zero the others to see individual impact.
+            - One approach is to isolate each reward by selecting which one to test.
 
-        ### Historico de dados:
+        ### Data history:
             {hist_str}
 
-        ### Escalas de recompensas atuais:
+        ### Current reward scales:
             {scale_pop_text}
 
-        ### Dados Atuais:
-            - Porcentagem de sucesso: {best_population_metrics['success_percentage']}%
-            - Porcentagem de passos até o objetivo: {best_population_metrics['avg_goal_steps']}
-            - Porcentagem de passos até colisão: {best_population_metrics['avg_collision_steps']}
-            - Porcentagem de insegurança: {best_population_metrics['percentage_unsafe']}
-            - Porcentagem de uso de velocidade angular: {best_population_metrics['percentage_angular']}
-            - Recompensa média por tempo: {best_population_metrics['time_score_mean']}
-            - Recompensa média por proximidade: {best_population_metrics['obstacle_score_mean']}
-            - Recompensa média por orientação: {best_population_metrics['orientation_score_mean']}
-            - Recompensa média por progresso: {best_population_metrics['progress_score_mean']}​
+        ### Current Data:
+            - Success rate: {best_population_metrics['success_percentage']}%
+            - Steps to goal (avg): {best_population_metrics['avg_goal_steps']}
+            - Steps to collision (avg): {best_population_metrics['avg_collision_steps']}
+            - Unsafe percentage: {best_population_metrics['percentage_unsafe']}
+            - Angular velocity usage: {best_population_metrics['percentage_angular']}
+            - Avg time reward: {best_population_metrics['time_score_mean']}
+            - Avg obstacle reward: {best_population_metrics['obstacle_score_mean']}
+            - Avg orientation reward: {best_population_metrics['orientation_score_mean']}
+            - Avg progress reward: {best_population_metrics['progress_score_mean']}
 
-        ### reflexão:
+        ### Reflection:
         """
+
 
         print(f"\033[32m{prompt}\033[0m")
 
@@ -213,13 +212,14 @@ class LLMTrainingEvaluator:
         self, summary_data, history, reflections, num_populations
     ):
         objective = (
-            "Por favor, analise cuidadosamente o feedback da política e forneça uma nova função de recompensa melhorada que possa resolver melhor a tarefa"
-            f" no total de {num_populations} configurações. "
-            "Mesmo que só tenhamos as métricas da melhor população, gere diferentes "
-            "variações para comparar. Porem siga o feedback anteriormente fornecido."
-            "Alem disso gere outras amostras para explorar mais."
-            "Se pedir para testar recompensas isoladas, crie uma configuracao usando somente um valor isolado de cada moduloe zerando os restantea para ver o que cada modulo pode contribuir separadamente"
+            "Please carefully analyze the policy feedback and provide a new improved reward function that can better solve the task"
+            f" across a total of {num_populations} configurations. "
+            "Even though we only have the metrics from the best population, generate different "
+            "variations for comparison. However, follow the previously provided feedback."
+            "Also generate other samples to explore further."
+            "If asked to test isolated rewards, create a configuration using only one active reward module at a time, setting the others to zero to evaluate each module's individual contribution."
         )
+
         reflection_text = (
             "\n- ".join(reflections) if reflections else "Nenhuma reflexão anterior"
         )
@@ -229,8 +229,8 @@ class LLMTrainingEvaluator:
             for pop_data in loop_entry.get("population_data", []):
                 met = pop_data.get("metrics", {})
                 hist_str += (
-                    f"\n  Sucesso={met.get('success_pct', 0)}, "
-                    f"Inseguro={met.get('unsafe_pct', 0)}, "
+                    f"\n  Success={met.get('success_pct', 0)}, "
+                    f"Unsafe={met.get('unsafe_pct', 0)}, "
                     f"Angular={met.get('angular_use_pct', 0)}"
                 )
 
@@ -239,50 +239,51 @@ class LLMTrainingEvaluator:
             r = pop["rewards"]
             m = pop["metrics"]
             best_pop_text += (
-                f"\nMelhor Pop {pop['pop_id']} -> Obst={r['obstacle']:.3f}, "
+                f"\nBest Pop {pop['pop_id']} -> Obst={r['obstacle']:.3f}, "
                 f"Ang={r['angle']:.3f}, Dist={r['distance']:.3f}, Time={r['time']:.3f}, "
                 f"Success={m['success_pct']:.2f}, Unsafe={m['unsafe_pct']:.2f}, Angular={m['angular_use_pct']:.2f}"
             )
 
         base_text = f"""
-            Objetivo: {objective}
+        Objective: {objective}
 
-            Reflexões:
-            {reflection_text}
+        Reflections:
+        {reflection_text}
 
-            Histórico Simplificado:
-            {hist_str}
+        Simplified History:
+        {hist_str}
 
-            Melhor População:
-            {best_pop_text}
+        Best Population:
+        {best_pop_text}
 
-            Retorne um JSON com exatamente {num_populations} configurações dentro do campo "configurations".
+        Return a JSON with exactly {num_populations} configurations inside the "configurations" field.
 
-            Não retorne mais do que {num_populations}.
+        Do not return more than {num_populations}.
 
-            Cada item deve conter os seguintes campos numéricos:
-            - scale_orientation
-            - scale_distance
-            - scale_time
-            - scale_obstacle
-            - scale_angular
+        Each item must contain the following numeric fields:
+        - scale_orientation
+        - scale_distance
+        - scale_time
+        - scale_obstacle
+        - scale_angular
 
-            Exemplo (com {num_populations} itens):
+        Example (with {num_populations} items):
 
+        {{
+            "configurations": [
             {{
-              "configurations": [
-                {{
-                  "scale_orientation": 0.02,
-                  "scale_distance": 0.05,
-                  "scale_time": 0.01,
-                  "scale_obstacle": 0.004,
-                  "scale_angular": 0.004
-                }},
-              ]
-            }}
+                "scale_orientation": 0.02,
+                "scale_distance": 0.05,
+                "scale_time": 0.01,
+                "scale_obstacle": 0.004,
+                "scale_angular": 0.004
+            }},
+            ]
+        }}
 
-            Retorne SOMENTE o JSON (sem comentários, sem texto explicativo).
-            """
+        Return ONLY the JSON (no comments, no explanatory text).
+        """
+
 
         print(f"\033[34m{base_text}\033[0m")
 
@@ -291,14 +292,13 @@ class LLMTrainingEvaluator:
     def request_configurations_for_all(
         self, summary_data, history, reflections, num_populations
     ) -> dict:
-        """Envia prompt, garante JSON e devolve dicionário pronto para uso."""
         prompt = self.build_configurations_prompt(
             summary_data, history, reflections, num_populations
         )
         try:
             return self._call_gemini(prompt)
         except Exception:
-            logging.exception("Gemini falhou — usando configs padrão")
+            logging.exception("Gemini failed — using default configs")
             return {
                 "configurations": [
                     DEFAULT_CONFIG.copy() for _ in range(self.num_populations)

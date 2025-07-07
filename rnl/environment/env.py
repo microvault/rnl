@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
+from rnl.engine.utils import load_pgm
+import yaml
+import os
 
 from rnl.network.policy import RNLPolicy
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
@@ -21,7 +24,6 @@ from rnl.engine.utils import (
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
-from rnl.environment.world import CreateWorld
 
 
 class NaviEnv(gym.Env):
@@ -33,12 +35,11 @@ class NaviEnv(gym.Env):
         render_config: RenderConfig,
         use_render: bool,
         type_reward: RewardConfig,
-        mode: str,
     ):
         super().__init__()
         self.max_num_rays = sensor_config.num_rays
         state_size = self.max_num_rays + 3
-        self.action_space = spaces.Discrete(3)
+        self.action_space = spaces.Discrete(2)
         self.observation_space = spaces.Box(
             low=-np.inf, high=np.inf, shape=(state_size,), dtype=np.float32
         )
@@ -51,8 +52,6 @@ class NaviEnv(gym.Env):
 
         self.reward_config = type_reward
 
-        self.mode = mode
-
         self.grid_length = 0
         self.poly = None
         self.infos_list = []
@@ -60,36 +59,22 @@ class NaviEnv(gym.Env):
         self.steps_to_collision = 0
         self.steps_unsafe_area = 0
         self.steps_command_angular = 0
-        self.x = env_config.grid_size[0]
-        self.y = env_config.grid_size[1]
         self.pos_noise_std = 0.01
         self.ang_noise_std = 0.005
         self.lidar_noise_std = 0.02
-        self.noise = env_config.noise
+        self.folder = env_config.folder_map
+        self.name = env_config.name_map
         self.episode_id = 0
 
-        if self.mode is "map":
-            self.generator = Generator(
-                mode=self.mode,
-                folder=env_config.folder_map,
-                name=env_config.name_map)
-            self.new_map_path, self.segments, self.poly = self.generator.world(
-                grid_length=0,
-                grid_length_x=self.x,
-                grid_length_y=self.y,
-            )
+        self.generator = Generator(
+            folder=self.folder,
+            name=self.name)
+        self.new_map_path, self.segments, self.poly = self.generator.world(
+            grid_length=0,
+            porcentage_obstacle=0
+        )
 
-        elif self.mode is "gen":
-            self.generator = Generator(mode=self.mode)
-            self.new_map_path, self.segments, self.poly = self.generator.world(
-                self.grid_length
-            )
-
-        else:
-            self.generator = Generator(mode=self.mode, render=True)
-            self.new_map_path, self.segments, self.poly = self.generator.world()
-
-        self.sensor = SensorRobot(sensor_config, self.segments, self.mode)
+        self.sensor = SensorRobot(sensor_config, self.segments)
 
         # ------------ Normalization ------------ #
         self.scaler_lidar = CustomMinMaxScaler(feature_range=(0, 1))
@@ -143,7 +128,7 @@ class NaviEnv(gym.Env):
         self.policy = None
         if self.pretrained_model != "None":
             self.policy = RNLPolicy(in_dim=state_size,
-                                n_act=3,
+                                n_act=2,
                                 archive_path=robot_config.path_model)
         if self.use_render:
             self.fig, self.ax = plt.subplots(
@@ -187,11 +172,11 @@ class NaviEnv(gym.Env):
         elif event.key == "right":
             self.action = 1
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vr = +self.max_vr/8 * self.scalar
         elif event.key == "left":
             self.action = 2
             self.vl = self.max_lr/6 * self.scalar
-            self.vr = +self.max_vr/8 * self.scalar
+            self.vr = -self.max_vr/8 * self.scalar
         elif event.key == "down":
             self.action = 3
             self.vl = self.max_lr/6 * self.scalar
@@ -227,9 +212,6 @@ class NaviEnv(gym.Env):
             elif self.action == 2:
                 self.vl = self.max_lr/6 * self.scalar
                 self.vr = self.max_vr/8 * self.scalar
-            elif self.action == 3:
-                self.vl = self.max_lr/6 * self.scalar
-                self.vr = 0.0 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -239,24 +221,9 @@ class NaviEnv(gym.Env):
             self.body.angle,
         )
 
-        if self.noise:
-            x = x + np.random.normal(0, self.pos_noise_std)
-            y = y + np.random.normal(0, self.pos_noise_std)
-            theta = theta + np.random.normal(0, self.ang_noise_std)
-
-
         intersections, lidar_measurements = self.sensor.sensor(
             x=x, y=y, theta=theta, max_range=self.max_lidar
         )
-
-        if self.noise:
-            lidar_measurements = np.clip(
-                lidar_measurements + np.random.normal(
-                    0, self.lidar_noise_std, size=lidar_measurements.shape
-                ),
-                self.min_lidar,
-                self.max_lidar
-            )
 
         dist = distance_to_goal(x, y, self.target_x, self.target_y, self.max_dist)
 
@@ -305,11 +272,9 @@ class NaviEnv(gym.Env):
             poly=self.poly,
             position_x=x,
             position_y=y,
-            initial_distance=self.initial_distance,
             current_distance=dist_norm[0],
             collision=collision,
             alpha=alpha_norm[0],
-            step=i,
             threshold=self.threshold,
             threshold_collision=self.collision,
             min_distance=self.min_dist,
@@ -399,9 +364,6 @@ class NaviEnv(gym.Env):
             self.steps_command_angular += 1
             vl = self.max_lr/6 * self.scalar
             vr = self.max_vr/8 * self.scalar
-        elif action == 3:
-            self.vl = self.max_lr/6 * self.scalar
-            self.vr = 0.0 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -465,11 +427,9 @@ class NaviEnv(gym.Env):
             poly=self.poly,
             position_x=x,
             position_y=y,
-            initial_distance=self.initial_distance,
             current_distance=dist_norm[0],
             collision=collision,
             alpha=alpha_norm[0],
-            step=self.timestep,
             threshold=self.threshold,
             threshold_collision=self.collision,
             min_distance=self.min_dist,
@@ -540,27 +500,24 @@ class NaviEnv(gym.Env):
         self.episode_id += 1
 
         try:
-            if self.mode in ("map"):
-                self.new_map_path, self.segments, self.poly = self.generator.world(
-                    grid_length=0,
-                    grid_length_x=self.x,
-                    grid_length_y=self.y,
-                    porcentage_obstacle=0,
-                )
-                robot_pos, goal_pos = spawn_robot_and_goal(
-                    poly=self.poly,
-                    robot_clearance=self.threshold + 0.1,
-                    goal_clearance=self.collision + 0.1,
-                    min_robot_goal_dist=0.3,
-                )
+            self.new_map_path, self.segments, self.poly = self.generator.world(
+                grid_length=0,
+                porcentage_obstacle=0,
+            )
+            robot_pos, goal_pos = spawn_robot_and_goal(
+                poly=self.poly,
+                robot_clearance=self.threshold + 0.1,
+                goal_clearance=self.collision + 0.1,
+                min_robot_goal_dist=0.3,
+            )
 
-                self.target_x, self.target_y = goal_pos[0], goal_pos[1] # 3.74, -0.30
-                x, y = robot_pos[0], robot_pos[1]
+            self.target_x, self.target_y = goal_pos[0], goal_pos[1]
+            x, y = robot_pos[0], robot_pos[1]
 
-                self.sensor.update_map(self.segments)
+            self.sensor.update_map(self.segments)
 
-                theta = np.random.uniform(0, 2 * np.pi)
-                self.robot.reset_robot(self.body, x, y, theta)
+            theta = np.random.uniform(0, 2 * np.pi)
+            self.robot.reset_robot(self.body, x, y, theta)
 
             intersections, measurement = self.sensor.sensor(
                 x=self.body.position.x,
@@ -640,7 +597,7 @@ class NaviEnv(gym.Env):
 
         except Exception as e:
             print(
-                f"[RESET-ERROR] Erro ao configurar o cenário (mode = {self.mode}): {e}"
+                f"[RESET-ERROR] Error setting up the scenario: {e}"
             )
             raise
         info = {}
@@ -673,13 +630,27 @@ class NaviEnv(gym.Env):
         None
         """
         # ------ Create wordld ------ #
-        if "map" in self.mode:
-            origin_x, origin_y = -0.96, -3.15 # -3.06, -3.62
+        thresh = 0.65
+        yaml_path = self.folder + "/" + self.name + ".yaml"
 
-            gx, gy = 5.25, 5.3500000000000005
-            ax.set_xlim(origin_x, origin_x + gx)
-            ax.set_ylim(origin_y, origin_y + gy)
-            ax.invert_yaxis()
+        with open(yaml_path) as f:
+            info = yaml.safe_load(f)
+
+        res = float(info["resolution"])
+        ox, oy, oyaw = info["origin"]
+        pgm_path = os.path.join(os.path.dirname(yaml_path), info["image"])
+
+        img = load_pgm(pgm_path)
+        if info.get("negate", 0):
+            img = 255 - img
+
+        occ = img < int(thresh * 255)
+        h, w = occ.shape
+        gx, gy = w * res, h * res
+
+        ax.set_xlim(ox, ox + gx)
+        ax.set_ylim(oy, oy + gy)
+        ax.invert_yaxis()
 
         ax.add_patch(self.new_map_path)
 
@@ -827,54 +798,11 @@ class NaviEnv(gym.Env):
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
-        if self.mode in ("easy-01", "easy-02", "easy-03", "easy-04", "easy-05", "avoid", "turn", "custom"):
-            if self.mode == "easy-03":
-                x2 = x + 0.2 * np.cos(self.body.angle)
-                y2 = y + 0.2 * np.sin(self.body.angle)
-            elif self.mode == "easy-04":
-                x2 = x + 0.4 * np.cos(self.body.angle)
-                y2 = y + 0.4 * np.sin(self.body.angle)
-            else:
-                x2 = x + 0.1 * np.cos(self.body.angle)
-                y2 = y + 0.1 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
-            )[0]
-
-        if self.mode in ("long"):
-            x2 = x + 0.15 * np.cos(self.body.angle)
-            y2 = y + 0.15 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
-            )[0]
-
-        elif "train-mode" in self.mode:
-            x2 = x + 0.1 * np.cos(self.body.angle)
-            y2 = y + 0.1 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
-            )[0]
-
-        elif "visualize" in self.mode:
-            x2 = x + 0.1 * np.cos(self.body.angle)
-            y2 = y + 0.1 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=1
-            )[0]
-
-        elif "medium" in self.mode:
-            x2 = x + 2.0 * np.cos(self.body.angle)
-            y2 = y + 2.0 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=2
-            )[0]
-
-        elif "hard" in self.mode:
-            x2 = x + 0.4 * np.cos(self.body.angle)
-            y2 = y + 0.4 * np.sin(self.body.angle)
-            self.heading_line = self.ax.plot3D(
-                [x, x2], [y, y2], [0, 0], color="red", linewidth=2
-            )[0]
+        x2 = x + 0.1 * np.cos(self.body.angle)
+        y2 = y + 0.1 * np.sin(self.body.angle)
+        self.heading_line = self.ax.plot3D(
+            [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+        )[0]
 
         plt.draw()
 

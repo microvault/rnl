@@ -7,7 +7,6 @@ import gymnasium as gym
 import numpy as np
 
 def _safe_plot(ax, y, color, label):
-    """Plota apenas se houver dados; caso contrário esconde o subplot."""
     if len(y) == 0:
         ax.set_visible(False)
         return
@@ -104,7 +103,6 @@ def make_vect_envs_norm(
                 env_config,
                 render_config,
                 use_render,
-                mode=env_config.type,
                 type_reward=type_reward,
             )
             env.reset(seed=13 + i)

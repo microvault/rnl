@@ -21,7 +21,6 @@ class Robot:
         self.radius = robot_config.base_radius                  # m
         self.wheel_base = robot_config.wheel_distance           # m
 
-        # momento calculado em C (pymunk.moment_for_circle) → mais rápido
         self.moment_of_inertia = pymunk.moment_for_circle(
             self.mass, 0, self.radius
         )

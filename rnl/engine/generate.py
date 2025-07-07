@@ -47,7 +47,7 @@ def main() -> None:
     res = float(info["resolution"])  # 0.05 m/pixel
     print(f"[DEBUG] resolução do mapa: {res} m/pixel")
 
-    gen = Generator(mode="custom")
+    gen = Generator()
     _, segs, _ = gen.world(grid_length=0)
 
     SCALE_FACTOR = 1.0

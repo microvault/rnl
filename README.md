@@ -1,7 +1,3 @@
-<div align="center">
-     <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="MicroVault">
-</div>
-
 <p align="center">
   <a href='https://microvault.readthedocs.io/en/latest/?badge=latest'><img src='https://readthedocs.org/projects/microvault/badge/?version=latest' alt='Documentation Status' /></a>
   <a href="https://pypi.org/project/rnl/"><img alt="PyPI" src="https://img.shields.io/pypi/v/rnl"></a>
@@ -13,146 +9,285 @@
 
 <div align="center">
 
-**End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in Pytorch**
+# RNL: Robot Navigation Learning Framework
 
+<div align="center">
+  <img src="https://raw.githubusercontent.com/microvault/rnl/main/docs/images/rnl.png" alt="RNL Framework">
 </div>
 
-> **Warning** :
-> This project is still in progress and not yet finalized for release for use.
+<p align="center">
+  <strong>End-to-end Deep Reinforcement Learning for Real-World Robotics Navigation in PyTorch</strong>
+</p>
 
-This project uses Deep Reinforcement Learning (DRL) to train a robot to move in unfamiliar environments. The robot learns to make decisions on its own, interacting with the environment, and gradually becomes better and more efficient at navigation.
+## Overview
 
-### How to Use
+**RNL (Robot Navigation Learning)** is a comprehensive framework for training autonomous robots to navigate in unknown environments using Deep Reinforcement Learning (DRL). The framework provides a complete pipeline from environment simulation to model deployment, with support for both training and inference phases.
 
-Installation and usage mode.
+## Framework Architecture
 
-* **Install with pip**:
+## Key Features
+
+### 🤖 **Robot Configuration**
+- Configurable robot parameters (size, speed, weight)
+- Wheel-based differential drive model
+- Collision detection and avoidance
+- Physics-based movement simulation
+
+### 🔍 **Sensor System**
+- LIDAR sensor simulation with customizable field of view
+- Ray-casting for obstacle detection
+- Noise simulation for realistic sensor behavior
+- Multi-ray configuration support
+
+### 🌍 **Environment Generation**
+- Dynamic map generation
+- Obstacle placement algorithms
+- Goal positioning system
+- Spawn point management
+
+### 🧠 **Learning Algorithm**
+- PPO (Proximal Policy Optimization) implementation
+- Parallel environment training
+- Experience replay and normalization
+- Adaptive learning rates
+
+### 📊 **Monitoring & Visualization**
+- Real-time training visualization
+- Wandb integration for experiment tracking
+- Performance metrics logging
+- 3D environment rendering
+
+## Installation
+
+### Prerequisites
+- Python 3.10+
+- PyTorch 2.5.1+
+- CUDA (optional, for GPU acceleration)
+
+### Install from PyPI
 ```bash
 pip install rnl
 ```
 
-*	**Use** `train`:
+### Development Installation
+```bash
+git clone https://github.com/microvault/rnl.git
+cd rnl
+pip install -e .
+```
+
+## Quick Start
+
+### 1. Basic Training Example
+
 ```python
 import numpy as np
 import rnl as vault
 
-# 1.step -> config robot
-param_robot = vault.robot(
-    base_radius=0.105,  # (m)
-    vel_linear=[0.0, 0.22],  # [min, max]
-    vel_angular=[1.0, 2.84],  # [min, max]
-    wheel_distance=0.16,  # (m)
-    weight=1.0,  # robot (kg)
-    threshold=1.0,  # distance for obstacle avoidance (m)
-    collision=0.5,
-    path_model="None",
+# Configure robot parameters
+robot_config = vault.robot(
+    base_radius=0.105,        # Robot radius in meters
+    max_vel_linear=0.22,      # Maximum linear velocity
+    max_vel_angular=2.84,     # Maximum angular velocity
+    wheel_distance=0.16,      # Distance between wheels
+    weight=1.0,               # Robot weight in kg
+    threshold=1.0,            # Obstacle detection threshold
+    collision=0.5,            # Collision radius
+    path_model="None"         # Path to pretrained model
 )
 
-# 2.step -> config sensors [for now only lidar sensor!!]
-param_sensor = vault.sensor(
-    fov=2 * np.pi,
-    num_rays=20,
-    min_range=0.0,
-    max_range=6.0,
+# Configure LIDAR sensor
+sensor_config = vault.sensor(
+    fov=2 * np.pi,           # Field of view (360 degrees)
+    num_rays=20,             # Number of LIDAR rays
+    min_range=0.0,           # Minimum detection range
+    max_range=6.0            # Maximum detection range
 )
 
-# 3.step -> config env
-param_env = vault.make(
-    scale=100,
-    folder_map="None",
-    name_map="None",
-    max_timestep=10000,
-    mode="easy-01",
+# Configure environment
+env_config = vault.make(
+    scale=100,               # Environment scale
+    folder_map="None",       # Custom map folder
+    name_map="None",         # Custom map name
+    max_timestep=10000       # Maximum episode length
 )
 
-# 4. step -> config render
-param_render = vault.render(controller=False, debug=True, plot=False)
-
-# 5.step -> config train robot
-model = vault.Trainer(
-    param_robot, param_sensor, param_env, param_render
+# Configure rendering
+render_config = vault.render(
+    controller=False,        # Disable manual control
+    debug=True,             # Enable debug visualization
+    plot=False              # Disable plotting
 )
 
-# 6.step -> train robot
-model.learn(
-  algorithm="PPO",
-  max_timestep_global=3000000,
-  seed=1,
-  buffer_size=1000000,
-  hidden_size=[20, 10],
-  activation="ReLu",
-  batch_size=1024,
-  num_envs=4,
-  device="cuda",
-  checkpoint="model",
-  use_wandb=True,
-  wandb_api_key="",
-  lr=0.0003,
-  learn_step=512,
-  gae_lambda=0.95,
-  action_std_init=0.6,
-  clip_coef=0.2,
-  ent_coef=0.0,
-  vf_coef=0.5,
-  max_grad_norm=0.5,
-  update_epochs=10,
-  name="models",
-)
+# Initialize trainer
+trainer = vault.Trainer(robot_config, sensor_config, env_config, render_config)
 
+# Start training
+trainer.learn(
+    max_timestep_global=3000000,  # Total training steps
+    seed=1,                       # Random seed
+    batch_size=1024,             # Training batch size
+    hidden_size=128,             # Neural network hidden size
+    num_envs=4,                  # Parallel environments
+    device="cuda",               # Training device
+    checkpoint=10000,            # Checkpoint frequency
+    use_wandb=True,             # Enable Wandb logging
+    lr=0.0003,                  # Learning rate
+    learn_step=512,             # Learning step size
+    gae_lambda=0.95,            # GAE lambda parameter
+    ent_coef=0.0,               # Entropy coefficient
+    vf_coef=0.5,                # Value function coefficient
+    max_grad_norm=0.5,          # Gradient clipping
+    update_epochs=10,           # Update epochs
+    name="navigation_model"      # Model name wandb
+)
 ```
 
-*	**Use** `inference`:
+### 2. Inference Example
+
 ```python
-import numpy as np
 import rnl as vault
 
-# 1.step -> config robot
-param_robot = vault.robot(
-    base_radius=0.105,  # (m)
-    vel_linear=[0.0, 0.22],  # [min, max]
-    vel_angular=[1.0, 2.84],  # [min, max]
-    wheel_distance=0.16,  # (m)
-    weight=1.0,  # robot (kg)
-    threshold=1.0,  # distance for obstacle avoidance (m)
-    collision=0.5,
-    path_model="None",
-)
+# Use same configuration as training
+# ... (robot_config, sensor_config, env_config, render_config)
 
-# 2.step -> config sensors [for now only lidar sensor!!]
-param_sensor = vault.sensor(
-    fov=2 * np.pi,
-    num_rays=20,
-    min_range=0.0,
-    max_range=6.0,
-)
+# Initialize simulation
+simulation = vault.Simulation(robot_config, sensor_config, env_config, render_config)
 
-# 3.step -> config env
-param_env = vault.make(
-    scale=100,
-    folder_map="None",
-    name_map="None",
-    max_timestep=10000,
-    mode="easy-01",
-)
-
-# 4.step -> config render
-param_render = vault.render(controller=False, debug=True, plot=False)
-
-# 5.step -> config train robot
-vault.Simulation(param_robot, param_sensor, param_env, param_render)
-
-# 6.step -> run robot
-model.run()
+# Run inference
+simulation.run()
 ```
 
-* **Use** `demo`:
+### 3. Demo Mode
+
 ```bash
 python main.py -m sim
 ```
 
-## License
-This project is licensed under the MIT license - see archive [LICENSE](https://github.com/microvault/rnl/blob/main/LICENSE) for details.
+## Advanced Features
 
-## Contact and Contribution
-The project is still under development and may have some bugs. If you encounter any problems or have suggestions, feel free to open an `issue` or send an `email` to:
-Nicolas Alan - **grottimeireles@gmail.com**.
+### LLM Integration
+The framework supports Large Language Model integration for automated reward engineering:
+
+```python
+trainer.learn(
+    use_llm=True,
+    llm_api_key="your_api_key",
+    population=2,
+    loop_feedback=10,
+    description_task="reach the goal while avoiding obstacles efficiently"
+)
+```
+
+
+### Parallel Training
+The framework supports multi-environment parallel training for faster convergence:
+
+```python
+trainer.learn(
+    num_envs=8,              # Number of parallel environments
+    device="cuda",           # Use GPU acceleration
+    batch_size=2048          # Larger batch size for parallel training
+)
+```
+
+## ROS Integration
+
+The framework includes ROS (Robot Operating System) integration for real-world deployment:
+
+### Features
+- TurtleBot3 support
+- Gazebo simulation integration
+- Real-world robot deployment
+- SLAM (Simultaneous Localization and Mapping)
+- Navigation stack integration
+
+### ROS Workspace Structure
+```
+ros/
+├── Dockerfile
+├── docker-compose.yaml
+└── tb3_ws/
+    ├── src/playground/
+    │   ├── launch/           # Launch files
+    │   ├── maps/            # Environment maps
+    │   ├── models/          # Trained models
+    │   └── worlds/          # Gazebo worlds
+    └── Makefile
+```
+
+### Running ROS Simulation
+```bash
+cd ros/tb3_ws
+make build
+make run
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. **CUDA Out of Memory**
+   - Reduce `batch_size` or `num_envs`
+   - Use smaller `hidden_size`
+
+2. **Slow Training**
+   - Increase `num_envs` for parallel training
+   - Use GPU acceleration
+   - Optimize `learn_step` parameter
+
+3. **Unstable Training**
+   - Adjust learning rate (`lr`)
+   - Modify reward function parameters
+   - Increase `update_epochs`
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Setup
+```bash
+git clone https://github.com/microvault/rnl.git
+cd rnl
+pip install -e ".[dev]"
+pre-commit install
+```
+
+### Testing
+```bash
+pytest tests/
+```
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Citation
+
+If you use RNL in your research, please cite:
+
+```bibtex
+@software{rnl2024,
+  title={RNL: Robot Navigation Learning Framework},
+  author={Nicolas Alan},
+  year={2024},
+  url={https://github.com/microvault/rnl}
+}
+```
+
+## Support
+
+- **Documentation**: [https://rnl.readthedocs.io](https://rnl.readthedocs.io)
+- **Issues**: [GitHub Issues](https://github.com/microvault/rnl/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/microvault/rnl/discussions)
+- **Email**: grottimeireles@gmail.com
+
+## Acknowledgments
+
+Special thanks to the open-source community and contributors who have made this project possible.
+
+---
+
+<div align="center">
+  <strong>Built with ❤️ for the robotics community</strong>
+</div>

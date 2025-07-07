@@ -25,17 +25,6 @@ def evaluate_agent(
     float,
     float,
 ]:
-    """
-    Avalia o agente e devolve tudo já em **percentual (0-100)**.
-
-    Retorna:
-        (success_pct,
-         unsafe_pct,
-         angular_pct,
-         ep_len_pct,
-         collision_steps_pct,
-         goal_steps_pct)
-    """
     num_goals          = 0
     unsafe_steps       = 0
     angular_steps      = 0
@@ -51,12 +40,10 @@ def evaluate_agent(
         state, _ = env.reset()
         done = truncated = False
 
-        # executa episódio
         while not done and not truncated:
             action, _ = agent.predict(state, deterministic=False)
             state, _, done, truncated, info = env.step(action)
 
-        # usa os dados do último passo
         steps_collision  = info.get("steps_to_collision", 0)
         steps_goal       = info.get("steps_to_goal", 0)
         unsafe_steps    += info.get("steps_unsafe_area", 0)
@@ -72,7 +59,6 @@ def evaluate_agent(
             if steps_collision == 0:
                 num_goals += 1
 
-    # ---------- métricas em % ----------
     success_pct  = (num_goals / num_episodes) * 100
     denom_steps  = num_episodes * max_steps_ep
     unsafe_pct   = (unsafe_steps  / denom_steps) * 100

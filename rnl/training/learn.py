@@ -30,7 +30,6 @@ def training(
 ):
 
     extra_info = {
-        "Type mode": env_config.type,
         "scale_orientation": reward_config.params["scale_orientation"],
         "scale_distance": reward_config.params["scale_distance"],
         "scale_time": reward_config.params["scale_time"],
@@ -74,13 +73,14 @@ def training(
             env_config,
             render_config,
             use_render=False,
-            mode=env_config.type,
             type_reward=reward_config,
         )
         env = Monitor(env)
         return env
 
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+
+    policy_kwargs = dict(hidden_sizes=(trainer_config.hidden_size, trainer_config.hidden_size, 64))
 
 
     if trainer_config.pretrained != "None":
@@ -90,6 +90,7 @@ def training(
             policy=CustomActorCriticPolicy,
             env=vec_env,
             batch_size=trainer_config.batch_size,
+            policy_kwargs=policy_kwargs,
             verbose=verbose_value,
             learning_rate=trainer_config.lr,
             n_steps=trainer_config.learn_step,
@@ -115,7 +116,6 @@ def training(
         sensor_config=sensor_config,
         env_config=env_config,
         render_config=render_config,
-        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -135,7 +135,6 @@ def training(
         env_config,
         render_config,
         use_render=False,
-        mode=env_config.type,
         type_reward=reward_config,
     )
 
@@ -226,7 +225,6 @@ def inference(
         env_config,
         render_config,
         use_render=True,
-        mode=env_config.type,
         type_reward=reward_config,
     )
 

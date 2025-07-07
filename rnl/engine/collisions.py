@@ -43,8 +43,8 @@ def is_counter_clockwise(polygon: List[Tuple[float, float]]) -> bool:
 @njit
 def _point_in_ring(px, py, ring):
     """
-    Ray-casting para verificar se o ponto (px, py) está dentro
-    de um anel (lista de coords [(x0,y0), (x1,y1), ...]).
+    Ray-casting to check if the point (px, py) is inside
+    a ring (list of coords [(x0, y0), (x1, y1), ...]).
     """
     inside = False
     n = len(ring)
@@ -61,7 +61,7 @@ def _point_in_ring(px, py, ring):
 @njit
 def _point_in_polygon(px, py, exterior, holes):
     """
-    Verifica se ponto está no polígono (exterior e 0+ buracos).
+    Checks if a point is inside the polygon (exterior and 0+ holes).
     """
     if not _point_in_ring(px, py, exterior):
         return False

@@ -4,17 +4,15 @@ from numba import njit, prange, typed
 
 def compute_polygon_diameter(poly) -> float:
     """
-    Calcula a máxima distância (diâmetro) entre dois pontos do polígono.
-    Usa o convex hull do polígono para reduzir o número de pontos.
+    Computes the maximum distance (diameter) between two points in the polygon.
+    Uses the polygon's convex hull to reduce the number of points.
     """
-    # Obtém o convex hull do polígono
     convex = poly.convex_hull
     pts = np.array(convex.exterior.coords)
 
     max_dist = 0.0
     n = len(pts)
 
-    # Busca dupla para calcular todas as distâncias entre os vértices
     for i in range(n):
         for j in range(i + 1, n):
             dist = np.linalg.norm(pts[i] - pts[j])
@@ -27,7 +25,7 @@ def compute_polygon_diameter(poly) -> float:
 @njit(inline="always")
 def ray_cast(x: float, y: float, poly: np.ndarray) -> bool:
     """
-    Verifica se o ponto (x, y) está dentro do polígono usando ray casting.
+    Checks if the point (x, y) is inside the polygon using ray casting.
     """
     inside = False
     n = poly.shape[0]
@@ -48,7 +46,7 @@ def ray_cast(x: float, y: float, poly: np.ndarray) -> bool:
 @njit
 def contains_point(x: float, y: float, exterior: np.ndarray, holes: typed.List) -> bool:
     """
-    Retorna True se o ponto (x, y) estiver dentro do contorno exterior e fora dos buracos.
+    Returns True if the point (x, y) is inside the outer contour and outside the holes.
     """
     if not ray_cast(x, y, exterior):
         return False
@@ -63,7 +61,7 @@ def batch_contains_points(
     points: np.ndarray, exterior: np.ndarray, holes: typed.List
 ) -> np.ndarray:
     """
-    Verifica em batch se os pontos estão contidos na região definida.
+    Batch check if points are contained within the defined region.
     """
     n_points = points.shape[0]
     result = np.empty(n_points, dtype=np.bool_)
@@ -77,7 +75,7 @@ def interpolate_point(
     x0: float, y0: float, x1: float, y1: float, v0: float, v1: float, level: float
 ) -> (float, float):
     """
-    Interpola linearmente entre dois pontos para encontrar o cruzamento com 'level'.
+    Linearly interpolates between two points to find the intersection with 'level'.
     """
     t = (level - v0) / (v1 - v0) if v1 != v0 else 0.5
     return x0 + t * (x1 - x0), y0 + t * (y1 - y0)
@@ -86,7 +84,7 @@ def interpolate_point(
 @njit(fastmath=True)
 def process_cell(i: int, j: int, arr: np.ndarray, level: float) -> typed.List:
     """
-    Processa uma célula da grade e retorna os segmentos do contorno gerado.
+    Processes a grid cell and returns the segments of the generated contour.
     """
     segs = typed.List()
     a = arr[i, j]
@@ -186,7 +184,7 @@ def process_cell(i: int, j: int, arr: np.ndarray, level: float) -> typed.List:
 @njit(fastmath=True)
 def compute_segments(arr: np.ndarray, level: float) -> typed.List:
     """
-    Computa os segmentos do contorno para toda a matriz usando marching squares.
+    Computes contour segments for the entire matrix using marching squares.
     """
     segments = typed.List()
     rows, cols = arr.shape
@@ -201,7 +199,7 @@ def compute_segments(arr: np.ndarray, level: float) -> typed.List:
 @njit
 def list_insert_front(lst: typed.List, item: np.ndarray) -> typed.List:
     """
-    Insere um item no início de uma typed.List.
+    Inserts an item at the beginning of a typed.List.
     """
     new_lst = typed.List()
     new_lst.append(item)
@@ -219,7 +217,7 @@ def try_extend_contour(
     at_start: bool,
 ) -> (typed.List, bool):
     """
-    Tenta estender o contorno adicionando segmentos conectados no início ou no final.
+    Attempts to extend the contour by adding connected segments at the beginning or end.
     """
     target = contour[0] if at_start else contour[-1]
     for j in range(len(segments)):
@@ -249,7 +247,7 @@ def try_extend_contour(
 @njit(fastmath=True)
 def build_contours_from_segments(segments: typed.List, tol: float = 1e-6) -> typed.List:
     """
-    Constrói contornos conectando os segmentos adjacentes.
+    Builds contours by connecting adjacent segments.
     """
     nseg = len(segments)
     used = np.zeros(nseg, dtype=np.bool_)
@@ -277,7 +275,7 @@ def build_contours_from_segments(segments: typed.List, tol: float = 1e-6) -> typ
 
 def find_contour(arr: np.ndarray, level: float = 0.5) -> typed.List:
     """
-    Encontra os contornos de uma matriz de valores usando marching squares.
+    Finds the contours of a value matrix using marching squares.
     """
     segments = compute_segments(arr, level)
     contours = build_contours_from_segments(segments)
@@ -286,7 +284,7 @@ def find_contour(arr: np.ndarray, level: float = 0.5) -> typed.List:
 
 def process(contours: typed.List) -> list:
     """
-    Processa os contornos, fechando-os se necessário e descartando contornos inválidos.
+    Processes contours, closing them if necessary and discarding invalid ones.
     """
     processed = []
     for contour in contours:

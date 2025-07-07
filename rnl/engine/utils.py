@@ -9,37 +9,26 @@ import json, os
 import math
 
 def load_pgm(pgm_path: str) -> np.ndarray:
-    """
-    Lê PGM no formato P5 (binário) e retorna array uint8 ou uint16.
-    """
     with open(pgm_path, 'rb') as f:
         # cabeçalho
         magic = f.readline().strip()
         if magic != b'P5':
-            raise ValueError("Só PGM P5 suportado")
-        # pula comentários
+            raise ValueError("Only PGM P5 is supported")
         line = f.readline()
         while line.startswith(b'#'):
             line = f.readline()
-        # resolução
         width, height = map(int, line.split())
         maxval = int(f.readline())
-        # lê pixels
         dtype = np.uint8 if maxval < 256 else np.uint16
         img = np.fromfile(f, dtype=dtype, count=width*height)
     return img.reshape((height, width))
 
 
 def load_summary(run_dir: str) -> Dict[str, float]:
-    """Lê *.json com as métricas finais."""
     path = os.path.join(run_dir, "files", "wandb-summary.json")
     return json.load(open(path)) if os.path.isfile(path) else {}
 
 def sample_history(run_dir: str, metric: str, k: int = 10) -> List[Tuple[int, float]]:
-    """
-    Devolve k amostras uniformes (step, valor) da métrica pedida.
-    Não usa pandas.
-    """
     hist = os.path.join(run_dir, "files", "wandb-history.jsonl")
     steps, vals = [], []
     with open(hist) as f:
@@ -119,11 +108,10 @@ def distance_to_goal(
 
 @njit(fastmath=True, cache=True)
 def angle_to_goal(x, y, theta, goal_x, goal_y, max_value):
-    ox, oy = math.cos(theta), math.sin(theta)          # orientação
-    gx, gy = goal_x - x, goal_y - y                    # vetor p/ alvo
+    ox, oy = math.cos(theta), math.sin(theta)
+    gx, gy = goal_x - x, goal_y - y
 
-    # cross escalar 2-D
-    cross_val = ox * gy - oy * gx                      # -> float32 já ok
+    cross_val = ox * gy - oy * gx
     dot_val   = ox * gx + oy * gy
 
     alpha = abs(math.atan2(abs(cross_val), dot_val))
@@ -185,7 +173,6 @@ def clean_info(info: dict) -> dict:
     for key in valid_keys:
         if key in info:
             val = info[key]
-            # Se tiver algum valor que é array, converta para lista
             if isinstance(val, np.ndarray):
                 val = val.tolist()
             cleaned[key] = val
@@ -227,7 +214,7 @@ class Property:
 class Index:
     def __init__(self, properties: Optional[Property] = None):
         self.properties = properties if properties is not None else Property()
-        self.items = []  # cada item é uma tupla: (id, bbox, obj opcional)
+        self.items = []
 
     def insert(self, id: int, bbox: Tuple[float, float, float, float], obj=None):
         """
@@ -239,9 +226,6 @@ class Index:
     def intersection(
         self, bbox: Tuple[float, float, float, float], objects: bool = False
     ) -> List:
-        """
-        Retorna os ids (ou objetos, se objects=True) dos itens que intersectam com o bbox.
-        """
         results = []
         for id, ibox, obj in self.items:
             if self._intersect(ibox, bbox):

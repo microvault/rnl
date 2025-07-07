@@ -22,7 +22,6 @@ class DynamicTrainingCallback(BaseCallback):
         sensor_config: SensorConfig,
         env_config: EnvConfig,
         render_config: RenderConfig,
-        mode: str,
         type_reward: RewardConfig,
     ):
         super().__init__(verbose=0)
@@ -35,7 +34,6 @@ class DynamicTrainingCallback(BaseCallback):
         self.sensor_config = sensor_config
         self.env_config = env_config
         self.render_config = render_config
-        self.mode = mode
         self.type_reward = type_reward
 
         self.start_time = None
@@ -60,7 +58,6 @@ class DynamicTrainingCallback(BaseCallback):
                 self.sensor_config,
                 self.env_config,
                 self.render_config,
-                self.mode,
                 self.type_reward,
             )
             (

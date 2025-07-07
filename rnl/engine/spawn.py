@@ -6,8 +6,8 @@ from numba.typed import List
 
 def _point_in_ring(px, py, ring):
     """
-    Ray-casting para verificar se o ponto (px, py) está dentro
-    de um anel (lista de coords [(x0,y0), (x1,y1), ...]).
+    Ray-casting to check if the point (px, py) is inside
+    a ring (list of coords [(x0, y0), (x1, y1), ...]).
     """
     inside = False
     n = len(ring)
@@ -23,7 +23,7 @@ def _point_in_ring(px, py, ring):
 
 def _point_in_polygon(px, py, exterior, holes):
     """
-    Verifica se ponto está no polígono (exterior e 0+ buracos).
+    Checks if the point is in the polygon (exterior and 0+ holes).
     """
     if not _point_in_ring(px, py, exterior):
         return False
@@ -37,8 +37,8 @@ def _point_in_polygon(px, py, exterior, holes):
 
 def to_python_format(shp):
     """
-    Converte o shapely polygon para listas de coordenadas.
-    Se for MultiPolygon, seleciona o polígono de maior área.
+    Converts the Shapely polygon to coordinate lists.
+    If it's a MultiPolygon, selects the polygon with the largest area.
     """
     if shp.geom_type == "MultiPolygon":
         shp = max(list(shp.geoms), key=lambda a: a.area)
@@ -56,16 +56,16 @@ def spawn_robot_and_goal(
     dataset=None,
 ):
     """
-    Gera posições aleatórias para robô e objetivo dentro do 'poly',
-    respeitando distância de segurança (clearance) e distância mínima entre eles.
-    Utiliza Numba para acelerar o checagem de ponto dentro do polígono.
+    Generates random positions for robot and goal inside 'poly',
+    respecting safety clearance and minimum distance between them.
+    Uses Numba to speed up point-in-polygon checking.
     """
 
     safe_poly_robot = poly.buffer(-robot_clearance)
     safe_poly_goal = poly.buffer(-goal_clearance)
 
     if safe_poly_robot.is_empty or safe_poly_goal.is_empty:
-        raise ValueError("Clearance muito grande. Polígono invalido.")
+        raise ValueError("Clearance too large. Invalid polygon.")
 
     minx_r, miny_r, maxx_r, maxy_r = safe_poly_robot.bounds
     minx_g, miny_g, maxx_g, maxy_g = safe_poly_goal.bounds
@@ -109,4 +109,4 @@ def spawn_robot_and_goal(
             if dist >= min_robot_goal_dist:
                 return robo_pos, goal_pos
 
-    raise ValueError("Falha ao gerar posicoes validas para robô e objetivo.")
+    raise ValueError("Failed to generate valid positions for robot and goal.")
