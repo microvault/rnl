@@ -19,11 +19,7 @@
 
 ## Demo
 
-<div align="center">
-  <p align="center">
-    <video src="docs/demo.mp4?raw=true" width="640" controls loop muted></video>
-  </p>
-</div>
+[Demo Video (MP4)](https://raw.githubusercontent.com/microvault/rnl/main/docs/demo.mp4)
 
 ## Key Features
 
