@@ -4,18 +4,20 @@ import random
 from dataclasses import dataclass
 
 import numpy as np
+import yaml
 from matplotlib.patches import PathPatch
 from matplotlib.path import Path
-from shapely.geometry import LineString, Polygon, MultiPolygon
 from shapely import affinity
-from rnl.engine.collisions import extract_segment_from_polygon
-from rnl.engine.polygons import find_contour, process
-from rnl.engine.world import GenerateWorld
-from rnl.engine.utils import load_pgm
-from skimage.measure import find_contours
-import yaml
+from shapely.geometry import LineString, MultiPolygon, Polygon
 from shapely.ops import unary_union
 from shapely.validation import make_valid
+from skimage.measure import find_contours
+
+from rnl.engine.collisions import extract_segment_from_polygon
+from rnl.engine.polygons import find_contour, process
+from rnl.engine.utils import load_pgm
+from rnl.engine.world import GenerateWorld
+
 
 @dataclass
 class Generator:
@@ -95,13 +97,12 @@ class Generator:
         # ------------------------------------------------------------------------
         contours = find_contours(occ.astype(float), 0.5)
 
-        stacks   = []
-        paths    = []
+        stacks = []
+        paths = []
         all_poly = []
         for c in contours:
             pts = np.stack(
-                [ox + c[:, 1] * res,
-                oy + (h - c[:, 0]) * res],
+                [ox + c[:, 1] * res, oy + (h - c[:, 0]) * res],
                 axis=1,
             )
 
@@ -117,10 +118,9 @@ class Generator:
 
         if oyaw:
             cx, cy = ox + gx / 2, oy + gy / 2
-            poly = affinity.rotate(poly,
-                                np.degrees(oyaw),
-                                origin=(cx, cy),
-                                use_radians=False)
+            poly = affinity.rotate(
+                poly, np.degrees(oyaw), origin=(cx, cy), use_radians=False
+            )
 
         segments = []
         for stk in stacks:
