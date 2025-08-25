@@ -1,6 +1,8 @@
 import argparse
 import os
+
 import rnl as vault
+
 
 def main(arg):
     wandb_key = os.environ.get("WANDB_API_KEY")
