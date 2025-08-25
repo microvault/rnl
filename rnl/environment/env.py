@@ -1,16 +1,14 @@
+import os
 from typing import Optional
 
 import gymnasium as gym
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
+import yaml
 from gymnasium import spaces
 from mpl_toolkits.mplot3d import Axes3D, art3d
-from rnl.engine.utils import load_pgm
-import yaml
-import os
 
-from rnl.network.policy import RNLPolicy
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.polygons import compute_polygon_diameter
@@ -19,11 +17,13 @@ from rnl.engine.utils import (
     CustomMinMaxScaler,
     angle_to_goal,
     distance_to_goal,
+    load_pgm,
     min_laser,
 )
 from rnl.environment.generate import Generator
 from rnl.environment.robot import Robot
 from rnl.environment.sensor import SensorRobot
+from rnl.network.policy import RNLPolicy
 
 
 class NaviEnv(gym.Env):
@@ -66,12 +66,9 @@ class NaviEnv(gym.Env):
         self.name = env_config.name_map
         self.episode_id = 0
 
-        self.generator = Generator(
-            folder=self.folder,
-            name=self.name)
+        self.generator = Generator(folder=self.folder, name=self.name)
         self.new_map_path, self.segments, self.poly = self.generator.world(
-            grid_length=0,
-            porcentage_obstacle=0
+            grid_length=0, porcentage_obstacle=0
         )
 
         self.sensor = SensorRobot(sensor_config, self.segments)
@@ -81,7 +78,10 @@ class NaviEnv(gym.Env):
         self.scaler_dist = CustomMinMaxScaler(feature_range=(0, 1))
         self.scaler_alpha = CustomMinMaxScaler(feature_range=(0, 1))
 
-        self.max_lidar, self.min_lidar = sensor_config.max_range, sensor_config.min_range
+        self.max_lidar, self.min_lidar = (
+            sensor_config.max_range,
+            sensor_config.min_range,
+        )
         self.scaler_lidar.fit(
             np.array(
                 [
@@ -127,9 +127,9 @@ class NaviEnv(gym.Env):
 
         self.policy = None
         if self.pretrained_model != "None":
-            self.policy = RNLPolicy(in_dim=state_size,
-                                n_act=2,
-                                archive_path=robot_config.path_model)
+            self.policy = RNLPolicy(
+                in_dim=state_size, n_act=2, archive_path=robot_config.path_model
+            )
         if self.use_render:
             self.fig, self.ax = plt.subplots(
                 1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
@@ -167,19 +167,19 @@ class NaviEnv(gym.Env):
     def on_key_press(self, event):
         if event.key == "up":
             self.action = 0
-            self.vl = self.max_lr/2 * self.scalar
+            self.vl = self.max_lr / 2 * self.scalar
             self.vr = 0.0
         elif event.key == "right":
             self.action = 1
-            self.vl = self.max_lr/6 * self.scalar
-            self.vr = +self.max_vr/8 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
+            self.vr = +self.max_vr / 8 * self.scalar
         elif event.key == "left":
             self.action = 2
-            self.vl = self.max_lr/6 * self.scalar
-            self.vr = -self.max_vr/8 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
+            self.vr = -self.max_vr / 8 * self.scalar
         elif event.key == "down":
             self.action = 3
-            self.vl = self.max_lr/6 * self.scalar
+            self.vl = self.max_lr / 6 * self.scalar
             self.vr = 0.0 * self.scalar
 
         # Control and test
@@ -188,10 +188,10 @@ class NaviEnv(gym.Env):
             self.vr = 0.0
         elif event.key == "r":
             self.vl = 0.0
-            self.vr = (self.max_vr/6) * self.scalar
+            self.vr = (self.max_vr / 6) * self.scalar
         elif event.key == "e":
             self.vl = 0.0
-            self.vr = -(self.max_vr/6) * self.scalar
+            self.vr = -(self.max_vr / 6) * self.scalar
 
     def step_animation(self, i):
         if self.pretrained_model != "None" or not self.controller:
@@ -204,14 +204,14 @@ class NaviEnv(gym.Env):
 
         if not self.controller:
             if self.action == 0:
-                self.vl = self.max_lr/2 * self.scalar
+                self.vl = self.max_lr / 2 * self.scalar
                 self.vr = 0.0
             elif self.action == 1:
-                self.vl = self.max_lr/6 * self.scalar
-                self.vr = -self.max_vr/8 * self.scalar
+                self.vl = self.max_lr / 6 * self.scalar
+                self.vr = -self.max_vr / 8 * self.scalar
             elif self.action == 2:
-                self.vl = self.max_lr/6 * self.scalar
-                self.vr = self.max_vr/8 * self.scalar
+                self.vl = self.max_lr / 6 * self.scalar
+                self.vr = self.max_vr / 8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, self.vl, self.vr)
 
@@ -282,7 +282,12 @@ class NaviEnv(gym.Env):
             action=self.action,
         )
         reward = (
-            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
+            collision_score
+            + orientation_score
+            + progress_score
+            + time_score
+            + obstacle
+            + action_score
         )
 
         min_lidar_norm = np.min(lidar_norm)
@@ -334,18 +339,18 @@ class NaviEnv(gym.Env):
         if done or truncated:
             if done or truncated:
                 info = {
-                    "steps_to_goal":        self.steps_to_goal,
-                    "steps_to_collision":   self.steps_to_collision,
-                    "steps_unsafe_area":    self.steps_unsafe_area,
+                    "steps_to_goal": self.steps_to_goal,
+                    "steps_to_collision": self.steps_to_collision,
+                    "steps_unsafe_area": self.steps_unsafe_area,
                     "steps_command_angular": self.steps_command_angular,
-                    "total_timestep":       self.timestep,
+                    "total_timestep": self.timestep,
                 }
 
-                self.steps_to_goal        = 0
-                self.steps_to_collision   = 0
-                self.steps_unsafe_area    = 0
+                self.steps_to_goal = 0
+                self.steps_to_collision = 0
+                self.steps_unsafe_area = 0
                 self.steps_command_angular = 0
-                self.timestep             = 0
+                self.timestep = 0
             self.episode_starts = done
             self._stop()
 
@@ -354,16 +359,16 @@ class NaviEnv(gym.Env):
         vr = 0.0
 
         if action == 0:
-            vl = self.max_lr/2 * self.scalar
+            vl = self.max_lr / 2 * self.scalar
             vr = 0.0
         elif action == 1:
             self.steps_command_angular += 1
-            vl = self.max_lr/6 * self.scalar
-            vr = -self.max_vr/8 * self.scalar
+            vl = self.max_lr / 6 * self.scalar
+            vr = -self.max_vr / 8 * self.scalar
         elif action == 2:
             self.steps_command_angular += 1
-            vl = self.max_lr/6 * self.scalar
-            vr = self.max_vr/8 * self.scalar
+            vl = self.max_lr / 6 * self.scalar
+            vr = self.max_vr / 8 * self.scalar
 
         self.robot.move_robot(self.space, self.body, vl, vr)
 
@@ -434,13 +439,18 @@ class NaviEnv(gym.Env):
             threshold_collision=self.collision,
             min_distance=self.min_dist,
             max_distance=self.max_dist,
-            action=action
+            action=action,
         )
 
         done = bool(done)
 
         reward = float(
-            collision_score + orientation_score + progress_score + time_score + obstacle + action_score
+            collision_score
+            + orientation_score
+            + progress_score
+            + time_score
+            + obstacle
+            + action_score
         )
         self.last_states = states
 
@@ -469,19 +479,21 @@ class NaviEnv(gym.Env):
                 "max_lidar": float(max(lidar_norm)),
             }
             if done or truncated:
-                info.update({
-                    "steps_to_goal":        self.steps_to_goal,
-                    "steps_to_collision":   self.steps_to_collision,
-                    "steps_unsafe_area":    self.steps_unsafe_area,
-                    "steps_command_angular": self.steps_command_angular,
-                    "total_timestep":       self.timestep,
-                })
+                info.update(
+                    {
+                        "steps_to_goal": self.steps_to_goal,
+                        "steps_to_collision": self.steps_to_collision,
+                        "steps_unsafe_area": self.steps_unsafe_area,
+                        "steps_command_angular": self.steps_command_angular,
+                        "total_timestep": self.timestep,
+                    }
+                )
 
-                self.steps_to_goal        = 0
-                self.steps_to_collision   = 0
-                self.steps_unsafe_area    = 0
+                self.steps_to_goal = 0
+                self.steps_to_collision = 0
+                self.steps_unsafe_area = 0
                 self.steps_command_angular = 0
-                self.timestep             = 0
+                self.timestep = 0
 
             self.infos_list.append(info)
             return states, reward, done, truncated, info
@@ -596,9 +608,7 @@ class NaviEnv(gym.Env):
                 )
 
         except Exception as e:
-            print(
-                f"[RESET-ERROR] Error setting up the scenario: {e}"
-            )
+            print(f"[RESET-ERROR] Error setting up the scenario: {e}")
             raise
         info = {}
 
