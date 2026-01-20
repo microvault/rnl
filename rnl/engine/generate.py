@@ -2,11 +2,14 @@
 import math
 from datetime import datetime
 from pathlib import Path
+
 import yaml
+
 from rnl.environment.generate import Generator
 
 CONFIG_PATH = Path("/Users/nicolasalan/microvault/rnl/data/map6/map6.yaml")
-OUT_FILE    = Path("../rnl/ros/tb3_ws/src/playground/worlds/demo.world")
+OUT_FILE = Path("../rnl/ros/tb3_ws/src/playground/worlds/demo.world")
+
 
 def generate_world(segments, out_file: Path) -> None:
     """Gera o arquivo .world a partir da lista de segmentos em metros (já escalados)."""
@@ -25,7 +28,8 @@ def generate_world(segments, out_file: Path) -> None:
         if length < 1e-4:
             continue
         yaw = math.atan2(y2 - y1, x2 - x1)
-        models.append(f"""
+        models.append(
+            f"""
     <model name="wall_{i}">
       <static>true</static>
       <pose>{cx:.4f} {cy:.4f} 0 0 0 {yaw:.4f}</pose>
@@ -37,13 +41,15 @@ def generate_world(segments, out_file: Path) -> None:
           <geometry><box><size>{length:.4f} 0.10 1.00</size></box></geometry>
         </collision>
       </link>
-    </model>""")
+    </model>"""
+        )
     sdf = header + "\n".join(models) + "\n  </world>\n</sdf>\n"
     out_file.parent.mkdir(parents=True, exist_ok=True)
     out_file.write_text(sdf)
 
+
 def main() -> None:
-    info = yaml.safe_load(open(CONFIG_PATH, "r"))
+    info = yaml.safe_load(open(CONFIG_PATH))
     res = float(info["resolution"])  # 0.05 m/pixel
     print(f"[DEBUG] resolução do mapa: {res} m/pixel")
 
@@ -61,11 +67,11 @@ def main() -> None:
     ys_s = [v for seg in segs_scaled for v in (seg[1], seg[3])]
     cx_s, cy_s = (min(xs_s) + max(xs_s)) / 2, (min(ys_s) + max(ys_s)) / 2
     segs_centered = [
-        (x1 - cx_s, y1 - cy_s, x2 - cx_s, y2 - cy_s)
-        for x1, y1, x2, y2 in segs_scaled
+        (x1 - cx_s, y1 - cy_s, x2 - cx_s, y2 - cy_s) for x1, y1, x2, y2 in segs_scaled
     ]
 
     generate_world(segs_centered, OUT_FILE)
+
 
 if __name__ == "__main__":
     main()
