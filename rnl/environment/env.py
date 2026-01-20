@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 from gymnasium import spaces
-from mpl_toolkits.mplot3d import Axes3D, art3d
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
@@ -131,25 +130,19 @@ class NaviEnv(gym.Env):
                 in_dim=state_size, n_act=2, archive_path=robot_config.path_model
             )
         if self.use_render:
-            self.fig, self.ax = plt.subplots(
-                1, 1, figsize=(6, 6), subplot_kw={"projection": "3d"}
-            )
-            self.ax.remove()
-            self.ax = self.fig.add_subplot(1, 1, 1, projection="3d")
+            self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 6))
 
-            self.target = self.ax.plot3D(
+            self.target = self.ax.plot(
                 np.random.uniform(0, 15),
                 np.random.uniform(0, 15),
-                0,
                 marker="x",
                 markersize=6.0,
                 color="red",
             )[0]
 
-            self.agents = self.ax.plot3D(
+            self.agents = self.ax.plot(
                 np.random.uniform(0, 15),
                 np.random.uniform(0, 15),
-                0,
                 marker="o",
                 markersize=8.0,
                 color="orange",
@@ -588,7 +581,6 @@ class NaviEnv(gym.Env):
                 for patch in self.ax.patches:
                     patch.remove()
                 self.ax.add_patch(self.new_map_path)
-                art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
 
                 self._plot_anim(
                     0,
@@ -629,17 +621,17 @@ class NaviEnv(gym.Env):
         self.reset()
         self.ani.frame_seq = self.ani.new_frame_seq()
 
-    def _init_animation(self, ax: Axes3D) -> None:
+    def _init_animation(self, ax) -> None:
         """
-        Initializes the 3D animation by setting up the environment and camera parameters.
+        Initializes the 2D animation by setting up the environment.
 
         Parameters:
-        ax (Axes3D): The 3D axes to be used for plotting.
+        ax: The 2D axes to be used for plotting.
 
         Returns:
         None
         """
-        # ------ Create wordld ------ #
+        # ------ Create world ------ #
         thresh = 0.65
         yaml_path = self.folder + "/" + self.name + ".yaml"
 
@@ -664,31 +656,22 @@ class NaviEnv(gym.Env):
 
         ax.add_patch(self.new_map_path)
 
-        art3d.pathpatch_2d_to_3d(self.new_map_path, z=0, zdir="z")
-
-        ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        ax.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-        # # Hide grid lines
+        # Hide grid lines
         ax.grid(False)
 
         # Hide axes ticks
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_zticks([])
 
         # Hide axes
         ax.set_axis_off()
 
-        # Set camera
-        ax.elev = 40
-        ax.azim = -255
-        ax.dist = 200
+        # Set aspect ratio to equal
+        ax.set_aspect('equal')
 
         if self.debug:
             self.label = self.ax.text(
-                0.1, 0, 0.001, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)
+                0.1, 0, self._get_label(0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0)
             )
 
             self.label.set_fontsize(14)
@@ -802,16 +785,16 @@ class NaviEnv(gym.Env):
                         )
                         self.laser_scatters.append(scatter)
 
-        self.agents.set_data_3d([x], [y], [0])
-        self.target.set_data_3d([target_x], [target_y], [0])
+        self.agents.set_data([x], [y])
+        self.target.set_data([target_x], [target_y])
 
         if hasattr(self, "heading_line") and self.heading_line is not None:
             self.heading_line.remove()
 
         x2 = x + 0.1 * np.cos(self.body.angle)
         y2 = y + 0.1 * np.sin(self.body.angle)
-        self.heading_line = self.ax.plot3D(
-            [x, x2], [y, y2], [0, 0], color="red", linewidth=1
+        self.heading_line = self.ax.plot(
+            [x, x2], [y, y2], color="red", linewidth=1
         )[0]
 
         plt.draw()
