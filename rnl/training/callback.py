@@ -2,7 +2,6 @@ import os
 import time
 
 import numpy as np
-from stable_baselines3.common.callbacks import BaseCallback
 
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
@@ -10,7 +9,11 @@ from rnl.configs.rewards import RewardConfig
 from rnl.training.utils import make_environemnt
 
 
-class DynamicTrainingCallback(BaseCallback):
+class DynamicTrainingCallback:
+    """
+    Custom callback for PPO training.
+    """
+
     def __init__(
         self,
         check_freq: int,
@@ -24,7 +27,6 @@ class DynamicTrainingCallback(BaseCallback):
         render_config: RenderConfig,
         type_reward: RewardConfig,
     ):
-        super().__init__(verbose=0)
         self.check_freq = check_freq
         self.wandb_run = wandb_run
         self.save_checkpoint = save_checkpoint
@@ -39,18 +41,24 @@ class DynamicTrainingCallback(BaseCallback):
         self.start_time = None
         self.episode_rewards = []
         self.episode_lengths = []
+        self.n_calls = 0
+        self.model = None
+        self.training_env = None
 
-    def _init_callback(self) -> None:
+    def init_callback(self, model, training_env):
+        """Initialize callback with model and training environment."""
+        self.model = model
+        self.training_env = training_env
         self.start_time = time.time()
         if not os.path.exists(self.model_save_path):
             os.makedirs(self.model_save_path)
 
-    def _on_step(self) -> bool:
-        if len(self.locals["infos"]) > 0:
-            for info in self.locals["infos"]:
-                if "episode" in info:
-                    self.episode_rewards.append(info["episode"]["r"])
-                    self.episode_lengths.append(info["episode"]["l"])
+    def on_step(self) -> bool:
+        """Called after each training step."""
+        self.n_calls += 1
+
+        # Note: Episode info collection would need to be implemented
+        # depending on how the environment tracking is set up
 
         if self.n_calls % self.check_freq == 0:
             eval_env = make_environemnt(
@@ -70,10 +78,15 @@ class DynamicTrainingCallback(BaseCallback):
             ) = evaluate_agent(self.model, eval_env)
 
             infos_list = []
-            for i in range(self.model.n_envs):
-                env_info = self.training_env.env_method("get_infos", indices=i)[0]
-                if env_info:
-                    infos_list.extend(env_info)
+            try:
+                if self.training_env is not None and hasattr(self.training_env, 'num_envs'):
+                    for i in range(self.training_env.num_envs):
+                        if hasattr(self.training_env, 'env_method'):
+                            env_info = self.training_env.env_method("get_infos", indices=i)[0]
+                            if env_info:
+                                infos_list.extend(env_info)
+            except Exception as e:
+                print(f"Warning: Could not retrieve environment infos: {e}")
 
             stats = {}
             for campo in [
@@ -113,8 +126,10 @@ class DynamicTrainingCallback(BaseCallback):
                 ),
             }
 
+            # Log to console
+            print(f"\n[Step {self.n_calls}] Training Metrics:")
             for k, v in mean_metrics.items():
-                self.logger.record(f"rollout/{k}", v)
+                print(f"  {k}: {v:.4f}")
 
             if self.wandb_run is not None:
                 wandb_log = {f"rollout/{k}": v for k, v in mean_metrics.items()}

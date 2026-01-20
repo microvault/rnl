@@ -1,7 +1,5 @@
 import gymnasium as gym
 import numpy as np
-from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
 
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
@@ -29,93 +27,85 @@ def _safe_plot(ax, y, color, label):
     )
 
 
-def make_vect_envs(
-    num_envs: int,
-    robot_config: RobotConfig,
-    sensor_config: SensorConfig,
-    env_config: EnvConfig,
-    render_config: RenderConfig,
-    use_render: bool,
-    type_reward: RewardConfig,
-    mode: str = "random",
-):
-    task_pool = ("turn", "avoid", "long")
-    rng = np.random.default_rng()
-
-    if mode == "random":
-        reps = int(np.ceil(num_envs / len(task_pool)))
-        base = np.tile(task_pool, reps)[:num_envs]
-        chosen_modes = rng.permutation(base)
-    else:
-        chosen_modes = np.full(num_envs, mode)
-
-    def make_env(i: int):
-        env_mode = chosen_modes[i]
-
-        def _init():
-            print(f"[env {i}] modo → {env_mode}")
-            env = NaviEnv(
-                robot_config,
-                sensor_config,
-                env_config,
-                render_config,
-                use_render=use_render,
-                mode=env_mode,
-                type_reward=type_reward,
-            )
-            env.reset(seed=13 + i)
-            check_env(env)
-            return env
-
-        return _init
-
-    venv = SubprocVecEnv([make_env(i) for i in range(num_envs)])
-    return VecMonitor(venv)
-
-
-def make_vect_envs_norm(
-    num_envs: int,
-    robot_config: RobotConfig,
-    sensor_config: SensorConfig,
-    env_config: EnvConfig,
-    render_config: RenderConfig,
-    use_render: bool,
-    type_reward: RewardConfig,
-):
-    """Returns subprocess-vectorized environments with custom parameters.
-
-    :param num_envs: Number of vectorized environments
-    :type num_envs: int
-    :param robot_config: Robot configuration
-    :type robot_config: RobotConfig
-    :param sensor_config: Sensor configuration
-    :type sensor_config: SensorConfig
-    :param env_config: Environment configuration
-    :type env_config: EnvConfig
-    :param render_config: Render configuration
-    :type render_config: RenderConfig
-    :param use_render: Whether to render the environment
-    :type use_render: bool
-    :param type_reward: Reward configuration
-    :type type_reward: RewardConfig
-    :return: Vectorized environment
-    :rtype: VecMonitor
+class VectorEnv:
+    """
+    Simple vectorized environment wrapper for multiple parallel environments.
     """
 
-    def make_env(i):
-        def _init():
-            env = NaviEnv(
-                robot_config,
-                sensor_config,
-                env_config,
-                render_config,
-                use_render,
-                type_reward=type_reward,
-            )
-            env.reset(seed=13 + i)
-            return env
+    def __init__(self, envs):
+        self.envs = envs
+        self.num_envs = len(envs)
+        self.observation_space = envs[0].observation_space
+        self.action_space = envs[0].action_space
 
-        return _init
+    def reset(self):
+        """Reset all environments."""
+        observations = []
+        for env in self.envs:
+            obs, _ = env.reset()
+            observations.append(obs)
+        return np.array(observations)
 
-    venv = SubprocVecEnv([make_env(i) for i in range(num_envs)])
-    return VecMonitor(venv)
+    def step(self, actions):
+        """Step all environments with given actions."""
+        observations = []
+        rewards = []
+        dones = []
+        truncated_list = []
+        infos = []
+
+        for i, (env, action) in enumerate(zip(self.envs, actions)):
+            obs, reward, done, truncated, info = env.step(action)
+            observations.append(obs)
+            rewards.append(reward)
+            dones.append(done)
+            truncated_list.append(truncated)
+            infos.append(info)
+
+        return (
+            np.array(observations),
+            np.array(rewards),
+            np.array(dones),
+            np.array(truncated_list),
+            infos,
+        )
+
+    def env_method(self, method_name, *args, indices=None, **kwargs):
+        """Call a method on one or more environments."""
+        if indices is None:
+            indices = range(self.num_envs)
+        elif isinstance(indices, int):
+            indices = [indices]
+
+        results = []
+        for i in indices:
+            method = getattr(self.envs[i], method_name)
+            results.append(method(*args, **kwargs))
+        return results
+
+
+def make_vec_env_custom(
+    robot_config: RobotConfig,
+    sensor_config: SensorConfig,
+    env_config: EnvConfig,
+    render_config: RenderConfig,
+    reward_config: RewardConfig,
+    num_envs: int = 1,
+):
+    """
+    Create a vectorized environment.
+    """
+    envs = []
+    for i in range(num_envs):
+        env = NaviEnv(
+            robot_config,
+            sensor_config,
+            env_config,
+            render_config,
+            use_render=False,
+            type_reward=reward_config,
+        )
+        env.reset(seed=13 + i)
+        envs.append(env)
+
+    return VectorEnv(envs)

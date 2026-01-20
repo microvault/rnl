@@ -2,9 +2,7 @@ import os
 import random
 
 import wandb
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.monitor import Monitor
+import numpy as np
 
 from rnl.agents.evaluate import evaluate_agent, statistics
 from rnl.configs.config import (
@@ -17,8 +15,10 @@ from rnl.configs.config import (
 from rnl.configs.rewards import RewardConfig
 from rnl.engine.utils import print_config_table
 from rnl.environment.env import NaviEnv
-from rnl.network.model import CustomActorCriticPolicy
+from rnl.network.model import ActorCriticPolicy
+from rnl.network.ppo import PPO
 from rnl.training.callback import DynamicTrainingCallback
+from rnl.training.utils import make_environemnt
 
 
 def training(
@@ -68,42 +68,71 @@ def training(
     verbose_value = 0 if not trainer_config.verbose else 1
     model = None
 
-    def make_env():
-        env = NaviEnv(
-            robot_config,
-            sensor_config,
-            env_config,
-            render_config,
-            use_render=False,
-            type_reward=reward_config,
-        )
-        env = Monitor(env)
-        return env
+    # Create vectorized environments
+    from rnl.engine.vector import make_vec_env_custom
+    
+    vec_env = make_vec_env_custom(
+        robot_config=robot_config,
+        sensor_config=sensor_config,
+        env_config=env_config,
+        render_config=render_config,
+        reward_config=reward_config,
+        num_envs=trainer_config.num_envs,
+    )
 
-    vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
+    # Get observation and action dimensions
+    obs_dim = vec_env.observation_space.shape[0]
+    action_dim = vec_env.action_space.n
 
-    policy_kwargs = dict(
-        hidden_sizes=(trainer_config.hidden_size, trainer_config.hidden_size, 64)
+    # Create policy
+    policy = ActorCriticPolicy(
+        observation_dim=obs_dim,
+        action_dim=action_dim,
+        hidden_sizes=(trainer_config.hidden_size, trainer_config.hidden_size, 64),
     )
 
     if trainer_config.pretrained != "None":
-        model = PPO.load(trainer_config.pretrained)
-    else:
+        import torch
+        checkpoint = torch.load(trainer_config.pretrained + ".zip")
+        policy.load_state_dict(checkpoint["policy_state_dict"])
         model = PPO(
-            policy=CustomActorCriticPolicy,
+            policy=policy,
             env=vec_env,
-            batch_size=trainer_config.batch_size,
-            policy_kwargs=policy_kwargs,
-            verbose=verbose_value,
             learning_rate=trainer_config.lr,
             n_steps=trainer_config.learn_step,
-            vf_coef=trainer_config.vf_coef,
-            ent_coef=trainer_config.ent_coef,
-            device=trainer_config.device,
-            max_grad_norm=trainer_config.max_grad_norm,
+            batch_size=trainer_config.batch_size,
             n_epochs=trainer_config.update_epochs,
+            gamma=0.99,
+            gae_lambda=0.95,
+            clip_range=0.2,
             clip_range_vf=trainer_config.clip_range_vf,
+            ent_coef=trainer_config.ent_coef,
+            vf_coef=trainer_config.vf_coef,
+            max_grad_norm=trainer_config.max_grad_norm,
             target_kl=trainer_config.target_kl,
+            device=trainer_config.device,
+            verbose=verbose_value,
+            seed=trainer_config.seed,
+        )
+        model.num_timesteps = checkpoint.get("num_timesteps", 0)
+    else:
+        model = PPO(
+            policy=policy,
+            env=vec_env,
+            learning_rate=trainer_config.lr,
+            n_steps=trainer_config.learn_step,
+            batch_size=trainer_config.batch_size,
+            n_epochs=trainer_config.update_epochs,
+            gamma=0.99,
+            gae_lambda=0.95,
+            clip_range=0.2,
+            clip_range_vf=trainer_config.clip_range_vf,
+            ent_coef=trainer_config.ent_coef,
+            vf_coef=trainer_config.vf_coef,
+            max_grad_norm=trainer_config.max_grad_norm,
+            target_kl=trainer_config.target_kl,
+            device=trainer_config.device,
+            verbose=verbose_value,
             seed=trainer_config.seed,
         )
 
@@ -120,6 +149,9 @@ def training(
         render_config=render_config,
         type_reward=reward_config,
     )
+
+    # Initialize callback with model and environment
+    callback.init_callback(model, vec_env)
 
     if model is not None:
         model.learn(
@@ -144,11 +176,17 @@ def training(
 
     metrics = {}
     if model is not None:
+        # Get infos from environments
         infos_list = []
-        for i in range(model.n_envs):
-            env_info = model.get_env().env_method("get_infos", indices=i)[0]
-            if env_info:
-                infos_list.extend(env_info)
+        try:
+            for i in range(vec_env.num_envs if hasattr(vec_env, 'num_envs') else model.n_envs):
+                # Call get_infos method on each environment if available
+                if hasattr(vec_env, 'env_method'):
+                    env_info = vec_env.env_method("get_infos", indices=i)[0]
+                    if env_info:
+                        infos_list.extend(env_info)
+        except Exception as e:
+            print(f"Warning: Could not retrieve environment infos: {e}")
 
         stats = {}
         for campo in [

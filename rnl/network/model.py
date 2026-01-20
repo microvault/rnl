@@ -1,21 +1,19 @@
-from typing import Callable, Sequence, Tuple
+from typing import Sequence, Tuple
 
 import torch as th
-from gymnasium import spaces
-from stable_baselines3.common.policies import ActorCriticPolicy
 from torch import nn
 
 
 class CustomNetwork(nn.Module):
     """
     MLP extractor that lets you pick the *hidden* layer sizes
-    while mantendo latent_dim_pi / latent_dim_vf = 32.
+    while keeping latent_dim_pi / latent_dim_vf = 32.
     """
 
     def __init__(self, feature_dim: int, hidden: Sequence[int] = (128, 128, 64)):
         super().__init__()
 
-        self.latent_dim_pi = 32  # tamanho final fixo
+        self.latent_dim_pi = 32  # fixed final size
         self.latent_dim_vf = 32
 
         def block(in_f: int, out_f: int) -> nn.Sequential:
@@ -25,7 +23,7 @@ class CustomNetwork(nn.Module):
                 nn.LeakyReLU(),
             )
 
-        # build stacks dinamicamente
+        # build stacks dynamically
         policy_layers = []
         value_layers = []
         in_dim = feature_dim
@@ -34,7 +32,7 @@ class CustomNetwork(nn.Module):
             value_layers.append(block(in_dim, h))
             in_dim = h
 
-        # última projeção para 32
+        # final projection to 32
         policy_layers.append(block(in_dim, self.latent_dim_pi))
         value_layers.append(block(in_dim, self.latent_dim_vf))
 
@@ -51,27 +49,52 @@ class CustomNetwork(nn.Module):
         return self.value_net(features)
 
 
-class CustomActorCriticPolicy(ActorCriticPolicy):
+class ActorCriticPolicy(nn.Module):
     """
-    Policy que aceita `hidden_sizes` via policy_kwargs
-    (ex.: policy_kwargs=dict(hidden_sizes=(256,128,64))).
+    Actor-Critic policy network for PPO.
+    Policy that accepts `hidden_sizes` via constructor
+    (ex.: hidden_sizes=(256,128,64)).
     """
 
     def __init__(
         self,
-        observation_space: spaces.Space,
-        action_space: spaces.Space,
-        lr_schedule: Callable[[float], float],
+        observation_dim: int,
+        action_dim: int,
         hidden_sizes: Sequence[int] = (128, 128, 64),
-        **kwargs,
     ):
-        kwargs["ortho_init"] = False
+        super().__init__()
+        self.observation_dim = observation_dim
+        self.action_dim = action_dim
         self.hidden_sizes = hidden_sizes
-        super().__init__(observation_space, action_space, lr_schedule, **kwargs)
 
-    # constrói o extractor usando o tamanho escolhido
-    def _build_mlp_extractor(self) -> None:
+        # Feature extractor (identity in this case)
+        self.features_dim = observation_dim
+
+        # MLP extractor
         self.mlp_extractor = CustomNetwork(
-            feature_dim=self.features_extractor.features_dim,
+            feature_dim=self.features_dim,
             hidden=self.hidden_sizes,
         )
+
+        # Action distribution head
+        self.action_net = nn.Linear(self.mlp_extractor.latent_dim_pi, action_dim)
+
+        # Value function head
+        self.value_net = nn.Linear(self.mlp_extractor.latent_dim_vf, 1)
+
+    def forward(self, obs: th.Tensor) -> Tuple[th.Tensor, th.Tensor]:
+        """
+        Forward pass of the policy.
+        Returns: (action_logits, values)
+        """
+        # Extract features (identity in this case)
+        features = obs
+
+        # Get latent representations
+        latent_pi, latent_vf = self.mlp_extractor(features)
+
+        # Get action logits and values
+        action_logits = self.action_net(latent_pi)
+        values = self.value_net(latent_vf)
+
+        return action_logits, values
