@@ -1,10 +1,12 @@
+import gymnasium as gym
+import numpy as np
+from stable_baselines3.common.env_checker import check_env
+from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
+
 from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
 from rnl.environment.env import NaviEnv
-from stable_baselines3.common.vec_env import SubprocVecEnv, VecMonitor
-from stable_baselines3.common.env_checker import check_env
-import gymnasium as gym
-import numpy as np
+
 
 def _safe_plot(ax, y, color, label):
     if len(y) == 0:
@@ -18,9 +20,12 @@ def _safe_plot(ax, y, color, label):
     ax.tick_params(axis="x", labelsize=6)
     ax.tick_params(axis="y", labelsize=6)
     ax.text(
-        0.5, -0.25,
+        0.5,
+        -0.25,
         f"µ {np.mean(y):.4f} | min {np.min(y):.4f} | max {np.max(y):.4f}",
-        transform=ax.transAxes, ha="center", fontsize=6,
+        transform=ax.transAxes,
+        ha="center",
+        fontsize=6,
     )
 
 
@@ -46,6 +51,7 @@ def make_vect_envs(
 
     def make_env(i: int):
         env_mode = chosen_modes[i]
+
         def _init():
             print(f"[env {i}] modo → {env_mode}")
             env = NaviEnv(
@@ -60,6 +66,7 @@ def make_vect_envs(
             env.reset(seed=13 + i)
             check_env(env)
             return env
+
         return _init
 
     venv = SubprocVecEnv([make_env(i) for i in range(num_envs)])
