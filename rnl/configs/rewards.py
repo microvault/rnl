@@ -42,6 +42,7 @@ def prog_reward(
     reward = -scale_factor * current_distance
     return reward
 
+
 @njit
 def r3(x: float, threshold_collision: float, scale: float) -> float:
     margin = 0.3
