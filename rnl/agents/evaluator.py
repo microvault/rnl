@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
-
-import backoff
-from google import genai
-from google.genai import types
-import google.api_core.exceptions as gae
 import re
 
+import backoff
+import google.api_core.exceptions as gae
+from google import genai
+from google.genai import types
 
 DEFAULT_CONFIG = {
     "scale_orientation": 0.0,
@@ -21,24 +20,27 @@ DEFAULT_CONFIG = {
 
 class LLMTrainingEvaluator:
     def __init__(self, api_key: str, num_populations: int) -> None:
-            self.api_key = api_key
-            self.num_populations = num_populations
-            self.client = genai.Client(api_key=self.api_key)
-            self.schema = self._build_schema(num_populations)
+        self.api_key = api_key
+        self.num_populations = num_populations
+        self.client = genai.Client(api_key=self.api_key)
+        self.schema = self._build_schema(num_populations)
 
     def _build_schema(self, n: int) -> dict:
         item = {
             "type": "object",
             "required": [
-                "scale_orientation","scale_distance",
-                "scale_time","scale_obstacle","scale_angular"
+                "scale_orientation",
+                "scale_distance",
+                "scale_time",
+                "scale_obstacle",
+                "scale_angular",
             ],
             "properties": {
                 "scale_orientation": {"type": "number"},
-                "scale_distance":   {"type": "number"},
-                "scale_time":       {"type": "number"},
-                "scale_obstacle":   {"type": "number"},
-                "scale_angular":    {"type": "number"},
+                "scale_distance": {"type": "number"},
+                "scale_time": {"type": "number"},
+                "scale_obstacle": {"type": "number"},
+                "scale_angular": {"type": "number"},
             },
         }
         return {
@@ -60,8 +62,8 @@ class LLMTrainingEvaluator:
         if "{" not in txt or "}" not in txt:
             return None
         txt = txt[txt.find("{") : txt.rfind("}") + 1]
-        txt = re.sub(r",\s*}", "}", txt)          # vírgula pendurada
-        txt = txt.replace("NaN", "null")          # NaN → null
+        txt = re.sub(r",\s*}", "}", txt)  # vírgula pendurada
+        txt = txt.replace("NaN", "null")  # NaN → null
         return txt
 
     def _only_json_prompt(self, p: str) -> str:
@@ -74,16 +76,19 @@ class LLMTrainingEvaluator:
         data["configurations"] = cfgs[: self.num_populations]
         return data
 
-    @backoff.on_exception(backoff.expo,
-                          (gae.InternalServerError, gae.TooManyRequests, ValueError),
-                          max_tries=4, jitter=None)
+    @backoff.on_exception(
+        backoff.expo,
+        (gae.InternalServerError, gae.TooManyRequests, ValueError),
+        max_tries=4,
+        jitter=None,
+    )
     def _call_gemini(self, prompt: str) -> dict:
         resp = self.client.models.generate_content(
             model="gemini-2.0-flash-001",
-            contents = prompt + "\n\nJSON only, no explanations.",
+            contents=prompt + "\n\nJSON only, no explanations.",
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
-                candidate_count=1,           # + rápido
+                candidate_count=1,  # + rápido
                 temperature=0.5,
                 max_output_tokens=250,
             ),
@@ -102,7 +107,9 @@ class LLMTrainingEvaluator:
 
         raise ValueError("No parseable JSON")
 
-    def directed_reflection(self, best_population_metrics, history, summary_data, task) -> str:
+    def directed_reflection(
+        self, best_population_metrics, history, summary_data, task
+    ) -> str:
 
         hist_str = ""
         for loop_idx, loop_entry in enumerate(history, start=1):
@@ -189,9 +196,7 @@ class LLMTrainingEvaluator:
         ### Reflection:
         """
 
-
         print(f"\033[32m{prompt}\033[0m")
-
 
         client = genai.Client(api_key=self.api_key)
         response = client.models.generate_content(
@@ -283,7 +288,6 @@ class LLMTrainingEvaluator:
 
         Return ONLY the JSON (no comments, no explanatory text).
         """
-
 
         print(f"\033[34m{base_text}\033[0m")
 

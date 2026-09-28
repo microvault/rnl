@@ -1,8 +1,9 @@
+import io
+import zipfile
+
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
-import zipfile
-import io
 
 
 def block(in_f, out_f):
@@ -25,16 +26,17 @@ class PolicyBackbone(nn.Module):
 
 
 class RNLPolicy(nn.Module):
-    def __init__(self, in_dim: int, n_act: int,
-                 archive_path: str, device: str = "cpu"):
+    def __init__(self, in_dim: int, n_act: int, archive_path: str, device: str = "cpu"):
         super().__init__()
         self.backbone = PolicyBackbone(in_dim)
         self.head = nn.Linear(32, n_act)
 
-        with zipfile.ZipFile(archive_path, 'r') as archive:
-            with archive.open('policy.pth') as f:
+        with zipfile.ZipFile(archive_path, "r") as archive:
+            with archive.open("policy.pth") as f:
                 raw = f.read()
-                ckpt = torch.load(io.BytesIO(raw), map_location=device, weights_only=True)
+                ckpt = torch.load(
+                    io.BytesIO(raw), map_location=device, weights_only=True
+                )
 
         # ckpt = torch.load(archive_path, map_location=device, weights_only=True)
 
