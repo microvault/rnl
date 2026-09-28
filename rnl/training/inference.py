@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 
+
 def clamp(value, vmin, vmax):
     return max(vmin, min(value, vmax))
 

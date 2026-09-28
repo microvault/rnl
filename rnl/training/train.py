@@ -1,10 +1,10 @@
 import multiprocessing
 from collections import deque
 
-
 from rnl.agents.evaluator import LLMTrainingEvaluator
 from rnl.configs.rewards import RewardConfig
 from rnl.training.learn import training
+
 
 def train_worker(
     robot_config,
@@ -27,6 +27,7 @@ def train_worker(
     )
 
     return metrics
+
 
 def run_parallel_trainings(list_of_configs):
     results = []
@@ -77,7 +78,7 @@ def run_multiple_parallel_trainings(
         num_populations=num_populations,
     )
 
-    history     = deque(maxlen=10)
+    history = deque(maxlen=10)
     reflections = deque(maxlen=10)
     current_configs = initial_configs.copy()
 
@@ -94,14 +95,14 @@ def run_multiple_parallel_trainings(
                     "angle": best_metrics.get("orientation_score_mean", 0.0),
                     "distance": best_metrics.get("progress_score_mean", 0.0),
                     "time": best_metrics.get("time_score_mean", 0.0),
-                    "angular": best_metrics.get("angular_score_mean", 0.0)
+                    "angular": best_metrics.get("angular_score_mean", 0.0),
                 },
                 "scales": {
                     "scale obstacle": best_metrics.get("scale_obstacle", 0.0),
                     "scale angle": best_metrics.get("scale_orientation", 0.0),
                     "scale distance": best_metrics.get("scale_distance", 0.0),
                     "scale time": best_metrics.get("scale_time", 0.0),
-                    "scale angular": best_metrics.get("scale_angular", 0.0)
+                    "scale angular": best_metrics.get("scale_angular", 0.0),
                 },
                 "metrics": {
                     "success_pct": best_metrics.get("success_percentage", 0.0),
@@ -111,10 +112,11 @@ def run_multiple_parallel_trainings(
             }
         ]
 
-        reflection = evaluator.directed_reflection(best_metrics, history, summary_data, description_task)
+        reflection = evaluator.directed_reflection(
+            best_metrics, history, summary_data, description_task
+        )
         reflections.append(reflection)
         print(f"\033[35m{reflection}\033[0m")
-
 
         llm_response = evaluator.request_configurations_for_all(
             summary_data, history, reflections, num_populations
@@ -163,9 +165,8 @@ def run_multiple_parallel_trainings(
                             "scale angle": best_metrics.get("scale_orientation", 0.0),
                             "scale distance": best_metrics.get("scale_distance", 0.0),
                             "scale time": best_metrics.get("scale_time", 0.0),
-                            "scale angular": best_metrics.get("scale_angular", 0.0)
+                            "scale angular": best_metrics.get("scale_angular", 0.0),
                         },
-
                     }
                 ],
             }

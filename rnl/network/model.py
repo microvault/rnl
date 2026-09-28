@@ -1,8 +1,9 @@
 from typing import Callable, Sequence, Tuple
+
 import torch as th
-from torch import nn
 from gymnasium import spaces
 from stable_baselines3.common.policies import ActorCriticPolicy
+from torch import nn
 
 
 class CustomNetwork(nn.Module):
@@ -10,10 +11,11 @@ class CustomNetwork(nn.Module):
     MLP extractor that lets you pick the *hidden* layer sizes
     while mantendo latent_dim_pi / latent_dim_vf = 32.
     """
+
     def __init__(self, feature_dim: int, hidden: Sequence[int] = (128, 128, 64)):
         super().__init__()
 
-        self.latent_dim_pi = 32   # tamanho final fixo
+        self.latent_dim_pi = 32  # tamanho final fixo
         self.latent_dim_vf = 32
 
         def block(in_f: int, out_f: int) -> nn.Sequential:
@@ -54,6 +56,7 @@ class CustomActorCriticPolicy(ActorCriticPolicy):
     Policy que aceita `hidden_sizes` via policy_kwargs
     (ex.: policy_kwargs=dict(hidden_sizes=(256,128,64))).
     """
+
     def __init__(
         self,
         observation_space: spaces.Space,
