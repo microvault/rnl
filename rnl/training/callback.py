@@ -1,13 +1,13 @@
 import os
 import time
 
+import numpy as np
 from stable_baselines3.common.callbacks import BaseCallback
 
-import numpy as np
 from rnl.agents.evaluate import evaluate_agent, statistics
-from rnl.training.utils import make_environemnt
-from rnl.configs.config import RobotConfig, SensorConfig, EnvConfig, RenderConfig
+from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfig
 from rnl.configs.rewards import RewardConfig
+from rnl.training.utils import make_environemnt
 
 
 class DynamicTrainingCallback(BaseCallback):
@@ -92,11 +92,25 @@ class DynamicTrainingCallback(BaseCallback):
                 "percentage_angular_mean": percentage_angular,
                 "avg_collision_steps_mean": avg_collision_steps,
                 "avg_goal_steps_mean": avg_goal_steps,
-                **{campo + "_mean": stats.get(campo + "_mean", 0.0) for campo in [
-                    "time_score", "progress_score", "orientation_score", "obstacle_score"
-                ]},
-                "ep_rew_mean": float(np.mean(self.episode_rewards)) if self.episode_rewards else 0.0,
-                "ep_len_mean": float(np.mean(self.episode_lengths)) if self.episode_lengths else 0.0,
+                **{
+                    campo + "_mean": stats.get(campo + "_mean", 0.0)
+                    for campo in [
+                        "time_score",
+                        "progress_score",
+                        "orientation_score",
+                        "obstacle_score",
+                    ]
+                },
+                "ep_rew_mean": (
+                    float(np.mean(self.episode_rewards))
+                    if self.episode_rewards
+                    else 0.0
+                ),
+                "ep_len_mean": (
+                    float(np.mean(self.episode_lengths))
+                    if self.episode_lengths
+                    else 0.0
+                ),
             }
 
             for k, v in mean_metrics.items():
