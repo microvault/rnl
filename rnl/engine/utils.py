@@ -1,32 +1,35 @@
+import json
+import math
+import os
 import random
-from typing import List, Optional, Tuple, Dict
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
 from numba import njit
-from pathlib import Path
-import json, os
-import math
+
 
 def load_pgm(pgm_path: str) -> np.ndarray:
-    with open(pgm_path, 'rb') as f:
+    with open(pgm_path, "rb") as f:
         # cabeçalho
         magic = f.readline().strip()
-        if magic != b'P5':
+        if magic != b"P5":
             raise ValueError("Only PGM P5 is supported")
         line = f.readline()
-        while line.startswith(b'#'):
+        while line.startswith(b"#"):
             line = f.readline()
         width, height = map(int, line.split())
         maxval = int(f.readline())
         dtype = np.uint8 if maxval < 256 else np.uint16
-        img = np.fromfile(f, dtype=dtype, count=width*height)
+        img = np.fromfile(f, dtype=dtype, count=width * height)
     return img.reshape((height, width))
 
 
 def load_summary(run_dir: str) -> Dict[str, float]:
     path = os.path.join(run_dir, "files", "wandb-summary.json")
     return json.load(open(path)) if os.path.isfile(path) else {}
+
 
 def sample_history(run_dir: str, metric: str, k: int = 10) -> List[Tuple[int, float]]:
     hist = os.path.join(run_dir, "files", "wandb-history.jsonl")
@@ -41,7 +44,7 @@ def sample_history(run_dir: str, metric: str, k: int = 10) -> List[Tuple[int, fl
     if not steps:
         return []
 
-    idx = np.linspace(0, len(steps)-1, k, dtype=int)
+    idx = np.linspace(0, len(steps) - 1, k, dtype=int)
     return [(steps[i], vals[i]) for i in idx]
 
 
@@ -73,7 +76,9 @@ def _parse_simple_yaml(path: str) -> dict:
         else:
             if value.startswith("[") and value.endswith("]"):
                 value = [v.strip() for v in value[1:-1].split(",") if v.strip()]
-                value = [float(x) if x.replace(".", "", 1).isdigit() else x for x in value]
+                value = [
+                    float(x) if x.replace(".", "", 1).isdigit() else x for x in value
+                ]
             elif value.lower() in ("true", "false"):
                 value = value.lower() == "true"
             else:
@@ -84,6 +89,7 @@ def _parse_simple_yaml(path: str) -> dict:
             current[key] = value
 
     return root
+
 
 @njit(fastmath=True, cache=True)
 def normalize_module(value, min_val, max_val):
@@ -112,7 +118,7 @@ def angle_to_goal(x, y, theta, goal_x, goal_y, max_value):
     gx, gy = goal_x - x, goal_y - y
 
     cross_val = ox * gy - oy * gx
-    dot_val   = ox * gx + oy * gy
+    dot_val = ox * gx + oy * gy
 
     alpha = abs(math.atan2(abs(cross_val), dot_val))
     return max_value if alpha >= max_value else alpha
