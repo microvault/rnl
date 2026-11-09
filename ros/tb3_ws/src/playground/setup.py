@@ -1,10 +1,12 @@
-from setuptools import find_packages, setup
 from glob import glob
+
+from setuptools import find_packages, setup
 
 package_name = "playground"
 
 map_files = [
-    f for pattern in ("map*/**/*.pgm", "map*/**/*.yaml")
+    f
+    for pattern in ("map*/**/*.pgm", "map*/**/*.yaml")
     for f in glob(pattern, recursive=True)
 ]
 
