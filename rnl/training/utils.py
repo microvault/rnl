@@ -2,6 +2,7 @@ from rnl.configs.config import EnvConfig, RenderConfig, RobotConfig, SensorConfi
 from rnl.configs.rewards import RewardConfig
 from rnl.environment.env import NaviEnv
 
+
 def make_environemnt(
     robot_config: RobotConfig,
     sensor_config: SensorConfig,
