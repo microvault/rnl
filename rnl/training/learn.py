@@ -1,13 +1,12 @@
-from stable_baselines3 import PPO
-
-from stable_baselines3.common.monitor import Monitor
-from stable_baselines3.common.env_util import make_vec_env
 import os
 import random
+
 import wandb
-from rnl.network.model import CustomActorCriticPolicy
+from stable_baselines3 import PPO
+from stable_baselines3.common.env_util import make_vec_env
+from stable_baselines3.common.monitor import Monitor
+
 from rnl.agents.evaluate import evaluate_agent, statistics
-from rnl.engine.utils import print_config_table
 from rnl.configs.config import (
     EnvConfig,
     RenderConfig,
@@ -16,8 +15,11 @@ from rnl.configs.config import (
     TrainerConfig,
 )
 from rnl.configs.rewards import RewardConfig
+from rnl.engine.utils import print_config_table
 from rnl.environment.env import NaviEnv
+from rnl.network.model import CustomActorCriticPolicy
 from rnl.training.callback import DynamicTrainingCallback
+
 
 def training(
     robot_config: RobotConfig,
@@ -80,8 +82,9 @@ def training(
 
     vec_env = make_vec_env(make_env, n_envs=trainer_config.num_envs)
 
-    policy_kwargs = dict(hidden_sizes=(trainer_config.hidden_size, trainer_config.hidden_size, 64))
-
+    policy_kwargs = dict(
+        hidden_sizes=(trainer_config.hidden_size, trainer_config.hidden_size, 64)
+    )
 
     if trainer_config.pretrained != "None":
         model = PPO.load(trainer_config.pretrained)
@@ -103,7 +106,6 @@ def training(
             target_kl=trainer_config.target_kl,
             seed=trainer_config.seed,
         )
-
 
     id = random.randint(0, 1000000)
     callback = DynamicTrainingCallback(
@@ -165,10 +167,10 @@ def training(
 
     scales = {
         "scale_orientation": reward_config.params["scale_orientation"],
-        "scale_distance":   reward_config.params["scale_distance"],
-        "scale_time":       reward_config.params["scale_time"],
-        "scale_obstacle":   reward_config.params["scale_obstacle"],
-        "scale_angular":    reward_config.params["scale_angular"],
+        "scale_distance": reward_config.params["scale_distance"],
+        "scale_time": reward_config.params["scale_time"],
+        "scale_obstacle": reward_config.params["scale_obstacle"],
+        "scale_angular": reward_config.params["scale_angular"],
     }
 
     eval_keys = [
